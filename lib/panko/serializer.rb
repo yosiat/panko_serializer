@@ -47,7 +47,6 @@ module Panko
           const_set name.upcase, name.to_s.freeze
 
           if type == :has_one
-            # TODO: initialize the name serializer in initialize, better perf on reuse.
             <<-EOMETHOD
               @#{name}_serializer = #{serializer.name}.new unless defined? @#{name}_serializer
               @#{name}_serializer.subject = subject.#{name}
@@ -56,7 +55,6 @@ module Panko
           end
 
           if type == :has_many
-            # TODO: initialize the name serializer in initialize, better perf on reuse.
             <<-EOMETHOD
               @#{name}_serializer = Panko::ArraySerializer.new([], each_serializer: #{serializer.name}) unless defined? @#{name}_serializer
               @#{name}_serializer.subjects = subject.#{name}
@@ -71,21 +69,12 @@ module Panko
           end
         EOMETHOD
 
-        puts associations_reader_method_body
-
         class_eval associations_reader_method_body, __FILE__, __LINE__
       end
 
       def build_attributes_reader
         setters = @_attributes.map do |attr|
           const_set attr.upcase, attr.to_s.freeze
-
-          if attr == :yosi
-            puts self.name
-            puts method_defined? :yosi
-            puts method_defined? "yosi"
-            exit
-          end
 
           reader = "subject.#{attr}"
 

@@ -1,3 +1,2 @@
-require 'panko'
-require 'panko/serializer'
-require 'panko/array_serializer'
+require_relative 'panko/serializer'
+require_relative 'panko/array_serializer'
