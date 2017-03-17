@@ -17,12 +17,7 @@ module Panko
         def serializable_object
           serializer = #{@each_serializer}.new
 
-          @subjects.map do |item|
-            obj = {}
-
-            serializer.subject = item
-            serializer.serializable_object obj
-          end
+          @subjects.map { |item| serializer.serialize item }
         end
       EOMETHOD
 

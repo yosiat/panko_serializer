@@ -9,101 +9,81 @@ module Panko
         @_associations = []
       end
 
-      attr_accessor :_attributes, :_associations, :_associations_serializers
+      attr_accessor :_attributes, :_associations
 
       def attributes *attrs
         @_attributes.concat attrs
-
-        build_attributes_reader
-        #build_associations_reader
       end
 
 
       def has_one name, options
         serializer = options[:serializer]
-
         @_associations << [name, :has_one, serializer]
-
-        build_associations_reader
       end
 
       def has_many name, options
         serializer = options[:serializer]
-
         @_associations << [name, :has_many, serializer]
-
-        build_associations_reader
       end
+    end
 
-      private
+    def initialize
+      build_attributes_reader
+    end
 
+    def serialize subject
+      serializable_object subject, {}
+    end
+
+private
       def build_associations_reader
         return_object = "obj"
 
-        setters = @_associations.map do |association|
+        associations = self.class._associations.map do |association|
           name, type, serializer = association
 
-          # memoize the key
-          const_set name.upcase, name.to_s.freeze
+          self.class.const_set name.upcase, name.to_s.freeze unless self.class.const_defined? name.upcase
 
           if type == :has_one
-            <<-EOMETHOD
+            return <<-EOMETHOD
               @#{name}_serializer = #{serializer.name}.new unless defined? @#{name}_serializer
-              @#{name}_serializer.subject = subject.#{name}
-              #{return_object}[#{name.upcase}] = @#{name}_serializer.serializable_object
+              #{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}
             EOMETHOD
           end
 
           if type == :has_many
-            <<-EOMETHOD
+            return <<-EOMETHOD
               @#{name}_serializer = Panko::ArraySerializer.new([], each_serializer: #{serializer.name}) unless defined? @#{name}_serializer
-              @#{name}_serializer.subjects = subject.#{name}
-              #{return_object}[#{name.upcase}] = @#{name}_serializer.serializable_object
+              #{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}
             EOMETHOD
           end
-        end.join "\n"
+        end
 
-        associations_reader_method_body = <<-EOMETHOD
-          def read_associations  obj
-            #{setters}
-          end
-        EOMETHOD
-
-        class_eval associations_reader_method_body, __FILE__, __LINE__
+				associations
       end
 
       def build_attributes_reader
-        setters = @_attributes.map do |attr|
-          const_set attr.upcase, attr.to_s.freeze
+        setters = self.class._attributes.map do |attr|
+          self.class.const_set attr.upcase, attr.to_s.freeze unless self.class.const_defined? attr.upcase
 
           reader = "subject.#{attr}"
+					if self.class.method_defined? attr
+						reader = attr
+					end
 
           "obj[#{attr.upcase}] = #{reader}"
           "obj[\"#{attr}\"] = #{reader}"
         end.join "\n"
 
         attributes_reader_method_body = <<-EOMETHOD
-          def read_attributes obj
+          def serializable_object subject, obj
             #{setters}
+						#{build_associations_reader}
+						obj
           end
         EOMETHOD
 
-
-
-        class_eval attributes_reader_method_body, __FILE__, __LINE__
+				instance_eval attributes_reader_method_body, __FILE__, __LINE__
       end
-    end
-
-    attr_accessor :subject
-
-    def read_associations obj
-    end
-
-
-    def serializable_object obj={}
-      read_attributes obj
-      read_associations obj unless self.class._associations.empty?
-      obj
-    end
   end
 end
