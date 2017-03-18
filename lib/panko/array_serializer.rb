@@ -6,18 +6,19 @@ module Panko
       @subjects = subjects
       @each_serializer = options[:each_serializer]
 
+			@serializer_instance = @each_serializer.new
       build_reader
     end
 
+		def serializable_object
+			serialize @subjects
+		end
 
+private
     def build_reader
-      type = @subjects.first.class.name
-
       reader_method_body = <<-EOMETHOD
-        def serializable_object
-          serializer = #{@each_serializer}.new
-
-          @subjects.map { |item| serializer.serialize item }
+        def serialize subjects
+					subjects.map { |item| @serializer_instance.serialize item }
         end
       EOMETHOD
 
