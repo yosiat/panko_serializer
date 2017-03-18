@@ -21,9 +21,8 @@ Or install it yourself as:
 
 ## TODO
 
-- [] tests
-- [] Rename "subject" to "object"
 - [] only, except
+- [] has_many: embedding of ids
 
 
 ## License

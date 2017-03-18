@@ -25,7 +25,7 @@ RSpec.describe Panko::Serializer do
         attributes :name, :address, :something
 
         def something
-          "#{subject.name} #{subject.address}"
+          "#{object.name} #{object.address}"
         end
       end
 
@@ -102,16 +102,6 @@ RSpec.describe Panko::Serializer do
       })
     end
   end
-  #
-  # attributes -
-  #
   # subject -
   #   nil subject
-  #
-  #
-  # has_one
-  #
-  #
-  # has_many
-
 end

@@ -31,10 +31,10 @@ module Panko
       build_attributes_reader
     end
 
-    attr_reader :subject
+    attr_reader :object
 
-    def serialize subject
-      serializable_object subject, {}
+    def serialize object
+      serializable_object object, {}
     end
 
     private
@@ -50,12 +50,12 @@ module Panko
         if type == :has_one
           instance_variable_set "@#{name}_serializer", Object.const_get(serializer.name).new
 
-          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
+          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
         elsif type == :has_many
           array_serializer = Panko::ArraySerializer.new([], each_serializer: Object.const_get(serializer.name))
           instance_variable_set "@#{name}_serializer", array_serializer
 
-          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
+          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
         end
       end
 
@@ -66,7 +66,7 @@ module Panko
       setters = self.class._attributes.map do |attr|
         self.class.const_set attr.upcase, attr.to_s.freeze unless self.class.const_defined? attr.upcase
 
-        reader = "subject.#{attr}"
+        reader = "object.#{attr}"
         if self.class.method_defined? attr
           reader = attr
         end
@@ -76,8 +76,8 @@ module Panko
 
 
       attributes_reader_method_body = <<-EOMETHOD
-        def serializable_object subject, obj
-          @subject = subject
+        def serializable_object object, obj
+          @object = object
           #{setters}
           #{build_associations_reader}
           obj
