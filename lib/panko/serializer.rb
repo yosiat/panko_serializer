@@ -45,21 +45,18 @@ private
           self.class.const_set name.upcase, name.to_s.freeze unless self.class.const_defined? name.upcase
 
           if type == :has_one
-            return <<-EOMETHOD
-              @#{name}_serializer = #{serializer.name}.new unless defined? @#{name}_serializer
-              #{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}
-            EOMETHOD
-          end
+						instance_variable_set "@#{name}_serializer", Object.const_get(serializer.name).new
 
-          if type == :has_many
-            return <<-EOMETHOD
-              @#{name}_serializer = Panko::ArraySerializer.new([], each_serializer: #{serializer.name}) unless defined? @#{name}_serializer
-              #{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}
-            EOMETHOD
+            "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
+          elsif type == :has_many
+						array_serializer = Panko::ArraySerializer.new([], each_serializer: Object.const_get(serializer.name))
+						instance_variable_set "@#{name}_serializer", array_serializer
+
+            "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
           end
         end
 
-				associations
+				associations.join "\n"
       end
 
       def build_attributes_reader
@@ -72,8 +69,8 @@ private
 					end
 
           "obj[#{attr.upcase}] = #{reader}"
-          "obj[\"#{attr}\"] = #{reader}"
         end.join "\n"
+
 
         attributes_reader_method_body = <<-EOMETHOD
           def serializable_object subject, obj
@@ -83,6 +80,7 @@ private
           end
         EOMETHOD
 
+				# TODO: don't redefine if [attributes+associations] wasn't changed
 				instance_eval attributes_reader_method_body, __FILE__, __LINE__
       end
   end
