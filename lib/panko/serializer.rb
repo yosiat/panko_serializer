@@ -1,18 +1,7 @@
+require_relative 'attributes/has_one'
+require_relative 'attributes/has_many'
+
 module Panko
-  HasOneAttribute = Struct.new(:name, :serializer) do
-
-    def create_serializer serializer_const
-      serializer_const.new
-    end
-  end
-
-  HasManyAttribute = Struct.new(:name, :serializer) do
-
-    def create_serializer serializer_const
-      Panko::ArraySerializer.new([], each_serializer: serializer_const)
-    end
-  end
-
   class Serializer
     class << self
       def inherited(base)
@@ -55,40 +44,14 @@ module Panko
 
     RETURN_OBJECT = "serialized_object"
 
-    def build_associations_reader
-
-      associations = self.class._associations.map do |association|
-        const_name = constantize_attribute association.name
-
-        serializer_instance_variable = "@#{association.name}_serializer"
-        serializer = association.create_serializer Object.const_get(association.serializer.name)
-
-        instance_variable_set serializer_instance_variable, serializer
-
-        "#{RETURN_OBJECT}[#{const_name}] = #{serializer_instance_variable}.serialize object.#{association.name}"
-      end
-
-      associations.join "\n"
-    end
-
     def build_attributes_reader
-      setters = self.class._attributes.map do |attr|
-        const_name = constantize_attribute attr
-
-        reader = "object.#{attr}"
-        if self.class.method_defined? attr
-          reader = attr
-        end
-
-        "#{RETURN_OBJECT}[#{const_name}] = #{reader}"
-      end.join "\n"
-
-
       attributes_reader_method_body = <<-EOMETHOD
         def serializable_object object, #{RETURN_OBJECT}
           @object = object
-          #{setters}
-          #{build_associations_reader}
+
+          #{attributes_code}
+          #{associations_code}
+
           #{RETURN_OBJECT}
         end
       EOMETHOD
@@ -97,12 +60,76 @@ module Panko
       instance_eval attributes_reader_method_body, __FILE__, __LINE__
     end
 
+    #
+    # Creates const for the given attr with it's name
+    # frozen as value.
+    #
+    # This is for saving object allocations, so, instead of -
+    # `obj["name"] = object.name`
+    #
+    # we do:
+    # ```
+    #   # once
+    #   NAME = 'name'.freeze
+    #
+    #   # later
+    #   obj[NAME] = object.name
+    # ```
     def constantize_attribute attr
       unless self.class.const_defined? attr.upcase
         self.class.const_set attr.upcase, attr.to_s.freeze
       end
 
       attr.upcase
+    end
+
+    #
+    # Generates the code for serializing attributes
+    # The end result of this code for each attributes is pretty simple,
+    #
+    # For example:
+    #   `serializable_object[NAME] = object.name`
+    #
+    #
+    def attributes_code
+      self.class._attributes.map do |attr|
+        const_name = constantize_attribute attr
+
+        #
+        # Detects what the reader should be
+        #
+        # for methods we it's just
+        #   `attr`
+        # otherwise it is:
+        #   `object.attr`
+        #
+        reader = "object.#{attr}"
+        if self.class.method_defined? attr
+          reader = attr
+        end
+
+        "#{RETURN_OBJECT}[#{const_name}] = #{reader}"
+      end.join("\n")
+    end
+
+    def associations_code
+      self.class._associations.map do |association|
+        const_name = constantize_attribute association.name
+
+        #
+        # Create instance variable to store the serializer for reusing of serializer.
+        #
+        # Example:
+        #   For `has_one :foo, serializer: FooSerializer`
+        #   @foo_serializer = FooSerializer.new
+        #
+        serializer_instance_variable = "@#{association.name}_serializer"
+        serializer = association.create_serializer Object.const_get(association.serializer.name)
+
+        instance_variable_set serializer_instance_variable, serializer
+
+        "#{RETURN_OBJECT}[#{const_name}] = #{serializer_instance_variable}.serialize object.#{association.name}"
+      end.join("\n")
     end
   end
 end
