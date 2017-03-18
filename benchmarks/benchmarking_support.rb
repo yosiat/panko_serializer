@@ -3,15 +3,10 @@ require 'json'
 
 module Benchmark
   module ActiveModelSerializers
-    module TestMethods
-      def request(method, path)
-        response = Rack::MockRequest.new(BenchmarkApp).send(method, path)
-        if response.status.in?([404, 500])
-          fail "omg, #{method}, #{path}, '#{response.status}', '#{response.body}'"
-        end
-        response
-      end
-    end
+    FORMATS = {
+      "pretty" => "%s\t%8d ip/s\t%8d allocs/op",
+      "markdown" => "|%s|%d|%d|"
+    }
 
     def ams(label = nil, time: 10, disable_gc: true, warmup: 3, &block)
       fail ArgumentError.new, 'block should be passed' unless block_given?
@@ -30,7 +25,10 @@ module Benchmark
 
       entry = report.entries.first
 
-			output = sprintf "%s\t%8d ip/s\t%8d allocs/op", label, entry.ips, count_total_allocated_objects(&block)
+      format = ENV.fetch("FORMAT", "pretty")
+      format = FORMATS[format]
+
+			output = sprintf(format, label, entry.ips, count_total_allocated_objects(&block))
 			puts output
     end
 
