@@ -1,4 +1,18 @@
 module Panko
+  HasOneAttribute = Struct.new(:name, :serializer) do
+
+    def create_serializer serializer_const
+      serializer_const.new
+    end
+  end
+
+  HasManyAttribute = Struct.new(:name, :serializer) do
+
+    def create_serializer serializer_const
+      Panko::ArraySerializer.new([], each_serializer: serializer_const)
+    end
+  end
+
   class Serializer
     class << self
       def inherited(base)
@@ -18,12 +32,12 @@ module Panko
 
       def has_one name, options
         serializer = options[:serializer]
-        @_associations << [name, :has_one, serializer]
+        @_associations << HasOneAttribute.new(name, serializer)
       end
 
       def has_many name, options
         serializer = options[:serializer]
-        @_associations << [name, :has_many, serializer]
+        @_associations << HasManyAttribute.new(name, serializer)
       end
     end
 
@@ -44,21 +58,14 @@ module Panko
     def build_associations_reader
 
       associations = self.class._associations.map do |association|
-        name, type, serializer = association
+        const_name = constantize_attribute association.name
 
-        constantize_attribute name
+        serializer_instance_variable = "@#{association.name}_serializer"
+        serializer = association.create_serializer Object.const_get(association.serializer.name)
 
-        serializer_instance_variable = "@#{name}_serializer"
-        serialized_resolved_const = Object.const_get(serializer.name)
+        instance_variable_set serializer_instance_variable, serializer
 
-        if type == :has_one
-          instance_variable_set serializer_instance_variable, serialized_resolved_const.new
-        elsif type == :has_many
-          array_serializer = Panko::ArraySerializer.new([], each_serializer: serialized_resolved_const)
-          instance_variable_set serializer_instance_variable, array_serializer
-        end
-
-        "#{RETURN_OBJECT}[#{name.upcase}] = #{serializer_instance_variable}.serialize object.#{name}"
+        "#{RETURN_OBJECT}[#{const_name}] = #{serializer_instance_variable}.serialize object.#{association.name}"
       end
 
       associations.join "\n"
@@ -66,14 +73,14 @@ module Panko
 
     def build_attributes_reader
       setters = self.class._attributes.map do |attr|
-        constantize_attribute attr
+        const_name = constantize_attribute attr
 
         reader = "object.#{attr}"
         if self.class.method_defined? attr
           reader = attr
         end
 
-        "#{RETURN_OBJECT}[#{attr.upcase}] = #{reader}"
+        "#{RETURN_OBJECT}[#{const_name}] = #{reader}"
       end.join "\n"
 
 
@@ -91,8 +98,11 @@ module Panko
     end
 
     def constantize_attribute attr
-      return if self.class.const_defined? attr.upcase
-      self.class.const_set attr.upcase, attr.to_s.freeze
+      unless self.class.const_defined? attr.upcase
+        self.class.const_set attr.upcase, attr.to_s.freeze
+      end
+
+      attr.upcase
     end
   end
 end
