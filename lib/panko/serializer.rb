@@ -46,7 +46,7 @@ module Panko
       associations = self.class._associations.map do |association|
         name, type, serializer = association
 
-        self.class.const_set name.upcase, name.to_s.freeze unless self.class.const_defined? name.upcase
+        constantize_attribute name
 
         serializer_instance_variable = "@#{name}_serializer"
         serialized_resolved_const = Object.const_get(serializer.name)
@@ -66,7 +66,7 @@ module Panko
 
     def build_attributes_reader
       setters = self.class._attributes.map do |attr|
-        self.class.const_set attr.upcase, attr.to_s.freeze unless self.class.const_defined? attr.upcase
+        constantize_attribute attr
 
         reader = "object.#{attr}"
         if self.class.method_defined? attr
@@ -88,6 +88,11 @@ module Panko
 
       # TODO: don't redefine if [attributes+associations] wasn't changed
       instance_eval attributes_reader_method_body, __FILE__, __LINE__
+    end
+
+    def constantize_attribute attr
+      return if self.class.const_defined? attr.upcase
+      self.class.const_set attr.upcase, attr.to_s.freeze
     end
   end
 end
