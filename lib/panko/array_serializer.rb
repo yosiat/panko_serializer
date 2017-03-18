@@ -9,7 +9,8 @@ module Panko
 
       serializer_options = {
         only: options.fetch(:only, []),
-        except: options.fetch(:except, [])
+        except: options.fetch(:except, []),
+        context: options.fetch(:context, nil)
       }
 
 			@serializer_instance = @each_serializer.new serializer_options
@@ -22,6 +23,5 @@ module Panko
 		def serialize subjects
       subjects.to_a.map { |item| @serializer_instance.serialize item }
 		end
-
   end
 end

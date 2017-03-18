@@ -42,6 +42,29 @@ RSpec.describe Panko::Serializer do
     end
   end
 
+  context "context" do
+    it "passes context to attribute methods" do
+      class FooWithContextSerializer < Panko::Serializer
+        attributes :name, :context_value
+
+        def context_value
+          context[:value]
+        end
+      end
+
+      context = { value: Faker::Lorem.word }
+      serializer = FooWithContextSerializer.new(context: context)
+      foo = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+
+      output = serializer.serialize foo
+
+      expect(output).to eq({
+        "name" => foo.name,
+        "context_value" => context[:value]
+      })
+    end
+  end
+
   context "filter" do
     it "only" do
       serializer = FooSerializer.new(only: [:name])

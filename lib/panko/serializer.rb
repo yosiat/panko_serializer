@@ -33,10 +33,12 @@ module Panko
     def initialize options={}
       @only = options.fetch(:only, [])
       @except = options.fetch(:except, [])
+      @context = options.fetch(:context, nil)
+
       build_attributes_reader
     end
 
-    attr_reader :object
+    attr_reader :object, :context
 
     def serialize object
       serializable_object object, {}
