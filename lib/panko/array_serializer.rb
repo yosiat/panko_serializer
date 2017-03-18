@@ -6,7 +6,13 @@ module Panko
       @subjects = subjects
       @each_serializer = options[:each_serializer]
 
-			@serializer_instance = @each_serializer.new
+
+      serializer_options = {
+        only: options.fetch(:only, []),
+        except: options.fetch(:except, [])
+      }
+
+			@serializer_instance = @each_serializer.new serializer_options
     end
 
 		def serializable_object

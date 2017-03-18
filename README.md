@@ -1,27 +1,10 @@
 # Panko
 
 
-
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'panko'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install panko
-
-
 ## TODO
 
 - [] only, except
+- [] passing context down..
 - [] has_many: embedding of ids
 
 

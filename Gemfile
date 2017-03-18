@@ -16,6 +16,10 @@ gem 'activerecord', gem_version, group: :test
 group :benchmarks do
   gem 'sqlite3'
 
+  gem 'memory_profiler'
+  gem 'ruby-prof'
+  gem 'ruby-prof-flamegraph'
+
   gem 'benchmark-ips'
   gem 'active_model_serializers', git: 'git@github.com:rails-api/active_model_serializers.git', branch: '0-9-stable'
 end

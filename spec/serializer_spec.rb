@@ -42,6 +42,30 @@ RSpec.describe Panko::Serializer do
     end
   end
 
+  context "filter" do
+    it "only" do
+      serializer = FooSerializer.new(only: [:name])
+      foo = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+
+      output = serializer.serialize foo
+
+      expect(output).to eq({
+        "name" => foo.name
+      })
+    end
+
+    it "except" do
+      serializer = FooSerializer.new(except: [:name])
+      foo = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+
+      output = serializer.serialize foo
+
+      expect(output).to eq({
+        "address" => foo.address
+      })
+    end
+  end
+
   context "has_one" do
     it "serializes using the given serializer" do
       FooHolder = Struct.new(:name, :foo)
@@ -102,6 +126,4 @@ RSpec.describe Panko::Serializer do
       })
     end
   end
-  # subject -
-  #   nil subject
 end

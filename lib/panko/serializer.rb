@@ -30,7 +30,9 @@ module Panko
       end
     end
 
-    def initialize
+    def initialize options={}
+      @only = options.fetch(:only, [])
+      @except = options.fetch(:except, [])
       build_attributes_reader
     end
 
@@ -92,7 +94,7 @@ module Panko
     #
     #
     def attributes_code
-      self.class._attributes.map do |attr|
+      filter(self.class._attributes).map do |attr|
         const_name = constantize_attribute attr
 
         #
@@ -113,7 +115,7 @@ module Panko
     end
 
     def associations_code
-      self.class._associations.map do |association|
+      filter(self.class._associations).map do |association|
         const_name = constantize_attribute association.name
 
         #
@@ -130,6 +132,18 @@ module Panko
 
         "#{RETURN_OBJECT}[#{const_name}] = #{serializer_instance_variable}.serialize object.#{association.name}"
       end.join("\n")
+    end
+
+    def filter keys
+      if not @only.empty?
+        return keys & @only
+      end
+
+      if not @except.empty?
+        return keys - @except
+      end
+
+      keys
     end
   end
 end
