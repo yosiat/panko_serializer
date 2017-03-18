@@ -48,16 +48,17 @@ module Panko
 
         self.class.const_set name.upcase, name.to_s.freeze unless self.class.const_defined? name.upcase
 
+        serializer_instance_variable = "@#{name}_serializer"
+        serialized_resolved_const = Object.const_get(serializer.name)
+
         if type == :has_one
-          instance_variable_set "@#{name}_serializer", Object.const_get(serializer.name).new
-
-          "#{RETURN_OBJECT}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
+          instance_variable_set serializer_instance_variable, serialized_resolved_const.new
         elsif type == :has_many
-          array_serializer = Panko::ArraySerializer.new([], each_serializer: Object.const_get(serializer.name))
-          instance_variable_set "@#{name}_serializer", array_serializer
-
-          "#{RETURN_OBJECT}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
+          array_serializer = Panko::ArraySerializer.new([], each_serializer: serialized_resolved_const)
+          instance_variable_set serializer_instance_variable, array_serializer
         end
+
+        "#{RETURN_OBJECT}[#{name.upcase}] = #{serializer_instance_variable}.serialize object.#{name}"
       end
 
       associations.join "\n"
