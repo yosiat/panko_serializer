@@ -14,7 +14,7 @@ module Panko
 		end
 
 		def serialize subjects
-			subjects.map { |item| @serializer_instance.serialize item }
+      subjects.to_a.map { |item| @serializer_instance.serialize item }
 		end
 
   end
