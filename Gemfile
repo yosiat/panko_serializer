@@ -20,4 +20,6 @@ group :benchmarks do
   gem 'active_model_serializers', git: 'git@github.com:rails-api/active_model_serializers.git', branch: '0-9-stable'
 end
 
-
+group :test do
+  gem 'faker'
+end
