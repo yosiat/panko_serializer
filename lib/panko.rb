@@ -1,2 +1,5 @@
-require_relative 'panko/serializer'
-require_relative 'panko/array_serializer'
+require "panko/version"
+
+module Panko
+  # Your code goes here...
+end

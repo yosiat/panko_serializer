@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 source "https://rubygems.org"
 
+gemspec
+
 version = '4.2'
 gem_version = "~> #{version}.0"
 
