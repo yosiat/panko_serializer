@@ -31,57 +31,61 @@ module Panko
       build_attributes_reader
     end
 
+    attr_reader :subject
+
     def serialize subject
       serializable_object subject, {}
     end
 
-private
-      def build_associations_reader
-        return_object = "obj"
+    private
 
-        associations = self.class._associations.map do |association|
-          name, type, serializer = association
+    def build_associations_reader
+      return_object = "obj"
 
-          self.class.const_set name.upcase, name.to_s.freeze unless self.class.const_defined? name.upcase
+      associations = self.class._associations.map do |association|
+        name, type, serializer = association
 
-          if type == :has_one
-						instance_variable_set "@#{name}_serializer", Object.const_get(serializer.name).new
+        self.class.const_set name.upcase, name.to_s.freeze unless self.class.const_defined? name.upcase
 
-            "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
-          elsif type == :has_many
-						array_serializer = Panko::ArraySerializer.new([], each_serializer: Object.const_get(serializer.name))
-						instance_variable_set "@#{name}_serializer", array_serializer
+        if type == :has_one
+          instance_variable_set "@#{name}_serializer", Object.const_get(serializer.name).new
 
-            "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
-          end
+          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
+        elsif type == :has_many
+          array_serializer = Panko::ArraySerializer.new([], each_serializer: Object.const_get(serializer.name))
+          instance_variable_set "@#{name}_serializer", array_serializer
+
+          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize subject.#{name}"
+        end
+      end
+
+      associations.join "\n"
+    end
+
+    def build_attributes_reader
+      setters = self.class._attributes.map do |attr|
+        self.class.const_set attr.upcase, attr.to_s.freeze unless self.class.const_defined? attr.upcase
+
+        reader = "subject.#{attr}"
+        if self.class.method_defined? attr
+          reader = attr
         end
 
-				associations.join "\n"
-      end
-
-      def build_attributes_reader
-        setters = self.class._attributes.map do |attr|
-          self.class.const_set attr.upcase, attr.to_s.freeze unless self.class.const_defined? attr.upcase
-
-          reader = "subject.#{attr}"
-					if self.class.method_defined? attr
-						reader = attr
-					end
-
-          "obj[#{attr.upcase}] = #{reader}"
-        end.join "\n"
+        "obj[#{attr.upcase}] = #{reader}"
+      end.join "\n"
 
 
-        attributes_reader_method_body = <<-EOMETHOD
-          def serializable_object subject, obj
-            #{setters}
-						#{build_associations_reader}
-						obj
-          end
-        EOMETHOD
+      attributes_reader_method_body = <<-EOMETHOD
+        def serializable_object subject, obj
+          @subject = subject
+          #{setters}
+          #{build_associations_reader}
+          obj
+        end
+      EOMETHOD
 
-				# TODO: don't redefine if [attributes+associations] wasn't changed
-				instance_eval attributes_reader_method_body, __FILE__, __LINE__
-      end
+      # TODO: don't redefine if [attributes+associations] wasn't changed
+      instance_eval attributes_reader_method_body, __FILE__, __LINE__
+    end
   end
 end
