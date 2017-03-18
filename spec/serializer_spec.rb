@@ -8,7 +8,7 @@ RSpec.describe Panko::Serializer do
   end
 
   context "attributes" do
-    it "seiralizes the attributes" do
+    it "instance variables" do
       serializer = FooSerializer.new
       foo = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
 
@@ -20,7 +20,7 @@ RSpec.describe Panko::Serializer do
       })
     end
 
-    it "handles attributes defined used methods" do
+    it "method attributes" do
       class FooWithMethodsSerializer < Panko::Serializer
         attributes :name, :address, :something
 

@@ -39,8 +39,9 @@ module Panko
 
     private
 
+    RETURN_OBJECT = "serialized_object"
+
     def build_associations_reader
-      return_object = "obj"
 
       associations = self.class._associations.map do |association|
         name, type, serializer = association
@@ -50,12 +51,12 @@ module Panko
         if type == :has_one
           instance_variable_set "@#{name}_serializer", Object.const_get(serializer.name).new
 
-          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
+          "#{RETURN_OBJECT}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
         elsif type == :has_many
           array_serializer = Panko::ArraySerializer.new([], each_serializer: Object.const_get(serializer.name))
           instance_variable_set "@#{name}_serializer", array_serializer
 
-          "#{return_object}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
+          "#{RETURN_OBJECT}[#{name.upcase}] = @#{name}_serializer.serialize object.#{name}"
         end
       end
 
@@ -71,16 +72,16 @@ module Panko
           reader = attr
         end
 
-        "obj[#{attr.upcase}] = #{reader}"
+        "#{RETURN_OBJECT}[#{attr.upcase}] = #{reader}"
       end.join "\n"
 
 
       attributes_reader_method_body = <<-EOMETHOD
-        def serializable_object object, obj
+        def serializable_object object, #{RETURN_OBJECT}
           @object = object
           #{setters}
           #{build_associations_reader}
-          obj
+          #{RETURN_OBJECT}
         end
       EOMETHOD
 
