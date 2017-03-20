@@ -10,6 +10,7 @@ module Panko
       serializer_options = {
         only: options.fetch(:only, []),
         except: options.fetch(:except, []),
+        options_builder: options.fetch(:options_builder, nil),
         context: options.fetch(:context, nil)
       }
 

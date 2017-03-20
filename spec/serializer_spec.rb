@@ -2,6 +2,7 @@ require "spec_helper"
 
 RSpec.describe Panko::Serializer do
   Foo = Struct.new(:name, :address, :data)
+  FoosHolder = Struct.new(:name, :foos)
 
   class FooSerializer < Panko::Serializer
     attributes :name, :address
@@ -118,8 +119,6 @@ RSpec.describe Panko::Serializer do
 
   context "has_many" do
     it "serializes using the given serializer" do
-      FoosHolder = Struct.new(:name, :foos)
-
       class FoosHolderSerializer < Panko::Serializer
         attributes :name
 
@@ -143,6 +142,67 @@ RSpec.describe Panko::Serializer do
           },
           {
             "name" => foo2.name,
+            "address" => foo2.address,
+          }
+        ]
+      })
+    end
+
+    it "accepts only as option" do
+      class FoosHolderWithOnlySerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, only: [:address]
+      end
+
+      serializer = FoosHolderWithOnlySerializer.new
+
+      foo1 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo2 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo_holder = FoosHolder.new(Faker::Lorem.word, [foo1, foo2])
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eq({
+        "name" => foo_holder.name,
+        "foos" => [
+          {
+            "address" => foo1.address
+          },
+          {
+            "address" => foo2.address
+          }
+        ]
+      })
+    end
+  end
+
+  context "dynamic association options" do
+    it "serializes using the given serializer", focus: true do
+
+      class FoosHolderSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, options_builder: Proc.new { |context|
+          { only: context[:testing][:only] }
+        }
+      end
+
+      serializer = FoosHolderSerializer.new context: { testing: { only: [:address] } }
+
+      foo1 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo2 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo_holder = FoosHolder.new(Faker::Lorem.word, [foo1, foo2])
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eq({
+        "name" => foo_holder.name,
+        "foos" => [
+          {
+            "address" => foo1.address,
+          },
+          {
             "address" => foo2.address,
           }
         ]

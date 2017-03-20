@@ -20,20 +20,25 @@ module Panko
 
 
       def has_one name, options
-        serializer = options[:serializer]
-        @_associations << HasOneAttribute.new(name, serializer)
+        @_associations << HasOneAttribute.new(name, options)
       end
 
       def has_many name, options
-        serializer = options[:serializer]
-        @_associations << HasManyAttribute.new(name, serializer)
+        @_associations << HasManyAttribute.new(name, options)
       end
     end
 
     def initialize options={}
+
+      @context = options.fetch(:context, nil)
+
+      if options.has_key? :options_builder and not options[:options_builder].nil?
+        puts "#{self.class.name} - do we have context? #{@context.nil?}"
+        options = options[:options_builder].call(@context)
+      end
+
       @only = options.fetch(:only, [])
       @except = options.fetch(:except, [])
-      @context = options.fetch(:context, nil)
 
       build_attributes_reader
     end
@@ -128,7 +133,7 @@ module Panko
         #   @foo_serializer = FooSerializer.new
         #
         serializer_instance_variable = "@#{association.name}_serializer"
-        serializer = association.create_serializer Object.const_get(association.serializer.name)
+        serializer = association.create_serializer Object.const_get(association.serializer.name), @context
 
         instance_variable_set serializer_instance_variable, serializer
 
