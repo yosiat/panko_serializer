@@ -94,13 +94,13 @@ RSpec.describe Panko::Serializer do
     it "serializes using the given serializer" do
       FooHolder = Struct.new(:name, :foo)
 
-      class FooHolderSerializer < Panko::Serializer
+      class FooHolderHasOneSerializer < Panko::Serializer
         attributes :name
 
         has_one :foo, serializer: FooSerializer
       end
 
-      serializer = FooHolderSerializer.new
+      serializer = FooHolderHasOneSerializer.new
 
       foo = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
       foo_holder = FooHolder.new(Faker::Lorem.word, foo)
@@ -119,13 +119,13 @@ RSpec.describe Panko::Serializer do
 
   context "has_many" do
     it "serializes using the given serializer" do
-      class FoosHolderSerializer < Panko::Serializer
+      class FoosHasManyHolderSerializer < Panko::Serializer
         attributes :name
 
         has_many :foos, serializer: FooSerializer
       end
 
-      serializer = FoosHolderSerializer.new
+      serializer = FoosHasManyHolderSerializer.new
 
       foo1 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
       foo2 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
@@ -175,10 +175,40 @@ RSpec.describe Panko::Serializer do
         ]
       })
     end
+
+    it "filters associations" do
+      class FoosHolderForFilterTestSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer
+      end
+
+      serializer = FoosHolderForFilterTestSerializer.new only: [:foos]
+
+      foo1 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo2 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo_holder = FoosHolder.new(Faker::Lorem.word, [foo1, foo2])
+
+      output = serializer.serialize foo_holder
+
+
+      expect(output).to eq({
+        "foos" => [
+          {
+            "name" => foo1.name,
+            "address" => foo1.address
+          },
+          {
+            "name" => foo2.name,
+            "address" => foo2.address
+          }
+        ]
+      })
+    end
   end
 
   context "dynamic association options" do
-    it "serializes using the given serializer", focus: true do
+    it "allows to pass array of options", focus: true do
 
       class FoosHolderSerializer < Panko::Serializer
         attributes :name

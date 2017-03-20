@@ -1,5 +1,6 @@
 require_relative 'attributes/has_one'
 require_relative 'attributes/has_many'
+require_relative 'attributes/field'
 
 module Panko
   class Serializer
@@ -15,7 +16,7 @@ module Panko
       attr_accessor :_attributes, :_associations
 
       def attributes *attrs
-        @_attributes.concat attrs
+        @_attributes.concat attrs.map { |attr| FieldAttribute.new(attr) }
       end
 
 
@@ -29,7 +30,6 @@ module Panko
     end
 
     def initialize options={}
-
       @context = options.fetch(:context, nil)
 
       if options.has_key? :options_builder and not options[:options_builder].nil?
@@ -101,7 +101,7 @@ module Panko
     #
     def attributes_code
       filter(self.class._attributes).map do |attr|
-        const_name = constantize_attribute attr
+        const_name = constantize_attribute attr.name
 
         #
         # Detects what the reader should be
@@ -111,9 +111,9 @@ module Panko
         # otherwise it is:
         #   `object.attr`
         #
-        reader = "object.#{attr}"
-        if self.class.method_defined? attr
-          reader = attr
+        reader = "object.#{attr.name}"
+        if self.class.method_defined? attr.name
+          reader = attr.name
         end
 
         "#{RETURN_OBJECT}[#{const_name}] = #{reader}"
@@ -142,11 +142,11 @@ module Panko
 
     def filter keys
       if not @only.empty?
-        return keys & @only
+        return keys.select { |key| @only.include? key.name }
       end
 
       if not @except.empty?
-        return keys - @except
+        return keys.reject { |key| @except.include? key.name }
       end
 
       keys

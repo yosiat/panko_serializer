@@ -10,7 +10,7 @@ GIT
 PATH
   remote: .
   specs:
-    panko (0.1.6)
+    panko (0.1.7)
 
 GEM
   remote: https://rubygems.org/
