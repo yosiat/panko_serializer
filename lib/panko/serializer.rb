@@ -33,8 +33,7 @@ module Panko
       @context = options.fetch(:context, nil)
 
       if options.has_key? :options_builder and not options[:options_builder].nil?
-        puts "#{self.class.name} - do we have context? #{@context.nil?}"
-        options = options[:options_builder].call(@context)
+        options = options.merge(options[:options_builder].call(@context))
       end
 
       @only = options.fetch(:only, [])
