@@ -1,6 +1,7 @@
 require_relative 'attributes/has_one'
 require_relative 'attributes/has_many'
 require_relative 'attributes/field'
+require 'oj'
 
 module Panko
   class Serializer
@@ -44,10 +45,11 @@ module Panko
 
     attr_reader :object, :context
 
-    def serialize(object)
-      writer = Panko::ObjectWriter.new
-      serializable_object object, writer
-      writer.output
+    def serialize(object, writer = nil)
+      writer ||= Oj::StringWriter.new
+      serialize_to_writer object, writer
+
+      Oj.load(writer.to_s)
     end
 
     private
@@ -56,7 +58,7 @@ module Panko
 
     def build_attributes_reader
       attributes_reader_method_body = <<-EOMETHOD
-        def serializable_object object, writer
+        def serialize_to_writer object, writer
           @object = object
 
           writer.push_object
@@ -143,7 +145,7 @@ module Panko
         # TODO: has_one ? has_many ..
 
         output = "writer.push_key(#{const_name}) \n"
-        output << "#{serializer_instance_variable}.serializable_object(object.#{association.name}, writer)"
+        output << "#{serializer_instance_variable}.serialize_to_writer(object.#{association.name}, writer)"
 
         output
       end.join("\n")

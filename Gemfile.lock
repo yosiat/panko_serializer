@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     panko (0.1.7)
+      oj (~> 3.0)
 
 GEM
   remote: https://rubygems.org/
@@ -66,6 +67,7 @@ GEM
     minitest (5.10.1)
     nokogiri (1.7.0.1)
       mini_portile2 (~> 2.1.0)
+    oj (3.0.9)
     rack (1.6.5)
     rack-test (0.6.3)
       rack (>= 1.0)
