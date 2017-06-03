@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gemspec
 
 version = '4.2'
-gem_version = "~> #{version}.0"
+gem_version = "~> #{version}.8"
 
 gem 'rails', gem_version
 gem 'railties', gem_version
@@ -21,7 +21,7 @@ group :benchmarks do
   gem 'ruby-prof-flamegraph'
 
   gem 'benchmark-ips'
-  gem 'active_model_serializers', git: 'git@github.com:rails-api/active_model_serializers.git', branch: '0-9-stable'
+  gem 'active_model_serializers', '0.9.7'
 end
 
 group :test do

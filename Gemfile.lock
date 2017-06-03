@@ -1,12 +1,3 @@
-GIT
-  remote: git@github.com:rails-api/active_model_serializers.git
-  revision: 1e04d1128bc7bb9d4fd54908fa91a0dcbf988631
-  branch: 0-9-stable
-  specs:
-    active_model_serializers (0.9.6)
-      activemodel (>= 3.2)
-      concurrent-ruby (~> 1.0)
-
 PATH
   remote: .
   specs:
@@ -34,6 +25,9 @@ GEM
       erubis (~> 2.7.0)
       rails-dom-testing (~> 1.0, >= 1.0.5)
       rails-html-sanitizer (~> 1.0, >= 1.0.3)
+    active_model_serializers (0.9.7)
+      activemodel (>= 3.2)
+      concurrent-ruby (~> 1.0)
     activejob (4.2.8)
       activesupport (= 4.2.8)
       globalid (>= 0.3.0)
@@ -133,18 +127,18 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  actionpack (~> 4.2.0)
-  active_model_serializers!
-  activemodel (~> 4.2.0)
-  activerecord (~> 4.2.0)
-  activesupport (~> 4.2.0)
+  actionpack (~> 4.2.8)
+  active_model_serializers (= 0.9.7)
+  activemodel (~> 4.2.8)
+  activerecord (~> 4.2.8)
+  activesupport (~> 4.2.8)
   benchmark-ips
   bundler (~> 1.14)
   faker
   memory_profiler
   panko!
-  rails (~> 4.2.0)
-  railties (~> 4.2.0)
+  rails (~> 4.2.8)
+  railties (~> 4.2.8)
   rake (~> 10.0)
   rspec (~> 3.0)
   ruby-prof
@@ -152,4 +146,4 @@ DEPENDENCIES
   sqlite3
 
 BUNDLED WITH
-   1.14.6
+   1.15.1
