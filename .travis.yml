@@ -1,6 +1,8 @@
 sudo: false
 language: ruby
 rvm:
-  - 2.3.3
+  - 2.3.4
   - 2.4.1
+  - ruby-head
 before_install: gem install bundler
+after_success: bundle exec rake benchmarks
