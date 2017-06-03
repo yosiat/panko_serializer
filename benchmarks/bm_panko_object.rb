@@ -31,11 +31,11 @@ def benchmark(prefix, serializer, options = {})
   merged_options = options.merge(each_serializer: serializer)
 
   Benchmark.ams("Panko_#{prefix}_Posts_#{posts.count}") do
-    Panko::ArraySerializer.new(posts, merged_options).serializable_object
+    Panko::ArraySerializer.new(posts, merged_options).to_a
   end
 
   Benchmark.ams("Panko_#{prefix}_Posts_50") do
-    Panko::ArraySerializer.new(posts_50, merged_options).serializable_object
+    Panko::ArraySerializer.new(posts_50, merged_options).to_a
   end
 
   posts_array_serializer = Panko::ArraySerializer.new(posts, merged_options)

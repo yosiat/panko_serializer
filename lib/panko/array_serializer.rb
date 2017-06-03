@@ -17,10 +17,28 @@ module Panko
       @serializer_instance = @each_serializer.new serializer_options
     end
 
-    def serializable_object
-      serialize @subjects, Oj::StringWriter.new
+    def to_json
+      serialize_to_json @subjects
     end
 
+    def serialize(subjects)
+      Oj.load(serialize_to_json(subjects))
+    end
+
+    def to_a
+      Oj.load(serialize_to_json(@subjects))
+    end
+
+    def serialize_to_json(subjects)
+      writer = Oj::StringWriter.new
+      serialize_to_writer subjects, writer
+      writer.to_s
+    end
+
+
+    #
+    # Internal API
+    #
     def serialize_to_writer(subjects, writer)
       writer.push_array
 
@@ -29,12 +47,6 @@ module Panko
       end
 
       writer.pop
-    end
-
-    def serialize(subjects, writer = nil)
-      writer ||= Oj::StringWriter.new
-      serialize_to_writer subjects, writer
-      Oj.load(writer.to_s)
     end
   end
 end
