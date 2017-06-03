@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'byebug'
 
 RSpec.describe Panko::ObjectWriter do
 
@@ -14,6 +13,38 @@ RSpec.describe Panko::ObjectWriter do
     expect(writer.output).to eq({
       'id' => 1,
       'name' => 'Yosi'
+    })
+  end
+
+  it 'push key and value' do
+    writer = Panko::ObjectWriter.new
+
+    writer.push_object
+    writer.push_key 'id'
+    writer.push_value 1
+    writer.pop
+
+    expect(writer.output).to eq({
+      'id' => 1
+    })
+  end
+
+  it 'push key with object inside' do
+    writer = Panko::ObjectWriter.new
+
+    writer.push_object
+
+    writer.push_key 'person'
+    writer.push_object
+    writer.push_value 1, 'id'
+    writer.pop
+
+    writer.pop
+
+    expect(writer.output).to eq({
+      'person' => {
+        'id' => 1
+      }
     })
   end
 

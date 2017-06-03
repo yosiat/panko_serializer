@@ -91,7 +91,7 @@ RSpec.describe Panko::Serializer do
   end
 
   context "has_one" do
-    it "serializes using the given serializer" do
+    it "serializes using the given serializer", focus: true do
       FooHolder = Struct.new(:name, :foo)
 
       class FooHolderHasOneSerializer < Panko::Serializer

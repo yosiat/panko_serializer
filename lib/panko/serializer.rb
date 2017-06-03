@@ -44,23 +44,27 @@ module Panko
 
     attr_reader :object, :context
 
-    def serialize object
-      serializable_object object, {}
+    def serialize(object)
+      writer = Panko::ObjectWriter.new
+      serializable_object object, writer
+      writer.output
     end
 
     private
 
-    RETURN_OBJECT = "serialized_object"
+    RETURN_OBJECT = 'serialized_object'.freeze
 
     def build_attributes_reader
       attributes_reader_method_body = <<-EOMETHOD
-        def serializable_object object, #{RETURN_OBJECT}
+        def serializable_object object, writer
           @object = object
+
+          writer.push_object
 
           #{attributes_code}
           #{associations_code}
 
-          #{RETURN_OBJECT}
+          writer.pop
         end
       EOMETHOD
 
@@ -116,7 +120,7 @@ module Panko
           reader = attr.name
         end
 
-        "#{RETURN_OBJECT}[#{const_name}] = #{reader}"
+        "writer.push_value(#{reader}, #{const_name})"
       end.join("\n")
     end
 
@@ -136,7 +140,12 @@ module Panko
 
         instance_variable_set serializer_instance_variable, serializer
 
-        "#{RETURN_OBJECT}[#{const_name}] = #{serializer_instance_variable}.serialize object.#{association.name}"
+        # TODO: has_one ? has_many ..
+
+        output = "writer.push_key(#{const_name}) \n"
+        output << "#{serializer_instance_variable}.serializable_object(object.#{association.name}, writer)"
+
+        output
       end.join("\n")
     end
 
