@@ -1,6 +1,6 @@
 require 'benchmark/ips'
 require 'json'
-require 'terminal-table'
+require 'memory_profiler'
 
 module Benchmark
   module ActiveModelSerializers
@@ -16,7 +16,7 @@ module Benchmark
         GC.enable
       end
 
-      allocs = count_total_allocated_objects(&block)
+      memory_report = MemoryProfiler.report(&block)
 
       report = Benchmark.ips(time, warmup, true) do |x|
         x.report(label) { yield }
@@ -25,29 +25,11 @@ module Benchmark
       results = {
         label: label,
         ips: report.entries.first.ips.round(2),
-        allocs: allocs
+        allocs: "#{memory_report.total_allocated}/#{memory_report.total_retained}"
       }.to_json
 
       puts results
 
-    end
-
-    def count_total_allocated_objects
-      if block_given?
-        key =
-          if RUBY_VERSION < '2.2'
-            :total_allocated_object
-          else
-            :total_allocated_objects
-          end
-
-        before = GC.stat[key]
-        yield
-        after = GC.stat[key]
-        after - before
-      else
-        -1
-      end
     end
   end
 

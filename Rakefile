@@ -6,11 +6,11 @@ require 'terminal-table'
 
 RSpec::Core::RakeTask.new(:spec)
 
-task :default => :spec
+task default: :spec
 
 desc 'Run all benchmarks'
 task :benchmarks do
-  headings = ['Benchmark', 'ip/s', 'objects']
+  headings = ['Benchmark', 'ip/s', 'allocs/retained']
 
   files = Dir[File.join(__dir__, 'benchmarks', 'bm_*')]
   files.each do |benchmark_file|
