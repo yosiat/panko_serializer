@@ -16,6 +16,8 @@ module Benchmark
         GC.enable
       end
 
+      allocs = count_total_allocated_objects(&block)
+
       report = Benchmark.ips(time, warmup, true) do |x|
         x.report(label) { yield }
       end
@@ -23,7 +25,7 @@ module Benchmark
       results = {
         label: label,
         ips: report.entries.first.ips.round(2),
-        allocs: count_total_allocated_objects(&block)
+        allocs: allocs
       }.to_json
 
       puts results
