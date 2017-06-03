@@ -1,12 +1,9 @@
 require 'benchmark/ips'
 require 'json'
+require 'terminal-table'
 
 module Benchmark
   module ActiveModelSerializers
-    FORMATS = {
-      "pretty" => "%s\t%8d ip/s\t%8d allocs/op",
-      "markdown" => "|%s|%d|%d|"
-    }
 
     def ams(label = nil, time: 10, disable_gc: true, warmup: 3, &block)
       fail ArgumentError.new, 'block should be passed' unless block_given?
@@ -23,13 +20,14 @@ module Benchmark
         x.report(label) { yield }
       end
 
-      entry = report.entries.first
+      results = {
+        label: label,
+        ips: report.entries.first.ips.round(2),
+        allocs: count_total_allocated_objects(&block)
+      }.to_json
 
-      format = ENV.fetch("FORMAT", "pretty")
-      format = FORMATS[format]
+      puts results
 
-			output = sprintf(format, label, entry.ips, count_total_allocated_objects(&block))
-			puts output
     end
 
     def count_total_allocated_objects

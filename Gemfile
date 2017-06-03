@@ -22,6 +22,8 @@ group :benchmarks do
 
   gem 'benchmark-ips'
   gem 'active_model_serializers', '0.9.7'
+
+  gem 'terminal-table'
 end
 
 group :test do

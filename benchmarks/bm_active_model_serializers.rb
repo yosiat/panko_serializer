@@ -16,7 +16,7 @@ class AmsPostWithHasOneFastSerializer < ActiveModel::Serializer
   has_one :author, serializer: AmsAuthorFastSerializer
 end
 
-def benchmark_ams(prefix, serializer, options)
+def benchmark_ams(prefix, serializer, options = {})
   posts = Post.all.to_a
   posts_50 = posts.first(50).to_a
 
@@ -32,7 +32,7 @@ def benchmark_ams(prefix, serializer, options)
 end
 
 
-benchmark 'HasOne', AmsPostWithHasOneFastSerializer
-benchmark 'Simple', AmsPostFastSerializer
-benchmark 'Except', AmsPostWithHasOneFastSerializer, except: [:title]
-benchmark 'Include', AmsPostWithHasOneFastSerializer, include: [:id, :body, :author_id, :author]
+benchmark_ams 'HasOne', AmsPostWithHasOneFastSerializer
+benchmark_ams 'Simple', AmsPostFastSerializer
+benchmark_ams 'Except', AmsPostWithHasOneFastSerializer, except: [:title]
+benchmark_ams 'Include', AmsPostWithHasOneFastSerializer, include: [:id, :body, :author_id, :author]
