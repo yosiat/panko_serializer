@@ -25,8 +25,9 @@ end
 
 
 def benchmark(prefix, serializer, options = {})
-  posts = Post.all.to_a
-  posts_50 = posts.first(50).to_a
+  data = Benchmark.data
+  posts = data[:all]
+  posts_50 = data[:small]
 
   merged_options = options.merge(each_serializer: serializer)
 
@@ -34,15 +35,27 @@ def benchmark(prefix, serializer, options = {})
     Panko::ArraySerializer.new(posts, merged_options).to_a
   end
 
+  data = Benchmark.data
+  posts = data[:all]
+  posts_50 = data[:small]
+
   Benchmark.ams("Panko_#{prefix}_Posts_50") do
     Panko::ArraySerializer.new(posts_50, merged_options).to_a
   end
 
-  posts_array_serializer = Panko::ArraySerializer.new(posts, merged_options)
+  posts_array_serializer = Panko::ArraySerializer.new([], merged_options)
+
+  data = Benchmark.data
+  posts = data[:all]
+  posts_50 = data[:small]
 
   Benchmark.ams("Panko_Reused_#{prefix}_Posts_#{posts.count}") do
     posts_array_serializer.serialize posts
   end
+
+  data = Benchmark.data
+  posts = data[:all]
+  posts_50 = data[:small]
 
   Benchmark.ams("Panko_Reused_#{prefix}_Posts_50") do
     posts_array_serializer.serialize posts_50

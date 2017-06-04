@@ -17,14 +17,20 @@ class AmsPostWithHasOneFastSerializer < ActiveModel::Serializer
 end
 
 def benchmark_ams(prefix, serializer, options = {})
-  posts = Post.all.to_a
-  posts_50 = posts.first(50).to_a
-
   merged_options = options.merge(each_serializer: serializer)
+
+  data = Benchmark.data
+  posts = data[:all]
+  posts_50 = data[:small]
+
 
   Benchmark.ams("AMS_#{prefix}_Posts_#{posts.count}") do
     ActiveModel::ArraySerializer.new(posts, merged_options).serializable_object
   end
+
+  data = Benchmark.data
+  posts = data[:all]
+  posts_50 = data[:small]
 
   Benchmark.ams("AMS_#{prefix}_Posts_50") do
     ActiveModel::ArraySerializer.new(posts_50, merged_options).serializable_object
