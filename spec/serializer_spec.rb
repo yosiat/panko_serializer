@@ -148,7 +148,7 @@ RSpec.describe Panko::Serializer do
       })
     end
 
-    it "accepts only as option" do
+    it 'accepts only as option' do
       class FoosHolderWithOnlySerializer < Panko::Serializer
         attributes :name
 
@@ -164,13 +164,13 @@ RSpec.describe Panko::Serializer do
       output = serializer.serialize foo_holder
 
       expect(output).to eq({
-        "name" => foo_holder.name,
-        "foos" => [
+        'name' => foo_holder.name,
+        'foos' => [
           {
-            "address" => foo1.address
+            'address' => foo1.address
           },
           {
-            "address" => foo2.address
+            'address' => foo2.address
           }
         ]
       })
@@ -207,18 +207,15 @@ RSpec.describe Panko::Serializer do
     end
   end
 
-  context "dynamic association options" do
-    it "allows to pass array of options", focus: true do
+  context 'filters' do
+    it 'support nested "only" filter' do
 
       class FoosHolderSerializer < Panko::Serializer
         attributes :name
-
-        has_many :foos, serializer: FooSerializer, options_builder: Proc.new { |context|
-          { only: context[:testing][:only] }
-        }
+        has_many :foos, serializer: FooSerializer
       end
 
-      serializer = FoosHolderSerializer.new context: { testing: { only: [:address] } }
+      serializer = FoosHolderSerializer.new only: { foos: [:address] }
 
       foo1 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
       foo2 = Foo.new(Faker::Lorem.word, Faker::Lorem.word)
@@ -227,13 +224,13 @@ RSpec.describe Panko::Serializer do
       output = serializer.serialize foo_holder
 
       expect(output).to eq({
-        "name" => foo_holder.name,
-        "foos" => [
+        'name' => foo_holder.name,
+        'foos' => [
           {
-            "address" => foo1.address,
+            'address' => foo1.address,
           },
           {
-            "address" => foo2.address,
+            'address' => foo2.address,
           }
         ]
       })

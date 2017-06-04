@@ -30,15 +30,16 @@ module Panko
       end
     end
 
-    def initialize options={}
+    def initialize(options = {})
       @context = options.fetch(:context, nil)
 
-      if options.has_key? :options_builder and not options[:options_builder].nil?
-        options = options.merge(options[:options_builder].call(@context))
-      end
+      processed_filter = process_filter options.fetch(:only, [])
+      @only = processed_filter[:serializer]
+      @only_associations = processed_filter[:associations]
 
-      @only = options.fetch(:only, [])
-      @except = options.fetch(:except, [])
+      processed_filter = process_filter options.fetch(:except, [])
+      @except = processed_filter[:serializer]
+      @except_associations = processed_filter[:associations]
 
       build_attributes_reader
     end
@@ -54,7 +55,21 @@ module Panko
 
     private
 
-    RETURN_OBJECT = 'serialized_object'.freeze
+    def process_filter(filter)
+      return { serializer: filter, associations: {} } if filter.is_a? Array
+
+      if filter.is_a? Hash
+        # hash filters looks like this
+        # { instance: [:a], foo: [:b] }
+        # which mean, for the current instance use `[:a]` as filter
+        # and for association named `foo` use `[:b]`
+
+        return {
+          serializer: filter.fetch(:instance, []),
+          associations: filter.except(:instance)
+        }
+      end
+    end
 
     def build_attributes_reader
       attributes_reader_method_body = <<-EOMETHOD
@@ -138,7 +153,12 @@ module Panko
         #   @foo_serializer = FooSerializer.new
         #
         serializer_instance_variable = "@#{association.name}_serializer"
-        serializer = association.create_serializer Object.const_get(association.serializer.name), @context
+        options = {
+          context: @context,
+          only: @only_associations.fetch(association.name.to_sym, []),
+          except: @except_associations.fetch(association.name.to_sym, []),
+        }
+        serializer = association.create_serializer Object.const_get(association.serializer.name), options
 
         instance_variable_set serializer_instance_variable, serializer
 

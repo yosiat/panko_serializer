@@ -1,6 +1,6 @@
 module Panko
   class HasOneAttribute
-    def initialize name, options
+    def initialize(name, options)
       @name = name
 
       @options = options.dup
@@ -9,8 +9,14 @@ module Panko
 
     attr_reader :name, :serializer
 
-    def create_serializer serializer_const, context
-      serializer_const.new @options.merge(context: context)
+    def create_serializer(serializer_const, options={})
+      serializer_options = {
+        context: options[:context],
+        except: options.fetch(:except, []) + @options.fetch(:except, []),
+        only: options.fetch(:only, []) + @options.fetch(:only, [])
+      }
+
+      serializer_const.new serializer_options
     end
   end
 end
