@@ -47,13 +47,11 @@ class Profile < ActiveRecord::Base
 end
 
 # Build out the data to serialize
-author = Author.create(name: 'Preston Sego')
-Profile.create(project_url: 'https://github.com/NullVoxPopuli', author: author)
-2300.times do
+14_000.times do
   Post.create(
     body: 'something about how password restrictions are evil, and less secure, and with the math to prove it.',
     title: 'Your bank is does not know how to do security',
-    author: author
+    author: Author.create(name: 'Preston Sego')
   )
 end
 
