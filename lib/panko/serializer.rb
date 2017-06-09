@@ -47,7 +47,7 @@ module Panko
     attr_reader :object, :context
 
     def serialize(object, writer = nil)
-      writer ||= Oj::StringWriter.new
+      writer ||= Oj::StringWriter.new(indent: 0)
       serialize_to_writer object, writer
 
       Oj.load(writer.to_s)
