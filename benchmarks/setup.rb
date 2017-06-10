@@ -17,12 +17,14 @@ ActiveRecord::Migration.verbose = false
 ActiveRecord::Schema.define do
   create_table :authors, force: true do |t|
     t.string :name
+    t.timestamps(null: false)
   end
 
   create_table :posts, force: true do |t|
     t.text :body
     t.string :title
     t.references :author
+    t.timestamps(null: false)
   end
 
   create_table :profiles, force: true do |t|
@@ -30,6 +32,7 @@ ActiveRecord::Schema.define do
     t.text :bio
     t.date :birthday
     t.references :author
+    t.timestamps(null: false)
   end
 end
 

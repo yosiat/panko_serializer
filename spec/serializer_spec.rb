@@ -41,6 +41,22 @@ RSpec.describe Panko::Serializer do
         "something" => "#{foo.name} #{foo.address}"
       })
     end
+
+    it "serializes time correctly" do
+      ObjectWithTime = Struct.new(:created_at)
+      class ObjectWithTimeSerializer < Panko::Serializer
+        attributes :created_at
+      end
+
+      obj = ObjectWithTime.new(Time.now)
+
+      output = ObjectWithTimeSerializer.new.serialize obj
+
+
+      expect(output).to eq({
+        "created_at" => obj.created_at.to_s
+      })
+    end
   end
 
   context "context" do

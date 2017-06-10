@@ -29,7 +29,7 @@ module Panko
     end
 
     def serialize_to_json(subjects)
-      writer = Oj::StringWriter.new(indent: 0)
+      writer = Oj::StringWriter.new(indent: 0, mode: :rails)
       serialize_to_writer subjects, writer
       writer.to_s
     end
