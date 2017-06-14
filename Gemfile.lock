@@ -1,14 +1,8 @@
-GIT
-  remote: https://github.com/ohler55/oj.git
-  revision: 013fd6a8fdc423759388892d5401a440122b3e7d
-  branch: dev-3.1.2
-  specs:
-    oj (3.1.2)
-
 PATH
   remote: .
   specs:
     panko (0.1.7)
+      oj (~> 3.1.3)
 
 GEM
   remote: https://rubygems.org/
@@ -73,6 +67,7 @@ GEM
     minitest (5.10.1)
     nokogiri (1.7.0.1)
       mini_portile2 (~> 2.1.0)
+    oj (3.1.3)
     rack (1.6.5)
     rack-test (0.6.3)
       rack (>= 1.0)
@@ -146,7 +141,6 @@ DEPENDENCIES
   bundler (~> 1.14)
   faker
   memory_profiler
-  oj!
   panko!
   rails (~> 4.2.8)
   railties (~> 4.2.8)

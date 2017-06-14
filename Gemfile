@@ -3,8 +3,6 @@ source "https://rubygems.org"
 
 gemspec
 
-gem 'oj', git: 'https://github.com/ohler55/oj.git', branch: 'dev-3.1.2'
-
 version = '4.2'
 gem_version = "~> #{version}.8"
 
