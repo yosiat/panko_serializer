@@ -104,12 +104,13 @@ module Panko
     #   # later
     #   obj[NAME] = object.name
     # ```
-    def constantize_attribute attr
-      unless self.class.const_defined? attr.upcase
-        self.class.const_set attr.upcase, attr.to_s.freeze
+    def constantize_attribute(attr)
+      const_name = attr.upcase
+      unless self.class.const_defined? const_name
+        self.class.const_set const_name, attr.to_s.freeze
       end
 
-      attr.upcase
+      const_name
     end
 
     #
