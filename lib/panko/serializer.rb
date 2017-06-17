@@ -151,21 +151,16 @@ module Panko
         #   For `has_one :foo, serializer: FooSerializer`
         #   @foo_serializer = FooSerializer.new
         #
-        serializer_instance_variable = association.serializer_name
         options = {
           context: @context,
-          only: @only_associations.fetch(association.name.to_sym, []),
-          except: @except_associations.fetch(association.name.to_sym, []),
+          only: @only_associations.fetch(association.name, []),
+          except: @except_associations.fetch(association.name, [])
         }
-        serializer = association.create_serializer Object.const_get(association.serializer.name), options
+        serializer = association.create_serializer(options)
+        instance_variable_set association.serializer_name, serializer
 
-        instance_variable_set serializer_instance_variable, serializer
-
-        output = "writer.push_key(#{association.const_name}) \n"
-        output << "#{serializer_instance_variable}.serialize_to_writer(object.#{association.name}, writer)"
-
-        output
-      end.join("\n")
+        association.code
+      end.join("\n".freeze)
     end
 
     def filter(keys)
