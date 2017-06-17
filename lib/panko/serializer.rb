@@ -153,7 +153,7 @@ module Panko
         #   For `has_one :foo, serializer: FooSerializer`
         #   @foo_serializer = FooSerializer.new
         #
-        serializer_instance_variable = "@#{association.name}_serializer"
+        serializer_instance_variable = association.serializer_name
         options = {
           context: @context,
           only: @only_associations.fetch(association.name.to_sym, []),
