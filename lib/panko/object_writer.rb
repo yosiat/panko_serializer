@@ -3,7 +3,7 @@ require 'oj'
 module Panko
   class ObjectWriter
     def initialize
-      @w = Oj::StringWriter.new(indent: 2)
+      @w = Oj::StringWriter.new(mode: :rails)
     end
 
     [:pop_all, :push_array, :push_key, :push_value, :push_object, :pop].each do |method|
