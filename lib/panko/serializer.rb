@@ -1,3 +1,4 @@
+require_relative 'attributes/base'
 require_relative 'attributes/has_one'
 require_relative 'attributes/has_many'
 require_relative 'attributes/field'
@@ -104,10 +105,9 @@ module Panko
     #   # later
     #   obj[NAME] = object.name
     # ```
-    def constantize_attribute(attr)
-      const_name = attr.upcase
+    def constantize_attribute(const_name, value)
       unless self.class.const_defined? const_name
-        self.class.const_set const_name, attr.to_s.freeze
+        self.class.const_set const_name, value.freeze
       end
 
       const_name
@@ -123,7 +123,7 @@ module Panko
     #
     def attributes_code
       filter(self.class._attributes).map do |attr|
-        const_name = constantize_attribute attr.name
+        const_name = constantize_attribute(attr.const_name, attr.const_value)
 
         #
         # Detects what the reader should be
@@ -144,7 +144,7 @@ module Panko
 
     def associations_code
       filter(self.class._associations).map do |association|
-        const_name = constantize_attribute association.name
+        const_name = constantize_attribute(association.const_name, association.const_value)
 
         #
         # Create instance variable to store the serializer for reusing of serializer.
@@ -172,12 +172,12 @@ module Panko
       end.join("\n")
     end
 
-    def filter keys
-      if not @only.empty?
+    def filter(keys)
+      unless @only.empty?
         return keys.select { |key| @only.include? key.name }
       end
 
-      if not @except.empty?
+      unless @except.empty?
         return keys.reject { |key| @except.include? key.name }
       end
 

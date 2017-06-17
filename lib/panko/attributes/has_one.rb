@@ -1,13 +1,13 @@
 module Panko
-  class HasOneAttribute
+  class HasOneAttribute < BaseAttribute
     def initialize(name, options)
-      @name = name
+      super(name)
 
       @options = options.dup
       @serializer = options.delete(:serializer)
     end
 
-    attr_reader :name, :serializer
+    attr_reader :serializer
 
     def create_serializer(serializer_const, options={})
       serializer_options = {
