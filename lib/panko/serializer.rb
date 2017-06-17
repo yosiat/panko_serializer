@@ -1,7 +1,8 @@
 require_relative 'attributes/base'
+require_relative 'attributes/field'
+require_relative 'attributes/relationship'
 require_relative 'attributes/has_one'
 require_relative 'attributes/has_many'
-require_relative 'attributes/field'
 require 'oj'
 
 module Panko
