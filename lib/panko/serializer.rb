@@ -17,17 +17,50 @@ module Panko
 
       attr_accessor :_attributes, :_associations
 
-      def attributes *attrs
-        @_attributes.concat attrs.map { |attr| FieldAttribute.new(attr) }
+      def attributes(*attrs)
+        attrs.each do |attr|
+          field_attr = FieldAttribute.new(attr)
+          constantize_attribute(field_attr.const_name, field_attr.const_value)
+
+          @_attributes << field_attr
+        end
       end
 
 
-      def has_one name, options
-        @_associations << HasOneAttribute.new(name, options)
+      def has_one(name, options)
+        has_one_attr = HasOneAttribute.new(name, options)
+        constantize_attribute(has_one_attr.const_name, has_one_attr.const_value)
+
+        @_associations << has_one_attr
       end
 
       def has_many name, options
-        @_associations << HasManyAttribute.new(name, options)
+        has_many_attr = HasManyAttribute.new(name, options)
+        constantize_attribute(has_many_attr.const_name, has_many_attr.const_value)
+
+        @_associations << has_many_attr
+      end
+
+
+      #
+      # Creates const for the given attr with it's name
+      # frozen as value.
+      #
+      # This is for saving object allocations, so, instead of -
+      # `obj["name"] = object.name`
+      #
+      # we do:
+      # ```
+      #   # once
+      #   NAME = 'name'.freeze
+      #
+      #   # later
+      #   obj[NAME] = object.name
+      # ```
+      def constantize_attribute(const_name, value)
+        unless const_defined? const_name
+          const_set const_name, value.freeze
+        end
       end
     end
 
@@ -91,29 +124,6 @@ module Panko
     end
 
     #
-    # Creates const for the given attr with it's name
-    # frozen as value.
-    #
-    # This is for saving object allocations, so, instead of -
-    # `obj["name"] = object.name`
-    #
-    # we do:
-    # ```
-    #   # once
-    #   NAME = 'name'.freeze
-    #
-    #   # later
-    #   obj[NAME] = object.name
-    # ```
-    def constantize_attribute(const_name, value)
-      unless self.class.const_defined? const_name
-        self.class.const_set const_name, value.freeze
-      end
-
-      const_name
-    end
-
-    #
     # Generates the code for serializing attributes
     # The end result of this code for each attributes is pretty simple,
     #
@@ -123,29 +133,16 @@ module Panko
     #
     def attributes_code
       filter(self.class._attributes).map do |attr|
-        const_name = constantize_attribute(attr.const_name, attr.const_value)
-
-        #
-        # Detects what the reader should be
-        #
-        # for methods we it's just
-        #   `attr`
-        # otherwise it is:
-        #   `object.attr`
-        #
-        reader = "object.#{attr.name}"
         if self.class.method_defined? attr.name
-          reader = attr.name
+          attr.method_call
+        else
+          attr.read_call
         end
-
-        "writer.push_value(#{reader}, #{const_name})"
-      end.join("\n")
+      end.join("\n".freeze)
     end
 
     def associations_code
       filter(self.class._associations).map do |association|
-        const_name = constantize_attribute(association.const_name, association.const_value)
-
         #
         # Create instance variable to store the serializer for reusing of serializer.
         #
@@ -163,9 +160,7 @@ module Panko
 
         instance_variable_set serializer_instance_variable, serializer
 
-        # TODO: has_one ? has_many ..
-
-        output = "writer.push_key(#{const_name}) \n"
+        output = "writer.push_key(#{association.const_name}) \n"
         output << "#{serializer_instance_variable}.serialize_to_writer(object.#{association.name}, writer)"
 
         output
