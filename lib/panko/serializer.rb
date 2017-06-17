@@ -3,6 +3,7 @@ require_relative 'attributes/field'
 require_relative 'attributes/relationship'
 require_relative 'attributes/has_one'
 require_relative 'attributes/has_many'
+require_relative 'cache'
 require 'oj'
 
 module Panko
@@ -80,6 +81,7 @@ module Panko
     end
 
     attr_reader :object, :context
+    attr_writer :context
 
     def serialize(object, writer = nil)
       writer ||= Oj::StringWriter.new(mode: :rails)

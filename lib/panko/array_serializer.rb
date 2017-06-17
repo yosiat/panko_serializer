@@ -1,3 +1,5 @@
+require_relative 'cache'
+
 module Panko
   class ArraySerializer
     attr_accessor :subjects
@@ -13,7 +15,7 @@ module Panko
         context: options.fetch(:context, nil)
       }
 
-      @serializer_instance = @each_serializer.new serializer_options
+      @serializer_instance = Panko::CACHE.fetch(@each_serializer, serializer_options)
     end
 
     def to_json
