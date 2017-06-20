@@ -43,9 +43,7 @@ module Panko
     def serialize_to_writer(subjects, writer)
       writer.push_array
 
-      subjects.to_a.each do |item|
-        @serializer_instance.serialize_to_writer(item, writer)
-      end
+      subjects.each { |item| @serializer_instance.serialize_to_writer(item, writer) }
 
       writer.pop
     end
