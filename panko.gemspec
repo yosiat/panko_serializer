@@ -13,15 +13,17 @@ Gem::Specification.new do |spec|
   spec.homepage      = ""
   spec.license       = "MIT"
 
-
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
   end
   spec.require_paths = ['lib']
 
+  spec.extensions << "ext/panko/extconf.rb"
+
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "rake-compiler"
 
   spec.add_dependency 'oj', '~> 3.1.3'
   spec.add_dependency 'concurrent-ruby'

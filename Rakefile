@@ -3,6 +3,9 @@ require 'rspec/core/rake_task'
 require 'json'
 require 'terminal-table'
 
+require 'rake/extensiontask'
+spec = Gem::Specification.load('panko.gemspec')
+Rake::ExtensionTask.new('panko', spec)
 
 RSpec::Core::RakeTask.new(:spec)
 

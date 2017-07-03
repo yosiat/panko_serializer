@@ -23,7 +23,6 @@ module Panko
         attrs.each do |attr|
           field_attr = FieldAttribute.new(attr)
           constantize_attribute(field_attr.const_name, field_attr.const_value)
-
           @_attributes << field_attr
         end
       end
@@ -77,6 +76,9 @@ module Panko
       @except = processed_filter[:serializer]
       @except_associations = processed_filter[:associations]
 
+      @attributes = []
+      @method_call_attributes = []
+
       build_attributes_reader
     end
 
@@ -84,13 +86,21 @@ module Panko
     attr_writer :context
 
     def serialize(object, writer = nil)
+      Oj.load(serialize_to_json(object, writer))
+    end
+
+    def serialize_to_json(object, writer = nil)
       writer ||= Oj::StringWriter.new(mode: :rails)
       serialize_to_writer object, writer
 
-      Oj.load(writer.to_s)
+      writer.to_s
     end
 
     private
+
+    def post_process_attributes
+      
+    end
 
     def process_filter(filter)
       return { serializer: filter, associations: {} } if filter.is_a? Array
@@ -122,6 +132,7 @@ module Panko
         end
       EOMETHOD
 
+
       # TODO: don't redefine if [attributes+associations] wasn't changed
       instance_eval attributes_reader_method_body, __FILE__, __LINE__
     end
@@ -135,13 +146,16 @@ module Panko
     #
     #
     def attributes_code
-      filter(self.class._attributes).map do |attr|
+      filter(self.class._attributes).each do |attr|
         if self.class.method_defined? attr.name
-          attr.method_call
+          @method_call_attributes << attr.name
         else
-          attr.read_call
+          @attributes << attr.name
         end
-      end.join("\n".freeze)
+      end
+
+
+      'Panko::process(object, writer, self, @attributes, @method_call_attributes)'.freeze
     end
 
     def associations_code
