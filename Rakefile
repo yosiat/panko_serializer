@@ -2,14 +2,15 @@ require 'bundler/gem_tasks'
 require 'rspec/core/rake_task'
 require 'json'
 require 'terminal-table'
-
 require 'rake/extensiontask'
-spec = Gem::Specification.load('panko.gemspec')
-Rake::ExtensionTask.new('panko', spec)
+
+Rake::ExtensionTask.new('panko') do |ext|
+  ext.lib_dir = 'lib/panko'
+end
 
 RSpec::Core::RakeTask.new(:spec)
 
-task default: :spec
+task default: [:compile, :spec]
 
 desc 'Run all benchmarks'
 task :benchmarks do

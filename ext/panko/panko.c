@@ -34,6 +34,7 @@ process(VALUE klass, VALUE obj, VALUE str_writer, VALUE serializer, VALUE attrib
   if(attributes_set == Qnil) {
     return Qnil;
   }
+
   VALUE attributes_hash = read_attributes(attributes_set);
   if(attributes_hash == Qnil) {
     return Qnil;
@@ -55,7 +56,9 @@ process(VALUE klass, VALUE obj, VALUE str_writer, VALUE serializer, VALUE attrib
     return Qnil;
   }
 
-  for (long i = 0; i < RARRAY_LEN(attributes); i++) {
+  long i;
+
+  for (i = 0; i < RARRAY_LEN(attributes); i++) {
     VALUE member = rb_sym2str(RARRAY_AREF(attributes, i));
 
     VALUE value = rb_hash_aref(values, member);
@@ -64,7 +67,7 @@ process(VALUE klass, VALUE obj, VALUE str_writer, VALUE serializer, VALUE attrib
     write_value(str_writer, member, value, type_metadata);
   }
 
-  for (long i = 0; i < RARRAY_LEN(method_calls_attributes); i++) {
+  for (i = 0; i < RARRAY_LEN(method_calls_attributes); i++) {
     VALUE attribute_name = RARRAY_AREF(method_calls_attributes, i);
     VALUE result = rb_funcall(serializer, rb_sym2id(attribute_name), 0);
 
