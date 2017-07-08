@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'byebug'
 
 describe Panko::ArraySerializer do
   class FooSerializer < Panko::Serializer
