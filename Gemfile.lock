@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    panko (0.1.8)
+    panko (0.2.0)
       concurrent-ruby
       oj (~> 3.2.0)
 
