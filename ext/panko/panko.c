@@ -1,14 +1,15 @@
 #include <ruby.h>
 
 #include "attributes_iterator.h"
+#include "type_cast.h"
 
 static ID	push_value_id = 0;
-static ID	type_cast_from_database_id = 0;
+
 
 void write_value(VALUE str_writer, VALUE key, VALUE value, VALUE type_metadata)
 {
   if(type_metadata != Qnil) {
-    value = rb_funcall(type_metadata, type_cast_from_database_id, 1, value);
+    value = type_cast(type_metadata, value);
   }
 
   rb_funcall(str_writer, push_value_id, 2, value, key);
@@ -38,7 +39,6 @@ void
 Init_panko()
 {
   push_value_id = rb_intern("push_value");
-  type_cast_from_database_id = rb_intern("type_cast_from_database");
 
 
   VALUE mPanko = rb_define_module("Panko");
