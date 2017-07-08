@@ -9,8 +9,10 @@ Rake::ExtensionTask.new('panko') do |ext|
 end
 
 RSpec::Core::RakeTask.new(:spec)
+Rake::Task[:spec].prerequisites << :compile
 
-task default: [:compile, :spec]
+
+task default: :spec
 
 desc 'Run all benchmarks'
 task :benchmarks do
