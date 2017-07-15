@@ -69,6 +69,7 @@ GEM
     nokogiri (1.7.0.1)
       mini_portile2 (~> 2.1.0)
     oj (3.2.0)
+    pg (0.21.0)
     rack (1.6.5)
     rack-test (0.6.3)
       rack (>= 1.0)
@@ -145,6 +146,7 @@ DEPENDENCIES
   faker
   memory_profiler
   panko!
+  pg
   rails (~> 4.2.8)
   railties (~> 4.2.8)
   rake (~> 10.0)

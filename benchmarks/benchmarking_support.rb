@@ -29,7 +29,7 @@ module Benchmark
 
       results = {
         label: label,
-        ips: report.entries.first.ips.round(2),
+        ips: ActiveSupport::NumberHelper.number_to_delimited(report.entries.first.ips.round(2)),
         allocs: "#{memory_report.total_allocated}/#{memory_report.total_retained}"
       }.to_json
 
