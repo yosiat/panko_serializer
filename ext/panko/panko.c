@@ -49,5 +49,6 @@ void Init_panko() {
   VALUE mPanko = rb_define_module("Panko");
   rb_define_singleton_method(mPanko, "process", process, 5);
 
-  init_panko_type_cast(mPanko);
+  panko_init_attributes_iterator(mPanko);
+  panko_init_type_cast(mPanko);
 }

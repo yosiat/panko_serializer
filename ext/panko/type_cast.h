@@ -21,7 +21,11 @@
 
 typedef bool (*TypeMatchFunc)(VALUE type_klass);
 
-// Returns Qundef, if can't type cast
+/*
+ * TypeCastFunc
+ *
+ * @return VALUE casted value or Qundef if not casted
+ */
 typedef VALUE (*TypeCastFunc)(VALUE value);
 
 typedef struct _TypeCast {
@@ -31,28 +35,28 @@ typedef struct _TypeCast {
 
 // ActiveRecord::Type::String
 // ActiveRecord::Type::Text
-bool isStringOrTextType(VALUE type_klass);
-VALUE castStringOrTextType(VALUE value);
+bool is_string_or_text_type(VALUE type_klass);
+VALUE cast_string_or_text_type(VALUE value);
 
 // ActiveRecord::Type::Float
-bool isFloatType(VALUE type_klass);
-VALUE castFloatType(VALUE value);
+bool is_float_type(VALUE type_klass);
+VALUE cast_float_type(VALUE value);
 
 // ActiveRecord::Type::Integer
-bool isIntegerType(VALUE type_klass);
-VALUE castIntegerType(VALUE value);
+bool is_integer_type(VALUE type_klass);
+VALUE cast_integer_type(VALUE value);
 
 // ActiveRecord::ConnectoinAdapters::PostgreSQL::Json
-bool isJsonType(VALUE type_klass);
-VALUE castJsonType(VALUE value);
+bool is_json_type(VALUE type_klass);
+VALUE cast_json_type(VALUE value);
 
 static struct _TypeCast type_casts[] = {
-    {isStringOrTextType, castStringOrTextType},
-    {isIntegerType, castIntegerType},
-    {isFloatType, castFloatType},
-    {isJsonType, castJsonType},
+    {is_string_or_text_type, cast_string_or_text_type},
+    {is_integer_type, cast_integer_type},
+    {is_float_type, cast_float_type},
+    {is_json_type, cast_json_type},
 
     {NULL, NULL}};
 
 extern VALUE type_cast(VALUE type_metadata, VALUE value);
-void init_panko_type_cast(VALUE mPanko);
+void panko_init_type_cast(VALUE mPanko);

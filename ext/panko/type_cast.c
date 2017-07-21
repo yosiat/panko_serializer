@@ -64,12 +64,12 @@ void cache_type_lookup() {
   rb_protect(cache_postgres_type_lookup, ar, &isErrored);
 }
 
-bool isStringOrTextType(VALUE type_klass) {
+bool is_string_or_text_type(VALUE type_klass) {
   return type_klass == ar_string_type || type_klass == ar_text_type ||
-         type_klass == ar_pg_uuid_type;
+         (ar_pg_uuid_type != Qundef && type_klass == ar_pg_uuid_type);
 }
 
-VALUE castStringOrTextType(VALUE value) {
+VALUE cast_string_or_text_type(VALUE value) {
   if (RB_TYPE_P(value, T_STRING)) {
     return value;
   }
@@ -77,11 +77,12 @@ VALUE castStringOrTextType(VALUE value) {
   return rb_funcall(value, to_s_id, 0);
 }
 
-bool isFloatType(VALUE type_klass) {
-  return type_klass == ar_float_type || type_klass == ar_pg_float_type;
+bool is_float_type(VALUE type_klass) {
+  return type_klass == ar_float_type ||
+         (ar_pg_float_type != Qundef && type_klass == ar_pg_float_type);
 }
 
-VALUE castFloatType(VALUE value) {
+VALUE cast_float_type(VALUE value) {
   if (RB_TYPE_P(value, T_FLOAT)) {
     return value;
   }
@@ -94,11 +95,12 @@ VALUE castFloatType(VALUE value) {
   return Qundef;
 }
 
-bool isIntegerType(VALUE type_klass) {
-  return type_klass == ar_integer_type || type_klass == ar_pg_integer_type;
+bool is_integer_type(VALUE type_klass) {
+  return type_klass == ar_integer_type ||
+         (ar_pg_integer_type != Qundef && type_klass == ar_pg_integer_type);
 }
 
-VALUE castIntegerType(VALUE value) {
+VALUE cast_integer_type(VALUE value) {
   if (RB_INTEGER_TYPE_P(value)) {
     return value;
   }
@@ -111,11 +113,11 @@ VALUE castIntegerType(VALUE value) {
   return Qundef;
 }
 
-bool isJsonType(VALUE type_klass) {
-  return type_klass == ar_pg_json_type;
+bool is_json_type(VALUE type_klass) {
+  return ar_pg_json_type != Qundef && type_klass == ar_pg_json_type;
 }
 
-VALUE castJsonType(VALUE value) {
+VALUE cast_json_type(VALUE value) {
   if (!RB_TYPE_P(value, T_STRING)) {
     return value;
   }
@@ -132,8 +134,8 @@ VALUE type_cast(VALUE type_metadata, VALUE value) {
   VALUE typeCastedValue = Qundef;
 
   TypeCast typeCast;
-  for (typeCast = type_casts; NULL != typeCast->canCast; typeCast++) {
-    if (typeCast->canCast(type_klass) == true) {
+  for (typeCast = type_casts; typeCast->canCast != NULL; typeCast++) {
+    if (typeCast->canCast(type_klass)) {
       typeCastedValue = typeCast->typeCast(value);
       break;
     }
@@ -150,7 +152,7 @@ VALUE public_type_cast(VALUE module, VALUE type_metadata, VALUE value) {
   return type_cast(type_metadata, value);
 }
 
-void init_panko_type_cast(VALUE mPanko) {
+void panko_init_type_cast(VALUE mPanko) {
   type_cast_from_database_id = rb_intern_const("type_cast_from_database");
   to_s_id = rb_intern_const("to_s");
 

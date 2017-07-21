@@ -5,10 +5,6 @@ static ID types_id = 0;
 static ID values_id = 0;
 
 VALUE read_attributes(VALUE obj) {
-  if (attributes_id == 0) {
-    attributes_id = rb_intern("@attributes");
-  }
-
   return rb_ivar_get(obj, attributes_id);
 }
 
@@ -29,16 +25,7 @@ VALUE panko_read_lazy_attributes_hash(VALUE object) {
 void panko_read_types_and_value(VALUE attributes_hash,
                                 VALUE* types,
                                 VALUE* values) {
-  if (types_id == 0) {
-    types_id = rb_intern("@types");
-  }
-
   *types = rb_ivar_get(attributes_hash, types_id);
-
-  if (values_id == 0) {
-    values_id = rb_intern("@values");
-  }
-
   *values = rb_ivar_get(attributes_hash, values_id);
 }
 
@@ -63,4 +50,10 @@ VALUE panko_each_attribute(VALUE obj,
   }
 
   return Qnil;
+}
+
+void panko_init_attributes_iterator(VALUE mPanko) {
+  attributes_id = rb_intern("@attributes");
+  values_id = rb_intern("@values");
+  types_id = rb_intern("@types");
 }
