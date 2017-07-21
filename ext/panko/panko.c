@@ -35,8 +35,10 @@ VALUE process(VALUE klass,
   long i;
   for (i = 0; i < RARRAY_LEN(method_calls_attributes); i++) {
     VALUE attribute_name = RARRAY_AREF(method_calls_attributes, i);
+    // TODO: create global cache from attribute_name to rb_sym2id
     VALUE result = rb_funcall(serializer, rb_sym2id(attribute_name), 0);
 
+    // TODO: create global cache from attribute_name to rb_sym2str
     write_value(str_writer, rb_sym2str(attribute_name), result, Qnil);
   }
 

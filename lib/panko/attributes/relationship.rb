@@ -14,6 +14,15 @@ module Panko
 
     attr_reader :serializer, :serializer_name, :code
 
+    def const_value
+      @name.to_s
+    end
+
+    def const_name
+      const_value.upcase
+    end
+
+
     def build_code
       output = "writer.push_key(#{const_name}) \n"
       output << "#{serializer_name}.serialize_to_writer(object.#{name}, writer)"
