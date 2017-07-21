@@ -14,13 +14,11 @@ Rake::Task[:spec].prerequisites << :compile
 
 task default: :spec
 
-desc 'Run all benchmarks'
-task :benchmarks do
-  headings = ['Benchmark', 'ip/s', 'allocs/retained']
 
-  files = Dir[File.join(__dir__, 'benchmarks', 'bm_*')]
+def run_benchmarks(files, items_count: 14_000)
+  headings = ['Benchmark', 'ip/s', 'allocs/retained']
   files.each do |benchmark_file|
-    output = `RAILS_ENV=production ruby #{benchmark_file}`
+    output = `ITEMS_COUNT=#{items_count} RAILS_ENV=production ruby #{benchmark_file}`
 
     rows = output.each_line.map do |line|
       result = JSON.parse(line)
@@ -32,5 +30,21 @@ task :benchmarks do
     table = Terminal::Table.new title: title, headings: headings, rows: rows
     puts table
   end
+end
 
+desc 'Run all benchmarks'
+task :benchmarks do
+  run_benchmarks Dir[File.join(__dir__, 'benchmarks', 'bm_*')]
+end
+
+desc 'Sanity Benchmarks'
+task :sanity do
+  puts Time.now.strftime("%d/%m %H:%M:%S")
+  puts "=========================="
+
+  run_benchmarks [
+    File.join(__dir__, 'benchmarks', 'sanity.rb')
+  ], items_count: 2300
+
+  puts "\n\n"
 end

@@ -50,12 +50,14 @@ class Profile < ActiveRecord::Base
 end
 
 # Build out the data to serialize
-14_000.times do
-  Post.create(
-    body: 'something about how password restrictions are evil, and less secure, and with the math to prove it.',
-    title: 'Your bank is does not know how to do security',
-    author: Author.create(name: 'Preston Sego')
-  )
+Post.transaction do
+  ENV.fetch('ITEMS_COUNT', '2300').to_i.times do
+    Post.create(
+      body: 'something about how password restrictions are evil, and less secure, and with the math to prove it.',
+      title: 'Your bank is does not know how to do security',
+      author: Author.create(name: 'Preston Sego')
+    )
+  end
 end
 
 
