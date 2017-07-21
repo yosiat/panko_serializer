@@ -63,11 +63,11 @@ void cache_type_lookup() {
 }
 
 
-bool isStringOrTextType(VALUE type_metadata, VALUE type_klass) {
+bool isStringOrTextType(VALUE type_klass) {
   return type_klass == ar_string_type || type_klass == ar_text_type || type_klass == ar_pg_uuid_type;
 }
 
-VALUE castStringOrTextType(VALUE type_metadata, VALUE value) {
+VALUE castStringOrTextType(VALUE value) {
   if(RB_TYPE_P(value, T_STRING)) {
     return value;
   }
@@ -75,11 +75,11 @@ VALUE castStringOrTextType(VALUE type_metadata, VALUE value) {
   return rb_funcall(value, to_s_id, 0);
 }
 
-bool isFloatType(VALUE type_metadata, VALUE type_klass) {
+bool isFloatType(VALUE type_klass) {
   return type_klass == ar_float_type || type_klass == ar_pg_float_type;
 }
 
-VALUE castFloatType(VALUE type_metadata, VALUE value) {
+VALUE castFloatType(VALUE value) {
   if(RB_TYPE_P(value, T_FLOAT)) {
     return value;
   }
@@ -92,11 +92,11 @@ VALUE castFloatType(VALUE type_metadata, VALUE value) {
   return Qundef;
 }
 
-bool isIntegerType(VALUE type_metadata, VALUE type_klass) {
+bool isIntegerType(VALUE type_klass) {
   return type_klass == ar_integer_type || type_klass == ar_pg_integer_type;
 }
 
-VALUE castIntegerType(VALUE type_metadata, VALUE value) {
+VALUE castIntegerType(VALUE value) {
   if(RB_INTEGER_TYPE_P(value)) {
     return value;
   }
@@ -109,14 +109,11 @@ VALUE castIntegerType(VALUE type_metadata, VALUE value) {
   return Qundef;
 }
 
-bool isJsonType(VALUE type_metadata, VALUE type_klass) {
+bool isJsonType(VALUE type_klass) {
   return type_klass == ar_pg_json_type;
 }
 
-static VALUE oj_const = Qundef;
-static ID	oj_load_id = 0;
-
-VALUE castJsonType(VALUE type_metadata, VALUE value) {
+VALUE castJsonType(VALUE value) {
   if(!RB_TYPE_P(value, T_STRING)) {
     return value;
   }
@@ -129,13 +126,13 @@ VALUE castJsonType(VALUE type_metadata, VALUE value) {
 VALUE type_cast(VALUE type_metadata, VALUE value) {
   cache_type_lookup();
 
-  VALUE value_klass = rb_obj_class(type_metadata);
+  VALUE type_klass = rb_obj_class(type_metadata);
   VALUE typeCastedValue = Qundef;
 
   TypeCast	typeCast;
   for (typeCast = type_casts; NULL != typeCast->canCast; typeCast++) {
-    if(typeCast->canCast(type_metadata, value_klass) == true) {
-      typeCastedValue = typeCast->typeCast(type_metadata, value);
+    if(typeCast->canCast(type_klass) == true) {
+      typeCastedValue = typeCast->typeCast(value);
       break;
     }
   }

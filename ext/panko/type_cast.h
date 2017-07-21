@@ -19,10 +19,10 @@
  * and the end result if for JSON we can skip some "defenses".
  */
 
-typedef bool (*TypeMatchFunc)(VALUE type_metadata, VALUE type_klass);
+typedef bool (*TypeMatchFunc)(VALUE type_klass);
 
 // Returns Qundef, if can't type cast
-typedef VALUE (*TypeCastFunc)(VALUE type_metadata, VALUE value);
+typedef VALUE (*TypeCastFunc)(VALUE value);
 
 typedef struct _TypeCast {
     TypeMatchFunc canCast;
@@ -32,20 +32,20 @@ typedef struct _TypeCast {
 
 // ActiveRecord::Type::String
 // ActiveRecord::Type::Text
-bool isStringOrTextType(VALUE type_metadata, VALUE type_klass);
-VALUE castStringOrTextType(VALUE type_metadata, VALUE value);
+bool isStringOrTextType(VALUE type_klass);
+VALUE castStringOrTextType(VALUE value);
 
 // ActiveRecord::Type::Float
-bool isFloatType(VALUE type_metadata, VALUE type_klass);
-VALUE castFloatType(VALUE type_metadata, VALUE value);
+bool isFloatType(VALUE type_klass);
+VALUE castFloatType(VALUE value);
 
 // ActiveRecord::Type::Integer
-bool isIntegerType(VALUE type_metadata, VALUE type_klass);
-VALUE castIntegerType(VALUE type_metadata, VALUE value);
+bool isIntegerType(VALUE type_klass);
+VALUE castIntegerType(VALUE value);
 
 // ActiveRecord::ConnectoinAdapters::PostgreSQL::Json
-bool isJsonType(VALUE type_metadata, VALUE type_klass);
-VALUE castJsonType(VALUE type_metadata, VALUE value);
+bool isJsonType(VALUE type_klass);
+VALUE castJsonType(VALUE value);
 
 static struct _TypeCast	type_casts[] = {
   { isStringOrTextType, castStringOrTextType },
