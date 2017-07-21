@@ -34,13 +34,18 @@ end
 
 desc 'Run all benchmarks'
 task :benchmarks do
-  run_benchmarks Dir[File.join(__dir__, 'benchmarks', 'bm_*')]
+  run_benchmarks Dir[File.join(__dir__, 'benchmarks', '**', 'bm_*')]
+end
+
+desc 'Type Casts - Benchmarks'
+task :bm_type_casts do
+  run_benchmarks Dir[File.join(__dir__, 'benchmarks', 'type_casts', 'bm_*')]
 end
 
 desc 'Sanity Benchmarks'
 task :sanity do
-  puts Time.now.strftime("%d/%m %H:%M:%S")
-  puts "=========================="
+  puts Time.now.strftime('%d/%m %H:%M:%S')
+  puts '=========================='
 
   run_benchmarks [
     File.join(__dir__, 'benchmarks', 'sanity.rb')
