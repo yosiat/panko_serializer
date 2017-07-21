@@ -15,8 +15,8 @@
  * creates new string, for known reasons, but, in serialization flow we don't
  * need to create new string becuase we afraid of mutations.
  *
- * Since we know before hand, that we are only reading from the database, and *not* writing
- * and the end result if for JSON we can skip some "defenses".
+ * Since we know before hand, that we are only reading from the database, and
+ * *not* writing and the end result if for JSON we can skip some "defenses".
  */
 
 typedef bool (*TypeMatchFunc)(VALUE type_klass);
@@ -25,10 +25,9 @@ typedef bool (*TypeMatchFunc)(VALUE type_klass);
 typedef VALUE (*TypeCastFunc)(VALUE value);
 
 typedef struct _TypeCast {
-    TypeMatchFunc canCast;
-    TypeCastFunc	typeCast;
-} *TypeCast;
-
+  TypeMatchFunc canCast;
+  TypeCastFunc typeCast;
+} * TypeCast;
 
 // ActiveRecord::Type::String
 // ActiveRecord::Type::Text
@@ -47,16 +46,13 @@ VALUE castIntegerType(VALUE value);
 bool isJsonType(VALUE type_klass);
 VALUE castJsonType(VALUE value);
 
-static struct _TypeCast	type_casts[] = {
-  { isStringOrTextType, castStringOrTextType },
-  { isIntegerType, castIntegerType },
-  { isFloatType, castFloatType },
-  { isJsonType, castJsonType },
+static struct _TypeCast type_casts[] = {
+    {isStringOrTextType, castStringOrTextType},
+    {isIntegerType, castIntegerType},
+    {isFloatType, castFloatType},
+    {isJsonType, castJsonType},
 
-  { NULL, NULL }
-};
-
-
+    {NULL, NULL}};
 
 extern VALUE type_cast(VALUE type_metadata, VALUE value);
 void init_panko_type_cast(VALUE mPanko);
