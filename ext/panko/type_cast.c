@@ -2,6 +2,7 @@
 
 static ID type_cast_from_database_id = 0;
 static ID to_s_id = 0;
+static ID to_i_id = 0;
 
 // Caching ActiveRecord Types
 static VALUE ar_string_type = Qundef;
@@ -74,6 +75,14 @@ VALUE cast_string_or_text_type(VALUE value) {
     return value;
   }
 
+  if (value == Qtrue) {
+    return rb_str_new_cstr("t");
+  }
+
+  if (value == Qfalse) {
+    return rb_str_new_cstr("f");
+  }
+
   return rb_funcall(value, to_s_id, 0);
 }
 
@@ -107,10 +116,29 @@ VALUE cast_integer_type(VALUE value) {
 
   if (RB_TYPE_P(value, T_STRING)) {
     const char* val = StringValuePtr(value);
+    if (strlen(val) == 0) {
+      return Qnil;
+    }
     return rb_cstr2inum(val, 10);
   }
 
-  return Qundef;
+  if (RB_FLOAT_TYPE_P(value)) {
+    // We are calling the `to_i` here, because ruby internal
+    // `flo_to_i` is not accessible
+    return rb_funcall(value, to_i_id, 0);
+  }
+
+  if (value == Qtrue) {
+    return INT2NUM(1);
+  }
+
+  if (value == Qfalse) {
+    return INT2NUM(0);
+  }
+
+  // At this point, we handled integer, float, string and booleans
+  // any thing other than this (array, hashes, etc) should result in nil
+  return Qnil;
 }
 
 bool is_json_type(VALUE type_klass) {
@@ -155,6 +183,7 @@ VALUE public_type_cast(VALUE module, VALUE type_metadata, VALUE value) {
 void panko_init_type_cast(VALUE mPanko) {
   type_cast_from_database_id = rb_intern_const("type_cast_from_database");
   to_s_id = rb_intern_const("to_s");
+  to_i_id = rb_intern_const("to_i");
 
   rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, 2);
 }
