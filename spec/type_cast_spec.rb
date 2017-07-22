@@ -79,7 +79,7 @@ describe 'Type Casting' do
     it { expect(Panko::_type_cast(type, [6,12])).to  eq([6, 12]) }
   end
 
-  context 'ActiveRecord::Type::Boolean', focus: true do
+  context 'ActiveRecord::Type::Boolean' do
     let(:type) { ActiveRecord::Type::Boolean.new }
 
     it { expect(Panko::_type_cast(type, '')).to be_nil }
