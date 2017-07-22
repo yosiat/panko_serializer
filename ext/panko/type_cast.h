@@ -50,9 +50,14 @@ VALUE cast_integer_type(VALUE value);
 bool is_json_type(VALUE type_klass);
 VALUE cast_json_type(VALUE value);
 
+// ActiveRecord::Type::Boolean
+bool is_boolean_type(VALUE type_klass);
+VALUE cast_boolean_type(VALUE value);
+
 static struct _TypeCast type_casts[] = {
     {is_string_or_text_type, cast_string_or_text_type},
     {is_integer_type, cast_integer_type},
+    {is_boolean_type, cast_boolean_type},
     {is_float_type, cast_float_type},
     {is_json_type, cast_json_type},
 

@@ -72,10 +72,32 @@ describe 'Type Casting' do
     it { expect(Panko::_type_cast(type, 'shnitzel')).to be_nil }
     it { expect(Panko::_type_cast(type, nil)).to  be_nil }
 
-    it { expect(Panko::_type_cast(type, '{"a":1}')).to  eq({ "a" => 1 }) }
+    it { expect(Panko::_type_cast(type, '{"a":1}')).to  eq({ 'a' => 1 }) }
     it { expect(Panko::_type_cast(type, '[6,12]')).to  eq([6, 12]) }
 
-    it { expect(Panko::_type_cast(type, { "a" => 1 })).to  eq({ "a" => 1 }) }
+    it { expect(Panko::_type_cast(type, { "a" => 1 })).to  eq({ 'a' => 1 }) }
     it { expect(Panko::_type_cast(type, [6,12])).to  eq([6, 12]) }
   end
+
+  context 'ActiveRecord::Type::Boolean', focus: true do
+    let(:type) { ActiveRecord::Type::Boolean.new }
+
+    it { expect(Panko::_type_cast(type, '')).to be_nil }
+    it { expect(Panko::_type_cast(type, nil)).to be_nil }
+
+    it { expect(Panko::_type_cast(type, true)).to be_truthy }
+    it { expect(Panko::_type_cast(type, '1')).to be_truthy }
+    it { expect(Panko::_type_cast(type, 't')).to be_truthy }
+    it { expect(Panko::_type_cast(type, 'T')).to be_truthy }
+    it { expect(Panko::_type_cast(type, 'true')).to be_truthy }
+    it { expect(Panko::_type_cast(type, 'TRUE')).to be_truthy }
+
+    it { expect(Panko::_type_cast(type, false)).to be_falsey }
+    it { expect(Panko::_type_cast(type, '0')).to be_falsey }
+    it { expect(Panko::_type_cast(type, 'f')).to be_falsey }
+    it { expect(Panko::_type_cast(type, 'F')).to be_falsey }
+    it { expect(Panko::_type_cast(type, 'false')).to be_falsey }
+    it { expect(Panko::_type_cast(type, 'FALSE')).to be_falsey }
+  end
+
 end

@@ -34,6 +34,8 @@ ar_type_convert ActiveRecord::Type::Text, 1, '1'
 ar_type_convert ActiveRecord::Type::Integer, '1', 1
 ar_type_convert ActiveRecord::Type::Float, '1.23', 1.23
 ar_type_convert ActiveRecord::Type::Float, 'Infinity', 0.0
+ar_type_convert ActiveRecord::Type::Boolean, 'true', true
+ar_type_convert ActiveRecord::Type::Boolean, 't', true
 
 ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer, '1', 1
 ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, '1.23', 1.23

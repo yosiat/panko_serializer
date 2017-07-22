@@ -9,6 +9,7 @@ static VALUE ar_string_type = Qundef;
 static VALUE ar_text_type = Qundef;
 static VALUE ar_float_type = Qundef;
 static VALUE ar_integer_type = Qundef;
+static VALUE ar_boolean_type = Qundef;
 
 static VALUE ar_pg_integer_type = Qundef;
 static VALUE ar_pg_float_type = Qundef;
@@ -59,6 +60,7 @@ void cache_type_lookup() {
   ar_text_type = rb_const_get_at(ar_type, rb_intern("Text"));
   ar_float_type = rb_const_get_at(ar_type, rb_intern("Float"));
   ar_integer_type = rb_const_get_at(ar_type, rb_intern("Integer"));
+  ar_boolean_type = rb_const_get_at(ar_type, rb_intern("Boolean"));
 
   // TODO: if we get error or not, add this to some debug log
   int isErrored;
@@ -153,6 +155,28 @@ VALUE cast_json_type(VALUE value) {
   // TODO: instead of parsing the json, let's signal to "write_value"
   // to use "push_json" instead of "push_value"
   return Qundef;
+}
+
+bool is_boolean_type(VALUE type_klass) {
+  return type_klass == ar_boolean_type;
+}
+
+VALUE cast_boolean_type(VALUE value) {
+  if (value == Qtrue || value == Qfalse) {
+    return value;
+  }
+
+  if (value == Qnil || RSTRING_LEN(value) == 0) {
+    return Qnil;
+  }
+
+  const char* val = StringValuePtr(value);
+  bool isFalseValue =
+      (*val == '0' || (*val == 'f' || *val == 'F') ||
+       (strcmp(val, "false") == 0 || strcmp(val, "FALSE") == 0) ||
+       (strcmp(val, "off") == 0 || strcmp(val, "OFF") == 0));
+
+  return isFalseValue ? Qfalse : Qtrue;
 }
 
 VALUE type_cast(VALUE type_metadata, VALUE value) {
