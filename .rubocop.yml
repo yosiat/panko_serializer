@@ -1,0 +1,22 @@
+AllCops:
+  DisabledByDefault: true
+  TargetRubyVersion: 2.4.1
+  DisplayCopNames: true
+  StyleGuideCopsOnly: false
+
+Metrics/LineLength:
+  Max: 120
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Layout/TrailingBlankLines:
+  Enabled: true
+
+Layout/TrailingWhitespace:
+  Enabled: true
+

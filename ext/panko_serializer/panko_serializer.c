@@ -1,0 +1,189 @@
+#include <ruby.h>
+
+#include "panko_serializer.h"
+
+static ID push_value_id = 0;
+static ID push_array_id = 0;
+static ID push_object_id = 0;
+static ID pop_id = 0;
+
+static ID to_a_id = 0;
+
+void write_value(VALUE str_writer,
+                 VALUE key,
+                 VALUE value,
+                 VALUE type_metadata) {
+  if (type_metadata != Qnil) {
+    value = type_cast(type_metadata, value);
+  }
+
+  rb_funcall(str_writer, push_value_id, 2, value, key);
+}
+
+void serialize_method_fields(VALUE subject,
+                             VALUE str_writer,
+                             SerializationDescriptor descriptor,
+                             VALUE context) {
+  VALUE method_fields = descriptor->method_fields;
+  if (RARRAY_LEN(method_fields) == 0) {
+    return;
+  }
+
+  VALUE serializer = sd_build_serializer(descriptor);
+  sd_apply_serializer_config(serializer, subject, context);
+
+  long i;
+  for (i = 0; i < RARRAY_LEN(method_fields); i++) {
+    VALUE attribute_name = RARRAY_AREF(method_fields, i);
+    VALUE result = rb_funcall(serializer, rb_sym2id(attribute_name), 0);
+
+    write_value(str_writer, rb_sym2str(attribute_name), result, Qnil);
+  }
+}
+
+void panko_attributes_iter(VALUE object,
+                           VALUE name,
+                           VALUE value,
+                           VALUE type_metadata,
+                           VALUE context) {
+  write_value(context, name, value, type_metadata);
+}
+
+void serialize_fields(VALUE subject,
+                      VALUE str_writer,
+                      SerializationDescriptor descriptor,
+                      VALUE context) {
+  panko_each_attribute(subject, descriptor, descriptor->fields,
+                       panko_attributes_iter, str_writer);
+
+  serialize_method_fields(subject, str_writer, descriptor, context);
+}
+
+void serialize_has_one_associatoins(VALUE subject,
+                                    VALUE str_writer,
+                                    VALUE context,
+                                    SerializationDescriptor descriptor,
+                                    VALUE associations) {
+  long i;
+  for (i = 0; i < RARRAY_LEN(associations); i++) {
+    VALUE association = RARRAY_AREF(associations, i);
+
+    VALUE name = RARRAY_AREF(association, 0);
+    VALUE association_descriptor = RARRAY_AREF(association, 1);
+    VALUE value = rb_funcall(subject, rb_sym2id(name), 0);
+
+    if (value == Qnil) {
+      write_value(str_writer, rb_sym2str(name), value, Qnil);
+    } else {
+      serialize_subject(rb_sym2str(name), value, str_writer,
+                        sd_read(association_descriptor), context);
+    }
+  }
+}
+
+void serialize_has_many_associatoins(VALUE subject,
+                                     VALUE str_writer,
+                                     VALUE context,
+                                     SerializationDescriptor descriptor,
+                                     VALUE associations) {
+  long i;
+  for (i = 0; i < RARRAY_LEN(associations); i++) {
+    VALUE association = RARRAY_AREF(associations, i);
+
+    VALUE name = RARRAY_AREF(association, 0);
+    VALUE association_descriptor = RARRAY_AREF(association, 1);
+    VALUE value = rb_funcall(subject, rb_sym2id(name), 0);
+
+    if (value == Qnil) {
+      write_value(str_writer, rb_sym2str(name), value, Qnil);
+    } else {
+      serialize_subjects(rb_sym2str(name), value, str_writer,
+                         sd_read(association_descriptor), context);
+    }
+  }
+}
+
+VALUE serialize_subject(VALUE key,
+                        VALUE subject,
+                        VALUE str_writer,
+                        SerializationDescriptor descriptor,
+                        VALUE context) {
+  rb_funcall(str_writer, push_object_id, 1, key);
+
+  serialize_fields(subject, str_writer, descriptor, context);
+
+  if (RARRAY_LEN(descriptor->has_one_associations) >= 0) {
+    serialize_has_one_associatoins(subject, str_writer, context, descriptor,
+                                   descriptor->has_one_associations);
+  }
+
+  if (RARRAY_LEN(descriptor->has_many_associations) >= 0) {
+    serialize_has_many_associatoins(subject, str_writer, context, descriptor,
+                                    descriptor->has_many_associations);
+  }
+
+  rb_funcall(str_writer, pop_id, 0);
+
+  return Qnil;
+}
+
+VALUE serialize_subjects(VALUE key,
+                         VALUE subjects,
+                         VALUE str_writer,
+                         SerializationDescriptor descriptor,
+                         VALUE context) {
+  rb_funcall(str_writer, push_array_id, 1, key);
+
+  if (!RB_TYPE_P(subjects, T_ARRAY)) {
+    subjects = rb_funcall(subjects, to_a_id, 0);
+  }
+
+  long i;
+  for (i = 0; i < RARRAY_LEN(subjects); i++) {
+    VALUE subject = RARRAY_AREF(subjects, i);
+    serialize_subject(Qnil, subject, str_writer, descriptor, context);
+  }
+
+  rb_funcall(str_writer, pop_id, 0);
+
+  return Qnil;
+}
+
+VALUE serialize_subject_api(VALUE klass,
+                            VALUE subject,
+                            VALUE str_writer,
+                            VALUE descriptor,
+                            VALUE context) {
+  return serialize_subject(Qnil, subject, str_writer, sd_read(descriptor),
+                           context);
+}
+
+VALUE serialize_subjects_api(VALUE klass,
+                             VALUE subjects,
+                             VALUE str_writer,
+                             VALUE descriptor,
+                             VALUE context) {
+  serialize_subjects(Qnil, subjects, str_writer, sd_read(descriptor), context);
+
+  return Qnil;
+}
+
+void Init_panko_serializer() {
+  CONST_ID(push_value_id, "push_value");
+  CONST_ID(push_array_id, "push_array");
+  CONST_ID(push_object_id, "push_object");
+  CONST_ID(pop_id, "pop");
+  CONST_ID(to_a_id, "to_a");
+
+  VALUE mPanko = rb_define_module("Panko");
+
+  rb_define_singleton_method(mPanko, "serialize_subject", serialize_subject_api,
+                             4);
+
+  rb_define_singleton_method(mPanko, "serialize_subjects",
+                             serialize_subjects_api, 4);
+
+  panko_init_serialization_descriptor(mPanko);
+  panko_init_attributes_iterator(mPanko);
+  panko_init_type_cast(mPanko);
+}
