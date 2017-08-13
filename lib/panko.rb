@@ -5,4 +5,4 @@ require "panko/array_serializer"
 
 
 # C Extension
-require "panko_serializer/panko_serializer"
+require "panko/panko_serializer"
