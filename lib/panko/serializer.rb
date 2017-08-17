@@ -34,23 +34,18 @@ module Panko
     def initialize(options = {})
       @descriptor = Panko::CACHE.fetch(self.class, options)
 
-      @context = options.fetch(:context, nil)
-      @object = nil
+      @context = options[:context]
     end
 
     attr_reader :object, :context
-    attr_writer :object
 
-    def serialize(object, writer = nil)
-      Oj.load(serialize_to_json(object, writer))
+    def serialize(object)
+      Oj.load(serialize_to_json(object))
     end
 
-    def serialize_to_json(object, writer = nil)
-      @object = object
-
-      writer ||= Oj::StringWriter.new(mode: :rails)
+    def serialize_to_json(object)
+      writer = Oj::StringWriter.new(mode: :rails)
       Panko::serialize_subject(object, writer, @descriptor, @context)
-
       writer.to_s
     end
   end
