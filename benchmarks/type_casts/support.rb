@@ -7,7 +7,7 @@ require "pg"
 
 
 require_relative "../benchmarking_support"
-require_relative "../../lib/panko/panko"
+require_relative "../../lib/panko/panko_serializer"
 
 def assert(type_name, from, to)
   raise "#{type_name} - #{from.class} is not equals to #{to.class}" unless from.to_json == to.to_json

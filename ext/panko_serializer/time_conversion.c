@@ -39,8 +39,7 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
 
   VALUE output = Qnil;
   if (r >= 0) {
-    char buf[21];
-    sprintf(buf, "");
+    char buf[21] = "";
 
     append_region_part(buf, value, region, 1);
     strncat(buf, "-", 1);
