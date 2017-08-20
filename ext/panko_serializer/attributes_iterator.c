@@ -50,7 +50,7 @@ VALUE panko_each_attribute(VALUE obj,
 
   int i;
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
-    VALUE member = rb_sym2str(RARRAY_AREF(attributes, i));
+    VALUE member = RARRAY_AREF(attributes, i);
 
     VALUE value = Qundef;
     VALUE type_metadata = Qnil;

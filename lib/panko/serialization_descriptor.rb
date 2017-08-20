@@ -16,6 +16,7 @@ module Panko
         serializer_only_filters,
         serializer_except_filters
       )
+      backend.fields = backend.fields.map &:to_s
 
       backend.method_fields = apply_fields_filters(
         method_fields,
