@@ -7,6 +7,28 @@ describe Panko::Serializer do
     attributes :name, :address
   end
 
+  context "instantiation types" do
+    it "from database" do
+      serializer = FooSerializer.new
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+
+      output = serializer.serialize foo
+
+      expect(output).to eq("name" => foo.name,
+                           "address" => foo.address)
+    end
+
+    it "from memory" do
+      serializer = FooSerializer.new
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+      output = serializer.serialize foo
+
+      expect(output).to eq("name" => foo.name,
+                           "address" => foo.address)
+    end
+  end
+
   context "attributes" do
     it "instance variables" do
       serializer = FooSerializer.new

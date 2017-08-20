@@ -53,8 +53,7 @@ void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  panko_each_attribute(subject, descriptor, descriptor->fields,
-                       panko_attributes_iter, str_writer);
+  panko_each_attribute(subject, descriptor->fields, panko_attributes_iter, str_writer);
 
   serialize_method_fields(subject, str_writer, descriptor, context);
 }

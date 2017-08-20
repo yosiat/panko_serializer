@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <stdbool.h>
 
 #include "serialization_descriptor.h"
 
@@ -9,7 +10,6 @@ typedef void (*EachAttributeFunc)(VALUE object,
                                   VALUE context);
 
 extern VALUE panko_each_attribute(VALUE object,
-                                  SerializationDescriptor descriptor,
                                   VALUE attributes,
                                   EachAttributeFunc func,
                                   VALUE context);
