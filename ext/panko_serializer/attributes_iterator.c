@@ -13,12 +13,14 @@ VALUE read_attributes(VALUE obj) {
 }
 
 VALUE panko_read_lazy_attributes_hash(VALUE object) {
-  VALUE attributes_set = read_attributes(object);
+  volatile VALUE attributes_set, attributes_hash;
+
+  attributes_set = read_attributes(object);
   if (attributes_set == Qnil) {
     return Qnil;
   }
 
-  VALUE attributes_hash = read_attributes(attributes_set);
+  attributes_hash = read_attributes(attributes_set);
   if (attributes_hash == Qnil) {
     return Qnil;
   }
@@ -37,29 +39,31 @@ VALUE panko_each_attribute(VALUE obj,
                            VALUE attributes,
                            EachAttributeFunc func,
                            VALUE context) {
-  VALUE attributes_hash = panko_read_lazy_attributes_hash(obj);
+  volatile VALUE attributes_hash, delegate_hash;
+  int i;
+
+  attributes_hash = panko_read_lazy_attributes_hash(obj);
   if (attributes_hash == Qnil) {
     return Qnil;
   }
 
-  VALUE delegate_hash = rb_ivar_get(attributes_hash, delegate_hash_id);
+  delegate_hash = rb_ivar_get(attributes_hash, delegate_hash_id);
   bool tryToReadFromDelegateHash = RHASH_SIZE(delegate_hash) > 0;
 
   VALUE types, values;
   panko_read_types_and_value(attributes_hash, &types, &values);
 
-  int i;
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
-    VALUE member = RARRAY_AREF(attributes, i);
+    volatile VALUE member = RARRAY_AREF(attributes, i);
 
-    VALUE value = Qundef;
-    VALUE type_metadata = Qnil;
+    volatile VALUE value = Qundef;
+    volatile VALUE type_metadata = Qnil;
 
     // First try to read from delegate hash,
     // If the object was create in memory `User.new(name: "Yosi")`
     // it won't exist in types/values
     if (tryToReadFromDelegateHash) {
-      VALUE attribute_metadata = rb_hash_aref(delegate_hash, member);
+      volatile VALUE attribute_metadata = rb_hash_aref(delegate_hash, member);
       if (attribute_metadata != Qnil) {
         value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
         type_metadata = rb_ivar_get(attribute_metadata, type_id);

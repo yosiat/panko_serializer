@@ -24,18 +24,21 @@ void serialize_method_fields(VALUE subject,
                              VALUE str_writer,
                              SerializationDescriptor descriptor,
                              VALUE context) {
-  VALUE method_fields = descriptor->method_fields;
+  VALUE method_fields, serializer;
+  long i;
+
+  method_fields = descriptor->method_fields;
   if (RARRAY_LEN(method_fields) == 0) {
     return;
   }
 
-  VALUE serializer = sd_build_serializer(descriptor);
+  serializer = sd_build_serializer(descriptor);
   sd_apply_serializer_config(serializer, subject, context);
 
-  long i;
   for (i = 0; i < RARRAY_LEN(method_fields); i++) {
     VALUE attribute_name = RARRAY_AREF(method_fields, i);
-    VALUE result = rb_funcall(serializer, rb_sym2id(attribute_name), 0);
+    volatile VALUE result =
+        rb_funcall(serializer, rb_sym2id(attribute_name), 0);
 
     write_value(str_writer, rb_sym2str(attribute_name), result, Qnil);
   }
@@ -53,7 +56,8 @@ void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  panko_each_attribute(subject, descriptor->fields, panko_attributes_iter, str_writer);
+  panko_each_attribute(subject, descriptor->fields, panko_attributes_iter,
+                       str_writer);
 
   serialize_method_fields(subject, str_writer, descriptor, context);
 }
@@ -65,11 +69,11 @@ void serialize_has_one_associatoins(VALUE subject,
                                     VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
-    VALUE association = RARRAY_AREF(associations, i);
+    volatile VALUE association = RARRAY_AREF(associations, i);
 
-    VALUE name = RARRAY_AREF(association, 0);
-    VALUE association_descriptor = RARRAY_AREF(association, 1);
-    VALUE value = rb_funcall(subject, rb_sym2id(name), 0);
+    volatile VALUE name = RARRAY_AREF(association, 0);
+    volatile VALUE association_descriptor = RARRAY_AREF(association, 1);
+    volatile VALUE value = rb_funcall(subject, rb_sym2id(name), 0);
 
     if (value == Qnil) {
       write_value(str_writer, rb_sym2str(name), value, Qnil);
@@ -87,11 +91,11 @@ void serialize_has_many_associatoins(VALUE subject,
                                      VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
-    VALUE association = RARRAY_AREF(associations, i);
+    volatile VALUE association = RARRAY_AREF(associations, i);
 
-    VALUE name = RARRAY_AREF(association, 0);
-    VALUE association_descriptor = RARRAY_AREF(association, 1);
-    VALUE value = rb_funcall(subject, rb_sym2id(name), 0);
+    volatile VALUE name = RARRAY_AREF(association, 0);
+    volatile VALUE association_descriptor = RARRAY_AREF(association, 1);
+    volatile VALUE value = rb_funcall(subject, rb_sym2id(name), 0);
 
     if (value == Qnil) {
       write_value(str_writer, rb_sym2str(name), value, Qnil);
@@ -131,15 +135,16 @@ VALUE serialize_subjects(VALUE key,
                          VALUE str_writer,
                          SerializationDescriptor descriptor,
                          VALUE context) {
+  long i;
+
   rb_funcall(str_writer, push_array_id, 1, key);
 
   if (!RB_TYPE_P(subjects, T_ARRAY)) {
     subjects = rb_funcall(subjects, to_a_id, 0);
   }
 
-  long i;
   for (i = 0; i < RARRAY_LEN(subjects); i++) {
-    VALUE subject = RARRAY_AREF(subjects, i);
+    volatile VALUE subject = RARRAY_AREF(subjects, i);
     serialize_subject(Qnil, subject, str_writer, descriptor, context);
   }
 
