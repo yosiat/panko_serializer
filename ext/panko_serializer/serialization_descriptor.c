@@ -6,11 +6,12 @@ static ID context_id;
 static ID object_id;
 
 static void serialization_descriptor_free(void* ptr) {
+  SerializationDescriptor sd;
   if (ptr == 0) {
     return;
   }
 
-  SerializationDescriptor sd = (SerializationDescriptor)ptr;
+  sd = (SerializationDescriptor)ptr;
   sd->serializer_type = Qnil;
   sd->serializer = Qnil;
   sd->fields = Qnil;

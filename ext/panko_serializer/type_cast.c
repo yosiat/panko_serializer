@@ -1,9 +1,9 @@
 #include "type_cast.h"
 #include "time_conversion.h"
 
-static ID type_cast_from_database_id = 0;
-static ID to_s_id = 0;
-static ID to_i_id = 0;
+ID type_cast_from_database_id = 0;
+ID to_s_id = 0;
+ID to_i_id = 0;
 
 // Caching ActiveRecord Types
 static VALUE ar_string_type = Qundef;
@@ -23,19 +23,20 @@ static VALUE ar_pg_date_time_type = Qundef;
 static int initiailized = 0;
 
 VALUE cache_postgres_type_lookup(VALUE ar) {
-  VALUE ar_connection_adapters =
-      rb_const_get_at(ar, rb_intern("ConnectionAdapters"));
+  VALUE ar_connection_adapters, ar_postgresql, ar_oid;
+
+  ar_connection_adapters = rb_const_get_at(ar, rb_intern("ConnectionAdapters"));
   if (ar_connection_adapters == Qundef) {
     return Qfalse;
   }
 
-  VALUE ar_postgresql =
+  ar_postgresql =
       rb_const_get_at(ar_connection_adapters, rb_intern("PostgreSQL"));
   if (ar_postgresql == Qundef) {
     return Qfalse;
   }
 
-  VALUE ar_oid = rb_const_get_at(ar_postgresql, rb_intern("OID"));
+  ar_oid = rb_const_get_at(ar_postgresql, rb_intern("OID"));
   if (ar_oid == Qundef) {
     return Qfalse;
   }
@@ -50,14 +51,16 @@ VALUE cache_postgres_type_lookup(VALUE ar) {
 }
 
 VALUE cache_time_zone_type_lookup(VALUE ar) {
+  VALUE ar_attr_methods, ar_time_zone_conversion;
+
   // ActiveRecord::AttributeMethods
-  VALUE ar_attr_methods = rb_const_get_at(ar, rb_intern("AttributeMethods"));
+  ar_attr_methods = rb_const_get_at(ar, rb_intern("AttributeMethods"));
   if (ar_attr_methods == Qundef) {
     return Qfalse;
   }
 
   // ActiveRecord::AttributeMethods::TimeZoneConversion
-  VALUE ar_time_zone_conversion =
+  ar_time_zone_conversion =
       rb_const_get_at(ar_attr_methods, rb_intern("TimeZoneConversion"));
   if (ar_time_zone_conversion == Qundef) {
     return Qfalse;
@@ -76,10 +79,12 @@ void cache_type_lookup() {
 
   initiailized = 1;
 
-  VALUE ar = rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
+  VALUE ar, ar_type;
+
+  ar = rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
 
   // ActiveRecord::Type
-  VALUE ar_type = rb_const_get_at(ar, rb_intern("Type"));
+  ar_type = rb_const_get_at(ar, rb_intern("Type"));
 
   ar_string_type = rb_const_get_at(ar_type, rb_intern("String"));
   ar_text_type = rb_const_get_at(ar_type, rb_intern("Text"));
@@ -226,7 +231,7 @@ VALUE cast_date_time_type(VALUE value) {
       return value;
     }
 
-    VALUE iso8601_string = iso_ar_iso_datetime_string(val);
+    volatile VALUE iso8601_string = iso_ar_iso_datetime_string(val);
     if (iso8601_string != Qnil) {
       return iso8601_string;
     }
@@ -238,8 +243,10 @@ VALUE cast_date_time_type(VALUE value) {
 VALUE type_cast(VALUE type_metadata, VALUE value) {
   cache_type_lookup();
 
-  VALUE type_klass = CLASS_OF(type_metadata);
-  VALUE typeCastedValue = Qundef;
+  VALUE type_klass, typeCastedValue;
+
+  type_klass = CLASS_OF(type_metadata);
+  typeCastedValue = Qundef;
 
   TypeCast typeCast;
   for (typeCast = type_casts; typeCast->canCast != NULL; typeCast++) {
