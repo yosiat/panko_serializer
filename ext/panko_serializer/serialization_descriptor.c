@@ -2,8 +2,8 @@
 
 VALUE cSerializationDescriptor;
 
-static ID context_id = 0;
-static ID object_id = 0;
+static ID context_id;
+static ID object_id;
 
 static void serialization_descriptor_free(void* ptr) {
   if (ptr == 0) {
@@ -63,7 +63,6 @@ void sd_apply_serializer_config(VALUE serializer, VALUE object, VALUE context) {
   rb_ivar_set(serializer, object_id, object);
   rb_ivar_set(serializer, context_id, context);
 }
-
 
 VALUE serialization_descriptor_fields_set(VALUE self, VALUE fields) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
@@ -128,8 +127,8 @@ VALUE serialization_descriptor_build_serializer(VALUE self) {
 }
 
 void panko_init_serialization_descriptor(VALUE mPanko) {
-  CONST_ID(object_id, "@object");
-  CONST_ID(context_id, "@context");
+  object_id = rb_intern("@object");
+  context_id = rb_intern("@context");
 
   cSerializationDescriptor =
       rb_define_class_under(mPanko, "SerializationDescriptor", rb_cObject);

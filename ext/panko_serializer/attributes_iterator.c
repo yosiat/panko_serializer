@@ -1,12 +1,12 @@
 #include "attributes_iterator.h"
 
-static ID attributes_id = 0;
-static ID types_id = 0;
-static ID values_id = 0;
-static ID delegate_hash_id = 0;
+static ID attributes_id;
+static ID types_id;
+static ID values_id;
+static ID delegate_hash_id;
 
-static ID value_before_type_cast_id = 0;
-static ID type_id = 0;
+static ID value_before_type_cast_id;
+static ID type_id;
 
 VALUE read_attributes(VALUE obj) {
   return rb_ivar_get(obj, attributes_id);

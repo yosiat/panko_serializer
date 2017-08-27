@@ -2,12 +2,12 @@
 
 #include "panko_serializer.h"
 
-static ID push_value_id = 0;
-static ID push_array_id = 0;
-static ID push_object_id = 0;
-static ID pop_id = 0;
+static ID push_value_id;
+static ID push_array_id;
+static ID push_object_id;
+static ID pop_id;
 
-static ID to_a_id = 0;
+static ID to_a_id;
 
 void write_value(VALUE str_writer,
                  VALUE key,
@@ -168,11 +168,11 @@ VALUE serialize_subjects_api(VALUE klass,
 }
 
 void Init_panko_serializer() {
-  CONST_ID(push_value_id, "push_value");
-  CONST_ID(push_array_id, "push_array");
-  CONST_ID(push_object_id, "push_object");
-  CONST_ID(pop_id, "pop");
-  CONST_ID(to_a_id, "to_a");
+  push_value_id = rb_intern("push_value");
+  push_array_id = rb_intern("push_array");
+  push_object_id = rb_intern("push_object");
+  pop_id = rb_intern("pop");
+  to_a_id = rb_intern("to_a");
 
   VALUE mPanko = rb_define_module("Panko");
 
