@@ -121,6 +121,11 @@ VALUE serialization_descriptor_type_set(VALUE self, VALUE type) {
   return Qnil;
 }
 
+VALUE serialization_descriptor_type_aref(VALUE self, VALUE type) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  return sd->serializer_type;
+}
+
 // Exposing this for testing
 VALUE serialization_descriptor_build_serializer(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
@@ -160,6 +165,8 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
 
   rb_define_method(cSerializationDescriptor,
                    "type=", serialization_descriptor_type_set, 1);
+  rb_define_method(cSerializationDescriptor,
+                   "type", serialization_descriptor_type_aref, 0);
 
   rb_define_method(cSerializationDescriptor, "build_serializer",
                    serialization_descriptor_build_serializer, 0);

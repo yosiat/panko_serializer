@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require_relative "cache"
 
 module Panko
   class ArraySerializer
@@ -15,7 +14,7 @@ module Panko
         except: options.fetch(:except, [])
       }
 
-      @descriptor = Panko::CACHE.fetch(@each_serializer, serializer_options)
+      @descriptor = SerializationDescriptorBuilder.build(@each_serializer, serializer_options)
       @context = options.fetch(:context, nil)
     end
 

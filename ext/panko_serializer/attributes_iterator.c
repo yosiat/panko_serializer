@@ -54,7 +54,7 @@ VALUE panko_each_attribute(VALUE obj,
   panko_read_types_and_value(attributes_hash, &types, &values);
 
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
-    volatile VALUE member = RARRAY_AREF(attributes, i);
+    volatile VALUE member = rb_sym2str(RARRAY_AREF(attributes, i));
 
     volatile VALUE value = Qundef;
     volatile VALUE type_metadata = Qnil;
