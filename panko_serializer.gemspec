@@ -27,5 +27,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake-compiler"
 
   spec.add_dependency "oj", "~> 3.2.0"
-  spec.add_dependency "concurrent-ruby"
 end

@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require_relative "cache"
 require_relative "serialization_descriptor"
 require "oj"
 
@@ -7,33 +6,48 @@ module Panko
   class Serializer
     class << self
       def inherited(base)
-        base._attributes = (_attributes || []).dup
-        base._has_one_associations = (_has_one_associations || []).dup
-        base._has_many_associations = (_has_many_associations || []).dup
+        base._descriptor = Panko::SerializationDescriptor.new
+        base._descriptor.type = base
 
-        @_attributes = []
-        @_has_one_associations = []
-        @_has_many_associations = []
+        base._descriptor.fields = []
+        base._descriptor.method_fields = []
+        base._descriptor.has_many_associations = []
+        base._descriptor.has_one_associations = []
       end
 
-      attr_accessor :_attributes, :_has_one_associations, :_has_many_associations
+      attr_accessor :_descriptor
 
       def attributes(*attrs)
-        @_attributes.push(*attrs).uniq!
+        @_descriptor.fields.push(*attrs).uniq!
+      end
+
+      def method_added(method)
+        return if @_descriptor.nil?
+        @_descriptor.fields.delete(method)
+        @_descriptor.method_fields << method
       end
 
       def has_one(name, options)
-        @_has_one_associations << { name: name, options: options }
+        serializer_const = SerializationDescriptorBuilder.resolve_serializer(options[:serializer])
+
+        @_descriptor.has_one_associations << [
+          name,
+          SerializationDescriptorBuilder.build(serializer_const, options)
+        ]
       end
 
       def has_many(name, options)
-        @_has_many_associations << { name: name, options: options }
+        serializer_const = SerializationDescriptorBuilder.resolve_serializer(options[:serializer])
+
+        @_descriptor.has_many_associations << [
+          name,
+          SerializationDescriptorBuilder.build(serializer_const, options)
+        ]
       end
     end
 
     def initialize(options = {})
-      @descriptor = Panko::CACHE.fetch(self.class, options)
-
+      @descriptor = SerializationDescriptorBuilder.build(self.class, options)
       @context = options[:context]
     end
 

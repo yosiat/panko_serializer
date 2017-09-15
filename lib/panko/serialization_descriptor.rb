@@ -1,32 +1,25 @@
 # frozen_string_literal: true
 module Panko
   module SerializationDescriptorBuilder
-    def self.build(serializer, options={})
-      backend = Panko::SerializationDescriptor.new
-
+    def self.apply_filters(backend, options)
       serializer_only_filters, attributes_only_filters = resolve_filters(options, :only)
       serializer_except_filters, attributes_except_filters = resolve_filters(options, :except)
 
-      fields, method_fields = fields_of(serializer)
-
-      backend.type = serializer
-
       backend.fields = apply_fields_filters(
-        fields,
+        backend.fields,
         serializer_only_filters,
         serializer_except_filters
       )
-      backend.fields = backend.fields.map &:to_s
 
       backend.method_fields = apply_fields_filters(
-        method_fields,
+        backend.method_fields,
         serializer_only_filters,
         serializer_except_filters
       )
 
       backend.has_many_associations = build_associations(
         apply_association_filters(
-          serializer._has_many_associations,
+          backend.has_many_associations,
           serializer_only_filters,
           serializer_except_filters
         ),
@@ -36,44 +29,49 @@ module Panko
 
       backend.has_one_associations = build_associations(
         apply_association_filters(
-          serializer._has_one_associations,
+          backend.has_one_associations,
           serializer_only_filters,
           serializer_except_filters
         ),
         attributes_only_filters,
         attributes_except_filters
       )
+    end
+
+    def self.duplicate(descriptor)
+      backend = Panko::SerializationDescriptor.new
+
+      backend.type = descriptor.type
+
+      backend.fields = descriptor.fields
+      backend.method_fields = descriptor.method_fields
+
+      backend.has_many_associations = descriptor.has_many_associations
+      backend.has_one_associations = descriptor.has_one_associations
 
       backend
     end
 
-    def self.fields_of(serializer)
-      fields = []
-      method_fields = []
+    def self.build(serializer, options={})
+      backend = duplicate(serializer._descriptor)
 
-      serializer._attributes.each do |attribute|
-        if serializer.method_defined? attribute
-          method_fields << attribute
-        else
-          fields << attribute
-        end
-      end
+      apply_filters(backend, options)
 
-      return fields, method_fields
+      backend
     end
 
     def self.build_associations(associations, attributes_only_filters, attributes_except_filters)
-      associations.map do |association|
-        options = association[:options]
-        serializer_const = resolve_serializer(options[:serializer])
+      associations.each do |association|
+        name = association.first
+        descriptor = association.last
 
-        options[:only] = options.fetch(:only, []) + attributes_only_filters.fetch(association[:name], [])
-        options[:except] = options.fetch(:except, []) + attributes_except_filters.fetch(association[:name], [])
 
-        [
-          association[:name],
-          SerializationDescriptorBuilder.build(serializer_const, options.except(:serializer))
-        ]
+        options = {
+          only: attributes_only_filters.fetch(name, []),
+          except: attributes_except_filters.fetch(name, [])
+        }
+
+        apply_filters(descriptor, options)
       end
     end
 
@@ -88,6 +86,8 @@ module Panko
       # which mean, for the current instance use `[:a]` as filter
       # and for association named `foo` use `[:b]`
 
+      return [], {} if filters.empty?
+
       serializer_filters = filters.fetch(:instance, [])
       association_filters = filters.except(:instance)
 
@@ -95,19 +95,19 @@ module Panko
     end
 
     def self.apply_fields_filters(fields, only, except)
-      return fields & only if only.present?
-      return fields - except if except.present?
+      return fields & only unless only.empty?
+      return fields - except unless except.empty?
 
       fields
     end
 
     def self.apply_association_filters(associations, only, except)
-      if only.present?
-        return associations.select { |assoc| only.include?(assoc[:name]) }
+      unless only.empty?
+        return associations.select { |assoc| only.include?(assoc.first) }
       end
 
-      if except.present?
-        return associations.reject { |assoc| except.include?(assoc[:name]) }
+      unless except.empty?
+        return associations.reject { |assoc| except.include?(assoc.first) }
       end
 
       associations
