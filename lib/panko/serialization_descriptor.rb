@@ -1,43 +1,20 @@
 # frozen_string_literal: true
 module Panko
-  module SerializationDescriptorBuilder
-    def self.apply_filters(backend, options)
-      serializer_only_filters, attributes_only_filters = resolve_filters(options, :only)
-      serializer_except_filters, attributes_except_filters = resolve_filters(options, :except)
-
-      backend.fields = apply_fields_filters(
-        backend.fields,
-        serializer_only_filters,
-        serializer_except_filters
-      )
-
-      backend.method_fields = apply_fields_filters(
-        backend.method_fields,
-        serializer_only_filters,
-        serializer_except_filters
-      )
-
-      backend.has_many_associations = build_associations(
-        apply_association_filters(
-          backend.has_many_associations,
-          serializer_only_filters,
-          serializer_except_filters
-        ),
-        attributes_only_filters,
-        attributes_except_filters
-      )
-
-      backend.has_one_associations = build_associations(
-        apply_association_filters(
-          backend.has_one_associations,
-          serializer_only_filters,
-          serializer_except_filters
-        ),
-        attributes_only_filters,
-        attributes_except_filters
-      )
+  class SerializationDescriptor
+    #
+    # Creates new description and apply the options
+    # on the new descriptor
+    #
+    def self.build(serializer, options={})
+      backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
+      backend.apply_filters(options)
+      backend
     end
 
+    #
+    # Create new descriptor with same properties
+    # useful when you want to apply filters
+    #
     def self.duplicate(descriptor)
       backend = Panko::SerializationDescriptor.new
 
@@ -52,30 +29,61 @@ module Panko
       backend
     end
 
-    def self.build(serializer, options={})
-      backend = duplicate(serializer._descriptor)
+    #
+    # Applies attributes and association filters
+    #
+    def apply_filters(options)
+      attributes_only_filters, associations_only_filters = resolve_filters(options, :only)
+      attributes_except_filters, associations_except_filters = resolve_filters(options, :except)
 
-      apply_filters(backend, options)
+      self.fields = apply_fields_filters(
+        self.fields,
+        attributes_only_filters,
+        attributes_except_filters
+      )
 
-      backend
+      self.method_fields = apply_fields_filters(
+        self.method_fields,
+        attributes_only_filters,
+        attributes_except_filters
+      )
+
+      self.has_many_associations = apply_association_filters(
+        self.has_many_associations,
+        { attributes: attributes_only_filters, associations: associations_only_filters },
+        { attributes: attributes_except_filters, associations: associations_except_filters }
+      )
+
+      self.has_one_associations = apply_association_filters(
+        self.has_one_associations,
+        { attributes: attributes_only_filters, associations: associations_only_filters },
+        { attributes: attributes_except_filters, associations: associations_except_filters }
+      )
     end
 
-    def self.build_associations(associations, attributes_only_filters, attributes_except_filters)
-      associations.each do |association|
+    def apply_association_filters(associations, only_filters, except_filters)
+      attributes_only_filters = only_filters[:attributes]
+      attributes_only_filters = associations.map(&:first) if attributes_only_filters.empty?
+      attributes_except_filters = except_filters[:attributes] || []
+
+
+      associations.map do |association|
         name = association.first
+        next if attributes_except_filters.include? name
+        next unless attributes_only_filters.include? name
+
         descriptor = association.last
 
+        descriptor.apply_filters({
+          only: only_filters[:associations].fetch(name, []),
+          except: except_filters[:associations].fetch(name, [])
+        })
 
-        options = {
-          only: attributes_only_filters.fetch(name, []),
-          except: attributes_except_filters.fetch(name, [])
-        }
-
-        apply_filters(descriptor, options)
-      end
+        association
+      end.compact
     end
 
-    def self.resolve_filters(options, filter)
+    def resolve_filters(options, filter)
       filters = options.fetch(filter, {})
       if filters.is_a? Array
         return filters, {}
@@ -88,30 +96,19 @@ module Panko
 
       return [], {} if filters.empty?
 
-      serializer_filters = filters.fetch(:instance, [])
+      attributes_filters = filters.fetch(:instance, [])
       association_filters = filters.except(:instance)
 
-      return serializer_filters, association_filters
+      return attributes_filters, association_filters
     end
 
-    def self.apply_fields_filters(fields, only, except)
+    def apply_fields_filters(fields, only, except)
       return fields & only unless only.empty?
       return fields - except unless except.empty?
 
       fields
     end
 
-    def self.apply_association_filters(associations, only, except)
-      unless only.empty?
-        return associations.select { |assoc| only.include?(assoc.first) }
-      end
-
-      unless except.empty?
-        return associations.reject { |assoc| except.include?(assoc.first) }
-      end
-
-      associations
-    end
 
     def self.resolve_serializer(serializer)
       Object.const_get(serializer.name)

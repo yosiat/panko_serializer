@@ -28,26 +28,26 @@ module Panko
       end
 
       def has_one(name, options)
-        serializer_const = SerializationDescriptorBuilder.resolve_serializer(options[:serializer])
+        serializer_const = Panko::SerializationDescriptor.resolve_serializer(options[:serializer])
 
         @_descriptor.has_one_associations << [
           name,
-          SerializationDescriptorBuilder.build(serializer_const, options)
+          Panko::SerializationDescriptor.build(serializer_const, options)
         ]
       end
 
       def has_many(name, options)
-        serializer_const = SerializationDescriptorBuilder.resolve_serializer(options[:serializer])
+        serializer_const = Panko::SerializationDescriptor.resolve_serializer(options[:serializer])
 
         @_descriptor.has_many_associations << [
           name,
-          SerializationDescriptorBuilder.build(serializer_const, options)
+          Panko::SerializationDescriptor.build(serializer_const, options)
         ]
       end
     end
 
     def initialize(options = {})
-      @descriptor = SerializationDescriptorBuilder.build(self.class, options)
+      @descriptor = Panko::SerializationDescriptor.build(self.class, options)
       @context = options[:context]
     end
 

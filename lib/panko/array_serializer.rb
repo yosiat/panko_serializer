@@ -14,7 +14,7 @@ module Panko
         except: options.fetch(:except, [])
       }
 
-      @descriptor = SerializationDescriptorBuilder.build(@each_serializer, serializer_options)
+      @descriptor = Panko::SerializationDescriptor.build(@each_serializer, serializer_options)
       @context = options.fetch(:context, nil)
     end
 
