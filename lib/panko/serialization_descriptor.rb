@@ -108,10 +108,5 @@ module Panko
 
       fields
     end
-
-
-    def self.resolve_serializer(serializer)
-      Object.const_get(serializer.name)
-    end
   end
 end
