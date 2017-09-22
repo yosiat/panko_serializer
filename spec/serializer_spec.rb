@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "active_record/connection_adapters/postgresql_adapter"
 
 describe Panko::Serializer do
   class FooSerializer < Panko::Serializer
@@ -70,6 +71,19 @@ describe Panko::Serializer do
       output = ObjectWithTimeSerializer.new.serialize obj
 
       expect(output).to eq("created_at" => obj.created_at.xmlschema)
+    end
+
+    it "honors additional types" do
+      class FooValueSerializer < Panko::Serializer
+        attributes :value
+      end
+
+      foo = Foo.instantiate({ "value" => "[1,2,3]" },
+                            { "value" => ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json.new })
+
+      output = FooValueSerializer.new.serialize foo
+
+      expect(output).to eq("value" => [1, 2, 3])
     end
   end
 

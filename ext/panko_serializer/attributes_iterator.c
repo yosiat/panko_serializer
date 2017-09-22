@@ -2,6 +2,7 @@
 
 static ID attributes_id;
 static ID types_id;
+static ID additional_types_id;
 static ID values_id;
 static ID delegate_hash_id;
 
@@ -30,8 +31,10 @@ VALUE panko_read_lazy_attributes_hash(VALUE object) {
 
 void panko_read_types_and_value(VALUE attributes_hash,
                                 VALUE* types,
+                                VALUE* additional_types,
                                 VALUE* values) {
   *types = rb_ivar_get(attributes_hash, types_id);
+  *additional_types = rb_ivar_get(attributes_hash, additional_types_id);
   *values = rb_ivar_get(attributes_hash, values_id);
 }
 
@@ -50,8 +53,10 @@ VALUE panko_each_attribute(VALUE obj,
   delegate_hash = rb_ivar_get(attributes_hash, delegate_hash_id);
   bool tryToReadFromDelegateHash = RHASH_SIZE(delegate_hash) > 0;
 
-  VALUE types, values;
-  panko_read_types_and_value(attributes_hash, &types, &values);
+  VALUE types, additional_types, values;
+  panko_read_types_and_value(attributes_hash, &types, &additional_types,
+                             &values);
+  bool tryToReadFromAdditionalTypes = RHASH_SIZE(additional_types) > 0;
 
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
     volatile VALUE member = rb_sym2str(RARRAY_AREF(attributes, i));
@@ -72,7 +77,13 @@ VALUE panko_each_attribute(VALUE obj,
 
     if (value == Qundef) {
       value = rb_hash_aref(values, member);
-      type_metadata = rb_hash_aref(types, member);
+
+      if(tryToReadFromAdditionalTypes) {
+        type_metadata = rb_hash_aref(additional_types, member);
+      }
+      if (type_metadata == Qnil) {
+        type_metadata = rb_hash_aref(types, member);
+      }
     }
 
     func(obj, member, value, type_metadata, context);
@@ -86,6 +97,7 @@ void panko_init_attributes_iterator(VALUE mPanko) {
   delegate_hash_id = rb_intern("@delegate_hash");
   values_id = rb_intern("@values");
   types_id = rb_intern("@types");
+  additional_types_id = rb_intern("@additional_types");
   type_id = rb_intern("@type");
   value_before_type_cast_id = rb_intern("@value_before_type_cast");
 }
