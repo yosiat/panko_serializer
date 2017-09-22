@@ -18,6 +18,7 @@ static void serialization_descriptor_free(void* ptr) {
   sd->method_fields = Qnil;
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
+  sd->aliases = Qnil;
 }
 
 void serialization_descriptor_mark(SerializationDescriptor data) {
@@ -27,6 +28,7 @@ void serialization_descriptor_mark(SerializationDescriptor data) {
   rb_gc_mark(data->method_fields);
   rb_gc_mark(data->has_one_associations);
   rb_gc_mark(data->has_many_associations);
+  rb_gc_mark(data->aliases);
 }
 
 static VALUE serialization_descriptor_new(int argc, VALUE* argv, VALUE self) {
@@ -38,6 +40,7 @@ static VALUE serialization_descriptor_new(int argc, VALUE* argv, VALUE self) {
   sd->method_fields = Qnil;
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
+  sd->aliases = Qnil;
 
   return Data_Wrap_Struct(cSerializationDescriptor,
                           serialization_descriptor_mark,
@@ -126,6 +129,17 @@ VALUE serialization_descriptor_type_aref(VALUE self, VALUE type) {
   return sd->serializer_type;
 }
 
+VALUE serialization_descriptor_aliases_set(VALUE self, VALUE aliases) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  sd->aliases = aliases;
+  return Qnil;
+}
+
+VALUE serialization_descriptor_aliases_aref(VALUE self, VALUE aliases) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  return sd->aliases;
+}
+
 // Exposing this for testing
 VALUE serialization_descriptor_build_serializer(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
@@ -165,8 +179,13 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
 
   rb_define_method(cSerializationDescriptor,
                    "type=", serialization_descriptor_type_set, 1);
+  rb_define_method(cSerializationDescriptor, "type",
+                   serialization_descriptor_type_aref, 0);
+
   rb_define_method(cSerializationDescriptor,
-                   "type", serialization_descriptor_type_aref, 0);
+                   "aliases=", serialization_descriptor_aliases_set, 1);
+  rb_define_method(cSerializationDescriptor, "aliases",
+                   serialization_descriptor_aliases_aref, 0);
 
   rb_define_method(cSerializationDescriptor, "build_serializer",
                    serialization_descriptor_build_serializer, 0);

@@ -40,6 +40,7 @@ void panko_read_types_and_value(VALUE attributes_hash,
 
 VALUE panko_each_attribute(VALUE obj,
                            VALUE attributes,
+                           VALUE aliases,
                            EachAttributeFunc func,
                            VALUE context) {
   volatile VALUE attributes_hash, delegate_hash;
@@ -58,8 +59,11 @@ VALUE panko_each_attribute(VALUE obj,
                              &values);
   bool tryToReadFromAdditionalTypes = RHASH_SIZE(additional_types) > 0;
 
+  bool tryToReadFromAliases = RHASH_SIZE(aliases) > 0;
+
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
-    volatile VALUE member = rb_sym2str(RARRAY_AREF(attributes, i));
+    volatile VALUE member_raw = RARRAY_AREF(attributes, i);
+    volatile VALUE member = rb_sym2str(member_raw);
 
     volatile VALUE value = Qundef;
     volatile VALUE type_metadata = Qnil;
@@ -78,11 +82,18 @@ VALUE panko_each_attribute(VALUE obj,
     if (value == Qundef) {
       value = rb_hash_aref(values, member);
 
-      if(tryToReadFromAdditionalTypes) {
+      if (tryToReadFromAdditionalTypes) {
         type_metadata = rb_hash_aref(additional_types, member);
       }
       if (type_metadata == Qnil) {
         type_metadata = rb_hash_aref(types, member);
+      }
+    }
+
+    if(tryToReadFromAliases) {
+      volatile VALUE alias_name = rb_hash_aref(aliases, member_raw);
+      if(alias_name != Qnil) {
+        member = rb_sym2str(alias_name);
       }
     }
 

@@ -85,6 +85,22 @@ describe Panko::Serializer do
 
       expect(output).to eq("value" => [1, 2, 3])
     end
+
+    it "allows to alias attributes" do
+      class FooWithAliasesSerializer < Panko::Serializer
+        attributes :address
+
+        aliases name: :full_name
+      end
+
+      serializer = FooWithAliasesSerializer.new
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      output = serializer.serialize foo
+
+      expect(output).to eq("full_name" => foo.name,
+                           "address" => foo.address)
+    end
   end
 
   context "context" do

@@ -11,6 +11,7 @@ typedef void (*EachAttributeFunc)(VALUE object,
 
 extern VALUE panko_each_attribute(VALUE object,
                                   VALUE attributes,
+                                  VALUE aliases,
                                   EachAttributeFunc func,
                                   VALUE context);
 

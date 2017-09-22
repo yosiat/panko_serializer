@@ -12,6 +12,7 @@ typedef struct _SerializationDescriptor {
   // Metadata
   VALUE fields;
   VALUE method_fields;
+  VALUE aliases;
   VALUE has_one_associations;
   VALUE has_many_associations;
 } * SerializationDescriptor;
