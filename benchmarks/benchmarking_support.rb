@@ -4,14 +4,14 @@ require "json"
 require "memory_profiler"
 
 module Benchmark
-  module ActiveModelSerializers
+  module Runner
     def data
       posts = Post.all.includes(:author).to_a
       posts_50 = posts.first(50).to_a
       { all: posts, small: posts_50 }
     end
 
-    def ams(label = nil, time: 10, disable_gc: true, warmup: 3, &block)
+    def run(label = nil, time: 10, disable_gc: true, warmup: 3, &block)
       fail ArgumentError.new, "block should be passed" unless block_given?
 
       GC.start
@@ -39,5 +39,5 @@ module Benchmark
     end
   end
 
-  extend Benchmark::ActiveModelSerializers
+  extend Benchmark::Runner
 end

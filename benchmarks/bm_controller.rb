@@ -75,7 +75,7 @@ def request(method, path)
 end
 
 
-Benchmark.ams("text") { request(:get, "/text") }
-Benchmark.ams("simple") { request(:get, "/simple") }
+Benchmark.run("text") { request(:get, "/text") }
+Benchmark.run("simple") { request(:get, "/simple") }
 
-Benchmark.ams("serialize_to_string") { request(:get, "/serialize_to_string") }
+Benchmark.run("serialize_to_string") { request(:get, "/serialize_to_string") }

@@ -5,11 +5,11 @@ def panko_type_convert(type_klass, from, to)
   converter = type_klass.new
   assert "#{type_klass.name}", Panko::_type_cast(converter, from), to
 
-  Benchmark.ams("#{type_klass.name}_TypeCast") do
+  Benchmark.run("#{type_klass.name}_TypeCast") do
     Panko::_type_cast(converter, from)
   end
 
-  Benchmark.ams("#{type_klass.name}_NoTypeCast") do
+  Benchmark.run("#{type_klass.name}_NoTypeCast") do
     Panko::_type_cast(converter, to)
   end
 end
@@ -25,11 +25,11 @@ def utc_panko_time
 
   to = Panko::_type_cast(converter, from)
 
-  Benchmark.ams("#{tz}_#{type.class.name}_TypeCast") do
+  Benchmark.run("#{tz}_#{type.class.name}_TypeCast") do
     Panko::_type_cast(converter, from)
   end
 
-  Benchmark.ams("#{tz}_#{type.class.name}_NoTypeCast") do
+  Benchmark.run("#{tz}_#{type.class.name}_NoTypeCast") do
     Panko::_type_cast(converter, to)
   end
 end
@@ -40,7 +40,7 @@ def db_panko_time
 
   from = "2017-07-10 09:26:40.937392"
 
-  Benchmark.ams("Panko_Time_TypeCast") do
+  Benchmark.run("Panko_Time_TypeCast") do
 		Panko::_type_cast(converter, from)
   end
 end
