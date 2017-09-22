@@ -9,6 +9,7 @@ module Panko
         base._descriptor = Panko::SerializationDescriptor.new
         base._descriptor.type = base
 
+        base._descriptor.aliases = {}
         base._descriptor.fields = []
         base._descriptor.method_fields = []
         base._descriptor.has_many_associations = []
@@ -19,6 +20,11 @@ module Panko
 
       def attributes(*attrs)
         @_descriptor.fields.push(*attrs).uniq!
+      end
+
+      def aliases(aliases = {})
+        @_descriptor.aliases = aliases
+        attributes(*aliases.keys)
       end
 
       def method_added(method)

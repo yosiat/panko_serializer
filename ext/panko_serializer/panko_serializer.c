@@ -48,16 +48,16 @@ void panko_attributes_iter(VALUE object,
                            VALUE name,
                            VALUE value,
                            VALUE type_metadata,
-                           VALUE context) {
-  write_value(context, name, value, type_metadata);
+                           VALUE str_writer) {
+  write_value(str_writer, name, value, type_metadata);
 }
 
 void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  panko_each_attribute(subject, descriptor->fields, panko_attributes_iter,
-                       str_writer);
+  panko_each_attribute(subject, descriptor->fields, descriptor->aliases,
+                       panko_attributes_iter, str_writer);
 
   serialize_method_fields(subject, str_writer, descriptor, context);
 }

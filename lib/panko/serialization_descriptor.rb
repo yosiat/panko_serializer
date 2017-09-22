@@ -26,6 +26,8 @@ module Panko
       backend.has_many_associations = descriptor.has_many_associations
       backend.has_one_associations = descriptor.has_one_associations
 
+      backend.aliases = descriptor.aliases
+
       backend
     end
 
