@@ -129,7 +129,7 @@ describe Panko::Serializer do
   end
 
   context "has_one" do
-    it "serializes using the given serializer" do
+    it "serializes using the :serializer option" do
       class FooHolderHasOneSerializer < Panko::Serializer
         attributes :name
 
@@ -197,11 +197,39 @@ describe Panko::Serializer do
   end
 
   context "has_many" do
-    it "serializes using the given serializer" do
+    it "serializes using the :serializer option" do
       class FoosHasManyHolderSerializer < Panko::Serializer
         attributes :name
 
         has_many :foos, serializer: FooSerializer
+      end
+
+      serializer = FoosHasManyHolderSerializer.new
+
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+
+      output = serializer.serialize foos_holder
+
+      expect(output).to eq("name" => foos_holder.name,
+                           "foos" => [
+                             {
+                               "name" => foo1.name,
+                               "address" => foo1.address
+                             },
+                             {
+                               "name" => foo2.name,
+                               "address" => foo2.address
+                             }
+                           ])
+    end
+
+    it "serializes using the :each_serializer option" do
+      class FoosHasManyHolderSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, each_serializer: FooSerializer
       end
 
       serializer = FoosHasManyHolderSerializer.new

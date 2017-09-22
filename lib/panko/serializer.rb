@@ -37,7 +37,8 @@ module Panko
       end
 
       def has_many(name, options)
-        serializer_const = Panko::SerializationDescriptor.resolve_serializer(options[:serializer])
+        serializer_name = options[:serializer] || options[:each_serializer]
+        serializer_const = Panko::SerializationDescriptor.resolve_serializer(serializer_name)
 
         @_descriptor.has_many_associations << [
           name,
