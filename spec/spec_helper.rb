@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "panko"
+require "panko_serializer"
 require "faker"
 
 require_relative "models"
