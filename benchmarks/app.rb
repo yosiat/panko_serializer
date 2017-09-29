@@ -10,4 +10,4 @@ require "action_controller"
 require "action_controller/railtie"
 
 require "active_model_serializers"
-require "panko"
+require "panko_serializer"
