@@ -76,10 +76,14 @@ module Panko
 
         descriptor = association.last
 
-        descriptor.apply_filters({
-          only: only_filters[:associations].fetch(name, []),
-          except: except_filters[:associations].fetch(name, [])
-        })
+        only_filter = only_filters[:associations][name]
+        except_filter = except_filters[:associations][name]
+
+        filters = {}
+        filters[:only] = only_filter unless only_filter.nil?
+        filters[:except] = except_filter unless except_filter.nil?
+
+        descriptor.apply_filters(filters) unless filters.empty?
 
         association
       end.compact
