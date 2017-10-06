@@ -35,6 +35,8 @@ module Panko
     # Applies attributes and association filters
     #
     def apply_filters(options)
+      return unless options.key?(:only) || options.key?(:except)
+
       attributes_only_filters, associations_only_filters = resolve_filters(options, :only)
       attributes_except_filters, associations_except_filters = resolve_filters(options, :except)
 
@@ -50,34 +52,51 @@ module Panko
         attributes_except_filters
       )
 
-      self.has_many_associations = apply_association_filters(
-        self.has_many_associations,
-        { attributes: attributes_only_filters, associations: associations_only_filters },
-        { attributes: attributes_except_filters, associations: associations_except_filters }
-      )
+      unless self.has_many_associations.empty?
+        self.has_many_associations = apply_association_filters(
+          self.has_many_associations,
+          { attributes: attributes_only_filters, associations: associations_only_filters },
+          { attributes: attributes_except_filters, associations: associations_except_filters }
+        )
+      end
 
-      self.has_one_associations = apply_association_filters(
-        self.has_one_associations,
-        { attributes: attributes_only_filters, associations: associations_only_filters },
-        { attributes: attributes_except_filters, associations: associations_except_filters }
-      )
+      unless self.has_one_associations.empty?
+        self.has_one_associations = apply_association_filters(
+          self.has_one_associations,
+          { attributes: attributes_only_filters, associations: associations_only_filters },
+          { attributes: attributes_except_filters, associations: associations_except_filters }
+        )
+      end
     end
 
     def apply_association_filters(associations, only_filters, except_filters)
-      attributes_only_filters = only_filters[:attributes]
-      attributes_only_filters = associations.map(&:first) if attributes_only_filters.empty?
-      attributes_except_filters = except_filters[:attributes] || []
+      attributes_only_filters = only_filters[:attributes] || []
+      unless attributes_only_filters.empty?
+        associations.select! do |association|
+          attributes_only_filters.include?(association.first)
+        end
+      end
 
+      attributes_except_filters = except_filters[:attributes] || []
+      unless attributes_except_filters.empty?
+        associations.reject! do |association|
+          attributes_except_filters.include?(association.first)
+        end
+      end
+
+      associations_only_filters = only_filters[:associations]
+      associations_except_filters = except_filters[:associations]
+
+      if associations_only_filters.empty? && associations_except_filters.empty?
+        return associations
+      end
 
       associations.map do |association|
         name = association.first
-        next if attributes_except_filters.include? name
-        next unless attributes_only_filters.include? name
-
         descriptor = association.last
 
-        only_filter = only_filters[:associations][name]
-        except_filter = except_filters[:associations][name]
+        only_filter = associations_only_filters[name]
+        except_filter = associations_except_filters[name]
 
         filters = {}
         filters[:only] = only_filter unless only_filter.nil?
