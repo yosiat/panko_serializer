@@ -62,7 +62,7 @@ void serialize_fields(VALUE subject,
   serialize_method_fields(subject, str_writer, descriptor, context);
 }
 
-void serialize_has_one_associatoins(VALUE subject,
+void serialize_has_one_associations(VALUE subject,
                                     VALUE str_writer,
                                     VALUE context,
                                     SerializationDescriptor descriptor,
@@ -84,7 +84,7 @@ void serialize_has_one_associatoins(VALUE subject,
   }
 }
 
-void serialize_has_many_associatoins(VALUE subject,
+void serialize_has_many_associations(VALUE subject,
                                      VALUE str_writer,
                                      VALUE context,
                                      SerializationDescriptor descriptor,
@@ -116,12 +116,12 @@ VALUE serialize_subject(VALUE key,
   serialize_fields(subject, str_writer, descriptor, context);
 
   if (RARRAY_LEN(descriptor->has_one_associations) >= 0) {
-    serialize_has_one_associatoins(subject, str_writer, context, descriptor,
+    serialize_has_one_associations(subject, str_writer, context, descriptor,
                                    descriptor->has_one_associations);
   }
 
   if (RARRAY_LEN(descriptor->has_many_associations) >= 0) {
-    serialize_has_many_associatoins(subject, str_writer, context, descriptor,
+    serialize_has_many_associations(subject, str_writer, context, descriptor,
                                     descriptor->has_many_associations);
   }
 
