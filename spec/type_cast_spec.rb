@@ -9,6 +9,7 @@ describe "Type Casting" do
       let(:type) { ActiveRecord::Type::String.new }
 
       it { expect(Panko._type_cast(type, true)).to          eq("t") }
+      it { expect(Panko._type_cast(type, nil)).to           be_nil }
       it { expect(Panko._type_cast(type, false)).to         eq("f") }
       it { expect(Panko._type_cast(type, 123)).to           eq("123") }
       it { expect(Panko._type_cast(type, "hello world")).to eq("hello world") }

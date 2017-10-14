@@ -101,6 +101,14 @@ describe Panko::Serializer do
       expect(output).to eq("full_name" => foo.name,
                            "address" => foo.address)
     end
+
+    it "serializes null values" do
+      serializer = FooSerializer.new
+
+      output = serializer.serialize Foo.create
+
+      expect(output).to eq("name" => nil, "address" => nil)
+    end
   end
 
   context "context" do

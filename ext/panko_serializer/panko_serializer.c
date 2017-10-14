@@ -13,7 +13,7 @@ void write_value(VALUE str_writer,
                  VALUE key,
                  VALUE value,
                  VALUE type_metadata) {
-  if (type_metadata != Qnil) {
+  if (type_metadata != Qnil && value != Qnil) {
     value = type_cast(type_metadata, value);
   }
 

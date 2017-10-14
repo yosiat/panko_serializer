@@ -241,6 +241,10 @@ VALUE cast_date_time_type(VALUE value) {
 }
 
 VALUE type_cast(VALUE type_metadata, VALUE value) {
+  if(value == Qnil || value == Qundef) {
+    return value;
+  }
+
   cache_type_lookup();
 
   VALUE type_klass, typeCastedValue;
