@@ -15,7 +15,7 @@ module Panko
       }
 
       @descriptor = Panko::SerializationDescriptor.build(@each_serializer, serializer_options)
-      @context = options.fetch(:context, nil)
+      @context = options[:context]
     end
 
     def to_json

@@ -52,9 +52,6 @@ SerializationDescriptor sd_read(VALUE descriptor) {
 }
 
 VALUE sd_build_serializer(SerializationDescriptor sd) {
-  // We build the serializer and cache it on demand,
-  // because of our cache - we lock and create descriptor, while inside
-  // a descriptor we can't create another descriptor - deadlock.
   if (sd->serializer == Qnil) {
     VALUE args[0];
     sd->serializer = rb_class_new_instance(0, args, sd->serializer_type);
@@ -65,7 +62,9 @@ VALUE sd_build_serializer(SerializationDescriptor sd) {
 
 void sd_apply_serializer_config(VALUE serializer, VALUE object, VALUE context) {
   rb_ivar_set(serializer, object_id, object);
-  rb_ivar_set(serializer, context_id, context);
+  if(context != Qnil && context != Qundef) {
+    rb_ivar_set(serializer, context_id, context);
+  }
 }
 
 VALUE serialization_descriptor_fields_set(VALUE self, VALUE fields) {
