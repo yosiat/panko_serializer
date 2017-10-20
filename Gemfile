@@ -3,15 +3,14 @@ source "https://rubygems.org"
 
 gemspec
 
-version = "4.2"
-gem_version = "~> #{version}.9"
+rails_version = "~> #{ENV.fetch("RAILS_VERSION", "4.2")}"
 
-gem "rails", gem_version
-gem "railties", gem_version
-gem "activesupport", gem_version
-gem "activemodel", gem_version
-gem "actionpack", gem_version
-gem "activerecord", gem_version, group: :test
+gem "rails", rails_version
+gem "railties", rails_version
+gem "activesupport", rails_version
+gem "activemodel", rails_version
+gem "actionpack", rails_version
+gem "activerecord", rails_version, group: :test
 
 group :benchmarks do
   gem "sqlite3"
