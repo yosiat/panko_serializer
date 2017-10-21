@@ -50,7 +50,7 @@ describe "Type Casting" do
       it { expect(Panko._type_cast(type, six: 6)).to be_nil }
     end
 
-    context "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer" do
+    context "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer", if: ENV["RAILS_VERSION"].start_with?("4.2") do
       let(:type) { ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer.new }
 
       it { expect(Panko._type_cast(type, "")).to be_nil }
