@@ -44,6 +44,9 @@ def db_panko_time
 		Panko::_type_cast(converter, from)
   end
 end
+panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a:1}
+db_panko_time
+utc_panko_time
 
 panko_type_convert ActiveRecord::Type::String, 1, "1"
 panko_type_convert ActiveRecord::Type::Text, 1, "1"
@@ -53,9 +56,11 @@ panko_type_convert ActiveRecord::Type::Float, "Infinity", ::Float::INFINITY
 panko_type_convert ActiveRecord::Type::Boolean, "true", true
 panko_type_convert ActiveRecord::Type::Boolean, "t", true
 
-panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer, "1", 1
-panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "1.23", 1.23
-panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "Infinity", ::Float::INFINITY
+if ENV["RAILS_VERSION"].start_with? "4.2"
+  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer, "1", 1
+  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "1.23", 1.23
+  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "Infinity", ::Float::INFINITY
+end
 
 panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a:1}
 db_panko_time

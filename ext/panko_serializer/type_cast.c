@@ -1,7 +1,7 @@
 #include "type_cast.h"
 #include "time_conversion.h"
 
-ID type_cast_from_database_id = 0;
+ID deserialize_from_db_id = 0;
 ID to_s_id = 0;
 ID to_i_id = 0;
 
@@ -79,7 +79,7 @@ void cache_type_lookup() {
 
   initiailized = 1;
 
-  VALUE ar, ar_type;
+  VALUE ar, ar_type, ar_type_methods;
 
   ar = rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
 
@@ -92,6 +92,13 @@ void cache_type_lookup() {
   ar_integer_type = rb_const_get_at(ar_type, rb_intern("Integer"));
   ar_boolean_type = rb_const_get_at(ar_type, rb_intern("Boolean"));
   ar_date_time_type = rb_const_get_at(ar_type, rb_intern("DateTime"));
+
+  ar_type_methods = rb_class_instance_methods(0, NULL, ar_string_type);
+  if(rb_ary_includes(ar_type_methods, rb_to_symbol(rb_str_new_cstr("deserialize")))) {
+    deserialize_from_db_id = rb_intern("deserialize");
+  } else {
+    deserialize_from_db_id = rb_intern("type_cast_from_database");
+  }
 
   // TODO: if we get error or not, add this to some debug log
   int isErrored;
@@ -241,7 +248,7 @@ VALUE cast_date_time_type(VALUE value) {
 }
 
 VALUE type_cast(VALUE type_metadata, VALUE value) {
-  if(value == Qnil || value == Qundef) {
+  if (value == Qnil || value == Qundef) {
     return value;
   }
 
@@ -261,7 +268,7 @@ VALUE type_cast(VALUE type_metadata, VALUE value) {
   }
 
   if (typeCastedValue == Qundef) {
-    return rb_funcall(type_metadata, type_cast_from_database_id, 1, value);
+    return rb_funcall(type_metadata, deserialize_from_db_id, 1, value);
   }
 
   return typeCastedValue;
@@ -272,7 +279,6 @@ VALUE public_type_cast(VALUE module, VALUE type_metadata, VALUE value) {
 }
 
 void panko_init_type_cast(VALUE mPanko) {
-  type_cast_from_database_id = rb_intern_const("type_cast_from_database");
   to_s_id = rb_intern_const("to_s");
   to_i_id = rb_intern_const("to_i");
 
