@@ -14,19 +14,15 @@ VALUE read_attributes(VALUE obj) {
 }
 
 VALUE panko_read_lazy_attributes_hash(VALUE object) {
-  volatile VALUE attributes_set, attributes_hash;
+  volatile VALUE attributes_set, lazy_attributes_hash;
 
   attributes_set = read_attributes(object);
   if (attributes_set == Qnil) {
     return Qnil;
   }
 
-  attributes_hash = read_attributes(attributes_set);
-  if (attributes_hash == Qnil) {
-    return Qnil;
-  }
-
-  return attributes_hash;
+  lazy_attributes_hash = read_attributes(attributes_set);
+  return lazy_attributes_hash;
 }
 
 void panko_read_types_and_value(VALUE attributes_hash,
@@ -38,28 +34,60 @@ void panko_read_types_and_value(VALUE attributes_hash,
   *values = rb_ivar_get(attributes_hash, values_id);
 }
 
+bool panko_is_empty_hash(VALUE hash) {
+  if (hash == Qnil || hash == Qundef) {
+    return true;
+  }
+
+  return RHASH_SIZE(hash) == 0;
+}
+
+void read_attribute_from_hash(VALUE attributes_hash,
+                              VALUE member,
+                              volatile VALUE* value,
+                              volatile VALUE* type) {
+  volatile VALUE attribute_metadata = rb_hash_aref(attributes_hash, member);
+  if (attribute_metadata != Qnil) {
+    *value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
+    *type = rb_ivar_get(attribute_metadata, type_id);
+  }
+}
+
 VALUE panko_each_attribute(VALUE obj,
                            VALUE attributes,
                            VALUE aliases,
                            EachAttributeFunc func,
                            VALUE context) {
-  volatile VALUE attributes_hash, delegate_hash;
+  volatile VALUE lazy_attribute_hash, delegate_hash;
+  VALUE values = Qundef;
+  VALUE types = Qundef;
+  VALUE additional_types = Qundef;
   int i;
 
-  attributes_hash = panko_read_lazy_attributes_hash(obj);
-  if (attributes_hash == Qnil) {
+  lazy_attribute_hash = panko_read_lazy_attributes_hash(obj);
+  if (lazy_attribute_hash == Qnil) {
     return Qnil;
   }
 
-  delegate_hash = rb_ivar_get(attributes_hash, delegate_hash_id);
-  bool tryToReadFromDelegateHash = RHASH_SIZE(delegate_hash) > 0;
+  bool tryToReadFromDelegateHash = false;
+  bool tryToReadFromAdditionalTypes = false;
 
-  VALUE types, additional_types, values;
-  panko_read_types_and_value(attributes_hash, &types, &additional_types,
-                             &values);
-  bool tryToReadFromAdditionalTypes = RHASH_SIZE(additional_types) > 0;
+  // If lazy_attribute_hash is not ActiveRecord::LazyAttributeHash
+  // and it's actually hash, read from it
+  if (RB_TYPE_P(lazy_attribute_hash, T_HASH)) {
+    delegate_hash = lazy_attribute_hash;
+    tryToReadFromDelegateHash = true;
+  } else {
+    delegate_hash = rb_ivar_get(lazy_attribute_hash, delegate_hash_id);
+    tryToReadFromDelegateHash = !panko_is_empty_hash(delegate_hash);
 
-  bool tryToReadFromAliases = RHASH_SIZE(aliases) > 0;
+    panko_read_types_and_value(lazy_attribute_hash, &types, &additional_types,
+                               &values);
+
+    tryToReadFromAdditionalTypes = !panko_is_empty_hash(additional_types);
+  }
+
+  bool tryToReadFromAliases = !panko_is_empty_hash(aliases);
 
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
     volatile VALUE member_raw = RARRAY_AREF(attributes, i);
@@ -72,14 +100,10 @@ VALUE panko_each_attribute(VALUE obj,
     // If the object was create in memory `User.new(name: "Yosi")`
     // it won't exist in types/values
     if (tryToReadFromDelegateHash) {
-      volatile VALUE attribute_metadata = rb_hash_aref(delegate_hash, member);
-      if (attribute_metadata != Qnil) {
-        value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
-        type_metadata = rb_ivar_get(attribute_metadata, type_id);
-      }
+      read_attribute_from_hash(delegate_hash, member, &value, &type_metadata);
     }
 
-    if (value == Qundef) {
+    if (values != Qundef && value == Qundef) {
       value = rb_hash_aref(values, member);
 
       if (tryToReadFromAdditionalTypes) {
@@ -90,9 +114,9 @@ VALUE panko_each_attribute(VALUE obj,
       }
     }
 
-    if(tryToReadFromAliases) {
+    if (tryToReadFromAliases) {
       volatile VALUE alias_name = rb_hash_aref(aliases, member_raw);
-      if(alias_name != Qnil) {
+      if (alias_name != Qnil) {
         member = rb_sym2str(alias_name);
       }
     }
