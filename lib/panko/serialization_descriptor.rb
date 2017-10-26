@@ -40,6 +40,12 @@ module Panko
       attributes_only_filters, associations_only_filters = resolve_filters(options, :only)
       attributes_except_filters, associations_except_filters = resolve_filters(options, :except)
 
+      apply_aliases_filters(
+        self.aliases,
+        attributes_only_filters,
+        attributes_except_filters
+      )
+
       self.fields = apply_fields_filters(
         self.fields,
         attributes_only_filters,
@@ -132,6 +138,28 @@ module Panko
       return fields - except unless except.empty?
 
       fields
+    end
+
+    def apply_aliases_filters(aliases, only, except)
+      return if self.aliases.nil? || self.aliases.empty?
+
+      unless only.empty?
+        only.map! do |field_name|
+          alias_name = self.aliases.key(field_name)
+          next field_name if alias_name.nil?
+
+          alias_name
+        end
+      end
+
+      unless except.empty?
+        except.map! do |field_name|
+          alias_name = self.aliases.key(field_name)
+          next field_name if alias_name.nil?
+
+          alias_name
+        end
+      end
     end
   end
 end

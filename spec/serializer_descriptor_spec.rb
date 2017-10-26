@@ -115,6 +115,41 @@ describe Panko::SerializationDescriptor do
       expect(descriptor.method_fields).to be_empty
     end
 
+    it "except filters aliases" do
+      class ExceptFooWithAliasesSerializer < Panko::Serializer
+        aliases name: :full_name, address: :full_address
+      end
+
+      descriptor = Panko::SerializationDescriptor.build(ExceptFooWithAliasesSerializer, except: [:full_name])
+
+      expect(descriptor).not_to be_nil
+      expect(descriptor.fields).to eq([:address])
+    end
+
+    it "only filters aliases" do
+      class OnlyFooWithAliasesSerializer < Panko::Serializer
+        attributes :address
+        aliases name: :full_name
+      end
+
+      descriptor = Panko::SerializationDescriptor.build(OnlyFooWithAliasesSerializer, only: [:full_name])
+
+      expect(descriptor).not_to be_nil
+      expect(descriptor.fields).to eq([:name])
+    end
+
+    it "only - filters aliases and fields" do
+      class OnlyWithFieldsFooWithAliasesSerializer < Panko::Serializer
+        attributes :address, :another_field
+        aliases name: :full_name
+      end
+
+      descriptor = Panko::SerializationDescriptor.build(OnlyWithFieldsFooWithAliasesSerializer, only: [:full_name, :address])
+
+      expect(descriptor).not_to be_nil
+      expect(descriptor.fields.sort).to eq([:address, :name])
+    end
+
     it "filters associations" do
       class FooHasOneSerilizers < Panko::Serializer
         attributes :name
