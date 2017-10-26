@@ -20,13 +20,13 @@ module Panko
 
       backend.type = descriptor.type
 
-      backend.fields = descriptor.fields
-      backend.method_fields = descriptor.method_fields
+      backend.fields = descriptor.fields.dup
+      backend.method_fields = descriptor.method_fields.dup
 
-      backend.has_many_associations = descriptor.has_many_associations
-      backend.has_one_associations = descriptor.has_one_associations
+      backend.has_many_associations = descriptor.has_many_associations.dup
+      backend.has_one_associations = descriptor.has_one_associations.dup
 
-      backend.aliases = descriptor.aliases
+      backend.aliases = descriptor.aliases.dup
 
       backend
     end
