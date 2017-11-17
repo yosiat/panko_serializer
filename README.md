@@ -32,8 +32,6 @@ Then, install it on the command line:
 > bundle install
 ```
 
-> Since the Gem name and namespace differ, you need to require "panko" explicitly. This will be fixed before official release.
-
 
 
 ## Usage
@@ -66,7 +64,7 @@ class UsersController < ApplicationController
 end
 ```
 
-And voila, we have endpoint which serializers user records using Panko!
+And voila, we have endpoint which serialize users using Panko!
 
 
 ## Features
