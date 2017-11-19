@@ -1,7 +1,9 @@
 #include <ruby.h>
 #include <stdbool.h>
 
+#include "attribute.h"
 #include "serialization_descriptor.h"
+#include "type_cast.h"
 
 typedef void (*EachAttributeFunc)(VALUE object,
                                   VALUE name,
@@ -11,7 +13,6 @@ typedef void (*EachAttributeFunc)(VALUE object,
 
 extern VALUE panko_each_attribute(VALUE object,
                                   VALUE attributes,
-                                  VALUE aliases,
                                   EachAttributeFunc func,
                                   VALUE context);
 
