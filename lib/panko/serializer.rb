@@ -9,9 +9,11 @@ module Panko
         base._descriptor = Panko::SerializationDescriptor.new
         base._descriptor.type = base
 
+        base._descriptor.attributes = []
         base._descriptor.aliases = {}
-        base._descriptor.fields = []
+
         base._descriptor.method_fields = []
+
         base._descriptor.has_many_associations = []
         base._descriptor.has_one_associations = []
       end
@@ -19,38 +21,39 @@ module Panko
       attr_accessor :_descriptor
 
       def attributes(*attrs)
-        @_descriptor.fields.push(*attrs).uniq!
+        @_descriptor.attributes.push(*attrs.map { |attr| Attribute.create(attr) }).uniq!
       end
 
       def aliases(aliases = {})
-        @_descriptor.aliases = aliases
-        attributes(*aliases.keys)
+        aliases.each do |attr, alias_name|
+          @_descriptor.attributes << Attribute.create(attr, alias_name: alias_name)
+        end
       end
 
       def method_added(method)
         return if @_descriptor.nil?
-        @_descriptor.fields.delete(method)
+        @_descriptor.attributes.delete(method)
         @_descriptor.method_fields << method
       end
 
       def has_one(name, options)
         serializer_const = options[:serializer]
 
-        @_descriptor.has_one_associations << [
+        @_descriptor.has_one_associations << Panko::Association.new(
           name,
-          name.to_s.freeze,
+          name.to_s,
           Panko::SerializationDescriptor.build(serializer_const, options)
-        ]
+        )
       end
 
       def has_many(name, options)
         serializer_const = options[:serializer] || options[:each_serializer]
 
-        @_descriptor.has_many_associations << [
+        @_descriptor.has_many_associations << Panko::Association.new(
           name,
           name.to_s.freeze,
           Panko::SerializationDescriptor.build(serializer_const, options)
-        ]
+        )
       end
     end
 

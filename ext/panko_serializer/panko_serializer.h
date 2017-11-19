@@ -1,7 +1,9 @@
 #include <ruby.h>
 
-#include "serialization_descriptor.h"
+#include "association.h"
+#include "attribute.h"
 #include "attributes_iterator.h"
+#include "serialization_descriptor.h"
 #include "type_cast.h"
 
 VALUE serialize_subject(VALUE key,

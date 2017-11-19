@@ -41,11 +41,25 @@ VALUE cache_postgres_type_lookup(VALUE ar) {
     return Qfalse;
   }
 
-  ar_pg_integer_type = rb_const_get_at(ar_oid, rb_intern("Integer"));
-  ar_pg_float_type = rb_const_get_at(ar_oid, rb_intern("Float"));
-  ar_pg_uuid_type = rb_const_get_at(ar_oid, rb_intern("Uuid"));
-  ar_pg_json_type = rb_const_get_at(ar_oid, rb_intern("Json"));
-  ar_pg_date_time_type = rb_const_get_at(ar_oid, rb_intern("DateTime"));
+  if(rb_const_defined_at(ar_oid, rb_intern("Float")) == (int)Qtrue) {
+    ar_pg_float_type = rb_const_get_at(ar_oid, rb_intern("Float"));
+  }
+
+  if(rb_const_defined_at(ar_oid, rb_intern("Integer")) == (int)Qtrue) {
+    ar_pg_integer_type = rb_const_get_at(ar_oid, rb_intern("Integer"));
+  }
+
+  if(rb_const_defined_at(ar_oid, rb_intern("Uuid")) == (int)Qtrue) {
+    ar_pg_uuid_type = rb_const_get_at(ar_oid, rb_intern("Uuid"));
+  }
+
+  if(rb_const_defined_at(ar_oid, rb_intern("Json")) == (int)Qtrue) {
+    ar_pg_json_type = rb_const_get_at(ar_oid, rb_intern("Json"));
+  }
+
+  if(rb_const_defined_at(ar_oid, rb_intern("DateTime")) == (int)Qtrue) {
+    ar_pg_date_time_type = rb_const_get_at(ar_oid, rb_intern("DateTime"));
+  }
 
   return Qtrue;
 }
@@ -94,7 +108,8 @@ void cache_type_lookup() {
   ar_date_time_type = rb_const_get_at(ar_type, rb_intern("DateTime"));
 
   ar_type_methods = rb_class_instance_methods(0, NULL, ar_string_type);
-  if(rb_ary_includes(ar_type_methods, rb_to_symbol(rb_str_new_cstr("deserialize")))) {
+  if (rb_ary_includes(ar_type_methods,
+                      rb_to_symbol(rb_str_new_cstr("deserialize")))) {
     deserialize_from_db_id = rb_intern("deserialize");
   } else {
     deserialize_from_db_id = rb_intern("type_cast_from_database");
@@ -247,16 +262,15 @@ VALUE cast_date_time_type(VALUE value) {
   return Qundef;
 }
 
-VALUE type_cast(VALUE type_metadata, VALUE value) {
+VALUE type_cast(VALUE type_klass, VALUE value) {
   if (value == Qnil || value == Qundef) {
     return value;
   }
 
   cache_type_lookup();
 
-  VALUE type_klass, typeCastedValue;
+  VALUE typeCastedValue;
 
-  type_klass = CLASS_OF(type_metadata);
   typeCastedValue = Qundef;
 
   TypeCast typeCast;
@@ -268,6 +282,8 @@ VALUE type_cast(VALUE type_metadata, VALUE value) {
   }
 
   if (typeCastedValue == Qundef) {
+    VALUE args[0];
+    volatile VALUE type_metadata = rb_class_new_instance(0, args, type_klass);
     return rb_funcall(type_metadata, deserialize_from_db_id, 1, value);
   }
 

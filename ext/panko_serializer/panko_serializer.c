@@ -9,14 +9,7 @@ static ID pop_id;
 
 static ID to_a_id;
 
-void write_value(VALUE str_writer,
-                 VALUE key,
-                 VALUE value,
-                 VALUE type_metadata) {
-  if (type_metadata != Qnil && value != Qnil) {
-    value = type_cast(type_metadata, value);
-  }
-
+void write_value(VALUE str_writer, VALUE key, VALUE value) {
   rb_funcall(str_writer, push_value_id, 2, value, key);
 }
 
@@ -40,7 +33,7 @@ void serialize_method_fields(VALUE subject,
     volatile VALUE result =
         rb_funcall(serializer, rb_sym2id(attribute_name), 0);
 
-    write_value(str_writer, rb_sym2str(attribute_name), result, Qnil);
+    write_value(str_writer, rb_sym2str(attribute_name), result);
   }
 }
 
@@ -49,15 +42,15 @@ void panko_attributes_iter(VALUE object,
                            VALUE value,
                            VALUE type_metadata,
                            VALUE str_writer) {
-  write_value(str_writer, name, value, type_metadata);
+  write_value(str_writer, name, value);
 }
 
 void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  panko_each_attribute(subject, descriptor->fields, descriptor->aliases,
-                       panko_attributes_iter, str_writer);
+  panko_each_attribute(subject, descriptor->attributes, panko_attributes_iter,
+                       str_writer);
 
   serialize_method_fields(subject, str_writer, descriptor, context);
 }
@@ -69,20 +62,16 @@ void serialize_has_one_associations(VALUE subject,
                                     VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
-    volatile VALUE association = RARRAY_AREF(associations, i);
+    volatile VALUE association_el = RARRAY_AREF(associations, i);
+    Association association = association_read(association_el);
 
-    volatile VALUE name_sym = RARRAY_AREF(association, 0);
-    volatile VALUE value = rb_funcall(subject, rb_sym2id(name_sym), 0);
-
-    volatile VALUE name = RARRAY_AREF(association, 1);
+    volatile VALUE value = rb_funcall(subject, association->name_id, 0);
 
     if (value == Qnil) {
-      write_value(str_writer, name, value, Qnil);
+      write_value(str_writer, association->name_str, value);
     } else {
-      volatile VALUE association_descriptor = RARRAY_AREF(association, 2);
-
-      serialize_subject(name, value, str_writer,
-                        sd_read(association_descriptor), context);
+      serialize_subject(association->name_str, value, str_writer,
+                        association->descriptor, context);
     }
   }
 }
@@ -94,20 +83,16 @@ void serialize_has_many_associations(VALUE subject,
                                      VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
-    volatile VALUE association = RARRAY_AREF(associations, i);
+    volatile VALUE association_el = RARRAY_AREF(associations, i);
+    Association association = association_read(association_el);
 
-    volatile VALUE name_sym = RARRAY_AREF(association, 0);
-    volatile VALUE value = rb_funcall(subject, rb_sym2id(name_sym), 0);
-
-    volatile VALUE name = RARRAY_AREF(association, 1);
+    volatile VALUE value = rb_funcall(subject, association->name_id, 0);
 
     if (value == Qnil) {
-      write_value(str_writer, name, value, Qnil);
+      write_value(str_writer, association->name_str, value);
     } else {
-      volatile VALUE association_descriptor = RARRAY_AREF(association, 2);
-
-      serialize_subjects(name, value, str_writer,
-                         sd_read(association_descriptor), context);
+      serialize_subjects(association->name_str, value, str_writer,
+                         association->descriptor, context);
     }
   }
 }
@@ -196,4 +181,6 @@ void Init_panko_serializer() {
   panko_init_serialization_descriptor(mPanko);
   panko_init_attributes_iterator(mPanko);
   panko_init_type_cast(mPanko);
+  panko_init_attribute(mPanko);
+  panko_init_association(mPanko);
 }

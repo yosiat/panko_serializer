@@ -20,7 +20,7 @@ module Panko
 
       backend.type = descriptor.type
 
-      backend.fields = descriptor.fields.dup
+      backend.attributes = descriptor.attributes.dup
       backend.method_fields = descriptor.method_fields.dup
 
       unless descriptor.serializer.nil?
@@ -29,8 +29,6 @@ module Panko
 
       backend.has_many_associations = descriptor.has_many_associations.dup
       backend.has_one_associations = descriptor.has_one_associations.dup
-
-      backend.aliases = descriptor.aliases.dup
 
       backend
     end
@@ -44,14 +42,7 @@ module Panko
       attributes_only_filters, associations_only_filters = resolve_filters(options, :only)
       attributes_except_filters, associations_except_filters = resolve_filters(options, :except)
 
-      apply_aliases_filters(
-        self.aliases,
-        attributes_only_filters,
-        attributes_except_filters
-      )
-
-      self.fields = apply_fields_filters(
-        self.fields,
+      apply_attribute_filters!(
         attributes_only_filters,
         attributes_except_filters
       )
@@ -87,12 +78,14 @@ module Panko
         end
       end
 
+
       attributes_except_filters = except_filters[:attributes] || []
       unless attributes_except_filters.empty?
         associations.reject! do |association|
           attributes_except_filters.include?(association.first)
         end
       end
+
 
       associations_only_filters = only_filters[:associations]
       associations_except_filters = except_filters[:associations]
@@ -144,24 +137,22 @@ module Panko
       fields
     end
 
-    def apply_aliases_filters(aliases, only, except)
-      return if self.aliases.nil? || self.aliases.empty?
-
+    def apply_attribute_filters!(only, except)
       unless only.empty?
-        only.map! do |field_name|
-          alias_name = self.aliases.key(field_name)
-          next field_name if alias_name.nil?
+        self.attributes.select! do |attribute|
+          name_to_check = attribute.name
+          name_to_check = attribute.alias_name unless attribute.alias_name.nil?
 
-          alias_name
+          only.include?(name_to_check.to_sym)
         end
       end
 
       unless except.empty?
-        except.map! do |field_name|
-          alias_name = self.aliases.key(field_name)
-          next field_name if alias_name.nil?
+        self.attributes.reject! do |attribute|
+          name_to_check = attribute.name
+          name_to_check = attribute.alias_name unless attribute.alias_name.nil?
 
-          alias_name
+          except.include?(name_to_check.to_sym)
         end
       end
     end

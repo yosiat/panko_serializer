@@ -5,26 +5,26 @@ VALUE cSerializationDescriptor;
 static ID context_id;
 static ID object_id;
 
-static void sd_free(void* ptr) {
-  SerializationDescriptor sd;
-  if (ptr == 0) {
+static void sd_free(SerializationDescriptor sd) {
+  if (!sd) {
     return;
   }
 
-  sd = (SerializationDescriptor)ptr;
   sd->serializer_type = Qnil;
   sd->serializer = Qnil;
-  sd->fields = Qnil;
+  sd->attributes = Qnil;
   sd->method_fields = Qnil;
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
+
+  xfree(sd);
 }
 
 void sd_mark(SerializationDescriptor data) {
   rb_gc_mark(data->serializer_type);
   rb_gc_mark(data->serializer);
-  rb_gc_mark(data->fields);
+  rb_gc_mark(data->attributes);
   rb_gc_mark(data->method_fields);
   rb_gc_mark(data->has_one_associations);
   rb_gc_mark(data->has_many_associations);
@@ -36,7 +36,7 @@ static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
 
   sd->serializer = Qnil;
   sd->serializer_type = Qnil;
-  sd->fields = Qnil;
+  sd->attributes = Qnil;
   sd->method_fields = Qnil;
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
@@ -77,17 +77,16 @@ void sd_apply_serializer_config(VALUE serializer, VALUE object, VALUE context) {
     rb_ivar_set(serializer, context_id, context);
   }
 }
-
-VALUE sd_fields_set(VALUE self, VALUE fields) {
+VALUE sd_attributes_set(VALUE self, VALUE attributes) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
 
-  sd->fields = fields;
+  sd->attributes = attributes;
   return Qnil;
 }
 
-VALUE sd_fields_ref(VALUE self) {
+VALUE sd_attributes_ref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
-  return sd->fields;
+  return sd->attributes;
 }
 
 VALUE sd_method_fields_set(VALUE self, VALUE method_fields) {
@@ -165,8 +164,10 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
   rb_define_method(cSerializationDescriptor, "serializer", sd_serializer_ref,
                    0);
 
-  rb_define_method(cSerializationDescriptor, "fields=", sd_fields_set, 1);
-  rb_define_method(cSerializationDescriptor, "fields", sd_fields_ref, 0);
+  rb_define_method(cSerializationDescriptor, "attributes=", sd_attributes_set,
+                   1);
+  rb_define_method(cSerializationDescriptor, "attributes", sd_attributes_ref,
+                   0);
 
   rb_define_method(cSerializationDescriptor,
                    "method_fields=", sd_method_fields_set, 1);
