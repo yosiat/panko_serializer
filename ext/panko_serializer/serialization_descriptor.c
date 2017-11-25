@@ -5,7 +5,7 @@ VALUE cSerializationDescriptor;
 static ID context_id;
 static ID object_id;
 
-static void serialization_descriptor_free(void* ptr) {
+static void sd_free(void* ptr) {
   SerializationDescriptor sd;
   if (ptr == 0) {
     return;
@@ -21,7 +21,7 @@ static void serialization_descriptor_free(void* ptr) {
   sd->aliases = Qnil;
 }
 
-void serialization_descriptor_mark(SerializationDescriptor data) {
+void sd_mark(SerializationDescriptor data) {
   rb_gc_mark(data->serializer_type);
   rb_gc_mark(data->serializer);
   rb_gc_mark(data->fields);
@@ -31,7 +31,7 @@ void serialization_descriptor_mark(SerializationDescriptor data) {
   rb_gc_mark(data->aliases);
 }
 
-static VALUE serialization_descriptor_new(int argc, VALUE* argv, VALUE self) {
+static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
   SerializationDescriptor sd = ALLOC(struct _SerializationDescriptor);
 
   sd->serializer = Qnil;
@@ -42,9 +42,7 @@ static VALUE serialization_descriptor_new(int argc, VALUE* argv, VALUE self) {
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
 
-  return Data_Wrap_Struct(cSerializationDescriptor,
-                          serialization_descriptor_mark,
-                          serialization_descriptor_free, sd);
+  return Data_Wrap_Struct(cSerializationDescriptor, sd_mark, sd_free, sd);
 }
 
 SerializationDescriptor sd_read(VALUE descriptor) {
@@ -60,87 +58,95 @@ VALUE sd_build_serializer(SerializationDescriptor sd) {
   return sd->serializer;
 }
 
+VALUE sd_serializer_set(VALUE self, VALUE serializer) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+
+  sd->serializer = serializer;
+  return Qnil;
+}
+
+VALUE sd_serializer_ref(VALUE self) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+
+  return sd->serializer;
+}
+
 void sd_apply_serializer_config(VALUE serializer, VALUE object, VALUE context) {
   rb_ivar_set(serializer, object_id, object);
-  if(context != Qnil && context != Qundef) {
+  if (context != Qnil && context != Qundef) {
     rb_ivar_set(serializer, context_id, context);
   }
 }
 
-VALUE serialization_descriptor_fields_set(VALUE self, VALUE fields) {
+VALUE sd_fields_set(VALUE self, VALUE fields) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
 
   sd->fields = fields;
   return Qnil;
 }
 
-VALUE serialization_descriptor_fields_ref(VALUE self) {
+VALUE sd_fields_ref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->fields;
 }
 
-VALUE serialization_descriptor_method_fields_set(VALUE self,
-                                                 VALUE method_fields) {
+VALUE sd_method_fields_set(VALUE self, VALUE method_fields) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   sd->method_fields = method_fields;
   return Qnil;
 }
 
-VALUE serialization_descriptor_method_fields_ref(VALUE self) {
+VALUE sd_method_fields_ref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->method_fields;
 }
 
-VALUE serialization_descriptor_has_one_associations_set(
-    VALUE self,
-    VALUE has_one_associations) {
+VALUE sd_has_one_associations_set(VALUE self, VALUE has_one_associations) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   sd->has_one_associations = has_one_associations;
   return Qnil;
 }
 
-VALUE serialization_descriptor_has_one_associations_ref(VALUE self) {
+VALUE sd_has_one_associations_ref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->has_one_associations;
 }
 
-VALUE serialization_descriptor_has_many_associations_set(
-    VALUE self,
-    VALUE has_many_associations) {
+VALUE sd_has_many_associations_set(VALUE self, VALUE has_many_associations) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   sd->has_many_associations = has_many_associations;
   return Qnil;
 }
 
-VALUE serialization_descriptor_has_many_associations_ref(VALUE self) {
+VALUE sd_has_many_associations_ref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->has_many_associations;
 }
 
-VALUE serialization_descriptor_type_set(VALUE self, VALUE type) {
+VALUE sd_type_set(VALUE self, VALUE type) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   sd->serializer_type = type;
   return Qnil;
 }
 
-VALUE serialization_descriptor_type_aref(VALUE self, VALUE type) {
+VALUE sd_type_aref(VALUE self, VALUE type) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->serializer_type;
 }
 
-VALUE serialization_descriptor_aliases_set(VALUE self, VALUE aliases) {
+VALUE sd_aliases_set(VALUE self, VALUE aliases) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   sd->aliases = aliases;
   return Qnil;
 }
 
-VALUE serialization_descriptor_aliases_aref(VALUE self, VALUE aliases) {
+VALUE sd_aliases_aref(VALUE self, VALUE aliases) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->aliases;
 }
 
 // Exposing this for testing
-VALUE serialization_descriptor_build_serializer(VALUE self) {
+VALUE public_sd_build_serializer(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd_build_serializer(sd);
 }
@@ -152,40 +158,37 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
   cSerializationDescriptor =
       rb_define_class_under(mPanko, "SerializationDescriptor", rb_cObject);
 
-  rb_define_module_function(cSerializationDescriptor, "new",
-                            serialization_descriptor_new, -1);
+  rb_define_module_function(cSerializationDescriptor, "new", sd_new, -1);
 
-  rb_define_method(cSerializationDescriptor,
-                   "fields=", serialization_descriptor_fields_set, 1);
-  rb_define_method(cSerializationDescriptor, "fields",
-                   serialization_descriptor_fields_ref, 0);
-
-  rb_define_method(cSerializationDescriptor,
-                   "method_fields=", serialization_descriptor_method_fields_set,
+  rb_define_method(cSerializationDescriptor, "serializer=", sd_serializer_set,
                    1);
+  rb_define_method(cSerializationDescriptor, "serializer", sd_serializer_ref,
+                   0);
+
+  rb_define_method(cSerializationDescriptor, "fields=", sd_fields_set, 1);
+  rb_define_method(cSerializationDescriptor, "fields", sd_fields_ref, 0);
+
+  rb_define_method(cSerializationDescriptor,
+                   "method_fields=", sd_method_fields_set, 1);
   rb_define_method(cSerializationDescriptor, "method_fields",
-                   serialization_descriptor_method_fields_ref, 0);
+                   sd_method_fields_ref, 0);
 
-  rb_define_method(cSerializationDescriptor, "has_one_associations=",
-                   serialization_descriptor_has_one_associations_set, 1);
+  rb_define_method(cSerializationDescriptor,
+                   "has_one_associations=", sd_has_one_associations_set, 1);
   rb_define_method(cSerializationDescriptor, "has_one_associations",
-                   serialization_descriptor_has_one_associations_ref, 0);
+                   sd_has_one_associations_ref, 0);
 
-  rb_define_method(cSerializationDescriptor, "has_many_associations=",
-                   serialization_descriptor_has_many_associations_set, 1);
+  rb_define_method(cSerializationDescriptor,
+                   "has_many_associations=", sd_has_many_associations_set, 1);
   rb_define_method(cSerializationDescriptor, "has_many_associations",
-                   serialization_descriptor_has_many_associations_ref, 0);
+                   sd_has_many_associations_ref, 0);
 
-  rb_define_method(cSerializationDescriptor,
-                   "type=", serialization_descriptor_type_set, 1);
-  rb_define_method(cSerializationDescriptor, "type",
-                   serialization_descriptor_type_aref, 0);
+  rb_define_method(cSerializationDescriptor, "type=", sd_type_set, 1);
+  rb_define_method(cSerializationDescriptor, "type", sd_type_aref, 0);
 
-  rb_define_method(cSerializationDescriptor,
-                   "aliases=", serialization_descriptor_aliases_set, 1);
-  rb_define_method(cSerializationDescriptor, "aliases",
-                   serialization_descriptor_aliases_aref, 0);
+  rb_define_method(cSerializationDescriptor, "aliases=", sd_aliases_set, 1);
+  rb_define_method(cSerializationDescriptor, "aliases", sd_aliases_aref, 0);
 
   rb_define_method(cSerializationDescriptor, "build_serializer",
-                   serialization_descriptor_build_serializer, 0);
+                   public_sd_build_serializer, 0);
 }

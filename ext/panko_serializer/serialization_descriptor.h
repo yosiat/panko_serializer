@@ -11,16 +11,11 @@ typedef struct _SerializationDescriptor {
 
   // Metadata
   VALUE fields;
-  VALUE method_fields;
   VALUE aliases;
+  VALUE method_fields;
   VALUE has_one_associations;
   VALUE has_many_associations;
 } * SerializationDescriptor;
-
-VALUE serialization_descriptor_fields_ref(VALUE descriptor);
-VALUE serialization_descriptor_method_fields_ref(VALUE descriptor);
-VALUE serialization_descriptor_has_one_associations_ref(VALUE descriptor);
-VALUE serialization_descriptor_has_many_associations_ref(VALUE descriptor);
 
 SerializationDescriptor sd_read(VALUE descriptor);
 VALUE sd_build_serializer(SerializationDescriptor descriptor);

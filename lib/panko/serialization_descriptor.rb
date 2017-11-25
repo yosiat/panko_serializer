@@ -23,6 +23,10 @@ module Panko
       backend.fields = descriptor.fields.dup
       backend.method_fields = descriptor.method_fields.dup
 
+      unless descriptor.serializer.nil?
+        backend.serializer = descriptor.serializer.reset
+      end
+
       backend.has_many_associations = descriptor.has_many_associations.dup
       backend.has_one_associations = descriptor.has_one_associations.dup
 

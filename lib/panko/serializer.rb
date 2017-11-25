@@ -70,5 +70,12 @@ module Panko
       Panko::serialize_subject(object, writer, @descriptor, @context)
       writer.to_s
     end
+
+    def reset
+      @object = nil
+      @context = nil
+
+      self
+    end
   end
 end
