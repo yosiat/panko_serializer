@@ -29,7 +29,7 @@ void serialize_method_fields(VALUE subject,
   sd_apply_serializer_config(serializer, subject, context);
 
   for (i = 0; i < RARRAY_LEN(method_fields); i++) {
-    VALUE attribute_name = RARRAY_AREF(method_fields, i);
+    volatile VALUE attribute_name = RARRAY_AREF(method_fields, i);
     volatile VALUE result =
         rb_funcall(serializer, rb_sym2id(attribute_name), 0);
 

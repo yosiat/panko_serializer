@@ -5,6 +5,7 @@
 
 typedef struct _Attribute {
   VALUE name_str;
+  ID name_id;
   VALUE alias_name;
 
   /*

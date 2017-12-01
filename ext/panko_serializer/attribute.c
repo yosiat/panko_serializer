@@ -9,6 +9,7 @@ static void attribute_free(void* ptr) {
 
   Attribute attribute = (Attribute)ptr;
   attribute->name_str = Qnil;
+  attribute->name_id = Qnil;
   attribute->alias_name = Qnil;
   attribute->type = Qnil;
   attribute->record_class = Qnil;
@@ -18,6 +19,7 @@ static void attribute_free(void* ptr) {
 
 void attribute_mark(Attribute data) {
   rb_gc_mark(data->name_str);
+  rb_gc_mark(data->name_id);
   rb_gc_mark(data->alias_name);
   rb_gc_mark(data->type);
   rb_gc_mark(data->record_class);
@@ -26,7 +28,13 @@ void attribute_mark(Attribute data) {
 static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {
   Attribute attribute = ALLOC(struct _Attribute);
 
+  Check_Type(argv[0], T_STRING);
+  if (argv[1] != Qnil) {
+    Check_Type(argv[1], T_STRING);
+  }
+
   attribute->name_str = argv[0];
+  attribute->name_id = rb_intern_str(attribute->name_str);
   attribute->alias_name = argv[1];
   attribute->type = Qnil;
   attribute->record_class = Qnil;

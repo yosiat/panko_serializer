@@ -34,11 +34,14 @@ void association_mark(Association data) {
 static VALUE association_new(int argc, VALUE* argv, VALUE self) {
   Association association = ALLOC(struct _Association);
 
+  Check_Type(argv[0], T_SYMBOL);
+  Check_Type(argv[1], T_STRING);
+
   association->name_sym = argv[0];
   association->name_str = argv[1];
   association->rb_descriptor = argv[2];
 
-  association->name_id = rb_sym2id(association->name_sym);
+  association->name_id = rb_intern_str(association->name_str);
   association->descriptor = sd_read(association->rb_descriptor);
 
   return Data_Wrap_Struct(cAssociation, association_mark, association_free,

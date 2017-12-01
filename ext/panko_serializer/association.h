@@ -6,7 +6,7 @@
 #include "serialization_descriptor.h"
 
 typedef struct _Association {
-  VALUE name_id;
+  ID name_id;
   VALUE name_sym;
   VALUE name_str;
 
