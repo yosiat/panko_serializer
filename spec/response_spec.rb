@@ -16,6 +16,15 @@ describe Panko::Response do
     expect(json_response["num"]).to eq(1)
   end
 
+  it "serializes json wrapped in json value" do
+    response = Panko::Response.new(success: true, value: Panko::JsonValue.from('{"a":1}'))
+
+    json_response = Oj.load(response.to_json)
+
+    expect(json_response["success"]).to eq(true)
+    expect(json_response["value"]).to eq({ "a" => 1 })
+  end
+
 
   it "serializes array serializer" do
     foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)

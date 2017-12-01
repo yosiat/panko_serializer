@@ -2,6 +2,12 @@
 require "oj"
 
 module Panko
+  JsonValue = Struct.new(:value) do
+    def self.from(value)
+      JsonValue.new(value)
+    end
+  end
+
   class Response
     def initialize(data)
       @data = data
@@ -15,6 +21,8 @@ module Panko
       @data.each do |key, value|
         if value.is_a?(Panko::ArraySerializer) || value.is_a?(Panko::Serializer)
           writer.push_json(value.to_json, key.to_s)
+        elsif value.is_a?(Panko::JsonValue)
+          writer.push_json(value.value, key.to_s)
         else
           writer.push_value(value, key.to_s)
         end
