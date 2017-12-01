@@ -15,6 +15,6 @@ typedef struct _Association {
 } * Association;
 
 Association association_read(VALUE association);
-void panko_init_associaiton(VALUE mPanko);
+void panko_init_association(VALUE mPanko);
 
 #endif

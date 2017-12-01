@@ -55,6 +55,7 @@ VALUE attribute_alias_name_ref(VALUE self) {
   Attribute attribute = (Attribute)DATA_PTR(self);
   return attribute->alias_name;
 }
+
 void panko_init_attribute(VALUE mPanko) {
   cAttribute = rb_define_class_under(mPanko, "Attribute", rb_cObject);
 
