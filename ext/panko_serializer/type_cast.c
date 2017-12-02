@@ -5,6 +5,10 @@ ID deserialize_from_db_id = 0;
 ID to_s_id = 0;
 ID to_i_id = 0;
 
+static VALUE oj_type = Qundef;
+static VALUE oj_parseerror_type = Qundef;
+ID load_id = 0;
+
 // Caching ActiveRecord Types
 static VALUE ar_string_type = Qundef;
 static VALUE ar_text_type = Qundef;
@@ -41,23 +45,23 @@ VALUE cache_postgres_type_lookup(VALUE ar) {
     return Qfalse;
   }
 
-  if(rb_const_defined_at(ar_oid, rb_intern("Float")) == (int)Qtrue) {
+  if (rb_const_defined_at(ar_oid, rb_intern("Float")) == (int)Qtrue) {
     ar_pg_float_type = rb_const_get_at(ar_oid, rb_intern("Float"));
   }
 
-  if(rb_const_defined_at(ar_oid, rb_intern("Integer")) == (int)Qtrue) {
+  if (rb_const_defined_at(ar_oid, rb_intern("Integer")) == (int)Qtrue) {
     ar_pg_integer_type = rb_const_get_at(ar_oid, rb_intern("Integer"));
   }
 
-  if(rb_const_defined_at(ar_oid, rb_intern("Uuid")) == (int)Qtrue) {
+  if (rb_const_defined_at(ar_oid, rb_intern("Uuid")) == (int)Qtrue) {
     ar_pg_uuid_type = rb_const_get_at(ar_oid, rb_intern("Uuid"));
   }
 
-  if(rb_const_defined_at(ar_oid, rb_intern("Json")) == (int)Qtrue) {
+  if (rb_const_defined_at(ar_oid, rb_intern("Json")) == (int)Qtrue) {
     ar_pg_json_type = rb_const_get_at(ar_oid, rb_intern("Json"));
   }
 
-  if(rb_const_defined_at(ar_oid, rb_intern("DateTime")) == (int)Qtrue) {
+  if (rb_const_defined_at(ar_oid, rb_intern("DateTime")) == (int)Qtrue) {
     ar_pg_date_time_type = rb_const_get_at(ar_oid, rb_intern("DateTime"));
   }
 
@@ -202,14 +206,22 @@ bool is_json_type(VALUE type_klass) {
   return ar_pg_json_type != Qundef && type_klass == ar_pg_json_type;
 }
 
+VALUE rescue_func() {
+  return Qnil;
+}
+
+VALUE parse_json(VALUE value) {
+  return rb_funcall(oj_type, load_id, 1, value);
+}
+
 VALUE cast_json_type(VALUE value) {
   if (!RB_TYPE_P(value, T_STRING)) {
     return value;
   }
 
-  // TODO: instead of parsing the json, let's signal to "write_value"
-  // to use "push_json" instead of "push_value"
-  return Qundef;
+  volatile VALUE result =
+      rb_rescue2(parse_json, value, rescue_func, Qundef, oj_parseerror_type, 0);
+  return result;
 }
 
 bool is_boolean_type(VALUE type_klass) {
@@ -297,6 +309,10 @@ VALUE public_type_cast(VALUE module, VALUE type_metadata, VALUE value) {
 void panko_init_type_cast(VALUE mPanko) {
   to_s_id = rb_intern_const("to_s");
   to_i_id = rb_intern_const("to_i");
+
+  oj_type = rb_const_get_at(rb_cObject, rb_intern("Oj"));
+  oj_parseerror_type = rb_const_get_at(oj_type, rb_intern("ParseError"));
+  load_id = rb_intern_const("load");
 
   rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, 2);
 

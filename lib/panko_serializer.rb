@@ -7,4 +7,5 @@ require "panko/response"
 
 
 # C Extension
+require "oj"
 require "panko/panko_serializer"

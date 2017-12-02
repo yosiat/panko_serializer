@@ -4,6 +4,7 @@ require "active_record/connection_adapters/postgresql_adapter"
 require "active_model"
 require "active_support/all"
 require "pg"
+require "oj"
 
 
 require_relative "../benchmarking_support"
