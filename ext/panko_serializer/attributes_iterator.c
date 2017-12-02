@@ -52,9 +52,6 @@ void read_attribute_from_hash(VALUE attributes_hash,
 
     if (*type == Qnil) {
       *type = rb_ivar_get(attribute_metadata, type_id);
-      if (*type != Qnil) {
-        *type = CLASS_OF(*type);
-      }
     }
   }
 }
@@ -133,10 +130,6 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
     if (attributes_ctx.types != Qnil && attribute->type == Qnil) {
       attribute->type = rb_hash_aref(attributes_ctx.types, member);
     }
-
-    if (attribute->type != Qnil) {
-      attribute->type = CLASS_OF(attribute->type);
-    }
   }
 
   if (attribute->type != Qnil && value != Qnil) {
@@ -149,7 +142,7 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
 VALUE panko_each_attribute(VALUE obj,
                            VALUE attributes,
                            EachAttributeFunc func,
-                           VALUE context) {
+                           VALUE writer) {
   long i;
   struct attributes attributes_ctx = init_context(obj);
   volatile VALUE record_class = CLASS_OF(obj);
@@ -159,14 +152,13 @@ VALUE panko_each_attribute(VALUE obj,
     Attribute attribute = attribute_read(raw_attribute);
     attribute_try_invalidate(attribute, record_class);
 
-    VALUE name_str = attribute->name_str;
+    volatile VALUE name_str = attribute->name_str;
     if (attribute->alias_name != Qnil) {
       name_str = attribute->alias_name;
     }
 
-    VALUE value = read_attribute(attributes_ctx, attribute);
-
-    func(obj, name_str, value, Qnil, context);
+    volatile VALUE value = read_attribute(attributes_ctx, attribute);
+    func(writer, name_str, value);
   }
 
   return Qnil;

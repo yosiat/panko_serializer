@@ -112,8 +112,7 @@ void cache_type_lookup() {
   ar_date_time_type = rb_const_get_at(ar_type, rb_intern("DateTime"));
 
   ar_type_methods = rb_class_instance_methods(0, NULL, ar_string_type);
-  if (rb_ary_includes(ar_type_methods,
-                      rb_to_symbol(rb_str_new_cstr("deserialize")))) {
+  if(rb_ary_includes(ar_type_methods, rb_to_symbol(rb_str_new_cstr("deserialize")))) {
     deserialize_from_db_id = rb_intern("deserialize");
   } else {
     deserialize_from_db_id = rb_intern("type_cast_from_database");
@@ -274,15 +273,16 @@ VALUE cast_date_time_type(VALUE value) {
   return Qundef;
 }
 
-VALUE type_cast(VALUE type_klass, VALUE value) {
+VALUE type_cast(VALUE type_metadata, VALUE value) {
   if (value == Qnil || value == Qundef) {
     return value;
   }
 
   cache_type_lookup();
 
-  VALUE typeCastedValue;
+  VALUE type_klass, typeCastedValue;
 
+  type_klass = CLASS_OF(type_metadata);
   typeCastedValue = Qundef;
 
   TypeCast typeCast;
@@ -294,8 +294,6 @@ VALUE type_cast(VALUE type_klass, VALUE value) {
   }
 
   if (typeCastedValue == Qundef) {
-    VALUE args[0];
-    volatile VALUE type_metadata = rb_class_new_instance(0, args, type_klass);
     return rb_funcall(type_metadata, deserialize_from_db_id, 1, value);
   }
 
