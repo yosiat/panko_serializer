@@ -9,7 +9,7 @@ static void attribute_free(void* ptr) {
 
   Attribute attribute = (Attribute)ptr;
   attribute->name_str = Qnil;
-  attribute->name_id = Qnil;
+  attribute->name_id = 0;
   attribute->alias_name = Qnil;
   attribute->type = Qnil;
   attribute->record_class = Qnil;
@@ -19,7 +19,6 @@ static void attribute_free(void* ptr) {
 
 void attribute_mark(Attribute data) {
   rb_gc_mark(data->name_str);
-  rb_gc_mark(data->name_id);
   rb_gc_mark(data->alias_name);
   rb_gc_mark(data->type);
   rb_gc_mark(data->record_class);

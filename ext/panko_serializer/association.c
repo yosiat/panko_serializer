@@ -9,7 +9,7 @@ static void association_free(void* ptr) {
 
   Association association = (Association)ptr;
   association->name_str = Qnil;
-  association->name_id = Qnil;
+  association->name_id = 0;
   association->name_sym = Qnil;
   association->rb_descriptor = Qnil;
 
@@ -22,7 +22,6 @@ static void association_free(void* ptr) {
 
 void association_mark(Association data) {
   rb_gc_mark(data->name_str);
-  rb_gc_mark(data->name_id);
   rb_gc_mark(data->name_sym);
   rb_gc_mark(data->rb_descriptor);
 

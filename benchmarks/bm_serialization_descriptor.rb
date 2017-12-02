@@ -1,16 +1,8 @@
 # frozen_string_literal: true
 require_relative "./benchmarking_support"
 require "rails"
-require "active_model"
 require "active_support"
-require "active_support/json"
-require "action_controller"
-require "action_controller/railtie"
 
-
-require "memory_profiler"
-require "ruby-prof"
-require "ruby-prof-flamegraph"
 require "panko_serializer"
 
 def generate_attributes(count)
