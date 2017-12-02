@@ -19,7 +19,6 @@ typedef struct _SerializationDescriptor {
 
 SerializationDescriptor sd_read(VALUE descriptor);
 
-static void sd_free(SerializationDescriptor sd);
 void sd_mark(SerializationDescriptor data);
 
 VALUE sd_build_serializer(SerializationDescriptor descriptor);
