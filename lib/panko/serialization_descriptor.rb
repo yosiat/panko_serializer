@@ -74,7 +74,7 @@ module Panko
       attributes_only_filters = only_filters[:attributes] || []
       unless attributes_only_filters.empty?
         associations.select! do |association|
-          attributes_only_filters.include?(association.first)
+          attributes_only_filters.include?(association.name_sym)
         end
       end
 
@@ -82,7 +82,7 @@ module Panko
       attributes_except_filters = except_filters[:attributes] || []
       unless attributes_except_filters.empty?
         associations.reject! do |association|
-          attributes_except_filters.include?(association.first)
+          attributes_except_filters.include?(association.name_sym)
         end
       end
 
@@ -95,8 +95,8 @@ module Panko
       end
 
       associations.map do |association|
-        name = association.first
-        descriptor = association.last
+        name = association.name_sym
+        descriptor = association.descriptor
 
         only_filter = associations_only_filters[name]
         except_filter = associations_except_filters[name]
@@ -104,7 +104,6 @@ module Panko
         filters = {}
         filters[:only] = only_filter unless only_filter.nil?
         filters[:except] = except_filter unless except_filter.nil?
-
         descriptor.apply_filters(filters) unless filters.empty?
 
         association

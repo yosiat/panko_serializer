@@ -51,13 +51,22 @@ Association association_read(VALUE association) {
   return (Association)DATA_PTR(association);
 }
 
-VALUE association_first_ref(VALUE self) {
+VALUE association_name_sym_ref(VALUE self) {
   Association association = (Association)DATA_PTR(self);
   return association->name_sym;
 }
 
-VALUE association_last_ref(VALUE self) {
+VALUE association_descriptor_ref(VALUE self) {
   Association association = (Association)DATA_PTR(self);
+  return association->rb_descriptor;
+}
+
+VALUE association_decriptor_aset(VALUE self, VALUE descriptor) {
+  Association association = (Association)DATA_PTR(self);
+
+  association->rb_descriptor = descriptor;
+  association->descriptor = sd_read(descriptor);
+
   return association->rb_descriptor;
 }
 
@@ -66,6 +75,7 @@ void panko_init_association(VALUE mPanko) {
 
   rb_define_module_function(cAssociation, "new", association_new, -1);
 
-  rb_define_method(cAssociation, "first", association_first_ref, 0);
-  rb_define_method(cAssociation, "last", association_last_ref, 0);
+  rb_define_method(cAssociation, "name_sym", association_name_sym_ref, 0);
+  rb_define_method(cAssociation, "descriptor", association_descriptor_ref, 0);
+  rb_define_method(cAssociation, "descriptor=", association_decriptor_aset, 1);
 }
