@@ -66,6 +66,29 @@ describe Panko::SerializationDescriptor do
         Panko::Attribute.create(:name, alias_name: :full_name)
       ])
     end
+
+    it "allows multiple filters in other runs" do
+      class MultipleFiltersTestSerializer < Panko::Serializer
+        attributes :name, :address
+        has_many :foos, each_serializer: FooSerializer
+      end
+
+      descriptor = Panko::SerializationDescriptor.build(MultipleFiltersTestSerializer, only: {
+        instance: [:foos],
+        foos: [:name]
+      })
+
+      expect(descriptor.has_many_associations.first.descriptor.attributes).to eq([
+        Panko::Attribute.create(:name)
+      ])
+
+      descriptor = Panko::SerializationDescriptor.build(MultipleFiltersTestSerializer)
+
+      expect(descriptor.has_many_associations.first.descriptor.attributes).to eq([
+        Panko::Attribute.create(:name),
+        Panko::Attribute.create(:address)
+      ])
+    end
   end
 
   context "associations" do

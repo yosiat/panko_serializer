@@ -20,15 +20,31 @@ module Panko
 
       backend.type = descriptor.type
 
-      backend.attributes = descriptor.attributes.dup
+      backend.attributes = descriptor.attributes.map do |attr|
+        Attribute.create(attr.name, alias_name: attr.alias_name)
+      end
+
       backend.method_fields = descriptor.method_fields.dup
 
       unless descriptor.serializer.nil?
         backend.serializer = descriptor.serializer.reset
       end
 
-      backend.has_many_associations = descriptor.has_many_associations.dup
-      backend.has_one_associations = descriptor.has_one_associations.dup
+      backend.has_many_associations = descriptor.has_many_associations.map do |assoc|
+        Panko::Association.new(
+          assoc.name_sym,
+          assoc.name_sym.to_s,
+          Panko::SerializationDescriptor.duplicate(assoc.descriptor)
+        )
+      end
+
+      backend.has_one_associations = descriptor.has_one_associations.map do |assoc|
+        Panko::Association.new(
+          assoc.name_sym,
+          assoc.name_sym.to_s,
+          Panko::SerializationDescriptor.duplicate(assoc.descriptor)
+        )
+      end
 
       backend
     end
