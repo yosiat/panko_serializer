@@ -129,7 +129,6 @@ describe Panko::SerializationDescriptor do
       expect(descriptor.method_fields).to be_empty
       expect(descriptor.has_one_associations).to be_empty
 
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
       expect(descriptor.has_many_associations.count).to eq(1)
 
       foo_association = descriptor.has_many_associations.first
@@ -153,15 +152,6 @@ describe Panko::SerializationDescriptor do
     it "except" do
       descriptor = Panko::SerializationDescriptor.build(FooSerializer, except: [:name])
 
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
-      puts descriptor.has_many_associations.map(&:name_sym).inspect
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([Panko::Attribute.create(:address)])
       expect(descriptor.method_fields).to be_empty

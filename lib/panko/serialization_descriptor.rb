@@ -20,9 +20,7 @@ module Panko
 
       backend.type = descriptor.type
 
-      backend.attributes = descriptor.attributes.map do |attr|
-        Attribute.create(attr.name, alias_name: attr.alias_name)
-      end
+      backend.attributes = descriptor.attributes.dup
 
       backend.method_fields = descriptor.method_fields.dup
 
@@ -30,21 +28,8 @@ module Panko
         backend.serializer = descriptor.serializer.reset
       end
 
-      backend.has_many_associations = descriptor.has_many_associations.map do |assoc|
-        Panko::Association.new(
-          assoc.name_sym,
-          assoc.name_sym.to_s,
-          Panko::SerializationDescriptor.duplicate(assoc.descriptor)
-        )
-      end
-
-      backend.has_one_associations = descriptor.has_one_associations.map do |assoc|
-        Panko::Association.new(
-          assoc.name_sym,
-          assoc.name_sym.to_s,
-          Panko::SerializationDescriptor.duplicate(assoc.descriptor)
-        )
-      end
+      backend.has_many_associations = descriptor.has_many_associations.dup
+      backend.has_one_associations = descriptor.has_one_associations.dup
 
       backend
     end
@@ -58,7 +43,8 @@ module Panko
       attributes_only_filters, associations_only_filters = resolve_filters(options, :only)
       attributes_except_filters, associations_except_filters = resolve_filters(options, :except)
 
-      apply_attribute_filters!(
+      self.attributes = apply_attribute_filters(
+        self.attributes,
         attributes_only_filters,
         attributes_except_filters
       )
@@ -120,10 +106,17 @@ module Panko
         filters = {}
         filters[:only] = only_filter unless only_filter.nil?
         filters[:except] = except_filter unless except_filter.nil?
-        descriptor.apply_filters(filters) unless filters.empty?
+
+        unless filters.empty?
+          next Panko::Association.new(
+            name,
+            association.name_str,
+            Panko::SerializationDescriptor.build(descriptor.type, filters)
+          )
+        end
 
         association
-      end.compact
+      end
     end
 
     def resolve_filters(options, filter)
@@ -152,9 +145,9 @@ module Panko
       fields
     end
 
-    def apply_attribute_filters!(only, except)
+    def apply_attribute_filters(attributes, only, except)
       unless only.empty?
-        self.attributes.select! do |attribute|
+        attributes = attributes.select do |attribute|
           name_to_check = attribute.name
           name_to_check = attribute.alias_name unless attribute.alias_name.nil?
 
@@ -163,13 +156,15 @@ module Panko
       end
 
       unless except.empty?
-        self.attributes.reject! do |attribute|
+        attributes = attributes.reject do |attribute|
           name_to_check = attribute.name
           name_to_check = attribute.alias_name unless attribute.alias_name.nil?
 
           except.include?(name_to_check.to_sym)
         end
       end
+
+      attributes
     end
   end
 end

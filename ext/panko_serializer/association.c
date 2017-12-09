@@ -56,6 +56,11 @@ VALUE association_name_sym_ref(VALUE self) {
   return association->name_sym;
 }
 
+VALUE association_name_str_ref(VALUE self) {
+  Association association = (Association)DATA_PTR(self);
+  return association->name_str;
+}
+
 VALUE association_descriptor_ref(VALUE self) {
   Association association = (Association)DATA_PTR(self);
   return association->rb_descriptor;
@@ -76,6 +81,7 @@ void panko_init_association(VALUE mPanko) {
   rb_define_module_function(cAssociation, "new", association_new, -1);
 
   rb_define_method(cAssociation, "name_sym", association_name_sym_ref, 0);
+  rb_define_method(cAssociation, "name_str", association_name_str_ref, 0);
   rb_define_method(cAssociation, "descriptor", association_descriptor_ref, 0);
   rb_define_method(cAssociation, "descriptor=", association_decriptor_aset, 1);
 }
