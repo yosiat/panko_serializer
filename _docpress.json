@@ -8,6 +8,11 @@
         "slug": "index",
         "headings": [
           {
+            "title": "Support",
+            "depth": 2,
+            "id": "support"
+          },
+          {
             "title": "License",
             "depth": 2,
             "id": "license"
@@ -128,6 +133,11 @@
       "pageTitle": "Panko",
       "slug": "index",
       "headings": [
+        {
+          "title": "Support",
+          "depth": 2,
+          "id": "support"
+        },
         {
           "title": "License",
           "depth": 2,
