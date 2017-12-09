@@ -9,7 +9,7 @@ end
 
 
 class PostFastSerializer < Panko::Serializer
-  attributes :id, :body, :title, :author_id
+  attributes :id, :body, :title, :author_id, :created_at
 end
 
 class PostFastWithMethodCallSerializer < Panko::Serializer

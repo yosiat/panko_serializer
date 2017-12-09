@@ -4,7 +4,7 @@
 
 Panko is library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord objects to JSON strings, fast.
 
-To achieve it's performance:
+To achieve it's [performance](https://yosiat.github.io/panko_serializer/performance.html):
 
 * Oj - Panko relies Oj since it's fast and allow to to serialize incrementally using `Oj::StringWriter`
 * Serialization Descriptor - Panko computes most of the metadata ahead of time, to save time later in serialization.
@@ -16,11 +16,11 @@ To dig deeper about the performance choices, read [Design Choices](https://yosia
 Support
 -------
 
-- [Documenation](https://yosiat.github.io/panko_serializer)
+- [Documentation](https://yosiat.github.io/panko_serializer)
 - [Getting Started](https://yosiat.github.io/panko_serializer/getting-started.html)
 
 License
 -------
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
+The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 

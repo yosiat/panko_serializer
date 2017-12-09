@@ -8,7 +8,7 @@ class AmsAuthorFastSerializer < ActiveModel::Serializer
 end
 
 class AmsPostFastSerializer < ActiveModel::Serializer
-  attributes :id, :body, :title, :author_id
+  attributes :id, :body, :title, :author_id, :created_at
 end
 
 class AmsPostWithHasOneFastSerializer < ActiveModel::Serializer
@@ -39,7 +39,7 @@ def benchmark_ams(prefix, serializer, options = {})
 end
 
 
-benchmark_ams "HasOne", AmsPostWithHasOneFastSerializer
 benchmark_ams "Simple", AmsPostFastSerializer
+benchmark_ams "HasOne", AmsPostWithHasOneFastSerializer
 benchmark_ams "Except", AmsPostWithHasOneFastSerializer, except: [:title]
 benchmark_ams "Include", AmsPostWithHasOneFastSerializer, include: [:id, :body, :author_id, :author]
