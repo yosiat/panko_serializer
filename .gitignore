@@ -11,3 +11,5 @@
 
 # rspec failure tracking
 .rspec_status
+_docpress
+node_modules

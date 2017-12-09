@@ -3,9 +3,22 @@ cache: bundler
 language: ruby
 rvm:
   - 2.4.2
+
+env:
+  global:
+    - GIT_NAME: Travis CI
+    - GIT_EMAIL: nobody@nobody.org
+
 install: bundle install --path=vendor/bundle --retry=3 --jobs=3
-before_install: gem install bundler
-after_success: bundle exec rake benchmarks
+
+before_install:
+  - gem install bundler
+  - nvm install 9
+
+after_success:
+  - npm install docpress && $(npm bin)/docpress build
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm install git-update-ghpages && $(npm bin)/git-update-ghpages yosiat/panko_serializer _docpress; fi
+  - bundle exec rake benchmarks
 
 env:
   matrix:
