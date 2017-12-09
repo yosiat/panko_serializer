@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="assets/style.css?t=615badd5">
+    <script src="assets/script.js?t=42463e55"></script>
+    <title>Performance - Panko</title>
+    <meta name="viewport" content="width=device-width">
+  </head>
+  <body class="-menu-visible">
+    <div class="doc-layout">
+      <div class="toggle menu-toggle js-menu-toggle"></div>
+      <div class="menu toc-menu">
+        <li class="menu-item -level-0 -parent">
+          <ul class="submenu">
+            <li class="menu-item -level-1"><a class="link title  link-index" href="index.html">Panko</a>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-getting-started" href="getting-started.html">Getting Stated</a>
+            </li>
+            <li class="menu-item -level-1 -parent"><span class="title">Reference</span>
+              <ul class="submenu">
+                <li class="menu-item -level-2"><a class="link title  link-attributes" href="attributes.html">Attributes</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-associations" href="associations.html">Associations</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-response-bag" href="response-bag.html">Response bag</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1"><a class="link title -active link-performance" href="performance.html">Performance</a>
+              <ul class="headings heading-list">
+                <li class="heading-item -depth-2"><a class="hlink link-microbenchmarks" href="#microbenchmarks">Microbenchmarks</a>
+                </li>
+                <li class="heading-item -depth-2"><a class="hlink link-real-world-benchmark" href="#real-world-benchmark">Real-world benchmark</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-design-choices" href="design-choices.html">Design Choices</a>
+            </li>
+          </ul>
+        </li>
+      </div>
+      <div class="body page-performance">
+        <div class="header-nav">
+          <div class="right">
+          </div>
+        </div>
+        <div class="markdown-body"><h1 id="performance">Performance</h1>
+<p>The performance of Panko is measured using microbenchmarks and load testing.</p>
+<h2 id="microbenchmarks">Microbenchmarks</h2>
+<p>The following microbenchmarks are run on MacBook Pro (Retina, 15-inch, Mid 2015), Ruby 2.4 with Rails 4.2
+demonstrating the performance of ActiveModelSerializers 0.9 and Panko 0.3.3</p>
+<table>
+<thead>
+<tr>
+<th>Benchmark</th>
+<th>AMS ip/s</th>
+<th>Panko ip/s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple_Posts_2300</td>
+<td>25.81</td>
+<td>135.29</td>
+</tr>
+<tr>
+<td>Simple_Posts_50</td>
+<td>1,248.39</td>
+<td>6,518.68</td>
+</tr>
+<tr>
+<td>HasOne_Posts_2300</td>
+<td>11.33</td>
+<td>73.42</td>
+</tr>
+<tr>
+<td>HasOne_Posts_50</td>
+<td>523.14</td>
+<td>4,985.41</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The corresponding benchmarks are <code>benchmarks/bm_active_model_serializers.rb</code> and <code>benchmarks/bm_panko_json.rb</code></p>
+</blockquote>
+<h2 id="real-world-benchmark">Real-world benchmark</h2>
+<p>The real-world benchmark here is endpoint which serializes 7,884 entries with 48 attributes and no associations.
+The benchmark took place in environment that simulates production environment and run using <code>wrk</code> from machine on the same cluster.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>AMS</th>
+<th>Panko</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Avg Response Time</td>
+<td>4.89s</td>
+<td>1.48s</td>
+</tr>
+<tr>
+<td>Max Response Time</td>
+<td>5.42s</td>
+<td>1.83s</td>
+</tr>
+<tr>
+<td>99th Response Time</td>
+<td>5.42s</td>
+<td>1.74s</td>
+</tr>
+<tr>
+<td>Total Requests</td>
+<td>61</td>
+<td>202</td>
+</tr>
+</tbody>
+</table>
+<p><em>Thanks to <a href="https://www.bringg.com">Bringg</a> for providing the infrastructrue for the benchmarks</em></p>
+
+        </div>
+        <div class="footer-nav">
+          <div class="left"><a href="response-bag.html"><span class="title">Response bag</span></a></div>
+          <div class="right"><a href="design-choices.html"><span class="label">Next: </span><span class="title">Design Choices</span></a></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -90,6 +90,24 @@
         ]
       },
       {
+        "title": "Performance",
+        "source": "docs/performance.md",
+        "url": "performance.html",
+        "slug": "performance",
+        "headings": [
+          {
+            "title": "Microbenchmarks",
+            "depth": 2,
+            "id": "microbenchmarks"
+          },
+          {
+            "title": "Real-world benchmark",
+            "depth": 2,
+            "id": "real-world-benchmark"
+          }
+        ]
+      },
+      {
         "title": "Design Choices",
         "source": "docs/design-choices.md",
         "url": "design-choices.html",
@@ -210,6 +228,24 @@
       "pageTitle": "Response bag",
       "slug": "response-bag"
     },
+    "performance.html": {
+      "source": "docs/performance.md",
+      "title": "Performance - Panko",
+      "pageTitle": "Performance",
+      "slug": "performance",
+      "headings": [
+        {
+          "title": "Microbenchmarks",
+          "depth": 2,
+          "id": "microbenchmarks"
+        },
+        {
+          "title": "Real-world benchmark",
+          "depth": 2,
+          "id": "real-world-benchmark"
+        }
+      ]
+    },
     "design-choices.html": {
       "source": "docs/design-choices.md",
       "title": "Design Choices - Panko",
@@ -252,6 +288,7 @@
     "docs/attributes.md": "attributes.html",
     "docs/associations.md": "associations.html",
     "docs/response-bag.md": "response-bag.html",
+    "docs/performance.md": "performance.html",
     "docs/design-choices.md": "design-choices.html"
   }
 }
