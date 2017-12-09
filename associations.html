@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="assets/style.css?t=615badd5">
+    <script src="assets/script.js?t=42463e55"></script>
+    <title>Associations - Panko</title>
+    <meta name="viewport" content="width=device-width">
+  </head>
+  <body class="-menu-visible">
+    <div class="doc-layout">
+      <div class="toggle menu-toggle js-menu-toggle"></div>
+      <div class="menu toc-menu">
+        <li class="menu-item -level-0 -parent">
+          <ul class="submenu">
+            <li class="menu-item -level-1"><a class="link title  link-index" href="index.html">Panko</a>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-getting-started" href="getting-started.html">Getting Stated</a>
+            </li>
+            <li class="menu-item -level-1 -parent"><span class="title">Reference</span>
+              <ul class="submenu">
+                <li class="menu-item -level-2"><a class="link title  link-attributes" href="attributes.html">Attributes</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title -active link-associations" href="associations.html">Associations</a>
+                  <ul class="headings heading-list">
+                    <li class="heading-item -depth-2"><a class="hlink link-nested-filters" href="#nested-filters">Nested Filters</a>
+                    </li>
+                  </ul>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-response-bag" href="response-bag.html">Response bag</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-design-choices" href="design-choices.html">Design Choices</a>
+            </li>
+          </ul>
+        </li>
+      </div>
+      <div class="body page-associations">
+        <div class="header-nav">
+          <div class="right">
+          </div>
+        </div>
+        <div class="markdown-body"><h1 id="associations">Associations</h1>
+<p>A serializer can define it&apos;s own associations - both <code>has_many</code> and <code>has_one</code> to serializer under the context of the object.</p>
+<p>For example:</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serailizer</span>
+  attributes <span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>
+
+  has_one <span class="hljs-symbol">:author</span>, <span class="hljs-symbol">serializer:</span> AuthorSerializer
+  has_many <span class="hljs-symbol">:comments</span>, <span class="hljs-symbol">each_serializer:</span> CommentSerializer
+<span class="pl-k">end</span>
+</code></pre>
+<h2 id="nested-filters">Nested Filters</h2>
+<p>As talked before, Panko allows you to filter the attributes of a serializer.
+But Panko let you take that step further, and filters the attributes of you associations so you can re-use your serializers in your application.</p>
+<p>For example, let&apos;s say one portion of the application needs to serializer list of posts and serializer their - <code>title</code>, <code>body</code>, author&apos;s id and comments id.</p>
+<p>We can declare tailored serializer for this, or we can re-use the above defined serializer - <code>PostSerializer</code> and use nested filters.</p>
+<pre><code class="lang-ruby">posts = Post.all
+
+Panko::ArraySerializer.new(posts, <span class="hljs-symbol">only:</span> {
+  <span class="hljs-symbol">instance:</span> [<span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>, <span class="hljs-symbol">:author</span>, <span class="hljs-symbol">:comments</span>],
+  <span class="hljs-symbol">author:</span> [<span class="hljs-symbol">:id</span>],
+  <span class="hljs-symbol">comments:</span> [<span class="hljs-symbol">:id</span>],
+})
+</code></pre>
+<p>Let&apos;s disect <code>only</code> option we passed -</p>
+<ul>
+<li><code>instance</code> - list of attributes (and associations) we want to serializer for current instance of the serializer, in this case - <code>PostSerializer</code>.</li>
+<li><code>author</code>, <code>comments</code> - here we specify the list of attributes we want to serialize for each association.</li>
+</ul>
+<p>It&apos;s important to note that Nested Filters, are recursive, in other words, we can filter the association&apos;s associations.</p>
+<p>For example, <code>CommentSerializer</code> have has_one association <code>Author</code>, and for each <code>comments.author</code> we only it&apos;s name.</p>
+<pre><code class="lang-ruby">posts = Post.all
+
+Panko::ArraySerializer.new(posts, <span class="hljs-symbol">only:</span> {
+  <span class="hljs-symbol">instance:</span> [<span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>, <span class="hljs-symbol">:author</span>, <span class="hljs-symbol">:comments</span>],
+  <span class="hljs-symbol">author:</span> [<span class="hljs-symbol">:id</span>],
+  <span class="hljs-symbol">comments:</span> {
+    <span class="hljs-symbol">instance:</span> [<span class="hljs-symbol">:id</span>, <span class="hljs-symbol">:author</span>],
+    <span class="hljs-symbol">author:</span> [<span class="hljs-symbol">:name</span>]
+  }
+})
+</code></pre>
+<p>As you see now in <code>comments</code> the <code>instance</code> have differenet meaning, the <code>CommentSerializer</code>.</p>
+
+        </div>
+        <div class="footer-nav">
+          <div class="left"><a href="attributes.html"><span class="title">Attributes</span></a></div>
+          <div class="right"><a href="response-bag.html"><span class="label">Next: </span><span class="title">Response bag</span></a></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

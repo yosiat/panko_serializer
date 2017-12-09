@@ -1,0 +1,247 @@
+{
+  "toc": {
+    "sections": [
+      {
+        "title": "Panko",
+        "source": "README.md",
+        "url": "index.html",
+        "slug": "index",
+        "headings": [
+          {
+            "title": "License",
+            "depth": 2,
+            "id": "license"
+          }
+        ]
+      },
+      {
+        "title": "Getting Stated",
+        "source": "docs/getting-started.md",
+        "url": "getting-started.html",
+        "slug": "getting-started",
+        "headings": [
+          {
+            "title": "Installation",
+            "depth": 2,
+            "id": "installation"
+          },
+          {
+            "title": "Creating your first serializer",
+            "depth": 2,
+            "id": "creating-your-first-serializer"
+          }
+        ]
+      },
+      {
+        "title": "Reference",
+        "sections": [
+          {
+            "title": "Attributes",
+            "source": "docs/attributes.md",
+            "url": "attributes.html",
+            "slug": "attributes",
+            "headings": [
+              {
+                "title": "Field Attributes",
+                "depth": 2,
+                "id": "field-attributes"
+              },
+              {
+                "title": "Method Attributes",
+                "depth": 2,
+                "id": "method-attributes"
+              },
+              {
+                "title": "Filters",
+                "depth": 2,
+                "id": "filters"
+              },
+              {
+                "title": "Aliases",
+                "depth": 2,
+                "id": "aliases"
+              }
+            ]
+          },
+          {
+            "title": "Associations",
+            "source": "docs/associations.md",
+            "url": "associations.html",
+            "slug": "associations",
+            "headings": [
+              {
+                "title": "Nested Filters",
+                "depth": 2,
+                "id": "nested-filters"
+              }
+            ]
+          },
+          {
+            "title": "Response bag",
+            "source": "docs/response-bag.md",
+            "url": "response-bag.html",
+            "slug": "response-bag"
+          }
+        ]
+      },
+      {
+        "title": "Design Choices",
+        "source": "docs/design-choices.md",
+        "url": "design-choices.html",
+        "slug": "design-choices",
+        "headings": [
+          {
+            "title": "Serialization overview",
+            "depth": 2,
+            "id": "serialization-overview"
+          },
+          {
+            "title": "Interesting parts",
+            "depth": 2,
+            "id": "interesting-parts",
+            "headings": [
+              {
+                "title": "Oj::StringWriter",
+                "depth": 3,
+                "id": "oj::stringwriter"
+              },
+              {
+                "title": "Figuring out the metadata, ahead of time.",
+                "depth": 3,
+                "id": "figuring-out-the-metadata-ahead-of-time."
+              },
+              {
+                "title": "Type Casting",
+                "depth": 3,
+                "id": "type-casting"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "index": {
+    "index.html": {
+      "source": "README.md",
+      "title": "Panko",
+      "pageTitle": "Panko",
+      "slug": "index",
+      "headings": [
+        {
+          "title": "License",
+          "depth": 2,
+          "id": "license"
+        }
+      ]
+    },
+    "getting-started.html": {
+      "source": "docs/getting-started.md",
+      "title": "Getting Stated - Panko",
+      "pageTitle": "Getting Stated",
+      "slug": "getting-started",
+      "headings": [
+        {
+          "title": "Installation",
+          "depth": 2,
+          "id": "installation"
+        },
+        {
+          "title": "Creating your first serializer",
+          "depth": 2,
+          "id": "creating-your-first-serializer"
+        }
+      ]
+    },
+    "attributes.html": {
+      "source": "docs/attributes.md",
+      "title": "Attributes - Panko",
+      "pageTitle": "Attributes",
+      "slug": "attributes",
+      "headings": [
+        {
+          "title": "Field Attributes",
+          "depth": 2,
+          "id": "field-attributes"
+        },
+        {
+          "title": "Method Attributes",
+          "depth": 2,
+          "id": "method-attributes"
+        },
+        {
+          "title": "Filters",
+          "depth": 2,
+          "id": "filters"
+        },
+        {
+          "title": "Aliases",
+          "depth": 2,
+          "id": "aliases"
+        }
+      ]
+    },
+    "associations.html": {
+      "source": "docs/associations.md",
+      "title": "Associations - Panko",
+      "pageTitle": "Associations",
+      "slug": "associations",
+      "headings": [
+        {
+          "title": "Nested Filters",
+          "depth": 2,
+          "id": "nested-filters"
+        }
+      ]
+    },
+    "response-bag.html": {
+      "source": "docs/response-bag.md",
+      "title": "Response bag - Panko",
+      "pageTitle": "Response bag",
+      "slug": "response-bag"
+    },
+    "design-choices.html": {
+      "source": "docs/design-choices.md",
+      "title": "Design Choices - Panko",
+      "pageTitle": "Design Choices",
+      "slug": "design-choices",
+      "headings": [
+        {
+          "title": "Serialization overview",
+          "depth": 2,
+          "id": "serialization-overview"
+        },
+        {
+          "title": "Interesting parts",
+          "depth": 2,
+          "id": "interesting-parts",
+          "headings": [
+            {
+              "title": "Oj::StringWriter",
+              "depth": 3,
+              "id": "oj::stringwriter"
+            },
+            {
+              "title": "Figuring out the metadata, ahead of time.",
+              "depth": 3,
+              "id": "figuring-out-the-metadata-ahead-of-time."
+            },
+            {
+              "title": "Type Casting",
+              "depth": 3,
+              "id": "type-casting"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "sources": {
+    "README.md": "index.html",
+    "docs/getting-started.md": "getting-started.html",
+    "docs/attributes.md": "attributes.html",
+    "docs/associations.md": "associations.html",
+    "docs/response-bag.md": "response-bag.html",
+    "docs/design-choices.md": "design-choices.html"
+  }
+}

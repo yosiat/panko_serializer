@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="assets/style.css?t=615badd5">
+    <script src="assets/script.js?t=42463e55"></script>
+    <title>Panko</title>
+    <meta name="viewport" content="width=device-width">
+  </head>
+  <body class="-menu-visible">
+    <div class="doc-layout">
+      <div class="toggle menu-toggle js-menu-toggle"></div>
+      <div class="menu toc-menu">
+        <li class="menu-item -level-0 -parent">
+          <ul class="submenu">
+            <li class="menu-item -level-1"><a class="link title -active link-index" href="index.html">Panko</a>
+              <ul class="headings heading-list">
+                <li class="heading-item -depth-2"><a class="hlink link-license" href="#license">License</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-getting-started" href="getting-started.html">Getting Stated</a>
+            </li>
+            <li class="menu-item -level-1 -parent"><span class="title">Reference</span>
+              <ul class="submenu">
+                <li class="menu-item -level-2"><a class="link title  link-attributes" href="attributes.html">Attributes</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-associations" href="associations.html">Associations</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-response-bag" href="response-bag.html">Response bag</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-design-choices" href="design-choices.html">Design Choices</a>
+            </li>
+          </ul>
+        </li>
+      </div>
+      <div class="body page-index">
+        <div class="header-nav">
+          <div class="right">
+          </div>
+        </div>
+        <div class="markdown-body"><h1 id="panko">Panko</h1>
+<p><a href="https://travis-ci.org/yosiat/panko_serializer"><img src="https://travis-ci.org/yosiat/panko_serializer.svg?branch=master" alt="Build Status"></a></p>
+<p>Panko is library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord objects to JSON strings, fast.</p>
+<p>To achieve it&apos;s performance:</p>
+<ul>
+<li>Oj - Panko relies Oj since it&apos;s fast and allow to to serialize incrementally using <code>Oj::StringWriter</code></li>
+<li>Serialization Descriptor - Panko computes most of the metadata ahead of time, to save time later in serialization.</li>
+<li>Type casting &#x2014; Panko does type casting by it&apos;s self, instead of relying ActiveRecord.</li>
+</ul>
+<p>To dig deeper about the performance choices, read <a href="https://github.com/yosiat/panko_serializer/wiki/Design-Choices">Design Choices</a>.</p>
+<h2 id="license">License</h2>
+<p>The gem is available as open source under the terms of the <a href="http://opensource.org/licenses/MIT">MIT License</a>.</p>
+
+        </div>
+        <div class="footer-nav">
+          <div class="right"><a href="getting-started.html"><span class="label">Next: </span><span class="title">Getting Stated</span></a></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

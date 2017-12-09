@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="assets/style.css?t=615badd5">
+    <script src="assets/script.js?t=42463e55"></script>
+    <title>Getting Stated - Panko</title>
+    <meta name="viewport" content="width=device-width">
+  </head>
+  <body class="-menu-visible">
+    <div class="doc-layout">
+      <div class="toggle menu-toggle js-menu-toggle"></div>
+      <div class="menu toc-menu">
+        <li class="menu-item -level-0 -parent">
+          <ul class="submenu">
+            <li class="menu-item -level-1"><a class="link title  link-index" href="index.html">Panko</a>
+            </li>
+            <li class="menu-item -level-1"><a class="link title -active link-getting-started" href="getting-started.html">Getting Stated</a>
+              <ul class="headings heading-list">
+                <li class="heading-item -depth-2"><a class="hlink link-installation" href="#installation">Installation</a>
+                </li>
+                <li class="heading-item -depth-2"><a class="hlink link-creating-your-first-serializer" href="#creating-your-first-serializer">Creating your first serializer</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1 -parent"><span class="title">Reference</span>
+              <ul class="submenu">
+                <li class="menu-item -level-2"><a class="link title  link-attributes" href="attributes.html">Attributes</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-associations" href="associations.html">Associations</a>
+                </li>
+                <li class="menu-item -level-2"><a class="link title  link-response-bag" href="response-bag.html">Response bag</a>
+                </li>
+              </ul>
+            </li>
+            <li class="menu-item -level-1"><a class="link title  link-design-choices" href="design-choices.html">Design Choices</a>
+            </li>
+          </ul>
+        </li>
+      </div>
+      <div class="body page-getting-started">
+        <div class="header-nav">
+          <div class="right">
+          </div>
+        </div>
+        <div class="markdown-body"><h1 id="getting-started">Getting Started</h1>
+<h2 id="installation">Installation</h2>
+<p>To install Panko, all you need is to add it to your Gemfile:</p>
+<pre><code class="lang-ruby">gem <span class="pl-s">&quot;panko_serializer&quot;</span>
+</code></pre>
+<p>Then, install it on the command line:</p>
+<pre><code>&gt; bundle install
+</code></pre>
+<h2 id="creating-your-first-serializer">Creating your first serializer</h2>
+<p>Let&apos;s create serializer and use it inside Rails controller.</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serializer</span>
+  attributes <span class="hljs-symbol">:title</span>
+<span class="pl-k">end</span>
+
+<span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">UserSerializer</span> &lt; Panko::Serializer</span>
+  attributes <span class="hljs-symbol">:id</span>, <span class="hljs-symbol">:name</span>, <span class="hljs-symbol">:age</span>
+
+  has_many <span class="hljs-symbol">:posts</span>, <span class="hljs-symbol">serializer:</span> PostSerializer
+<span class="pl-k">end</span>
+</code></pre>
+<p>As you can see, defining serializers is simple and resembles ActiveModelSerializers 0.9,
+To utilize the <code>UserSerializer</code> inside a Rails controller and serialize some users, all we need to do is:</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">UsersController</span> &lt; ApplicationController</span>
+ <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">index</span></span>
+   users = User.includes(<span class="hljs-symbol">:posts</span>).all
+   render <span class="hljs-symbol">json:</span> Panko::ArraySerializer(users, <span class="hljs-symbol">each_serializer:</span> UserSerializer).to_json
+ <span class="pl-k">end</span>
+<span class="pl-k">end</span>
+</code></pre>
+<p>And voila, we have endpoint which serialize users using Panko!</p>
+
+        </div>
+        <div class="footer-nav">
+          <div class="left"><a href="index.html"><span class="title">Panko</span></a></div>
+          <div class="right"><a href="attributes.html"><span class="label">Next: </span><span class="title">Attributes</span></a></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
