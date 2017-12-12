@@ -38,7 +38,7 @@ To utilize the `UserSerializer` inside a Rails controller and serialize some use
 class UsersController < ApplicationController
  def index
    users = User.includes(:posts).all
-   render json: Panko::ArraySerializer(users, each_serializer: UserSerializer).to_json
+   render json: Panko::ArraySerializer.new(users, each_serializer: UserSerializer).to_json
  end
 end
 ```
