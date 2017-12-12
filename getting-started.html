@@ -71,7 +71,7 @@ To utilize the <code>UserSerializer</code> inside a Rails controller and seriali
 <pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">UsersController</span> &lt; ApplicationController</span>
  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">index</span></span>
    users = User.includes(<span class="hljs-symbol">:posts</span>).all
-   render <span class="hljs-symbol">json:</span> Panko::ArraySerializer(users, <span class="hljs-symbol">each_serializer:</span> UserSerializer).to_json
+   render <span class="hljs-symbol">json:</span> Panko::ArraySerializer.new(users, <span class="hljs-symbol">each_serializer:</span> UserSerializer).to_json
  <span class="pl-k">end</span>
 <span class="pl-k">end</span>
 </code></pre>
