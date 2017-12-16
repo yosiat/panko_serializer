@@ -1,7 +1,6 @@
 # Panko
 
 [![Build Status](https://travis-ci.org/yosiat/panko_serializer.svg?branch=master)](https://travis-ci.org/yosiat/panko_serializer)
-[![Join the chat at https://gitter.im/panko_serializer](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/panko_serializer)
 
 Panko is library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord objects to JSON strings, fast.
 
@@ -19,6 +18,7 @@ Support
 
 - [Documentation](https://yosiat.github.io/panko_serializer)
 - [Getting Started](https://yosiat.github.io/panko_serializer/getting-started.html)
+- Join our [slack community](https://pankoserializer.herokuapp.com/)
 
 License
 -------
