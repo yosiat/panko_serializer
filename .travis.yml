@@ -17,7 +17,7 @@ before_install:
 
 after_success:
   - npm install docpress && $(npm bin)/docpress build
-  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm install git-update-ghpages && $(npm bin)/git-update-ghpages yosiat/panko_serializer _docpress; fi
+  - if [ -n "$TRAVIS_TAG" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm install git-update-ghpages && $(npm bin)/git-update-ghpages yosiat/panko_serializer _docpress; fi
   - bundle exec rake benchmarks
 
 env:
