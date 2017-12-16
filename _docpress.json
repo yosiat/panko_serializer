@@ -85,7 +85,14 @@
             "title": "Response bag",
             "source": "docs/response-bag.md",
             "url": "response-bag.html",
-            "slug": "response-bag"
+            "slug": "response-bag",
+            "headings": [
+              {
+                "title": "JsonValue",
+                "depth": 2,
+                "id": "jsonvalue"
+              }
+            ]
           }
         ]
       },
@@ -226,7 +233,14 @@
       "source": "docs/response-bag.md",
       "title": "Response bag - Panko",
       "pageTitle": "Response bag",
-      "slug": "response-bag"
+      "slug": "response-bag",
+      "headings": [
+        {
+          "title": "JsonValue",
+          "depth": 2,
+          "id": "jsonvalue"
+        }
+      ]
     },
     "performance.html": {
       "source": "docs/performance.md",

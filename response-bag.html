@@ -24,6 +24,10 @@
                 <li class="menu-item -level-2"><a class="link title  link-associations" href="associations.html">Associations</a>
                 </li>
                 <li class="menu-item -level-2"><a class="link title -active link-response-bag" href="response-bag.html">Response bag</a>
+                  <ul class="headings heading-list">
+                    <li class="heading-item -depth-2"><a class="hlink link-jsonvalue" href="#jsonvalue">JsonValue</a>
+                    </li>
+                  </ul>
                 </li>
               </ul>
             </li>
@@ -40,7 +44,48 @@
               <!-- span.title Open in GitHub--><span class="icon -github"></span></a>
           </div>
         </div>
-        <div class="markdown-body"><p>TBD</p>
+        <div class="markdown-body"><h1 id="response">Response</h1>
+<p>Let&apos;s say you have some JSON payload which can is constructed using Panko serialization result,
+like this:</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostsController</span> &lt; ApplicationController</span>
+  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">index</span></span>
+   posts = Post.all
+   render <span class="hljs-symbol">json:</span> {
+     <span class="hljs-symbol">success:</span> <span class="pl-c1">true</span>,
+     <span class="hljs-symbol">total_count:</span> posts.count,
+     <span class="hljs-symbol">posts:</span> Panko::ArraySerializer.new(posts, <span class="hljs-symbol">each_serializer:</span> PostSerializer).to_json
+   }
+  <span class="pl-k">end</span>
+<span class="pl-k">end</span>
+</code></pre>
+<p>The output of the above will be json string (for <code>posts</code>) inside json string and this were <code>Panko::Response</code> shines.</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostsController</span> &lt; ApplicationController</span>
+  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">index</span></span>
+   posts = Post.all
+   render <span class="hljs-symbol">json:</span> Panko::Response.new(
+     <span class="hljs-symbol">success:</span> <span class="pl-c1">true</span>,
+     <span class="hljs-symbol">total_count:</span> posts.count,
+     <span class="hljs-symbol">posts:</span> Panko::ArraySerializer.new(posts, <span class="hljs-symbol">each_serializer:</span> PostSerializer)
+   )
+  <span class="pl-k">end</span>
+<span class="pl-k">end</span>
+</code></pre>
+<p>And everything will work as expected!</p>
+<h2 id="jsonvalue">JsonValue</h2>
+<p>Let&apos;s take the above example further, we serialized the posts and cached it as JSON string in our Cache.
+Now, you can wrap the cached value with <code>Panko::JsonValue</code>, like here -</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostsController</span> &lt; ApplicationController</span>
+  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">index</span></span>
+   posts = Cache.get(<span class="pl-s">&quot;/posts&quot;</span>)
+
+   render <span class="hljs-symbol">json:</span> Panko::Response.new(
+     <span class="hljs-symbol">success:</span> <span class="pl-c1">true</span>,
+     <span class="hljs-symbol">total_count:</span> posts.count,
+     <span class="hljs-symbol">posts:</span> Panko::JsonValue.from(posts)
+   )
+  <span class="pl-k">end</span>
+<span class="pl-k">end</span>
+</code></pre>
 
         </div>
         <div class="footer-nav">
