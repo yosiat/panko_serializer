@@ -8,6 +8,8 @@
 /spec/reports/
 /tmp/
 /vendor/bundle/
+.byebug_history
+*.bundle
 
 # rspec failure tracking
 .rspec_status
