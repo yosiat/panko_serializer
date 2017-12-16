@@ -13,6 +13,26 @@ class PostSerializer < Panko::Serailizer
 end
 ```
 
+### Inference
+
+Panko can find the type of the serializer by looking at the realtionship name, so instead specifying
+the serializer at the above example, we can -
+
+```ruby
+class PostSerializer < Panko::Serailizer
+  attributes :title, :body
+
+  has_one :author
+  has_many :comments
+end
+```
+
+The logic of inferencing is -
+- Take the name of the relationship (for example - `:author` / `:comments`) singularize and camelize it
+- Look for const defined with the name aboe and "Serializer" suffix (by using `Object.const_get`)
+
+> If Panko can't find the serializer it will throw an error on startup time, for example: `Can't find serializer for PostSerializer.author has_one relationship`
+
 ## Nested Filters
 
 As talked before, Panko allows you to filter the attributes of a serializer.
