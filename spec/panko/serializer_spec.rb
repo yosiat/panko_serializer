@@ -174,6 +174,37 @@ describe Panko::Serializer do
                            })
     end
 
+    it "infers the serializer name by name of the realtionship" do
+      class FooHolderHasOneSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :foo
+      end
+
+      serializer = FooHolderHasOneSerializer.new
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eq("name" => foo_holder.name,
+                           "foo" => {
+                             "name" => foo.name,
+                             "address" => foo.address
+                           })
+    end
+
+    it "raises if it can't find the serializer" do
+      expect {
+        class NotFoundHasOneSerializer < Panko::Serializer
+          attributes :name
+
+          has_one :not_existing_serializer
+        end
+      }.to raise_error("Can't find serializer for NotFoundHasOneSerializer.not_existing_serializer has_one relationship.")
+    end
+
     it "allows virtual method in has one serializer" do
       class VirtualSerialier < Panko::Serializer
         attributes :virtual
@@ -247,6 +278,44 @@ describe Panko::Serializer do
                                "address" => foo2.address
                              }
                            ])
+    end
+
+    it "infers the serializer name by name of the realtionship" do
+      class FoosHasManyHolderSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos
+      end
+
+      serializer = FoosHasManyHolderSerializer.new
+
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+
+      output = serializer.serialize foos_holder
+
+      expect(output).to eq("name" => foos_holder.name,
+                           "foos" => [
+                             {
+                               "name" => foo1.name,
+                               "address" => foo1.address
+                             },
+                             {
+                               "name" => foo2.name,
+                               "address" => foo2.address
+                             }
+                           ])
+    end
+
+    it "raises if it can't find the serializer" do
+      expect {
+        class NotFoundHasManySerializer < Panko::Serializer
+          attributes :name
+
+          has_many :not_existing_serializers
+        end
+      }.to raise_error("Can't find serializer for NotFoundHasManySerializer.not_existing_serializers has_many relationship.")
     end
 
     it "serializes using the :each_serializer option" do

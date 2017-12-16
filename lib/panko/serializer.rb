@@ -36,8 +36,13 @@ module Panko
         @_descriptor.method_fields << method
       end
 
-      def has_one(name, options)
+      def has_one(name, options = {})
         serializer_const = options[:serializer]
+        serializer_const = Panko::SerializerResolver.resolve(name.to_s) if serializer_const.nil?
+
+        if serializer_const.nil?
+          raise "Can't find serializer for #{self.name}.#{name} has_one relationship."
+        end
 
         @_descriptor.has_one_associations << Panko::Association.new(
           name,
@@ -46,8 +51,13 @@ module Panko
         )
       end
 
-      def has_many(name, options)
+      def has_many(name, options = {})
         serializer_const = options[:serializer] || options[:each_serializer]
+        serializer_const = Panko::SerializerResolver.resolve(name.to_s) if serializer_const.nil?
+
+        if serializer_const.nil?
+          raise "Can't find serializer for #{self.name}.#{name} has_many relationship."
+        end
 
         @_descriptor.has_many_associations << Panko::Association.new(
           name,
