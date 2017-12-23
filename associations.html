@@ -23,6 +23,8 @@
                 </li>
                 <li class="menu-item -level-2"><a class="link title -active link-associations" href="associations.html">Associations</a>
                   <ul class="headings heading-list">
+                    <li class="heading-item -depth-3"><a class="hlink link-inference" href="#inference">Inference</a>
+                    </li>
                     <li class="heading-item -depth-2"><a class="hlink link-nested-filters" href="#nested-filters">Nested Filters</a>
                     </li>
                   </ul>
@@ -54,6 +56,24 @@
   has_many <span class="hljs-symbol">:comments</span>, <span class="hljs-symbol">each_serializer:</span> CommentSerializer
 <span class="pl-k">end</span>
 </code></pre>
+<h3 id="inference">Inference</h3>
+<p>Panko can find the type of the serializer by looking at the realtionship name, so instead specifying
+the serializer at the above example, we can -</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serailizer</span>
+  attributes <span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>
+
+  has_one <span class="hljs-symbol">:author</span>
+  has_many <span class="hljs-symbol">:comments</span>
+<span class="pl-k">end</span>
+</code></pre>
+<p>The logic of inferencing is -</p>
+<ul>
+<li>Take the name of the relationship (for example - <code>:author</code> / <code>:comments</code>) singularize and camelize it</li>
+<li>Look for const defined with the name aboe and &quot;Serializer&quot; suffix (by using <code>Object.const_get</code>)</li>
+</ul>
+<blockquote>
+<p>If Panko can&apos;t find the serializer it will throw an error on startup time, for example: <code>Can&apos;t find serializer for PostSerializer.author has_one relationship</code></p>
+</blockquote>
 <h2 id="nested-filters">Nested Filters</h2>
 <p>As talked before, Panko allows you to filter the attributes of a serializer.
 But Panko let you take that step further, and filters the attributes of you associations so you can re-use your serializers in your application.</p>

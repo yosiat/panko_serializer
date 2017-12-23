@@ -75,6 +75,11 @@
             "slug": "associations",
             "headings": [
               {
+                "title": "Inference",
+                "depth": 3,
+                "id": "inference"
+              },
+              {
                 "title": "Nested Filters",
                 "depth": 2,
                 "id": "nested-filters"
@@ -222,6 +227,11 @@
       "pageTitle": "Associations",
       "slug": "associations",
       "headings": [
+        {
+          "title": "Inference",
+          "depth": 3,
+          "id": "inference"
+        },
         {
           "title": "Nested Filters",
           "depth": 2,
