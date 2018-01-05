@@ -86,6 +86,24 @@ describe Panko::Serializer do
       expect(output).to eq("value" => [1, 2, 3])
     end
 
+    it "supports active record alias attributes" do
+      class FooWithAliasesModel < ActiveRecord::Base
+        self.table_name = 'foos'
+        alias_attribute :full_name, :name
+      end
+
+      class FooWithArAliasesSerializer < Panko::Serializer
+        attributes :full_name, :address
+      end
+
+      foo = FooWithAliasesModel.create(full_name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      serializer = FooWithArAliasesSerializer.new
+      output = serializer.serialize foo
+
+      expect(output).to eq("full_name" => foo.name,
+                           "address" => foo.address)
+    end
+
     it "allows to alias attributes" do
       class FooWithAliasesSerializer < Panko::Serializer
         attributes :address
