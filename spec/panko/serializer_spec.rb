@@ -416,9 +416,26 @@ describe Panko::Serializer do
                              }
                            ])
     end
-  end
 
-  context "filters" do
+    it "fetches the the filters from the serializer" do
+      class FooWithFiltersForSerializer < Panko::Serializer
+        attributes :name, :address
+
+        def self.filters_for(context)
+          return {
+            only: [:name]
+          }
+        end
+      end
+
+      serializer = FooWithFiltersForSerializer.new
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+
+      output = serializer.serialize foo
+
+      expect(output).to eq("name" => foo.name)
+    end
+
     it 'support nested "only" filter' do
       class FoosHolderSerializer < Panko::Serializer
         attributes :name

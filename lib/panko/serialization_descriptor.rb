@@ -7,6 +7,10 @@ module Panko
     #
     def self.build(serializer, options={})
       backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
+
+      if serializer.respond_to? :filters_for
+        options.merge! serializer.filters_for(options[:context])
+      end
       backend.apply_filters(options)
       backend
     end
