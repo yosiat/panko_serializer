@@ -14,7 +14,7 @@ gem "activerecord", rails_version, group: :test
 
 group :benchmarks do
   gem "sqlite3"
-  gem "pg"
+  gem "pg", "0.21"
 
   gem "memory_profiler"
   gem "ruby-prof"
