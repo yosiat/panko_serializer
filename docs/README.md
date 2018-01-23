@@ -1,5 +1,5 @@
 * [Panko](../README.md)
-* [Getting Stated](getting-started.md)
+* [Getting Started](getting-started.md)
 * Reference
   * [Attributes](attributes.md)
   * [Associations](associations.md)
