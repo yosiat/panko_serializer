@@ -41,6 +41,7 @@ static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
+  sd->isActiveRecordObject = false;
 
   return Data_Wrap_Struct(cSerializationDescriptor, sd_mark, sd_free, sd);
 }

@@ -7,7 +7,12 @@
 
 typedef void (*EachAttributeFunc)(VALUE writer, VALUE name, VALUE value);
 
-extern VALUE panko_each_attribute(VALUE object,
+extern VALUE panko_ar_each_attribute(VALUE object,
+                                  VALUE attributes,
+                                  EachAttributeFunc func,
+                                  VALUE context);
+
+extern VALUE panko_plain_each_attribute(VALUE object,
                                   VALUE attributes,
                                   EachAttributeFunc func,
                                   VALUE context);

@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <stdbool.h>
 
 #ifndef __SD_H__
 #define __SD_H__
@@ -15,6 +16,8 @@ typedef struct _SerializationDescriptor {
   VALUE method_fields;
   VALUE has_one_associations;
   VALUE has_many_associations;
+
+  bool isActiveRecordObject;
 } * SerializationDescriptor;
 
 SerializationDescriptor sd_read(VALUE descriptor);

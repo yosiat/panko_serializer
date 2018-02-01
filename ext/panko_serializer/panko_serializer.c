@@ -8,6 +8,7 @@ static ID push_object_id;
 static ID pop_id;
 
 static ID to_a_id;
+static ID attributes_id;
 
 void write_value(VALUE str_writer, VALUE key, VALUE value) {
   rb_funcall(str_writer, push_value_id, 2, value, key);
@@ -41,8 +42,13 @@ void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  panko_each_attribute(subject, descriptor->attributes, write_value,
-                       str_writer);
+  if (descriptor->isActiveRecordObject == true) {
+    panko_ar_each_attribute(subject, descriptor->attributes, write_value,
+                            str_writer);
+  } else {
+    panko_plain_each_attribute(subject, descriptor->attributes, write_value,
+                               str_writer);
+  }
 
   serialize_method_fields(subject, str_writer, descriptor, context);
 }
@@ -123,6 +129,7 @@ VALUE serialize_subjects(VALUE key,
   rb_funcall(str_writer, push_array_id, 1, key);
 
   if (!RB_TYPE_P(subjects, T_ARRAY)) {
+    descriptor->isActiveRecordObject = true;
     subjects = rb_funcall(subjects, to_a_id, 0);
   }
 
@@ -136,13 +143,23 @@ VALUE serialize_subjects(VALUE key,
   return Qnil;
 }
 
+bool isActiveRecordObject(VALUE subject) {
+  return rb_ivar_defined(subject, attributes_id) == Qtrue;
+}
+
 VALUE serialize_subject_api(VALUE klass,
                             VALUE subject,
                             VALUE str_writer,
                             VALUE descriptor,
                             VALUE context) {
-  return serialize_subject(Qnil, subject, str_writer, sd_read(descriptor),
-                           context);
+  SerializationDescriptor sd = sd_read(descriptor);
+  if (isActiveRecordObject(subject)) {
+    sd->isActiveRecordObject = true;
+  } else {
+    sd->isActiveRecordObject = false;
+  }
+
+  return serialize_subject(Qnil, subject, str_writer, sd, context);
 }
 
 VALUE serialize_subjects_api(VALUE klass,
@@ -161,6 +178,7 @@ void Init_panko_serializer() {
   push_object_id = rb_intern("push_object");
   pop_id = rb_intern("pop");
   to_a_id = rb_intern("to_a");
+  attributes_id = rb_intern("@attributes");
 
   VALUE mPanko = rb_define_module("Panko");
 
