@@ -28,6 +28,25 @@ describe Panko::Serializer do
       expect(output).to eq("name" => foo.name,
                            "address" => foo.address)
     end
+
+    it "plain object" do
+      class PlainFoo
+        attr_accessor :name, :address
+
+        def initialize(name, address)
+          @name = name
+          @address = address
+        end
+      end
+
+      serializer = FooSerializer.new
+      foo = PlainFoo.new(Faker::Lorem.word, Faker::Lorem.word)
+
+      output = serializer.serialize foo
+
+      expect(output).to eq("name" => foo.name,
+                           "address" => foo.address)
+    end
   end
 
   context "attributes" do
@@ -171,6 +190,45 @@ describe Panko::Serializer do
   end
 
   context "has_one" do
+    it "plain object" do
+      class PlainFooHolder
+        attr_accessor :name, :foo
+
+        def initialize(name, foo)
+          @name = name
+          @foo = foo
+        end
+      end
+
+      class PlainFoo
+        attr_accessor :name, :address
+
+        def initialize(name, address)
+          @name = name
+          @address = address
+        end
+      end
+
+      class PlainFooHolderHasOneSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :foo, serializer: FooSerializer
+      end
+
+      serializer = PlainFooHolderHasOneSerializer.new
+
+      foo = PlainFoo.new(Faker::Lorem.word, Faker::Lorem.word)
+      foo_holder = PlainFooHolder.new(Faker::Lorem.word, foo)
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eq("name" => foo_holder.name,
+                           "foo" => {
+                             "name" => foo.name,
+                             "address" => foo.address
+                           })
+    end
+
     it "serializes using the :serializer option" do
       class FooHolderHasOneSerializer < Panko::Serializer
         attributes :name

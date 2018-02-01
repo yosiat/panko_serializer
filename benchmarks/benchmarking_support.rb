@@ -6,8 +6,8 @@ require "memory_profiler"
 module Benchmark
   module Runner
     def data
-      posts = Post.all.includes(:author).to_a
-      posts_50 = posts.first(50).to_a
+      posts = Post.all.includes(:author)
+      posts_50 = posts.limit(50)
       { all: posts, small: posts_50 }
     end
 

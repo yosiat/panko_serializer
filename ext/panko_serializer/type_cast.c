@@ -112,7 +112,8 @@ void cache_type_lookup() {
   ar_date_time_type = rb_const_get_at(ar_type, rb_intern("DateTime"));
 
   ar_type_methods = rb_class_instance_methods(0, NULL, ar_string_type);
-  if(rb_ary_includes(ar_type_methods, rb_to_symbol(rb_str_new_cstr("deserialize")))) {
+  if (rb_ary_includes(ar_type_methods,
+                      rb_to_symbol(rb_str_new_cstr("deserialize")))) {
     deserialize_from_db_id = rb_intern("deserialize");
   } else {
     deserialize_from_db_id = rb_intern("type_cast_from_database");
