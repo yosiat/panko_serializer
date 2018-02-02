@@ -42,14 +42,8 @@ void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  if (descriptor->isActiveRecordObject == true) {
-    panko_ar_each_attribute(subject, descriptor->attributes, write_value,
-                            str_writer);
-  } else {
-    panko_plain_each_attribute(subject, descriptor->attributes, write_value,
+  descriptor->write_attributes(subject, descriptor->attributes, write_value,
                                str_writer);
-  }
-
   serialize_method_fields(subject, str_writer, descriptor, context);
 }
 
@@ -100,6 +94,8 @@ VALUE serialize_subject(VALUE key,
                         VALUE str_writer,
                         SerializationDescriptor descriptor,
                         VALUE context) {
+  sd_set_object_type(descriptor, subject);
+
   rb_funcall(str_writer, push_object_id, 1, key);
 
   serialize_fields(subject, str_writer, descriptor, context);
@@ -129,7 +125,6 @@ VALUE serialize_subjects(VALUE key,
   rb_funcall(str_writer, push_array_id, 1, key);
 
   if (!RB_TYPE_P(subjects, T_ARRAY)) {
-    descriptor->isActiveRecordObject = true;
     subjects = rb_funcall(subjects, to_a_id, 0);
   }
 
@@ -143,22 +138,12 @@ VALUE serialize_subjects(VALUE key,
   return Qnil;
 }
 
-bool isActiveRecordObject(VALUE subject) {
-  return rb_ivar_defined(subject, attributes_id) == Qtrue;
-}
-
 VALUE serialize_subject_api(VALUE klass,
                             VALUE subject,
                             VALUE str_writer,
                             VALUE descriptor,
                             VALUE context) {
   SerializationDescriptor sd = sd_read(descriptor);
-  if (isActiveRecordObject(subject)) {
-    sd->isActiveRecordObject = true;
-  } else {
-    sd->isActiveRecordObject = false;
-  }
-
   return serialize_subject(Qnil, subject, str_writer, sd, context);
 }
 

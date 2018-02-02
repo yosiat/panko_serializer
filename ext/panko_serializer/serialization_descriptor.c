@@ -5,6 +5,9 @@ VALUE cSerializationDescriptor;
 static ID context_id;
 static ID object_id;
 
+static bool initiailized = false;
+static VALUE ar_base_type = Qundef;
+
 static void sd_free(SerializationDescriptor sd) {
   if (!sd) {
     return;
@@ -41,13 +44,41 @@ static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
-  sd->isActiveRecordObject = false;
+
+  sd->object_type = Unknown;
+  sd->write_attributes = panko_plain_each_attribute;
 
   return Data_Wrap_Struct(cSerializationDescriptor, sd_mark, sd_free, sd);
 }
 
 SerializationDescriptor sd_read(VALUE descriptor) {
   return (SerializationDescriptor)DATA_PTR(descriptor);
+}
+
+void init_types() {
+  if (initiailized == true) {
+    return;
+  }
+
+  volatile VALUE ar_type =
+      rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
+  ar_base_type = rb_const_get_at(ar_type, rb_intern("Base"));
+  initiailized = true;
+}
+
+void sd_set_object_type(SerializationDescriptor sd, VALUE subject) {
+  if (sd->object_type != Unknown) {
+    return;
+  }
+
+  init_types();
+  if (rb_obj_is_kind_of(subject, ar_base_type) == Qtrue) {
+    sd->object_type = ActiveRecord;
+    sd->write_attributes = panko_ar_each_attribute;
+  } else {
+    sd->object_type = Plain;
+    sd->write_attributes = panko_plain_each_attribute;
+  }
 }
 
 VALUE sd_build_serializer(SerializationDescriptor sd) {
