@@ -22,6 +22,7 @@ group :benchmarks do
 
   gem "benchmark-ips"
   gem "active_model_serializers"
+  gem "fast_jsonapi"
 
   gem "terminal-table"
 end
