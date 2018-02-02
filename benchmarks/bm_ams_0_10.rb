@@ -46,11 +46,11 @@ end
 benchmark_ams "Attributes_Simple", AmsPostFastSerializer
 benchmark_ams "Attributes_HasOne", AmsPostWithHasOneFastSerializer
 benchmark_ams "Attributes_Except", AmsPostWithHasOneFastSerializer, except: [:title]
-benchmark_ams "Attributes_Include", AmsPostWithHasOneFastSerializer, include: [:id, :body, :author_id, :author]
+benchmark_ams "Attributes_Only", AmsPostWithHasOneFastSerializer, only: [:id, :body, :author_id, :author]
 
 ActiveModel::Serializer.config.adapter = :json_api
 
 benchmark_ams "JsonAPI_Simple", AmsPostFastSerializer
 benchmark_ams "JsonAPI_HasOne", AmsPostWithHasOneFastSerializer
 benchmark_ams "JsonAPI_Except", AmsPostWithHasOneFastSerializer, except: [:title]
-benchmark_ams "JsonAPI_Include", AmsPostWithHasOneFastSerializer, include: [:id, :body, :author_id, :author]
+benchmark_ams "JsonAPI_Only", AmsPostWithHasOneFastSerializer, only: [:id, :body, :author_id, :author]
