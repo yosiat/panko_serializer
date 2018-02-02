@@ -4,6 +4,7 @@ require "rspec/core/rake_task"
 require "json"
 require "terminal-table"
 require "rake/extensiontask"
+require "pty"
 
 gem = Gem::Specification.load( File.dirname(__FILE__) + "/panko_serializer.gemspec" )
 
@@ -21,15 +22,40 @@ Rake::Task[:spec].prerequisites << :compile
 
 task default: :spec
 
+def print_and_flush(str)
+  print str
+  $stdout.flush
+end
+
+def run_process(cmd)
+  puts "> Running #{cmd}"
+  lines = []
+  PTY.spawn(cmd) do |stdout, stdin, pid|
+    begin
+      stdout.each do |line|
+        print_and_flush '.'
+        lines << line
+      end
+    rescue Errno::EIO
+      puts "Errno:EIO error, but this probably just means " +
+            "that the process has finished giving output - #{cmd}"
+    end
+  end
+
+  lines
+rescue PTY::ChildExited
+  puts "The child process exited! - #{cmd}"
+  []
+end
 
 def run_benchmarks(files, items_count: 14_000)
   headings = ["Benchmark", "ip/s", "allocs/retained"]
   files.each do |benchmark_file|
-    output = `ITEMS_COUNT=#{items_count} RAILS_ENV=production ruby #{benchmark_file}`
 
-    rows = output.each_line.map do |line|
-      result = JSON.parse(line)
-      result.values
+    lines = run_process "ITEMS_COUNT=#{items_count} RAILS_ENV=production ruby #{benchmark_file}"
+    rows = lines.map do |line|
+      row = JSON.parse(line)
+      row.values
     end
 
     puts "\n\n"
