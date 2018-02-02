@@ -1,8 +1,5 @@
 # frozen_string_literal: true
-
-unless ENV.fetch("RAILS_VERSION", "4.2").start_with? "5"
-  exit
-end
+exit unless ENV.fetch("RAILS_VERSION", "4.2").start_with? "5"
 
 require_relative "./benchmarking_support"
 require_relative "./app"
