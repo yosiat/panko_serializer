@@ -21,7 +21,7 @@ group :benchmarks do
   gem "ruby-prof-flamegraph"
 
   gem "benchmark-ips"
-  gem "active_model_serializers", "0.9.7"
+  gem "active_model_serializers"
 
   gem "terminal-table"
 end
