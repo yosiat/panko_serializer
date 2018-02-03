@@ -60,10 +60,11 @@ void init_types() {
     return;
   }
 
+  initiailized = true;
+
   volatile VALUE ar_type =
       rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
   ar_base_type = rb_const_get_at(ar_type, rb_intern("Base"));
-  initiailized = true;
 }
 
 void sd_set_object_type(SerializationDescriptor sd, VALUE subject) {
@@ -71,8 +72,12 @@ void sd_set_object_type(SerializationDescriptor sd, VALUE subject) {
     return;
   }
 
-  init_types();
-  if (rb_obj_is_kind_of(subject, ar_base_type) == Qtrue) {
+  // If ActiveRecord::Base can't be found it will throw error
+  int isErrored;
+  rb_protect(init_types, Qnil, &isErrored);
+
+  if (ar_base_type != Qundef &&
+      rb_obj_is_kind_of(subject, ar_base_type) == Qtrue) {
     sd->object_type = ActiveRecord;
     sd->write_attributes = panko_ar_each_attribute;
   } else {
