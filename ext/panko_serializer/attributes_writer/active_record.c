@@ -1,4 +1,4 @@
-#include "attributes_iterator.h"
+#include "active_record.h"
 
 static ID attributes_id;
 static ID types_id;
@@ -139,19 +139,10 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   return value;
 }
 
-VALUE attr_name_for_serialization(Attribute attribute) {
-  volatile VALUE name_str = attribute->name_str;
-  if (attribute->alias_name != Qnil) {
-    name_str = attribute->alias_name;
-  }
-
-  return name_str;
-}
-
-VALUE panko_ar_each_attribute(VALUE obj,
-                              VALUE attributes,
-                              EachAttributeFunc func,
-                              VALUE writer) {
+VALUE active_record_attributes_writer(VALUE obj,
+                                      VALUE attributes,
+                                      EachAttributeFunc func,
+                                      VALUE writer) {
   long i;
   struct attributes attributes_ctx = init_context(obj);
   volatile VALUE record_class = CLASS_OF(obj);
@@ -162,21 +153,6 @@ VALUE panko_ar_each_attribute(VALUE obj,
     attribute_try_invalidate(attribute, record_class);
 
     volatile VALUE value = read_attribute(attributes_ctx, attribute);
-    func(writer, attr_name_for_serialization(attribute), value);
-  }
-
-  return Qnil;
-}
-
-VALUE panko_plain_each_attribute(VALUE obj,
-                                 VALUE attributes,
-                                 EachAttributeFunc func,
-                                 VALUE writer) {
-  long i;
-  for (i = 0; i < RARRAY_LEN(attributes); i++) {
-    volatile VALUE raw_attribute = RARRAY_AREF(attributes, i);
-    Attribute attribute = attribute_read(raw_attribute);
-    volatile VALUE value = rb_funcall(obj, attribute->name_id, 0);
 
     func(writer, attr_name_for_serialization(attribute), value);
   }
@@ -184,7 +160,7 @@ VALUE panko_plain_each_attribute(VALUE obj,
   return Qnil;
 }
 
-void panko_init_attributes_iterator(VALUE mPanko) {
+void init_active_record_attributes_writer(VALUE mPanko) {
   attributes_id = rb_intern("@attributes");
   delegate_hash_id = rb_intern("@delegate_hash");
   values_id = rb_intern("@values");
