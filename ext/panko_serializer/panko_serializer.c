@@ -8,7 +8,6 @@ static ID push_object_id;
 static ID pop_id;
 
 static ID to_a_id;
-static ID attributes_id;
 
 void write_value(VALUE str_writer, VALUE key, VALUE value) {
   rb_funcall(str_writer, push_value_id, 2, value, key);
@@ -164,7 +163,6 @@ void Init_panko_serializer() {
   push_object_id = rb_intern("push_object");
   pop_id = rb_intern("pop");
   to_a_id = rb_intern("to_a");
-  attributes_id = rb_intern("@attributes");
 
   VALUE mPanko = rb_define_module("Panko");
 
