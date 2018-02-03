@@ -42,8 +42,9 @@ void serialize_fields(VALUE subject,
                       VALUE str_writer,
                       SerializationDescriptor descriptor,
                       VALUE context) {
-  descriptor->write_attributes(subject, descriptor->attributes, write_value,
-                               str_writer);
+  descriptor->attributes_writer.write_attributes(
+      subject, descriptor->attributes, write_value, str_writer);
+
   serialize_method_fields(subject, str_writer, descriptor, context);
 }
 
@@ -94,7 +95,7 @@ VALUE serialize_subject(VALUE key,
                         VALUE str_writer,
                         SerializationDescriptor descriptor,
                         VALUE context) {
-  sd_set_object_type(descriptor, subject);
+  sd_set_writer(descriptor, subject);
 
   rb_funcall(str_writer, push_object_id, 1, key);
 
@@ -174,7 +175,7 @@ void Init_panko_serializer() {
                              serialize_subjects_api, 4);
 
   panko_init_serialization_descriptor(mPanko);
-  panko_init_attributes_iterator(mPanko);
+  init_attributes_writer(mPanko);
   panko_init_type_cast(mPanko);
   panko_init_attribute(mPanko);
   panko_init_association(mPanko);

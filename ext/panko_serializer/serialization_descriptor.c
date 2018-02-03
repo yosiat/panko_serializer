@@ -5,8 +5,6 @@ VALUE cSerializationDescriptor;
 static ID context_id;
 static ID object_id;
 
-static bool initiailized = false;
-static VALUE ar_base_type = Qundef;
 
 static void sd_free(SerializationDescriptor sd) {
   if (!sd) {
@@ -45,8 +43,7 @@ static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
 
-  sd->object_type = Unknown;
-  sd->write_attributes = panko_plain_each_attribute;
+  sd->attributes_writer = create_empty_attributes_writer();
 
   return Data_Wrap_Struct(cSerializationDescriptor, sd_mark, sd_free, sd);
 }
@@ -55,35 +52,13 @@ SerializationDescriptor sd_read(VALUE descriptor) {
   return (SerializationDescriptor)DATA_PTR(descriptor);
 }
 
-void init_types() {
-  if (initiailized == true) {
+
+void sd_set_writer(SerializationDescriptor sd, VALUE subject) {
+  if (sd->attributes_writer.object_type != Unknown) {
     return;
   }
 
-  initiailized = true;
-
-  volatile VALUE ar_type =
-      rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
-  ar_base_type = rb_const_get_at(ar_type, rb_intern("Base"));
-}
-
-void sd_set_object_type(SerializationDescriptor sd, VALUE subject) {
-  if (sd->object_type != Unknown) {
-    return;
-  }
-
-  // If ActiveRecord::Base can't be found it will throw error
-  int isErrored;
-  rb_protect(init_types, Qnil, &isErrored);
-
-  if (ar_base_type != Qundef &&
-      rb_obj_is_kind_of(subject, ar_base_type) == Qtrue) {
-    sd->object_type = ActiveRecord;
-    sd->write_attributes = panko_ar_each_attribute;
-  } else {
-    sd->object_type = Plain;
-    sd->write_attributes = panko_plain_each_attribute;
-  }
+  sd->attributes_writer = create_attributes_writer(subject);
 }
 
 VALUE sd_build_serializer(SerializationDescriptor sd) {
