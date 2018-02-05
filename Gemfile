@@ -3,7 +3,7 @@ source "https://rubygems.org"
 
 gemspec
 
-raw_rails_version = ENV.fetch("RAILS_VERSION", "4,2")
+raw_rails_version = ENV.fetch("RAILS_VERSION", "4.2")
 rails_version = "~> #{raw_rails_version}"
 
 gem "rails", rails_version
