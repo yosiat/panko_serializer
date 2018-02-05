@@ -3,7 +3,7 @@
 static bool types_initialized = false;
 static VALUE ar_base_type = Qundef;
 
-void init_types() {
+void init_types(VALUE v) {
   if (types_initialized == true) {
     return;
   }
