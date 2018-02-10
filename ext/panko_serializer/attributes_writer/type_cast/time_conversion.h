@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ruby.h>
 #include <ruby/oniguruma.h>
 

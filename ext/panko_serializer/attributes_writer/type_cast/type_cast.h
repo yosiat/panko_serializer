@@ -1,8 +1,7 @@
+#pragma once
+
 #include <ruby.h>
 #include <stdbool.h>
-
-#ifndef __PANKO_TYPE_CAST_H__
-#define __PANKO_TYPE_CAST_H__
 
 /*
  * Type Casting
@@ -75,5 +74,3 @@ static struct _TypeCast type_casts[] = {
 
 extern VALUE type_cast(VALUE type_metadata, VALUE value);
 void panko_init_type_cast(VALUE mPanko);
-
-#endif
