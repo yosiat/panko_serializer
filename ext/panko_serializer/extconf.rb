@@ -13,7 +13,9 @@ RbConfig.expand(srcdir = "$(srcdir)".dup)
 $srcs = Dir[File.join(srcdir, "**/*.c")]
 
 
-directories = Pathname.new(srcdir).children.select { |c| c.directory? }.map(&:basename)
+# Get all source directories recursivley
+directories = Dir[File.join(srcdir, "**/*")].select { |f| File.directory?(f) }
+directories = directories.map { |d| Pathname.new(d).relative_path_from(Pathname.new(srcdir)) }
 directories.each do |dir|
 	# add include path to the internal folder
 	# $(srcdir) is a root folder, where "extconf.rb" is stored
