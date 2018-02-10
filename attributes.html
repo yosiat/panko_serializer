@@ -27,6 +27,8 @@
                     </li>
                     <li class="heading-item -depth-2"><a class="hlink link-filters" href="#filters">Filters</a>
                     </li>
+                    <li class="heading-item -depth-2"><a class="hlink link-filters-for" href="#filters-for">Filters For</a>
+                    </li>
                     <li class="heading-item -depth-2"><a class="hlink link-aliases" href="#aliases">Aliases</a>
                     </li>
                   </ul>
@@ -111,6 +113,24 @@ UserSerializer.new(<span class="hljs-symbol">only:</span> [<span class="hljs-sym
 <span class="pl-c"># this line will return { &apos;id&apos;: &apos;..&apos;, &apos;email&apos;: ... }</span>
 UserSerializer.new(<span class="hljs-symbol">except:</span> [<span class="hljs-symbol">:name</span>]).serialize(User.first)
 </code></pre>
+<h2 id="filters-for">Filters For</h2>
+<p>Sometimes you find yourself have the same filtering logic in actions in order to solve this duplication, Panko allows you to write the filters in the serializer.</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">UserSerializer</span> &lt; Panko::Serializer</span>
+  attributes <span class="hljs-symbol">:id</span>, <span class="hljs-symbol">:name</span>, <span class="hljs-symbol">:email</span>
+
+  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">self</span>.<span class="pl-ent">filters_for</span><span class="hljs-params">(context)</span></span>
+    {
+      <span class="hljs-symbol">only:</span> [<span class="hljs-symbol">:name</span>]
+    }
+  <span class="pl-k">end</span>
+<span class="pl-k">end</span>
+
+<span class="pl-c"># this line will return { &apos;name&apos;: &apos;..&apos; }</span>
+UserSerializer.serialize(User.first)
+</code></pre>
+<blockquote>
+<p>See disucssion in: <a href="https://github.com/yosiat/panko_serializer/issues/16">https://github.com/yosiat/panko_serializer/issues/16</a></p>
+</blockquote>
 <h2 id="aliases">Aliases</h2>
 <p>Let&apos;s say we have attribute name that we want to expose to client as different name, the current way of doing so is using method attribute, for example:</p>
 <pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serializer</span>
