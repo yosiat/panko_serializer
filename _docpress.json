@@ -20,7 +20,7 @@
         ]
       },
       {
-        "title": "Getting Stated",
+        "title": "Getting Started",
         "source": "docs/getting-started.md",
         "url": "getting-started.html",
         "slug": "getting-started",
@@ -177,8 +177,8 @@
     },
     "getting-started.html": {
       "source": "docs/getting-started.md",
-      "title": "Getting Stated - Panko",
-      "pageTitle": "Getting Stated",
+      "title": "Getting Started - Panko",
+      "pageTitle": "Getting Started",
       "slug": "getting-started",
       "headings": [
         {
