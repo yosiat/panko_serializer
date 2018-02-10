@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/yosiat/panko_serializer.svg?branch=master)](https://travis-ci.org/yosiat/panko_serializer)
 
-Panko is library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord objects to JSON strings, fast.
+Panko is library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord/Ruby objects to JSON strings, fast.
 
 To achieve it's [performance](https://yosiat.github.io/panko_serializer/performance.html):
 

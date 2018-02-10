@@ -78,6 +78,27 @@ UserSerializer.new(only: [:name]).serialize(User.first)
 UserSerializer.new(except: [:name]).serialize(User.first)
 ```
 
+## Filters For
+
+Sometimes you find yourself have the same filtering logic in actions in order to solve this duplication, Panko allows you to write the filters in the serializer.
+
+```ruby
+class UserSerializer < Panko::Serializer
+  attributes :id, :name, :email
+
+  def self.filters_for(context)
+    {
+      only: [:name]
+    }
+  end
+end
+
+# this line will return { 'name': '..' }
+UserSerializer.serialize(User.first)
+```
+
+> See disucssion in: https://github.com/yosiat/panko_serializer/issues/16
+
 ## Aliases
 
 Let's say we have attribute name that we want to expose to client as different name, the current way of doing so is using method attribute, for example:
