@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../attribute.h"
+#include "../serialization_descriptor/attribute.h"
 #include "ruby.h"
 
 typedef void (*EachAttributeFunc)(VALUE writer, VALUE name, VALUE value);
