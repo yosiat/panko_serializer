@@ -3,7 +3,7 @@
 #include <ruby.h>
 #include <stdbool.h>
 
-#include "../attribute.h"
+#include "serialization_descriptor/attribute.h"
 #include "type_cast/type_cast.h"
 #include "common.h"
 
