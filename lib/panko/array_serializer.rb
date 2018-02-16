@@ -35,5 +35,9 @@ module Panko
       Panko::serialize_subjects(subjects.to_a, writer, @descriptor, @context)
       writer.to_s
     end
+
+    def as_json(options = nil)
+      to_json
+    end
   end
 end
