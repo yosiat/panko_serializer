@@ -67,6 +67,10 @@ describe Panko::Serializer do
         def something
           "#{object.name} #{object.address}"
         end
+
+        def another_method
+          raise "I shouldn't get called"
+        end
       end
 
       serializer = FooWithMethodsSerializer.new

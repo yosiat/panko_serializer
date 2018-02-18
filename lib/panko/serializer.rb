@@ -32,8 +32,10 @@ module Panko
 
       def method_added(method)
         return if @_descriptor.nil?
-        @_descriptor.attributes.delete(method)
-        @_descriptor.method_fields << method
+        deleted_attr = @_descriptor.attributes.delete(method)
+        unless deleted_attr.nil?
+          @_descriptor.method_fields << method
+        end
       end
 
       def has_one(name, options = {})
