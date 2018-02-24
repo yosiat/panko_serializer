@@ -6,16 +6,22 @@ module Panko
   class Serializer
     class << self
       def inherited(base)
-        base._descriptor = Panko::SerializationDescriptor.new
+
+        unless _descriptor.nil?
+          base._descriptor = Panko::SerializationDescriptor.duplicate(_descriptor)
+        else
+          base._descriptor = Panko::SerializationDescriptor.new
+
+          base._descriptor.attributes = []
+          base._descriptor.aliases = {}
+
+          base._descriptor.method_fields = []
+
+          base._descriptor.has_many_associations = []
+          base._descriptor.has_one_associations = []
+        end
         base._descriptor.type = base
 
-        base._descriptor.attributes = []
-        base._descriptor.aliases = {}
-
-        base._descriptor.method_fields = []
-
-        base._descriptor.has_many_associations = []
-        base._descriptor.has_one_associations = []
       end
 
       attr_accessor :_descriptor

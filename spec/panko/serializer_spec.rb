@@ -83,6 +83,24 @@ describe Panko::Serializer do
                            "something" => "#{foo.name} #{foo.address}")
     end
 
+    it "supports serailizer inheritance" do
+      class BaseSerializer < Panko::Serializer
+        attributes :name
+      end
+
+      class ChildSerializer < BaseSerializer
+        attributes :address
+      end
+
+      serializer = ChildSerializer.new
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      output = serializer.serialize foo
+
+      expect(output).to eq("name" => foo.name,
+                           "address" => foo.address)
+    end
+
     it "serializes time correctly" do
       ObjectWithTime = Struct.new(:created_at)
       class ObjectWithTimeSerializer < Panko::Serializer
