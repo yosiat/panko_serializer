@@ -3,6 +3,7 @@
 VALUE cSerializationDescriptor;
 
 static ID context_id;
+static ID scope_id;
 static ID object_id;
 
 
@@ -18,6 +19,8 @@ static void sd_free(SerializationDescriptor sd) {
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
+  sd->context = Qnil;
+  sd->scope = Qnil;
 
   xfree(sd);
 }
@@ -30,6 +33,8 @@ void sd_mark(SerializationDescriptor data) {
   rb_gc_mark(data->has_one_associations);
   rb_gc_mark(data->has_many_associations);
   rb_gc_mark(data->aliases);
+  rb_gc_mark(data->context);
+  rb_gc_mark(data->scope);
 }
 
 static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
@@ -42,6 +47,8 @@ static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
   sd->has_one_associations = Qnil;
   sd->has_many_associations = Qnil;
   sd->aliases = Qnil;
+  sd->context = Qnil;
+  sd->scope = Qnil;
 
   sd->attributes_writer = create_empty_attributes_writer();
 
@@ -83,11 +90,16 @@ VALUE sd_serializer_ref(VALUE self) {
   return sd->serializer;
 }
 
-void sd_apply_serializer_config(VALUE serializer, VALUE object, VALUE context) {
+void sd_apply_serializer_config(SerializationDescriptor descriptor, VALUE serializer, VALUE object) {
   rb_ivar_set(serializer, object_id, object);
-  if (context != Qnil && context != Qundef) {
-    rb_ivar_set(serializer, context_id, context);
+  if (descriptor->context != Qnil && descriptor->context != Qundef) {
+    rb_ivar_set(serializer, context_id, descriptor->context);
   }
+
+  if (descriptor->scope != Qnil && descriptor->scope != Qundef) {
+    rb_ivar_set(serializer, scope_id, descriptor->scope);
+  }
+
 }
 VALUE sd_attributes_set(VALUE self, VALUE attributes) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
@@ -162,9 +174,22 @@ VALUE public_sd_build_serializer(VALUE self) {
   return sd_build_serializer(sd);
 }
 
+VALUE sd_context_set(VALUE self, VALUE context) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  sd->context = context;
+  return Qnil;
+}
+
+VALUE sd_scope_set(VALUE self, VALUE scope) {
+  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  sd->scope = scope;
+  return Qnil;
+}
+
 void panko_init_serialization_descriptor(VALUE mPanko) {
   object_id = rb_intern("@object");
   context_id = rb_intern("@context");
+  scope_id = rb_intern("@scope");
 
   cSerializationDescriptor =
       rb_define_class_under(mPanko, "SerializationDescriptor", rb_cObject);
@@ -202,6 +227,8 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
   rb_define_method(cSerializationDescriptor, "aliases=", sd_aliases_set, 1);
   rb_define_method(cSerializationDescriptor, "aliases", sd_aliases_aref, 0);
 
+  rb_define_method(cSerializationDescriptor, "scope=", sd_scope_set, 1);
+  rb_define_method(cSerializationDescriptor, "context=", sd_context_set, 1);
   rb_define_method(cSerializationDescriptor, "build_serializer",
                    public_sd_build_serializer, 0);
 }

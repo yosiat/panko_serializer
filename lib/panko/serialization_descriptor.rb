@@ -9,9 +9,13 @@ module Panko
       backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
 
       if serializer.respond_to? :filters_for
-        options.merge! serializer.filters_for(options[:context])
+        options.merge! serializer.filters_for(options[:context], options[:scope])
       end
+
+      backend.context = options[:context]
+      backend.scope = options[:scope]
       backend.apply_filters(options)
+
       backend
     end
 
@@ -34,6 +38,9 @@ module Panko
 
       backend.has_many_associations = descriptor.has_many_associations.dup
       backend.has_one_associations = descriptor.has_one_associations.dup
+
+      backend.context = nil
+      backend.scope = nil
 
       backend
     end

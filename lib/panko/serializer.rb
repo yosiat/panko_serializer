@@ -78,9 +78,10 @@ module Panko
     def initialize(options = {})
       @descriptor = Panko::SerializationDescriptor.build(self.class, options)
       @context = options[:context]
+      @scope = options[:scope]
     end
 
-    attr_reader :object, :context
+    attr_reader :object, :context, :scope
 
     def serialize(object)
       Oj.load(serialize_to_json(object))
@@ -88,13 +89,14 @@ module Panko
 
     def serialize_to_json(object)
       writer = Oj::StringWriter.new(mode: :rails)
-      Panko::serialize_subject(object, writer, @descriptor, @context)
+      Panko::serialize_subject(object, writer, @descriptor)
       writer.to_s
     end
 
     def reset
       @object = nil
       @context = nil
+      @scope = nil
 
       self
     end
