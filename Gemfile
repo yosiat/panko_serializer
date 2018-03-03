@@ -6,11 +6,8 @@ gemspec
 raw_rails_version = ENV.fetch("RAILS_VERSION", "4.2")
 rails_version = "~> #{raw_rails_version}"
 
-gem "rails", rails_version
-gem "railties", rails_version
 gem "activesupport", rails_version
 gem "activemodel", rails_version
-gem "actionpack", rails_version
 gem "activerecord", rails_version, group: :test
 
 group :benchmarks do

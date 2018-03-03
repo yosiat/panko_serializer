@@ -89,7 +89,7 @@ end
 
 
 
-benchmark "SimpleWithMethodCall", PostFastWithMethodCallSerializer
-benchmark "HasOne", PostWithHasOneFastSerializer
 benchmark "Simple", PostFastSerializer
+benchmark "HasOne", PostWithHasOneFastSerializer
+benchmark "SimpleWithMethodCall", PostFastWithMethodCallSerializer
 benchmark_aliased "Simple (aliased)", PostWithAliasFastSerializer
