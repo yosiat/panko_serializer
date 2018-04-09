@@ -8,6 +8,13 @@ module Panko
       @subjects = subjects
       @each_serializer = options[:each_serializer]
 
+      if @each_serializer.nil?
+        raise ArgumentError, %{
+Please pass valid each_serializer to ArraySerializer, for example:
+> Panko::ArraySerializer.new(posts, each_serializer: PostSerializer)
+        }
+      end
+
 
       serializer_options = {
         only: options.fetch(:only, []),

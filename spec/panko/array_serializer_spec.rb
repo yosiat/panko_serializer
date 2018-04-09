@@ -7,6 +7,12 @@ describe Panko::ArraySerializer do
     attributes :name, :address
   end
 
+  it "throws argument error when each_serializer isnt passed" do
+    expect {
+      Panko::ArraySerializer.new([])
+    }.to raise_error(ArgumentError)
+  end
+
   context "sanity" do
     it "serializers array of elements" do
       array_serializer = Panko::ArraySerializer.new([], each_serializer: FooSerializer)
