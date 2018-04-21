@@ -20,8 +20,6 @@ group :benchmarks do
 
   gem "benchmark-ips"
   gem "active_model_serializers"
-  gem "fast_jsonapi" if raw_rails_version.start_with? "5"
-
   gem "terminal-table"
 end
 
