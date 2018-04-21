@@ -79,7 +79,12 @@ if ENV["RAILS_VERSION"].start_with? "4.2"
   ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "1.23", 1.23
   ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "Infinity", ::Float::INFINITY
 end
-ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a:1}
+if check_if_exists "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json"
+  ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a:1}
+end
+if check_if_exists "ActiveRecord::Type::Json"
+  ar_type_convert ActiveRecord::Type::Json, '{"a":1}', {a:1}
+end
 
 db_ar_time
 utc_ar_time
