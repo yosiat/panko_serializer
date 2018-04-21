@@ -119,12 +119,12 @@ describe Panko::Serializer do
         attributes :value
       end
 
-      foo = Foo.instantiate({ "value" => "[1,2,3]" },
-                            { "value" => ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json.new })
+      foo = Foo.instantiate({ "value" => "1" },
+                            { "value" => ActiveRecord::Type::Integer.new })
 
       output = FooValueSerializer.new.serialize foo
 
-      expect(output).to eq("value" => [1, 2, 3])
+      expect(output).to eq("value" => 1)
     end
 
     it "supports active record alias attributes" do

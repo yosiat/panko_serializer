@@ -17,6 +17,7 @@ static VALUE ar_integer_type = Qundef;
 static VALUE ar_boolean_type = Qundef;
 static VALUE ar_date_time_type = Qundef;
 static VALUE ar_time_zone_converter = Qundef;
+static VALUE ar_json_type = Qundef;
 
 static VALUE ar_pg_integer_type = Qundef;
 static VALUE ar_pg_float_type = Qundef;
@@ -119,6 +120,10 @@ void cache_type_lookup() {
     deserialize_from_db_id = rb_intern("type_cast_from_database");
   }
 
+  if (rb_const_defined_at(ar_type, rb_intern("Json")) == (int)Qtrue) {
+    ar_json_type = rb_const_get_at(ar_type, rb_intern("Json"));
+  }
+
   // TODO: if we get error or not, add this to some debug log
   int isErrored;
   rb_protect(cache_postgres_type_lookup, ar, &isErrored);
@@ -203,7 +208,8 @@ VALUE cast_integer_type(VALUE value) {
 }
 
 bool is_json_type(VALUE type_klass) {
-  return ar_pg_json_type != Qundef && type_klass == ar_pg_json_type;
+  return ((ar_pg_json_type != Qundef && type_klass == ar_pg_json_type) ||
+          (ar_json_type != Qundef && type_klass == ar_json_type));
 }
 
 VALUE rescue_func() {

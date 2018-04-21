@@ -3,6 +3,12 @@
 require "spec_helper"
 require "active_record/connection_adapters/postgresql_adapter"
 
+def check_if_exists(module_name)
+  mod = (module_name.constantize rescue nil)
+  return true if mod
+  return false unless mod
+end
+
 describe "Type Casting" do
   describe "String / Text" do
     context "ActiveRecord::Type::String" do
@@ -50,7 +56,7 @@ describe "Type Casting" do
       it { expect(Panko._type_cast(type, six: 6)).to be_nil }
     end
 
-    context "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer", if: ENV["RAILS_VERSION"].start_with?("4.2") do
+    context "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer", if: check_if_exists("ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer") do
       let(:type) { ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer.new }
 
       it { expect(Panko._type_cast(type, "")).to be_nil }
@@ -68,8 +74,22 @@ describe "Type Casting" do
     end
   end
 
-  context "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json" do
+  context "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json", if: check_if_exists("ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json") do
     let(:type) { ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json.new }
+
+    it { expect(Panko._type_cast(type, "")).to be_nil }
+    it { expect(Panko._type_cast(type, "shnitzel")).to be_nil }
+    it { expect(Panko._type_cast(type, nil)).to be_nil }
+
+    it { expect(Panko._type_cast(type, '{"a":1}')).to eq("a" => 1) }
+    it { expect(Panko._type_cast(type, "[6,12]")).to eq([6, 12]) }
+
+    it { expect(Panko._type_cast(type, "a" => 1)).to eq("a" => 1) }
+    it { expect(Panko._type_cast(type, [6, 12])).to eq([6, 12]) }
+  end
+
+  context "ActiveRecord::Type::Json", if: check_if_exists("ActiveRecord::Type::Json") do
+    let(:type) { ActiveRecord::Type::Json.new }
 
     it { expect(Panko._type_cast(type, "")).to be_nil }
     it { expect(Panko._type_cast(type, "shnitzel")).to be_nil }

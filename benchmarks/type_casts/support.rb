@@ -14,4 +14,10 @@ def assert(type_name, from, to)
   raise "#{type_name} - #{from.class} is not equals to #{to.class}" unless from.to_json == to.to_json
 end
 
+def check_if_exists(module_name)
+  mod = (module_name.constantize rescue nil)
+  return true if mod
+  return false unless mod
+end
+
 Time.zone = "UTC"

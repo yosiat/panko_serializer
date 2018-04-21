@@ -72,7 +72,7 @@ end
 
 desc "Type Casts - Benchmarks"
 task :bm_type_casts do
-  run_benchmarks Dir[File.join(__dir__, "benchmarks", "type_casts", "bm_*")]
+  run_benchmarks Dir[File.join(__dir__, "benchmarks", "type_casts", "bm_*")], items_count: 0
 end
 
 desc "Sanity Benchmarks"
