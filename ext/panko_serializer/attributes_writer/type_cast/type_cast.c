@@ -239,17 +239,30 @@ VALUE cast_boolean_type(VALUE value) {
     return value;
   }
 
-  if (value == Qnil || RSTRING_LEN(value) == 0) {
+  if (value == Qnil) {
     return Qnil;
   }
 
-  const char* val = StringValuePtr(value);
-  bool isFalseValue =
-      (*val == '0' || (*val == 'f' || *val == 'F') ||
-       (strcmp(val, "false") == 0 || strcmp(val, "FALSE") == 0) ||
-       (strcmp(val, "off") == 0 || strcmp(val, "OFF") == 0));
+  if(RB_TYPE_P(value, T_STRING)) {
+    if(RSTRING_LEN(value) == 0) {
+      return Qnil;
+    }
 
-  return isFalseValue ? Qfalse : Qtrue;
+    const char* val = StringValuePtr(value);
+
+    bool isFalseValue =
+        (*val == '0' || (*val == 'f' || *val == 'F') ||
+         (strcmp(val, "false") == 0 || strcmp(val, "FALSE") == 0) ||
+         (strcmp(val, "off") == 0 || strcmp(val, "OFF") == 0));
+
+    return isFalseValue ? Qfalse : Qtrue;
+  }
+
+  if (RB_INTEGER_TYPE_P(value)) {
+    return value == INT2NUM(1) ? Qtrue : Qfalse;
+  }
+
+  return Qnil;
 }
 
 bool is_date_time_type(VALUE type_klass) {

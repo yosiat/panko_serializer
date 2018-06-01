@@ -109,6 +109,7 @@ describe "Type Casting" do
     it { expect(Panko._type_cast(type, nil)).to be_nil }
 
     it { expect(Panko._type_cast(type, true)).to be_truthy }
+    it { expect(Panko._type_cast(type, 1)).to be_truthy }
     it { expect(Panko._type_cast(type, "1")).to be_truthy }
     it { expect(Panko._type_cast(type, "t")).to be_truthy }
     it { expect(Panko._type_cast(type, "T")).to be_truthy }
@@ -116,6 +117,7 @@ describe "Type Casting" do
     it { expect(Panko._type_cast(type, "TRUE")).to be_truthy }
 
     it { expect(Panko._type_cast(type, false)).to be_falsey }
+    it { expect(Panko._type_cast(type, 0)).to be_falsey }
     it { expect(Panko._type_cast(type, "0")).to be_falsey }
     it { expect(Panko._type_cast(type, "f")).to be_falsey }
     it { expect(Panko._type_cast(type, "F")).to be_falsey }
