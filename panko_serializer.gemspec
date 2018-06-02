@@ -21,10 +21,5 @@ Gem::Specification.new do |spec|
 
   spec.extensions << "ext/panko_serializer/extconf.rb"
 
-  spec.add_development_dependency "bundler", "~> 1.14"
-  spec.add_development_dependency "rake", "~> 10.5"
-  spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "rake-compiler"
-
-  spec.add_dependency "oj", "~> 3.6.2"
+  spec.add_dependency "oj", "~> 3.6.0"
 end
