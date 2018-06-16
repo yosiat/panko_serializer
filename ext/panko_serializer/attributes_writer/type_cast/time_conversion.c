@@ -25,17 +25,6 @@ VALUE is_iso8601_time_string(const char* value) {
   return r >= 0 ? Qtrue : Qfalse;
 }
 
-void append_region(const char* source,
-                   char** to,
-                   const OnigRegion* region,
-                   int region_number) {
-  long iter = 0;
-  long regionEnd = region->end[region_number];
-  for (iter = region->beg[region_number]; iter < regionEnd; iter++) {
-    *(*to)++ = source[iter];
-  }
-}
-
 void append_region_str(const char* source,
                        char** to,
                        int regionBegin,
@@ -46,10 +35,8 @@ void append_region_str(const char* source,
   }
 }
 
-VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
-  volatile VALUE output;
-
-  if (
+bool is_iso_ar_iso_datetime_string_fast_case(const char* value) {
+  return (
       // year
       isdigit(value[0]) && isdigit(value[1]) && isdigit(value[2]) &&
       isdigit(value[3]) && value[4] == '-' &&
@@ -63,7 +50,32 @@ VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
       // minute
       isdigit(value[14]) && isdigit(value[15]) && value[16] == ':' &&
       // seconds
-      isdigit(value[17]) && isdigit(value[18])) {
+      isdigit(value[17]) && isdigit(value[18]));
+}
+
+bool is_iso_ar_iso_datetime_string_slow_case(const char* value) {
+  const UChar *start, *range, *end;
+  OnigPosition r;
+  OnigRegion* region = onig_region_new();
+
+  const UChar* str = (const UChar*)(value);
+
+  end = str + strlen(value);
+  start = str;
+  range = end;
+  r = onig_search(ar_iso_datetime_regex, str, end, start, range, region,
+                  ONIG_OPTION_NONE);
+
+  onig_region_free(region, 1);
+
+  return (r >= 0);
+}
+
+VALUE iso_ar_iso_datetime_string(const char* value) {
+  if (is_iso_ar_iso_datetime_string_fast_case(value) == true ||
+      is_iso_ar_iso_datetime_string_slow_case(value) == true) {
+    volatile VALUE output;
+
     char buf[21] = "";
     char* cur = buf;
 
@@ -89,55 +101,7 @@ VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
     return output;
   }
 
-  return Qundef;
-}
-
-VALUE iso_ar_iso_datetime_string(const char* value) {
-  volatile VALUE output = iso_ar_iso_datetime_string_fast_case(value);
-  if (output != Qundef) {
-    return output;
-  }
-
-  const UChar *start, *range, *end;
-  OnigPosition r;
-  OnigRegion* region = onig_region_new();
-
-  const UChar* str = (const UChar*)(value);
-
-  end = str + strlen(value);
-  start = str;
-  range = end;
-  r = onig_search(ar_iso_datetime_regex, str, end, start, range, region,
-                  ONIG_OPTION_NONE);
-
-  output = Qnil;
-  if (r >= 0) {
-    char buf[21] = "";
-    char* cur = buf;
-
-    append_region(value, &cur, region, YEAR_REGION);
-    *cur++ = '-';
-
-    append_region(value, &cur, region, MONTH_REGION);
-    *cur++ = '-';
-
-    append_region(value, &cur, region, DAY_REGION);
-    *cur++ = 'T';
-
-    append_region(value, &cur, region, HOUR_REGION);
-    *cur++ = ':';
-
-    append_region(value, &cur, region, MINUTE_REGION);
-    *cur++ = ':';
-
-    append_region(value, &cur, region, SECOND_REGION);
-    *cur++ = 'Z';
-
-    output = rb_str_new(buf, cur - buf);
-  }
-
-  onig_region_free(region, 1);
-  return output;
+  return Qnil;
 }
 
 void build_regex(OnigRegex* reg, const UChar* pattern) {
