@@ -36,11 +36,73 @@ void append_region(const char* source,
   }
 }
 
+void append_region_str(const char* source,
+                   char** to,
+                   int regionBegin,
+                   int regionEnd) {
+  long iter = 0;
+  for (iter = regionBegin; iter < regionEnd; iter++) {
+    *(*to)++ = source[iter];
+  }
+}
+
+VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
+  volatile VALUE output;
+
+  if(
+      // year
+      isdigit(value[0]) && isdigit(value[1]) && isdigit(value[2]) && isdigit(value[3]) && value[4] == '-' &&
+      // month
+      isdigit(value[5]) && isdigit(value[6])  && value[7] == '-' &&
+      // mday
+      isdigit(value[8]) && isdigit(value[9]) && value[10] == ' ' &&
+
+      // hour
+      isdigit(value[11]) && isdigit(value[12]) && value[13] == ':' &&
+      // minute
+      isdigit(value[14]) && isdigit(value[15]) && value[16] == ':' &&
+      // seconds
+      isdigit(value[17]) && isdigit(value[18])
+    ) {
+    char buf[21] = "";
+    char* cur = buf;
+
+    append_region_str(value, &cur, 0, 4);
+    *cur++ = '-';
+
+    append_region_str(value, &cur, 5, 7);
+    *cur++ = '-';
+
+    append_region_str(value, &cur, 8, 10);
+    *cur++ = 'T';
+
+    append_region_str(value, &cur, 11, 13);
+    *cur++ = ':';
+
+    append_region_str(value, &cur, 14, 16);
+    *cur++ = ':';
+
+    append_region_str(value, &cur, 17, 19);
+    *cur++ = 'Z';
+
+    output = rb_str_new(buf, cur - buf);
+
+    return output;
+  }
+
+  return Qundef;
+}
+
 VALUE iso_ar_iso_datetime_string(const char* value) {
+
+  volatile VALUE output = iso_ar_iso_datetime_string_fast_case(value);
+  if(output != Qundef) {
+    return output;
+  }
+
   const UChar *start, *range, *end;
   OnigPosition r;
   OnigRegion* region = onig_region_new();
-  volatile VALUE output;
 
   const UChar* str = (const UChar*)(value);
 
