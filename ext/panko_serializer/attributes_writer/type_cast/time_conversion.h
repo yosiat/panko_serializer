@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ruby.h>
+#include <ctype.h>
 #include <ruby/oniguruma.h>
 
 VALUE is_iso8601_time_string(const char* value);

@@ -262,7 +262,7 @@ VALUE cast_boolean_type(VALUE value) {
     return value == INT2NUM(1) ? Qtrue : Qfalse;
   }
 
-  return Qnil;
+  return Qundef;
 }
 
 bool is_date_time_type(VALUE type_klass) {
