@@ -49,7 +49,6 @@ panko_type_convert ActiveRecord::Type::String, 1, "1"
 panko_type_convert ActiveRecord::Type::Text, 1, "1"
 panko_type_convert ActiveRecord::Type::Integer, "1", 1
 panko_type_convert ActiveRecord::Type::Float, "1.23", 1.23
-panko_type_convert ActiveRecord::Type::Float, "Infinity", ::Float::INFINITY
 panko_type_convert ActiveRecord::Type::Boolean, "true", true
 panko_type_convert ActiveRecord::Type::Boolean, "t", true
 

@@ -54,7 +54,13 @@ def run_benchmarks(files, items_count: 7_000)
 
     lines = run_process "ITEMS_COUNT=#{items_count} RAILS_ENV=production ruby #{benchmark_file}"
     rows = lines.map do |line|
-      row = JSON.parse(line)
+      begin
+        row = JSON.parse(line)
+      rescue JSON::ParserError
+        puts "> Failed parsing json"
+        puts lines.join
+        exit
+      end
       row.values
     end
 
