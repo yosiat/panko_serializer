@@ -2,8 +2,8 @@
 
 #include <ruby.h>
 
-#include "common.h"
 #include "active_record.h"
+#include "common.h"
 #include "plain.h"
 
 enum ObjectType { Unknown = 0, ActiveRecord = 1, Plain = 2 };

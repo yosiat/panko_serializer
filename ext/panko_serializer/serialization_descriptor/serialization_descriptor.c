@@ -6,7 +6,6 @@ static ID context_id;
 static ID scope_id;
 static ID object_id;
 
-
 static void sd_free(SerializationDescriptor sd) {
   if (!sd) {
     return;
@@ -59,7 +58,6 @@ SerializationDescriptor sd_read(VALUE descriptor) {
   return (SerializationDescriptor)DATA_PTR(descriptor);
 }
 
-
 void sd_set_writer(SerializationDescriptor sd, VALUE subject) {
   if (sd->attributes_writer.object_type != Unknown) {
     return;
@@ -90,7 +88,9 @@ VALUE sd_serializer_ref(VALUE self) {
   return sd->serializer;
 }
 
-void sd_apply_serializer_config(SerializationDescriptor descriptor, VALUE serializer, VALUE object) {
+void sd_apply_serializer_config(SerializationDescriptor descriptor,
+                                VALUE serializer,
+                                VALUE object) {
   rb_ivar_set(serializer, object_id, object);
   if (descriptor->context != Qnil && descriptor->context != Qundef) {
     rb_ivar_set(serializer, context_id, descriptor->context);
@@ -99,7 +99,6 @@ void sd_apply_serializer_config(SerializationDescriptor descriptor, VALUE serial
   if (descriptor->scope != Qnil && descriptor->scope != Qundef) {
     rb_ivar_set(serializer, scope_id, descriptor->scope);
   }
-
 }
 VALUE sd_attributes_set(VALUE self, VALUE attributes) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
