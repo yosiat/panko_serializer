@@ -243,8 +243,8 @@ VALUE cast_boolean_type(VALUE value) {
     return Qnil;
   }
 
-  if(RB_TYPE_P(value, T_STRING)) {
-    if(RSTRING_LEN(value) == 0) {
+  if (RB_TYPE_P(value, T_STRING)) {
+    if (RSTRING_LEN(value) == 0) {
       return Qnil;
     }
 

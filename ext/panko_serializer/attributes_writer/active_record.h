@@ -3,9 +3,9 @@
 #include <ruby.h>
 #include <stdbool.h>
 
+#include "common.h"
 #include "serialization_descriptor/attribute.h"
 #include "type_cast/type_cast.h"
-#include "common.h"
 
 extern VALUE active_record_attributes_writer(VALUE object,
                                              VALUE attributes,

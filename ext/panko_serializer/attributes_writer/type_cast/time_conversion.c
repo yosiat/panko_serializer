@@ -37,9 +37,9 @@ void append_region(const char* source,
 }
 
 void append_region_str(const char* source,
-                   char** to,
-                   int regionBegin,
-                   int regionEnd) {
+                       char** to,
+                       int regionBegin,
+                       int regionEnd) {
   long iter = 0;
   for (iter = regionBegin; iter < regionEnd; iter++) {
     *(*to)++ = source[iter];
@@ -49,11 +49,12 @@ void append_region_str(const char* source,
 VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
   volatile VALUE output;
 
-  if(
+  if (
       // year
-      isdigit(value[0]) && isdigit(value[1]) && isdigit(value[2]) && isdigit(value[3]) && value[4] == '-' &&
+      isdigit(value[0]) && isdigit(value[1]) && isdigit(value[2]) &&
+      isdigit(value[3]) && value[4] == '-' &&
       // month
-      isdigit(value[5]) && isdigit(value[6])  && value[7] == '-' &&
+      isdigit(value[5]) && isdigit(value[6]) && value[7] == '-' &&
       // mday
       isdigit(value[8]) && isdigit(value[9]) && value[10] == ' ' &&
 
@@ -62,8 +63,7 @@ VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
       // minute
       isdigit(value[14]) && isdigit(value[15]) && value[16] == ':' &&
       // seconds
-      isdigit(value[17]) && isdigit(value[18])
-    ) {
+      isdigit(value[17]) && isdigit(value[18])) {
     char buf[21] = "";
     char* cur = buf;
 
@@ -86,7 +86,6 @@ VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
     *cur++ = 'Z';
 
     output = rb_str_new(buf, cur - buf);
-
     return output;
   }
 
@@ -94,9 +93,8 @@ VALUE iso_ar_iso_datetime_string_fast_case(const char* value) {
 }
 
 VALUE iso_ar_iso_datetime_string(const char* value) {
-
   volatile VALUE output = iso_ar_iso_datetime_string_fast_case(value);
-  if(output != Qundef) {
+  if (output != Qundef) {
     return output;
   }
 

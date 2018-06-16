@@ -28,7 +28,9 @@ SerializationDescriptor sd_read(VALUE descriptor);
 void sd_mark(SerializationDescriptor data);
 
 VALUE sd_build_serializer(SerializationDescriptor descriptor);
-void sd_apply_serializer_config(SerializationDescriptor descriptor, VALUE serializer, VALUE object);
+void sd_apply_serializer_config(SerializationDescriptor descriptor,
+                                VALUE serializer,
+                                VALUE object);
 void sd_set_writer(SerializationDescriptor sd, VALUE subject);
 
 void panko_init_serialization_descriptor(VALUE mPanko);
