@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 require_relative "./benchmarking_support"
-require "rails"
 require "active_support"
 
 require "panko_serializer"
