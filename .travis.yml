@@ -3,13 +3,17 @@ cache: bundler
 language: ruby
 rvm:
   - 2.5.1
+  - ruby-head
+matrix:
+  allow_failures:
+    - rvm: ruby-head
 
 env:
   global:
     - GIT_NAME: Travis CI
     - GIT_EMAIL: nobody@nobody.org
 
-install: bundle install --path=vendor/bundle --retry=3 --jobs=3
+install: bundle install --path=vendor/bundle --retry=3
 
 before_install:
   - gem install bundler
