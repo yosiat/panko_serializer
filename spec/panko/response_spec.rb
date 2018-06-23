@@ -84,4 +84,37 @@ describe Panko::Response do
                                    { "data" => { "json_data" => { "a" => 1 } } }
                                  ])
   end
+
+  it "create" do
+    foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+    response = Panko::Response.create do |t|
+      [
+        {
+          data: t.value(
+            json_data: t.json({ a: 1 }.to_json),
+            foos: t.array_serializer(Foo.all, FooSerializer),
+            foo: t.serializer(Foo.first, FooSerializer)
+          )
+        }
+      ]
+    end
+
+    json_response = Oj.load(response.to_json)
+
+    expect(json_response).to eql([
+                                   { "data" =>
+                                     {
+                                       "json_data" => { "a" => 1 },
+                                       "foo" => {
+                                         "name" => foo.name,
+                                         "address" => foo.address
+                                       },
+                                       "foos" => [{
+                                         "name" => foo.name,
+                                         "address" => foo.address
+                                       }]
+                                     } }
+                                 ])
+  end
 end
