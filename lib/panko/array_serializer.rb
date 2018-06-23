@@ -15,7 +15,6 @@ Please pass valid each_serializer to ArraySerializer, for example:
         }
       end
 
-
       serializer_options = {
         only: options.fetch(:only, []),
         except: options.fetch(:except, []),
@@ -41,7 +40,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
 
     def serialize_to_json(subjects)
       writer = Oj::StringWriter.new(mode: :rails)
-      Panko::serialize_subjects(subjects.to_a, writer, @descriptor)
+      Panko.serialize_subjects(subjects.to_a, writer, @descriptor)
       writer.to_s
     end
   end

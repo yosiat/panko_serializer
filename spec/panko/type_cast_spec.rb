@@ -4,7 +4,11 @@ require "spec_helper"
 require "active_record/connection_adapters/postgresql_adapter"
 
 def check_if_exists(module_name)
-  mod = (module_name.constantize rescue nil)
+  mod = (begin
+           module_name.constantize
+         rescue StandardError
+           nil
+         end)
   return true if mod
   return false unless mod
 end

@@ -1,17 +1,15 @@
 # frozen_string_literal: true
 
 class Panko::SerializerResolver
-
   def self.resolve(name)
     serializer_name = "#{name.singularize.camelize}Serializer"
-    serializer_const = self.safe_const_get(serializer_name)
+    serializer_const = safe_const_get(serializer_name)
 
     return nil if serializer_const.nil?
-    return nil unless self.is_serializer(serializer_const)
+    return nil unless is_serializer(serializer_const)
 
     serializer_const
   end
-
 
   private
 
@@ -24,5 +22,4 @@ class Panko::SerializerResolver
   rescue NameError
     nil
   end
-
 end

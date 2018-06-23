@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative "serialization_descriptor"
 require "oj"
 
@@ -6,10 +7,7 @@ module Panko
   class Serializer
     class << self
       def inherited(base)
-
-        unless _descriptor.nil?
-          base._descriptor = Panko::SerializationDescriptor.duplicate(_descriptor)
-        else
+        if _descriptor.nil?
           base._descriptor = Panko::SerializationDescriptor.new
 
           base._descriptor.attributes = []
@@ -19,9 +17,10 @@ module Panko
 
           base._descriptor.has_many_associations = []
           base._descriptor.has_one_associations = []
+        else
+          base._descriptor = Panko::SerializationDescriptor.duplicate(_descriptor)
         end
         base._descriptor.type = base
-
       end
 
       attr_accessor :_descriptor
@@ -39,18 +38,14 @@ module Panko
       def method_added(method)
         return if @_descriptor.nil?
         deleted_attr = @_descriptor.attributes.delete(method)
-        unless deleted_attr.nil?
-          @_descriptor.method_fields << method
-        end
+        @_descriptor.method_fields << method unless deleted_attr.nil?
       end
 
       def has_one(name, options = {})
         serializer_const = options[:serializer]
         serializer_const = Panko::SerializerResolver.resolve(name.to_s) if serializer_const.nil?
 
-        if serializer_const.nil?
-          raise "Can't find serializer for #{self.name}.#{name} has_one relationship."
-        end
+        raise "Can't find serializer for #{self.name}.#{name} has_one relationship." if serializer_const.nil?
 
         @_descriptor.has_one_associations << Panko::Association.new(
           name,
@@ -63,9 +58,7 @@ module Panko
         serializer_const = options[:serializer] || options[:each_serializer]
         serializer_const = Panko::SerializerResolver.resolve(name.to_s) if serializer_const.nil?
 
-        if serializer_const.nil?
-          raise "Can't find serializer for #{self.name}.#{name} has_many relationship."
-        end
+        raise "Can't find serializer for #{self.name}.#{name} has_many relationship." if serializer_const.nil?
 
         @_descriptor.has_many_associations << Panko::Association.new(
           name,
@@ -89,7 +82,7 @@ module Panko
 
     def serialize_to_json(object)
       writer = Oj::StringWriter.new(mode: :rails)
-      Panko::serialize_subject(object, writer, @descriptor)
+      Panko.serialize_subject(object, writer, @descriptor)
       writer.to_s
     end
 

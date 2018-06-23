@@ -120,7 +120,7 @@ describe Panko::Serializer do
       end
 
       foo = Foo.instantiate({ "value" => "1" },
-                            { "value" => ActiveRecord::Type::Integer.new })
+                            "value" => ActiveRecord::Type::Integer.new)
 
       output = FooValueSerializer.new.serialize foo
 
@@ -129,7 +129,7 @@ describe Panko::Serializer do
 
     it "supports active record alias attributes" do
       class FooWithAliasesModel < ActiveRecord::Base
-        self.table_name = 'foos'
+        self.table_name = "foos"
         alias_attribute :full_name, :name
       end
 
@@ -315,13 +315,13 @@ describe Panko::Serializer do
     end
 
     it "raises if it can't find the serializer" do
-      expect {
+      expect do
         class NotFoundHasOneSerializer < Panko::Serializer
           attributes :name
 
           has_one :not_existing_serializer
         end
-      }.to raise_error("Can't find serializer for NotFoundHasOneSerializer.not_existing_serializer has_one relationship.")
+      end.to raise_error("Can't find serializer for NotFoundHasOneSerializer.not_existing_serializer has_one relationship.")
     end
 
     it "allows virtual method in has one serializer" do
@@ -348,8 +348,8 @@ describe Panko::Serializer do
 
       expect(output).to eq("name" => foo_holder.name,
                            "foo" => {
-                              "virtual" => "Hello #{foo.name}"
-                          })
+                             "virtual" => "Hello #{foo.name}"
+                           })
     end
 
     it "handles nil" do
@@ -428,13 +428,13 @@ describe Panko::Serializer do
     end
 
     it "raises if it can't find the serializer" do
-      expect {
+      expect do
         class NotFoundHasManySerializer < Panko::Serializer
           attributes :name
 
           has_many :not_existing_serializers
         end
-      }.to raise_error("Can't find serializer for NotFoundHasManySerializer.not_existing_serializers has_many relationship.")
+      end.to raise_error("Can't find serializer for NotFoundHasManySerializer.not_existing_serializers has_many relationship.")
     end
 
     it "serializes using the :each_serializer option" do
@@ -522,8 +522,8 @@ describe Panko::Serializer do
       class FooWithFiltersForSerializer < Panko::Serializer
         attributes :name, :address
 
-        def self.filters_for(context, scope)
-          return {
+        def self.filters_for(_context, _scope)
+          {
             only: [:name]
           }
         end

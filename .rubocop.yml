@@ -1,6 +1,5 @@
 AllCops:
-  DisabledByDefault: true
-  TargetRubyVersion: 2.4.1
+  TargetRubyVersion: 2.5
   DisplayCopNames: true
   StyleGuideCopsOnly: false
 
@@ -20,3 +19,11 @@ Layout/TrailingBlankLines:
 Layout/TrailingWhitespace:
   Enabled: true
 
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+Style/RedundantFreeze:
+  Enabled: true
+
+Performance/UnfreezeString:
+  Enabled: true

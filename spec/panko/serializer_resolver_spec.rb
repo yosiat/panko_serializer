@@ -45,5 +45,4 @@ describe Panko::SerializerResolver do
       expect(Panko::SerializerResolver.resolve("some_object")).to be_nil
     end
   end
-
 end
