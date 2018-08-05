@@ -22,8 +22,10 @@ Please pass valid each_serializer to ArraySerializer, for example:
         scope: options[:scope]
       }
 
-      @descriptor = Panko::SerializationDescriptor.build(@each_serializer, serializer_options)
-      @context = options[:context]
+      @serialization_context = if options.key?(:context) || options.key?(:scope)
+                                 SerializationContext.new(options[:context], options[:scope])
+                               end
+      @descriptor = Panko::SerializationDescriptor.build(@each_serializer, serializer_options, @serialization_context)
     end
 
     def to_json
@@ -41,6 +43,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
     def serialize_to_json(subjects)
       writer = Oj::StringWriter.new(mode: :rails)
       Panko.serialize_subjects(subjects.to_a, writer, @descriptor)
+      @descriptor.set_serialization_context(nil) if @serialization_context.present?
       writer.to_s
     end
   end

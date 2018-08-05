@@ -6,14 +6,14 @@ module Panko
     # Creates new description and apply the options
     # on the new descriptor
     #
-    def self.build(serializer, options = {})
+    def self.build(serializer, options = {}, serialization_context = nil)
       backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
 
       options.merge! serializer.filters_for(options[:context], options[:scope]) if serializer.respond_to? :filters_for
 
-      backend.context = options[:context]
-      backend.scope = options[:scope]
       backend.apply_filters(options)
+
+      backend.set_serialization_context(serialization_context)
 
       backend
     end
@@ -30,16 +30,24 @@ module Panko
       backend.attributes = descriptor.attributes.dup
 
       backend.method_fields = descriptor.method_fields.dup
-
-      backend.serializer = descriptor.serializer.reset unless descriptor.serializer.nil?
+      backend.serializer = descriptor.type.new(_skip_init: true)
 
       backend.has_many_associations = descriptor.has_many_associations.dup
       backend.has_one_associations = descriptor.has_one_associations.dup
 
-      backend.context = nil
-      backend.scope = nil
-
       backend
+    end
+
+    def set_serialization_context(context)
+      serializer.instance_variable_set :@serialization_context, context if !method_fields.empty? && serializer.present?
+
+      has_many_associations.each do |assoc|
+        assoc.descriptor.set_serialization_context context
+      end
+
+      has_one_associations.each do |assoc|
+        assoc.descriptor.set_serialization_context context
+      end
     end
 
     #

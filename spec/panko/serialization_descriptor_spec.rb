@@ -37,22 +37,6 @@ describe Panko::SerializationDescriptor do
       expect(descriptor.method_fields).to eq([:something])
     end
 
-    it "creates serializer if we have method field" do
-      class VirtualSerialier < Panko::Serializer
-        attributes :virtual
-
-        def virtual
-          "Hello #{object.name}"
-        end
-      end
-
-      descriptor = Panko::SerializationDescriptor.build(VirtualSerialier)
-      serializer = descriptor.build_serializer
-
-      expect(serializer).not_to be_nil
-      expect(serializer).to be_a(Panko::Serializer)
-    end
-
     it "aliases" do
       class AttribteAliasesSerializer < Panko::Serializer
         aliases name: :full_name

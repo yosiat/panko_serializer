@@ -170,27 +170,6 @@ describe Panko::Serializer do
     end
   end
 
-  context "scope" do
-    it "passes scope to attribute methods" do
-      class FooWithScopeSerializer < Panko::Serializer
-        attributes :name, :scope_value
-
-        def scope_value
-          scope[:value]
-        end
-      end
-
-      scope = { value: Faker::Lorem.word }
-      serializer = FooWithScopeSerializer.new(scope: scope)
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-
-      output = serializer.serialize foo
-
-      expect(output).to eq("name" => foo.name,
-                           "scope_value" => scope[:value])
-    end
-  end
-
   context "context" do
     it "passes context to attribute methods" do
       class FooWithContextSerializer < Panko::Serializer
@@ -209,6 +188,41 @@ describe Panko::Serializer do
 
       expect(output).to eq("name" => foo.name,
                            "context_value" => context[:value])
+    end
+  end
+
+  context "scope" do
+    it "passes scope to attribute methods" do
+      class FooWithScopeSerializer < Panko::Serializer
+        attributes :scope_value
+
+        def scope_value
+          scope
+        end
+      end
+
+      class FooHolderWithScopeSerializer < Panko::Serializer
+        attributes :scope_value
+
+        has_one :foo, serializer: FooWithScopeSerializer
+
+        def scope_value
+          scope
+        end
+      end
+
+      scope = 123
+      serializer = FooHolderWithScopeSerializer.new(scope: scope)
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eql("scope_value" => scope,
+                           "foo" => {
+                              "scope_value" => scope
+                           })
     end
   end
 

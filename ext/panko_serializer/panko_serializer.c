@@ -9,6 +9,9 @@ static ID pop_id;
 
 static ID to_a_id;
 
+static ID object_id;
+static ID serialization_context_id;
+
 void write_value(VALUE str_writer, VALUE key, VALUE value) {
   rb_funcall(str_writer, push_value_id, 2, value, key);
 }
@@ -24,8 +27,8 @@ void serialize_method_fields(VALUE subject,
     return;
   }
 
-  serializer = sd_build_serializer(descriptor);
-  sd_apply_serializer_config(descriptor, serializer, subject);
+  serializer = descriptor->serializer;
+  rb_ivar_set(serializer, object_id, subject);
 
   for (i = 0; i < RARRAY_LEN(method_fields); i++) {
     volatile VALUE attribute_name = RARRAY_AREF(method_fields, i);
@@ -34,6 +37,8 @@ void serialize_method_fields(VALUE subject,
 
     write_value(str_writer, rb_sym2str(attribute_name), result);
   }
+
+  rb_ivar_set(serializer, object_id, Qnil);
 }
 
 void serialize_fields(VALUE subject,
@@ -155,6 +160,9 @@ void Init_panko_serializer() {
   push_object_id = rb_intern("push_object");
   pop_id = rb_intern("pop");
   to_a_id = rb_intern("to_a");
+  object_id = rb_intern("@object");
+  serialization_context_id = rb_intern("@serialization_context");
+
 
   VALUE mPanko = rb_define_module("Panko");
 
