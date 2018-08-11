@@ -192,25 +192,25 @@ describe Panko::Serializer do
   end
 
   context "scope" do
+    class FooWithScopeSerializer < Panko::Serializer
+      attributes :scope_value
+
+      def scope_value
+        scope
+      end
+    end
+
+    class FooHolderWithScopeSerializer < Panko::Serializer
+      attributes :scope_value
+
+      has_one :foo, serializer: FooWithScopeSerializer
+
+      def scope_value
+        scope
+      end
+    end
+
     it "passes scope to attribute methods" do
-      class FooWithScopeSerializer < Panko::Serializer
-        attributes :scope_value
-
-        def scope_value
-          scope
-        end
-      end
-
-      class FooHolderWithScopeSerializer < Panko::Serializer
-        attributes :scope_value
-
-        has_one :foo, serializer: FooWithScopeSerializer
-
-        def scope_value
-          scope
-        end
-      end
-
       scope = 123
       serializer = FooHolderWithScopeSerializer.new(scope: scope)
 
@@ -220,9 +220,23 @@ describe Panko::Serializer do
       output = serializer.serialize foo_holder
 
       expect(output).to eql("scope_value" => scope,
-                           "foo" => {
+                            "foo" => {
                               "scope_value" => scope
-                           })
+                            })
+    end
+
+    it "default scope is nil" do
+      serializer = FooHolderWithScopeSerializer.new
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eql("scope_value" => nil,
+                            "foo" => {
+                              "scope_value" => nil
+                            })
     end
   end
 

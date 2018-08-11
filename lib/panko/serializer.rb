@@ -10,6 +10,24 @@ class SerializationContext
     @context = context
     @scope = scope
   end
+
+  def self.create(options)
+    if options.key?(:context) || options.key?(:scope)
+      SerializationContext.new(options[:context], options[:scope])
+    else
+      EmptySerializerContext.new
+    end
+  end
+end
+
+class EmptySerializerContext
+  def scope
+    nil
+  end
+
+  def context
+    nil
+  end
 end
 
 module Panko
@@ -81,10 +99,7 @@ module Panko
       # this "_skip_init" trick is so I can create serializers from serialization descriptor
       return if options[:_skip_init]
 
-      @serialization_context = if options.key?(:context) || options.key?(:scope)
-                                 SerializationContext.new(options[:context], options[:scope])
-                               end
-
+      @serialization_context = SerializationContext.create(options)
       @descriptor = Panko::SerializationDescriptor.build(self.class, options, @serialization_context)
     end
 
@@ -96,6 +111,7 @@ module Panko
       @serialization_context.scope
     end
 
+    attr_writer :serialization_context
     attr_reader :object
 
     def serialize(object)
@@ -105,8 +121,7 @@ module Panko
     def serialize_to_json(object)
       writer = Oj::StringWriter.new(mode: :rails)
       Panko.serialize_subject(object, writer, @descriptor)
-
-      @descriptor.set_serialization_context(nil) if @serialization_context.present?
+      @descriptor.set_serialization_context(nil) unless @serialization_context.is_a?(EmptySerializerContext)
       writer.to_s
     end
   end

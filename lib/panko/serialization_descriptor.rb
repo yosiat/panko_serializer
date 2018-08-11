@@ -39,7 +39,7 @@ module Panko
     end
 
     def set_serialization_context(context)
-      serializer.instance_variable_set :@serialization_context, context if !method_fields.empty? && serializer.present?
+      serializer.serialization_context = context if !method_fields.empty? && !serializer.nil?
 
       has_many_associations.each do |assoc|
         assoc.descriptor.set_serialization_context context
