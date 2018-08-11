@@ -133,7 +133,7 @@ VALUE active_record_attributes_writer(VALUE obj,
 
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
     volatile VALUE raw_attribute = RARRAY_AREF(attributes, i);
-    Attribute attribute = attribute_read(raw_attribute);
+    Attribute attribute = PANKO_ATTRIBUTE_READ(raw_attribute);
     attribute_try_invalidate(attribute, record_class);
 
     volatile VALUE value = read_attribute(attributes_ctx, attribute);

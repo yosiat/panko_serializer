@@ -19,23 +19,25 @@ void write_value(VALUE str_writer, VALUE key, VALUE value) {
 void serialize_method_fields(VALUE subject,
                              VALUE str_writer,
                              SerializationDescriptor descriptor) {
-  VALUE method_fields, serializer;
+  if (RARRAY_LEN(descriptor->method_fields) == 0) {
+    return;
+  }
+
+  volatile VALUE method_fields, serializer;
   long i;
 
   method_fields = descriptor->method_fields;
-  if (RARRAY_LEN(method_fields) == 0) {
-    return;
-  }
 
   serializer = descriptor->serializer;
   rb_ivar_set(serializer, object_id, subject);
 
   for (i = 0; i < RARRAY_LEN(method_fields); i++) {
-    volatile VALUE attribute_name = RARRAY_AREF(method_fields, i);
-    volatile VALUE result =
-        rb_funcall(serializer, rb_sym2id(attribute_name), 0);
+    volatile VALUE raw_attribute = RARRAY_AREF(method_fields, i);
+    Attribute attribute = PANKO_ATTRIBUTE_READ(raw_attribute);
 
-    write_value(str_writer, rb_sym2str(attribute_name), result);
+    volatile VALUE result = rb_funcall(serializer, attribute->name_id, 0);
+
+    write_value(str_writer, attribute->name_str, result);
   }
 
   rb_ivar_set(serializer, object_id, Qnil);

@@ -65,7 +65,7 @@ module Panko
         attributes_except_filters
       )
 
-      self.method_fields = apply_fields_filters(
+      self.method_fields = apply_attribute_filters(
         method_fields,
         attributes_only_filters,
         attributes_except_filters
