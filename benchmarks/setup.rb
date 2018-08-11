@@ -27,14 +27,6 @@ ActiveRecord::Schema.define do
     t.references :author
     t.timestamps(null: false)
   end
-
-  create_table :profiles, force: true do |t|
-    t.text :project_url
-    t.text :bio
-    t.date :birthday
-    t.references :author
-    t.timestamps(null: false)
-  end
 end
 
 class Author < ActiveRecord::Base
@@ -46,9 +38,8 @@ class Post < ActiveRecord::Base
   belongs_to :author
 end
 
-class Profile < ActiveRecord::Base
-  belongs_to :author
-end
+Post.destroy_all
+Author.destroy_all
 
 # Build out the data to serialize
 Post.transaction do
