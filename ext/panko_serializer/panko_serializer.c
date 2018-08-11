@@ -100,12 +100,12 @@ VALUE serialize_subject(VALUE key,
 
   serialize_fields(subject, str_writer, descriptor);
 
-  if (RARRAY_LEN(descriptor->has_one_associations) >= 0) {
+  if (RARRAY_LEN(descriptor->has_one_associations) > 0) {
     serialize_has_one_associations(subject, str_writer, descriptor,
                                    descriptor->has_one_associations);
   }
 
-  if (RARRAY_LEN(descriptor->has_many_associations) >= 0) {
+  if (RARRAY_LEN(descriptor->has_many_associations) > 0) {
     serialize_has_many_associations(subject, str_writer, descriptor,
                                     descriptor->has_many_associations);
   }
@@ -162,7 +162,6 @@ void Init_panko_serializer() {
   to_a_id = rb_intern("to_a");
   object_id = rb_intern("@object");
   serialization_context_id = rb_intern("@serialization_context");
-
 
   VALUE mPanko = rb_define_module("Panko");
 
