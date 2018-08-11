@@ -140,12 +140,6 @@ VALUE sd_aliases_aref(VALUE self, VALUE aliases) {
   return sd->aliases;
 }
 
-// Exposing this for testing
-VALUE public_sd_build_serializer(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
-  return sd_build_serializer(sd);
-}
-
 void panko_init_serialization_descriptor(VALUE mPanko) {
   object_id = rb_intern("@object");
   sc_id = rb_intern("@sc");
