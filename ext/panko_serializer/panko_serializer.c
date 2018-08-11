@@ -61,7 +61,7 @@ void serialize_has_one_associations(VALUE subject,
 
     volatile VALUE value = rb_funcall(subject, association->name_id, 0);
 
-    if (value == Qnil) {
+    if (NIL_P(value)) {
       write_value(str_writer, association->name_str, value);
     } else {
       serialize_subject(association->name_str, value, str_writer,
@@ -81,7 +81,7 @@ void serialize_has_many_associations(VALUE subject,
 
     volatile VALUE value = rb_funcall(subject, association->name_id, 0);
 
-    if (value == Qnil) {
+    if (NIL_P(value)) {
       write_value(str_writer, association->name_str, value);
     } else {
       serialize_subjects(association->name_str, value, str_writer,

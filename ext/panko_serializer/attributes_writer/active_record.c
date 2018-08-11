@@ -9,19 +9,15 @@ static ID delegate_hash_id;
 static ID value_before_type_cast_id;
 static ID type_id;
 
-VALUE read_attributes(VALUE obj) {
-  return rb_ivar_get(obj, attributes_id);
-}
-
 VALUE panko_read_lazy_attributes_hash(VALUE object) {
   volatile VALUE attributes_set, lazy_attributes_hash;
 
-  attributes_set = read_attributes(object);
-  if (attributes_set == Qnil) {
+  attributes_set = rb_ivar_get(object, attributes_id);
+  if (NIL_P(attributes_set)) {
     return Qnil;
   }
 
-  lazy_attributes_hash = read_attributes(attributes_set);
+  lazy_attributes_hash = rb_ivar_get(attributes_set, attributes_id);
   return lazy_attributes_hash;
 }
 
@@ -34,14 +30,6 @@ void panko_read_types_and_value(VALUE attributes_hash,
   *values = rb_ivar_get(attributes_hash, values_id);
 }
 
-bool panko_is_empty_hash(VALUE hash) {
-  if (hash == Qnil || hash == Qundef) {
-    return true;
-  }
-
-  return RHASH_SIZE(hash) == 0;
-}
-
 void read_attribute_from_hash(VALUE attributes_hash,
                               VALUE member,
                               volatile VALUE* value,
@@ -50,7 +38,7 @@ void read_attribute_from_hash(VALUE attributes_hash,
   if (attribute_metadata != Qnil) {
     *value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
 
-    if (*type == Qnil) {
+    if (NIL_P(*type)) {
       *type = rb_ivar_get(attribute_metadata, type_id);
     }
   }
@@ -80,17 +68,13 @@ struct attributes init_context(VALUE obj) {
 
   volatile VALUE lazy_attribute_hash = panko_read_lazy_attributes_hash(obj);
 
-  if (lazy_attribute_hash == Qnil) {
-    // TODO: handle
-  }
-
   if (RB_TYPE_P(lazy_attribute_hash, T_HASH)) {
     attributes_ctx.attributes_hash = lazy_attribute_hash;
     attributes_ctx.shouldReadFromHash = true;
   } else {
     volatile VALUE delegate_hash =
         rb_ivar_get(lazy_attribute_hash, delegate_hash_id);
-    if (!panko_is_empty_hash(delegate_hash)) {
+    if (!PANKO_EMPTY_HASH(delegate_hash)) {
       attributes_ctx.attributes_hash = delegate_hash;
       attributes_ctx.shouldReadFromHash = true;
     }
@@ -100,7 +84,7 @@ struct attributes init_context(VALUE obj) {
                                &attributes_ctx.values);
 
     attributes_ctx.tryToReadFromAdditionalTypes =
-        !panko_is_empty_hash(attributes_ctx.additional_types);
+        !PANKO_EMPTY_HASH(attributes_ctx.additional_types);
   }
 
   return attributes_ctx;
@@ -110,9 +94,9 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   VALUE member = attribute->name_str;
   volatile VALUE value = Qundef;
 
-  if (attributes_ctx.values != Qnil && value == Qundef) {
+  if (!NIL_P(attributes_ctx.values)) {
     value = rb_hash_aref(attributes_ctx.values, member);
-    if (value == Qnil) {
+    if (NIL_P(value)) {
       value = Qundef;
     }
   }
@@ -122,17 +106,17 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
                              &attribute->type);
   }
 
-  if (attribute->type == Qnil) {
+  if (NIL_P(attribute->type) && !NIL_P(value)) {
     if (attributes_ctx.tryToReadFromAdditionalTypes) {
       attribute->type = rb_hash_aref(attributes_ctx.additional_types, member);
     }
 
-    if (attributes_ctx.types != Qnil && attribute->type == Qnil) {
+    if (!NIL_P(attributes_ctx.types) && NIL_P(attribute->type)) {
       attribute->type = rb_hash_aref(attributes_ctx.types, member);
     }
   }
 
-  if (attribute->type != Qnil && value != Qnil) {
+  if (!NIL_P(attribute->type) && !NIL_P(value)) {
     return type_cast(attribute->type, value);
   }
 

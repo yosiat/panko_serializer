@@ -59,7 +59,7 @@ void attribute_try_invalidate(Attribute attribute, VALUE new_record_class) {
     volatile VALUE ar_aliases_hash =
         rb_funcall(new_record_class, attribute_aliases_id, 0);
 
-    if (!panko_is_empty_hash(ar_aliases_hash)) {
+    if (!PANKO_EMPTY_HASH(ar_aliases_hash)) {
       volatile VALUE aliasedValue =
           rb_hash_aref(ar_aliases_hash, attribute->name_str);
       if (aliasedValue != Qnil) {

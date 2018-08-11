@@ -3,6 +3,8 @@
 #ifndef __ATTRIBUTE_H__
 #define __ATTRIBUTE_H__
 
+#include "../common.h"
+
 typedef struct _Attribute {
   VALUE name_str;
   ID name_id;
