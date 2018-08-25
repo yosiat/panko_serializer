@@ -2,6 +2,7 @@
 
 require "panko/version"
 require "panko/attribute"
+require "panko/association"
 require "panko/serializer"
 require "panko/array_serializer"
 require "panko/response"

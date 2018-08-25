@@ -30,10 +30,10 @@ module Panko
       backend.attributes = descriptor.attributes.dup
 
       backend.method_fields = descriptor.method_fields.dup
-      backend.serializer = descriptor.type.new(_skip_init: true)
+      backend.serializer = descriptor.type.new(_skip_init: true) unless backend.method_fields.empty?
 
-      backend.has_many_associations = descriptor.has_many_associations.dup
-      backend.has_one_associations = descriptor.has_one_associations.dup
+      backend.has_many_associations = descriptor.has_many_associations.map(&:duplicate)
+      backend.has_one_associations = descriptor.has_one_associations.map(&:duplicate)
 
       backend
     end
