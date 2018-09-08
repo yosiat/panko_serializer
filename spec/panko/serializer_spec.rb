@@ -102,16 +102,22 @@ describe Panko::Serializer do
     end
 
     it "serializes time correctly" do
-      ObjectWithTime = Struct.new(:created_at)
       class ObjectWithTimeSerializer < Panko::Serializer
-        attributes :created_at
+        attributes :created_at, :method
+
+        def method
+          object.created_at
+        end
       end
 
-      obj = Foo.create.reload
 
+      obj = Foo.create.reload
       output = ObjectWithTimeSerializer.new.serialize obj
 
-      expect(output).to eq("created_at" => obj.created_at.xmlschema)
+      expect(output).to eq(
+        "created_at" => obj.created_at.as_json,
+        "method" => obj.created_at.as_json
+      )
     end
 
     it "honors additional types" do

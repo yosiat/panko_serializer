@@ -76,7 +76,7 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
       is_iso_ar_iso_datetime_string_slow_case(value) == true) {
     volatile VALUE output;
 
-    char buf[21] = "";
+    char buf[24] = "";
     char* cur = buf;
 
     append_region_str(value, &cur, 0, 4);
@@ -95,6 +95,15 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
     *cur++ = ':';
 
     append_region_str(value, &cur, 17, 19);
+
+    *cur++ = '.';
+    if(value[19] == '.' && isdigit(value[20])) {
+      append_region_str(value, &cur, 20, 23);
+    } else {
+      *cur++ = '0';
+      *cur++ = '0';
+      *cur++ = '0';
+    }
     *cur++ = 'Z';
 
     output = rb_str_new(buf, cur - buf);

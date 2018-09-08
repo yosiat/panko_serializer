@@ -135,14 +135,15 @@ describe "Type Casting" do
     let(:utc) { ActiveSupport::TimeZone.new("UTC") }
 
     it "returns ISO8601 strings" do
-      expect(Panko._type_cast(type, date.in_time_zone(utc).iso8601)).to eq("2017-03-04T12:45:23Z")
+      expect(Panko._type_cast(type, date.in_time_zone(utc).as_json)).to eq("2017-03-04T12:45:23.000Z")
     end
 
     it "converts string from datbase to utc time zone" do
       time = "2017-07-10 09:26:40.937392"
-      result = DateTime.new(2017, 7, 10, 9, 26, 40, 937_392).in_time_zone(utc)
+      seconds = 40 + Rational(937_296, 10**6)
+      result = DateTime.new(2017, 7, 10, 9, 26, seconds).in_time_zone(utc)
 
-      expect(Panko._type_cast(type, time)).to eq(result.iso8601)
+      expect(Panko._type_cast(type, time)).to eq(result.as_json)
     end
   end
 end
