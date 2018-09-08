@@ -97,7 +97,7 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
     append_region_str(value, &cur, 17, 19);
 
     *cur++ = '.';
-    if(value[19] == '.' && isdigit(value[20])) {
+    if (value[19] == '.' && isdigit(value[20])) {
       append_region_str(value, &cur, 20, 23);
     } else {
       *cur++ = '0';
