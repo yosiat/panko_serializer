@@ -76,7 +76,7 @@ module Panko
 
         @_descriptor.has_one_associations << Panko::Association.new(
           name,
-          name.to_s,
+          options.fetch(:name, name).to_s,
           Panko::SerializationDescriptor.build(serializer_const, options)
         )
       end
@@ -89,7 +89,7 @@ module Panko
 
         @_descriptor.has_many_associations << Panko::Association.new(
           name,
-          name.to_s.freeze,
+          options.fetch(:name, name).to_s,
           Panko::SerializationDescriptor.build(serializer_const, options)
         )
       end

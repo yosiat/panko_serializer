@@ -306,6 +306,26 @@ describe Panko::Serializer do
                            })
     end
 
+    it "accepts name option" do
+      class FooHolderHasOneWithNameSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :foo, serializer: FooSerializer, name: :my_foo
+      end
+
+      serializer = FooHolderHasOneWithNameSerializer.new
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+
+      output = serializer.serialize foo_holder
+
+      expect(output).to eq("name" => foo_holder.name,
+                           "my_foo" => {
+                             "name" => foo.name,
+                             "address" => foo.address
+                           })
+    end
     it "serializes using the :serializer option" do
       class FooHolderHasOneSerializer < Panko::Serializer
         attributes :name
@@ -433,6 +453,33 @@ describe Panko::Serializer do
                            ])
     end
 
+    it "supports :name" do
+      class FoosHasManyHolderWithNameSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, name: :my_foos
+      end
+
+      serializer = FoosHasManyHolderWithNameSerializer.new
+
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+
+      output = serializer.serialize foos_holder
+
+      expect(output).to eq("name" => foos_holder.name,
+                           "my_foos" => [
+                             {
+                               "name" => foo1.name,
+                               "address" => foo1.address
+                             },
+                             {
+                               "name" => foo2.name,
+                               "address" => foo2.address
+                             }
+                           ])
+    end
     it "infers the serializer name by name of the realtionship" do
       class FoosHasManyHolderSerializer < Panko::Serializer
         attributes :name

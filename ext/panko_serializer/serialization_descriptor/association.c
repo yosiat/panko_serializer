@@ -40,7 +40,7 @@ static VALUE association_new(int argc, VALUE* argv, VALUE self) {
   association->name_str = argv[1];
   association->rb_descriptor = argv[2];
 
-  association->name_id = rb_intern_str(association->name_str);
+  association->name_id = rb_intern_str(rb_sym2str(association->name_sym));
   association->descriptor = sd_read(association->rb_descriptor);
 
   return Data_Wrap_Struct(cAssociation, association_mark, association_free,
