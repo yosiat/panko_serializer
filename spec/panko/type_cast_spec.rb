@@ -134,8 +134,12 @@ describe "Type Casting" do
     let(:date) { DateTime.new(2017, 3, 4, 12, 45, 23) }
     let(:utc) { ActiveSupport::TimeZone.new("UTC") }
 
-    it "returns ISO8601 strings" do
+    it "ISO8601 strings" do
       expect(Panko._type_cast(type, date.in_time_zone(utc).as_json)).to eq("2017-03-04T12:45:23.000Z")
+    end
+
+    it "two digits after ." do
+      expect(Panko._type_cast(type, "2018-09-16 14:51:03.97")).to eq("2018-09-16T14:51:03.970Z")
     end
 
     it "converts string from datbase to utc time zone" do
