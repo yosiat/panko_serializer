@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-
 require "spec_helper"
 
 describe Panko::Response do
@@ -14,6 +13,15 @@ describe Panko::Response do
 
     expect(json_response["success"]).to eq(true)
     expect(json_response["num"]).to eq(1)
+  end
+
+  it "serializes hash values" do
+    hash = { "a" => 1, "b" => 2 }
+    response = Panko::Response.new(success: true, hash: hash)
+
+    json_response = Oj.load(response.to_json)
+
+    expect(json_response["hash"]).to eq(hash)
   end
 
   it "serializes json wrapped in json value" do

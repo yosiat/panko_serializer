@@ -51,7 +51,7 @@ module Panko
     def write(writer, data, key = nil)
       return write_array(writer, data, key) if data.is_a?(Array)
 
-      return write_object(writer, data) if data.is_a?(Hash)
+      return write_object(writer, data, key) if data.is_a?(Hash)
 
       write_value(writer, data, key)
     end
