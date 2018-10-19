@@ -21,15 +21,6 @@ VALUE panko_read_lazy_attributes_hash(VALUE object) {
   return lazy_attributes_hash;
 }
 
-void panko_read_types_and_value(VALUE attributes_hash,
-                                VALUE* types,
-                                VALUE* additional_types,
-                                VALUE* values) {
-  *types = rb_ivar_get(attributes_hash, types_id);
-  *additional_types = rb_ivar_get(attributes_hash, additional_types_id);
-  *values = rb_ivar_get(attributes_hash, values_id);
-}
-
 void read_attribute_from_hash(VALUE attributes_hash,
                               VALUE member,
                               volatile VALUE* value,
@@ -66,25 +57,25 @@ struct attributes init_context(VALUE obj) {
   attributes_ctx.shouldReadFromHash = false;
   attributes_ctx.tryToReadFromAdditionalTypes = false;
 
-  volatile VALUE lazy_attribute_hash = panko_read_lazy_attributes_hash(obj);
+  volatile VALUE lazy_attributes_hash = panko_read_lazy_attributes_hash(obj);
 
-  if (RB_TYPE_P(lazy_attribute_hash, T_HASH)) {
-    attributes_ctx.attributes_hash = lazy_attribute_hash;
-    attributes_ctx.shouldReadFromHash = true;
+  if (RB_TYPE_P(lazy_attributes_hash, T_HASH)) {
+    attributes_ctx.attributes_hash = lazy_attributes_hash;
+    attributes_ctx.shouldReadFromHash = false;
   } else {
     volatile VALUE delegate_hash =
-        rb_ivar_get(lazy_attribute_hash, delegate_hash_id);
-    if (!PANKO_EMPTY_HASH(delegate_hash)) {
+        rb_ivar_get(lazy_attributes_hash, delegate_hash_id);
+
+    if (PANKO_EMPTY_HASH(delegate_hash) == false) {
       attributes_ctx.attributes_hash = delegate_hash;
       attributes_ctx.shouldReadFromHash = true;
     }
 
-    panko_read_types_and_value(lazy_attribute_hash, &attributes_ctx.types,
-                               &attributes_ctx.additional_types,
-                               &attributes_ctx.values);
+    attributes_ctx.types = rb_ivar_get(lazy_attributes_hash, types_id);
+    attributes_ctx.values = rb_ivar_get(lazy_attributes_hash, values_id);
 
-    attributes_ctx.tryToReadFromAdditionalTypes =
-        !PANKO_EMPTY_HASH(attributes_ctx.additional_types);
+    attributes_ctx.additional_types = rb_ivar_get(lazy_attributes_hash, additional_types_id);
+    attributes_ctx.tryToReadFromAdditionalTypes = PANKO_EMPTY_HASH(attributes_ctx.additional_types) == false;
   }
 
   return attributes_ctx;
@@ -101,13 +92,13 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
     }
   }
 
-  if (value == Qundef && attributes_ctx.shouldReadFromHash) {
+  if (value == Qundef && attributes_ctx.shouldReadFromHash == true) {
     read_attribute_from_hash(attributes_ctx.attributes_hash, member, &value,
                              &attribute->type);
   }
 
   if (NIL_P(attribute->type) && !NIL_P(value)) {
-    if (attributes_ctx.tryToReadFromAdditionalTypes) {
+    if (attributes_ctx.tryToReadFromAdditionalTypes == true) {
       attribute->type = rb_hash_aref(attributes_ctx.additional_types, member);
     }
 
