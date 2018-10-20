@@ -2,7 +2,6 @@
 
 VALUE cSerializationDescriptor;
 
-static ID context_id;
 static ID object_id;
 static ID sc_id;
 
@@ -58,7 +57,6 @@ void sd_set_writer(SerializationDescriptor sd, VALUE subject) {
 
   sd->attributes_writer = create_attributes_writer(subject);
 }
-
 
 VALUE sd_serializer_set(VALUE self, VALUE serializer) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
