@@ -74,8 +74,10 @@ struct attributes init_context(VALUE obj) {
     attributes_ctx.types = rb_ivar_get(lazy_attributes_hash, types_id);
     attributes_ctx.values = rb_ivar_get(lazy_attributes_hash, values_id);
 
-    attributes_ctx.additional_types = rb_ivar_get(lazy_attributes_hash, additional_types_id);
-    attributes_ctx.tryToReadFromAdditionalTypes = PANKO_EMPTY_HASH(attributes_ctx.additional_types) == false;
+    attributes_ctx.additional_types =
+        rb_ivar_get(lazy_attributes_hash, additional_types_id);
+    attributes_ctx.tryToReadFromAdditionalTypes =
+        PANKO_EMPTY_HASH(attributes_ctx.additional_types) == false;
   }
 
   return attributes_ctx;
@@ -114,10 +116,10 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   return value;
 }
 
-VALUE active_record_attributes_writer(VALUE obj,
-                                      VALUE attributes,
-                                      EachAttributeFunc func,
-                                      VALUE writer) {
+void active_record_attributes_writer(VALUE obj,
+                                     VALUE attributes,
+                                     EachAttributeFunc func,
+                                     VALUE writer) {
   long i;
   struct attributes attributes_ctx = init_context(obj);
   volatile VALUE record_class = CLASS_OF(obj);
@@ -131,8 +133,6 @@ VALUE active_record_attributes_writer(VALUE obj,
 
     func(writer, attr_name_for_serialization(attribute), value);
   }
-
-  return Qnil;
 }
 
 void init_active_record_attributes_writer(VALUE mPanko) {

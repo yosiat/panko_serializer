@@ -3,9 +3,9 @@
 static bool types_initialized = false;
 static VALUE ar_base_type = Qundef;
 
-void init_types(VALUE v) {
+VALUE init_types(VALUE v) {
   if (types_initialized == true) {
-    return;
+    return Qundef;
   }
 
   types_initialized = true;
@@ -13,6 +13,8 @@ void init_types(VALUE v) {
   volatile VALUE ar_type =
       rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
   ar_base_type = rb_const_get_at(ar_type, rb_intern("Base"));
+
+  return Qundef;
 }
 
 AttributesWriter create_attributes_writer(VALUE subject) {
@@ -33,12 +35,10 @@ AttributesWriter create_attributes_writer(VALUE subject) {
   return create_empty_attributes_writer();
 }
 
-VALUE empty_write_attributes(VALUE obj,
-                             VALUE attributes,
-                             EachAttributeFunc func,
-                             VALUE writer) {
-  return Qnil;
-}
+void empty_write_attributes(VALUE obj,
+                            VALUE attributes,
+                            EachAttributeFunc func,
+                            VALUE writer) {}
 
 AttributesWriter create_empty_attributes_writer() {
   return (AttributesWriter){.object_type = Unknown,
