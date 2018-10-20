@@ -49,8 +49,8 @@
         <div class="markdown-body"><h1 id="performance">Performance</h1>
 <p>The performance of Panko is measured using microbenchmarks and load testing.</p>
 <h2 id="microbenchmarks">Microbenchmarks</h2>
-<p>The following microbenchmarks are run on MacBook Pro (Retina, 15-inch, Mid 2015), Ruby 2.4 with Rails 4.2
-demonstrating the performance of ActiveModelSerializers 0.9 and Panko 0.3.3</p>
+<p>The following microbenchmarks are run on MacBook Pro (Retina, 15-inch, 2017), Ruby 2.5.1 with Rails 5.2.1
+demonstrating the performance of ActiveModelSerializers 0.10.7 and Panko 0.5.6</p>
 <table>
 <thead>
 <tr>
@@ -62,29 +62,26 @@ demonstrating the performance of ActiveModelSerializers 0.9 and Panko 0.3.3</p>
 <tbody>
 <tr>
 <td>Simple_Posts_2300</td>
-<td>25.81</td>
-<td>135.29</td>
+<td>9.47</td>
+<td>185.9</td>
 </tr>
 <tr>
 <td>Simple_Posts_50</td>
-<td>1,248.39</td>
-<td>6,518.68</td>
+<td>450.49</td>
+<td>9,237.66</td>
 </tr>
 <tr>
 <td>HasOne_Posts_2300</td>
-<td>11.33</td>
-<td>73.42</td>
+<td>4.27</td>
+<td>104.39</td>
 </tr>
 <tr>
 <td>HasOne_Posts_50</td>
-<td>523.14</td>
-<td>4,985.41</td>
+<td>219.67</td>
+<td>4,901.09</td>
 </tr>
 </tbody>
 </table>
-<blockquote>
-<p>The corresponding benchmarks are <code>benchmarks/bm_active_model_serializers.rb</code> and <code>benchmarks/bm_panko_json.rb</code></p>
-</blockquote>
 <h2 id="real-world-benchmark">Real-world benchmark</h2>
 <p>The real-world benchmark here is endpoint which serializes 7,884 entries with 48 attributes and no associations.
 The benchmark took place in environment that simulates production environment and run using <code>wrk</code> from machine on the same cluster.</p>
@@ -119,7 +116,7 @@ The benchmark took place in environment that simulates production environment an
 </tr>
 </tbody>
 </table>
-<p><em>Thanks to <a href="https://www.bringg.com">Bringg</a> for providing the infrastructrue for the benchmarks</em></p>
+<p><em>Thanks to <a href="https://www.bringg.com">Bringg</a> for providing the infrastructure for the benchmarks</em></p>
 
         </div>
         <div class="footer-nav">
