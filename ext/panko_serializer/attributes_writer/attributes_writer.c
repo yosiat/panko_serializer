@@ -1,4 +1,4 @@
-#include "writer.h"
+#include "attributes_writer.h"
 
 static bool types_initialized = false;
 static VALUE ar_base_type = Qundef;

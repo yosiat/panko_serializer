@@ -3,7 +3,7 @@
 #include <ruby.h>
 #include <stdbool.h>
 
-#include "attributes_writer/writer.h"
+#include "attributes_writer/attributes_writer.h"
 
 typedef struct _SerializationDescriptor {
   // type of the serializer, so we can create it later
