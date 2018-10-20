@@ -61,7 +61,7 @@ struct attributes init_context(VALUE obj) {
 
   if (RB_TYPE_P(lazy_attributes_hash, T_HASH)) {
     attributes_ctx.attributes_hash = lazy_attributes_hash;
-    attributes_ctx.shouldReadFromHash = false;
+    attributes_ctx.shouldReadFromHash = true;
   } else {
     volatile VALUE delegate_hash =
         rb_ivar_get(lazy_attributes_hash, delegate_hash_id);
