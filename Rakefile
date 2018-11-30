@@ -48,7 +48,7 @@ rescue PTY::ChildExited
   []
 end
 
-def run_benchmarks(files, items_count: 7_000)
+def run_benchmarks(files, items_count: 2_300)
   headings = ["Benchmark", "ip/s", "allocs/retained"]
   files.each do |benchmark_file|
 
