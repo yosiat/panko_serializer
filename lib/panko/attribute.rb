@@ -10,6 +10,7 @@ module Panko
     def ==(attr)
       return name.to_sym == attr if attr.is_a? Symbol
       return name == attr.name && alias_name == attr.alias_name if attr.is_a? Panko::Attribute
+
       super
     end
 

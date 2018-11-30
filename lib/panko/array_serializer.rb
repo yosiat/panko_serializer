@@ -30,19 +30,24 @@ Please pass valid each_serializer to ArraySerializer, for example:
       serialize_to_json @objects
     end
 
-    def serialize(objects)
-      Oj.load(serialize_to_json(objects))
+    def serialize(subjects)
+      serialize_with_writer(subjects, Panko::ObjectWriter.new).output
     end
 
     def to_a
-      Oj.load(serialize_to_json(@objects))
+      serialize_with_writer(@subjects, Panko::ObjectWriter.new).output
     end
 
-    def serialize_to_json(objects)
-      writer = Oj::StringWriter.new(mode: :rails)
+    def serialize_to_json(subjects)
+      serialize_with_writer(subjects, Oj::StringWriter.new(mode: :rails)).to_s
+    end
+
+    private
+
+    def serialize_with_writer(subjects, writer)
       Panko.serialize_objects(objects.to_a, writer, @descriptor)
       @descriptor.set_serialization_context(nil) unless @serialization_context.is_a?(EmptySerializerContext)
-      writer.to_s
+      writer
     end
   end
 end
