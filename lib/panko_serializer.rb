@@ -7,6 +7,7 @@ require "panko/serializer"
 require "panko/array_serializer"
 require "panko/response"
 require "panko/serializer_resolver"
+require "panko/object_writer"
 
 # C Extension
 require "oj"
