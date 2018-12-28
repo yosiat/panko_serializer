@@ -174,6 +174,20 @@ describe Panko::Serializer do
 
       expect(output).to eq("name" => nil, "address" => nil)
     end
+
+    it "preserves changed attributes" do
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+
+      foo.update!(name: "This is a new name")
+
+      serializer = FooSerializer.new
+
+      output = serializer.serialize foo
+      expect(output).to eq(
+        "name" => "This is a new name",
+        "address" => foo.address
+      )
+    end
   end
 
   context "context" do
