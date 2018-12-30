@@ -16,8 +16,7 @@ void write_value(VALUE str_writer, VALUE key, VALUE value) {
   rb_funcall(str_writer, push_value_id, 2, value, key);
 }
 
-void serialize_method_fields(VALUE subject,
-                             VALUE str_writer,
+void serialize_method_fields(VALUE subject, VALUE str_writer,
                              SerializationDescriptor descriptor) {
   if (RARRAY_LEN(descriptor->method_fields) == 0) {
     return;
@@ -43,8 +42,7 @@ void serialize_method_fields(VALUE subject,
   rb_ivar_set(serializer, object_id, Qnil);
 }
 
-void serialize_fields(VALUE subject,
-                      VALUE str_writer,
+void serialize_fields(VALUE subject, VALUE str_writer,
                       SerializationDescriptor descriptor) {
   descriptor->attributes_writer.write_attributes(
       subject, descriptor->attributes, write_value, str_writer);
@@ -52,8 +50,7 @@ void serialize_fields(VALUE subject,
   serialize_method_fields(subject, str_writer, descriptor);
 }
 
-void serialize_has_one_associations(VALUE subject,
-                                    VALUE str_writer,
+void serialize_has_one_associations(VALUE subject, VALUE str_writer,
                                     VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
@@ -71,8 +68,7 @@ void serialize_has_one_associations(VALUE subject,
   }
 }
 
-void serialize_has_many_associations(VALUE subject,
-                                     VALUE str_writer,
+void serialize_has_many_associations(VALUE subject, VALUE str_writer,
                                      VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
@@ -90,9 +86,7 @@ void serialize_has_many_associations(VALUE subject,
   }
 }
 
-VALUE serialize_subject(VALUE key,
-                        VALUE subject,
-                        VALUE str_writer,
+VALUE serialize_subject(VALUE key, VALUE subject, VALUE str_writer,
                         SerializationDescriptor descriptor) {
   sd_set_writer(descriptor, subject);
 
@@ -101,11 +95,13 @@ VALUE serialize_subject(VALUE key,
   serialize_fields(subject, str_writer, descriptor);
 
   if (RARRAY_LEN(descriptor->has_one_associations) > 0) {
-    serialize_has_one_associations(subject, str_writer, descriptor->has_one_associations);
+    serialize_has_one_associations(subject, str_writer,
+                                   descriptor->has_one_associations);
   }
 
   if (RARRAY_LEN(descriptor->has_many_associations) > 0) {
-    serialize_has_many_associations(subject, str_writer, descriptor->has_many_associations);
+    serialize_has_many_associations(subject, str_writer,
+                                    descriptor->has_many_associations);
   }
 
   rb_funcall(str_writer, pop_id, 0);
@@ -113,9 +109,7 @@ VALUE serialize_subject(VALUE key,
   return Qnil;
 }
 
-VALUE serialize_subjects(VALUE key,
-                         VALUE subjects,
-                         VALUE str_writer,
+VALUE serialize_subjects(VALUE key, VALUE subjects, VALUE str_writer,
                          SerializationDescriptor descriptor) {
   long i;
 
@@ -135,17 +129,13 @@ VALUE serialize_subjects(VALUE key,
   return Qnil;
 }
 
-VALUE serialize_subject_api(VALUE klass,
-                            VALUE subject,
-                            VALUE str_writer,
+VALUE serialize_subject_api(VALUE klass, VALUE subject, VALUE str_writer,
                             VALUE descriptor) {
   SerializationDescriptor sd = sd_read(descriptor);
   return serialize_subject(Qnil, subject, str_writer, sd);
 }
 
-VALUE serialize_subjects_api(VALUE klass,
-                             VALUE subjects,
-                             VALUE str_writer,
+VALUE serialize_subjects_api(VALUE klass, VALUE subjects, VALUE str_writer,
                              VALUE descriptor) {
   serialize_subjects(Qnil, subjects, str_writer, sd_read(descriptor));
 

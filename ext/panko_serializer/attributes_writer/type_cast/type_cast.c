@@ -212,13 +212,9 @@ bool is_json_type(VALUE type_klass) {
           (ar_json_type != Qundef && type_klass == ar_json_type));
 }
 
-VALUE rescue_func() {
-  return Qnil;
-}
+VALUE rescue_func() { return Qnil; }
 
-VALUE parse_json(VALUE value) {
-  return rb_funcall(oj_type, load_id, 1, value);
-}
+VALUE parse_json(VALUE value) { return rb_funcall(oj_type, load_id, 1, value); }
 
 VALUE cast_json_type(VALUE value) {
   if (!RB_TYPE_P(value, T_STRING)) {
@@ -230,9 +226,7 @@ VALUE cast_json_type(VALUE value) {
   return result;
 }
 
-bool is_boolean_type(VALUE type_klass) {
-  return type_klass == ar_boolean_type;
-}
+bool is_boolean_type(VALUE type_klass) { return type_klass == ar_boolean_type; }
 
 VALUE cast_boolean_type(VALUE value) {
   if (value == Qtrue || value == Qfalse) {

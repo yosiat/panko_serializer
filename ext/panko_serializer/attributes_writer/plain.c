@@ -1,9 +1,7 @@
 #include "plain.h"
 
-void plain_attributes_writer(VALUE obj,
-                             VALUE attributes,
-                             EachAttributeFunc func,
-                             VALUE writer) {
+void plain_attributes_writer(VALUE obj, VALUE attributes,
+                             EachAttributeFunc func, VALUE writer) {
   long i;
   for (i = 0; i < RARRAY_LEN(attributes); i++) {
     volatile VALUE raw_attribute = RARRAY_AREF(attributes, i);

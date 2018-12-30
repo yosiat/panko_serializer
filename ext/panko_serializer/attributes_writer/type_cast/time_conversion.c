@@ -25,9 +25,7 @@ VALUE is_iso8601_time_string(const char* value) {
   return r >= 0 ? Qtrue : Qfalse;
 }
 
-void append_region_str(const char* source,
-                       char** to,
-                       int regionBegin,
+void append_region_str(const char* source, char** to, int regionBegin,
                        int regionEnd) {
   long iter = 0;
   for (iter = regionBegin; iter < regionEnd; iter++) {
@@ -98,19 +96,19 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
 
     *cur++ = '.';
     if (value[19] == '.' && isdigit(value[20])) {
-      if(isdigit(value[20])) {
+      if (isdigit(value[20])) {
         *cur++ = value[20];
       } else {
         *cur++ = '0';
       }
 
-      if(isdigit(value[21])) {
+      if (isdigit(value[21])) {
         *cur++ = value[21];
       } else {
         *cur++ = '0';
       }
 
-      if(isdigit(value[22])) {
+      if (isdigit(value[22])) {
         *cur++ = value[22];
       } else {
         *cur++ = '0';

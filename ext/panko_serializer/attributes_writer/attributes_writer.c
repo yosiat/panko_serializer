@@ -27,17 +27,14 @@ AttributesWriter create_attributes_writer(VALUE subject) {
     return (AttributesWriter){
         .object_type = ActiveRecord,
         .write_attributes = active_record_attributes_writer};
-  } 
-    return (AttributesWriter){.object_type = Plain,
-                              .write_attributes = plain_attributes_writer};
-  
+  }
+  return (AttributesWriter){.object_type = Plain,
+                            .write_attributes = plain_attributes_writer};
 
   return create_empty_attributes_writer();
 }
 
-void empty_write_attributes(VALUE obj,
-                            VALUE attributes,
-                            EachAttributeFunc func,
+void empty_write_attributes(VALUE obj, VALUE attributes, EachAttributeFunc func,
                             VALUE writer) {}
 
 AttributesWriter create_empty_attributes_writer() {

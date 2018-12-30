@@ -21,10 +21,8 @@ VALUE panko_read_lazy_attributes_hash(VALUE object) {
   return lazy_attributes_hash;
 }
 
-void read_attribute_from_hash(VALUE attributes_hash,
-                              VALUE member,
-                              volatile VALUE* value,
-                              volatile VALUE* type) {
+void read_attribute_from_hash(VALUE attributes_hash, VALUE member,
+                              volatile VALUE* value, volatile VALUE* type) {
   volatile VALUE attribute_metadata = rb_hash_aref(attributes_hash, member);
   if (attribute_metadata != Qnil) {
     *value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
@@ -116,10 +114,8 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   return value;
 }
 
-void active_record_attributes_writer(VALUE obj,
-                                     VALUE attributes,
-                                     EachAttributeFunc func,
-                                     VALUE writer) {
+void active_record_attributes_writer(VALUE obj, VALUE attributes,
+                                     EachAttributeFunc func, VALUE writer) {
   long i;
   struct attributes attributes_ctx = init_context(obj);
   volatile VALUE record_class = CLASS_OF(obj);
