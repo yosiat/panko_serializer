@@ -21,18 +21,6 @@ VALUE panko_read_lazy_attributes_hash(VALUE object) {
   return lazy_attributes_hash;
 }
 
-void read_attribute_from_hash(VALUE attributes_hash, VALUE member,
-                              volatile VALUE* value, volatile VALUE* type) {
-  volatile VALUE attribute_metadata = rb_hash_aref(attributes_hash, member);
-  if (attribute_metadata != Qnil) {
-    *value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
-
-    if (NIL_P(*type)) {
-      *type = rb_ivar_get(attribute_metadata, type_id);
-    }
-  }
-}
-
 struct attributes {
   VALUE attributes_hash;
 
@@ -82,19 +70,28 @@ struct attributes init_context(VALUE obj) {
 }
 
 VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
-  VALUE member = attribute->name_str;
-  volatile VALUE value = Qundef;
+  volatile VALUE member, value, attribute_metadata;
 
-  if (!NIL_P(attributes_ctx.values)) {
+  member = attribute->name_str;
+  value = Qundef;
+
+  if (attributes_ctx.shouldReadFromHash == true) {
+    volatile VALUE attribute_metadata =
+        rb_hash_aref(attributes_ctx.attributes_hash, member);
+    if (attribute_metadata != Qnil) {
+      value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
+
+      if (NIL_P(attribute->type)) {
+        attribute->type = rb_ivar_get(attribute_metadata, type_id);
+      }
+    }
+  }
+
+  if (value == Qundef && !NIL_P(attributes_ctx.values)) {
     value = rb_hash_aref(attributes_ctx.values, member);
     if (NIL_P(value)) {
       value = Qundef;
     }
-  }
-
-  if (value == Qundef && attributes_ctx.shouldReadFromHash == true) {
-    read_attribute_from_hash(attributes_ctx.attributes_hash, member, &value,
-                             &attribute->type);
   }
 
   if (NIL_P(attribute->type) && !NIL_P(value)) {
