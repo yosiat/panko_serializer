@@ -19,7 +19,7 @@ typedef struct _Attribute {
 } * Attribute;
 
 Attribute attribute_read(VALUE attribute);
-void attribute_try_invalidate(Attribute attribute, VALUE record);
+void attribute_try_invalidate(Attribute attribute, VALUE new_record_class);
 void panko_init_attribute(VALUE mPanko);
 
 #define PANKO_ATTRIBUTE_READ(attribute) (Attribute)DATA_PTR(attribute)

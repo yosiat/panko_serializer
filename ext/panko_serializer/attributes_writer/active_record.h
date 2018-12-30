@@ -11,6 +11,6 @@
 extern void active_record_attributes_writer(VALUE object,
                                             VALUE attributes,
                                             EachAttributeFunc func,
-                                            VALUE context);
+                                            VALUE writer);
 
 void init_active_record_attributes_writer(VALUE mPanko);

@@ -27,10 +27,10 @@ AttributesWriter create_attributes_writer(VALUE subject) {
     return (AttributesWriter){
         .object_type = ActiveRecord,
         .write_attributes = active_record_attributes_writer};
-  } else {
+  } 
     return (AttributesWriter){.object_type = Plain,
                               .write_attributes = plain_attributes_writer};
-  }
+  
 
   return create_empty_attributes_writer();
 }
