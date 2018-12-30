@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class Panko::ObjectWriter
-  attr_reader :output
-
   def initialize
     @values = []
     @keys = []
@@ -26,10 +24,13 @@ class Panko::ObjectWriter
   end
 
   def push_value(value, key = nil)
-    key ||= @next_key
+    unless @next_key.nil?
+      raise "push_value is called with key after push_key is called" unless key.nil?
+      key = @next_key
+      @next_key = nil
+    end
 
     @values.last[key] = value
-    @next_key = nil
   end
 
   def pop
@@ -46,5 +47,10 @@ class Panko::ObjectWriter
     else
       @values.last[scope_key] = result
     end
+  end
+
+  def output
+    raise "Output is called before poping all" unless @values.empty?
+    @output
   end
 end

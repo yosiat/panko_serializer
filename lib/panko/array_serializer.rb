@@ -2,10 +2,10 @@
 
 module Panko
   class ArraySerializer
-    attr_accessor :objects
+    attr_accessor :subjects
 
-    def initialize(objects, options = {})
-      @objects = objects
+    def initialize(subjects, options = {})
+      @subjects = subjects
       @each_serializer = options[:each_serializer]
 
       if @each_serializer.nil?
@@ -27,7 +27,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
     end
 
     def to_json
-      serialize_to_json @objects
+      serialize_to_json @subjects
     end
 
     def serialize(subjects)
@@ -45,7 +45,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
     private
 
     def serialize_with_writer(subjects, writer)
-      Panko.serialize_objects(objects.to_a, writer, @descriptor)
+      Panko.serialize_objects(subjects.to_a, writer, @descriptor)
       @descriptor.set_serialization_context(nil) unless @serialization_context.is_a?(EmptySerializerContext)
       writer
     end
