@@ -133,7 +133,7 @@ VALUE sd_aliases_set(VALUE self, VALUE aliases) {
   return Qnil;
 }
 
-VALUE sd_aliases_aref(VALUE self, VALUE aliases) {
+VALUE sd_aliases_aref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->aliases;
 }

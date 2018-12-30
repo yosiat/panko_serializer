@@ -54,7 +54,6 @@ void serialize_fields(VALUE subject,
 
 void serialize_has_one_associations(VALUE subject,
                                     VALUE str_writer,
-                                    SerializationDescriptor descriptor,
                                     VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
@@ -74,7 +73,6 @@ void serialize_has_one_associations(VALUE subject,
 
 void serialize_has_many_associations(VALUE subject,
                                      VALUE str_writer,
-                                     SerializationDescriptor descriptor,
                                      VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
@@ -103,13 +101,11 @@ VALUE serialize_subject(VALUE key,
   serialize_fields(subject, str_writer, descriptor);
 
   if (RARRAY_LEN(descriptor->has_one_associations) > 0) {
-    serialize_has_one_associations(subject, str_writer, descriptor,
-                                   descriptor->has_one_associations);
+    serialize_has_one_associations(subject, str_writer, descriptor->has_one_associations);
   }
 
   if (RARRAY_LEN(descriptor->has_many_associations) > 0) {
-    serialize_has_many_associations(subject, str_writer, descriptor,
-                                    descriptor->has_many_associations);
+    serialize_has_many_associations(subject, str_writer, descriptor->has_many_associations);
   }
 
   rb_funcall(str_writer, pop_id, 0);
