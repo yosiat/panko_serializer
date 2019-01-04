@@ -70,7 +70,7 @@ struct attributes init_context(VALUE obj) {
 }
 
 VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
-  volatile VALUE member, value, attribute_metadata;
+  volatile VALUE member, value;
 
   member = attribute->name_str;
   value = Qundef;
