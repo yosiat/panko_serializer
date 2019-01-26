@@ -25,3 +25,7 @@ env:
   matrix:
   - "RAILS_VERSION=4.2.0"
   - "RAILS_VERSION=5.2.0"
+
+matrix:
+  allow_failures:
+    - "RAILS_VERSION=6.0.0.beta1"
