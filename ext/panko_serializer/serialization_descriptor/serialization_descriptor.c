@@ -50,12 +50,12 @@ SerializationDescriptor sd_read(VALUE descriptor) {
   return (SerializationDescriptor)DATA_PTR(descriptor);
 }
 
-void sd_set_writer(SerializationDescriptor sd, VALUE subject) {
+void sd_set_writer(SerializationDescriptor sd, VALUE object) {
   if (sd->attributes_writer.object_type != Unknown) {
     return;
   }
 
-  sd->attributes_writer = create_attributes_writer(subject);
+  sd->attributes_writer = create_attributes_writer(object);
 }
 
 VALUE sd_serializer_set(VALUE self, VALUE serializer) {

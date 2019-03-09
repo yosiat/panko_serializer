@@ -11,16 +11,14 @@ enum ObjectType { Unknown = 0, ActiveRecord = 1, Plain = 2 };
 typedef struct _AttributesWriter {
   enum ObjectType object_type;
 
-  void (*write_attributes)(VALUE object,
-                           VALUE attributes,
-                           EachAttributeFunc func,
-                           VALUE context);
+  void (*write_attributes)(VALUE object, VALUE attributes,
+                           EachAttributeFunc func, VALUE context);
 } AttributesWriter;
 
 /**
- * Infers the attributes writer from the subject type
+ * Infers the attributes writer from the object type
  */
-AttributesWriter create_attributes_writer(VALUE subject);
+AttributesWriter create_attributes_writer(VALUE object);
 
 /**
  * Creates empty writer

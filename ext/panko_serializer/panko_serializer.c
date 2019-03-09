@@ -16,7 +16,7 @@ void write_value(VALUE str_writer, VALUE key, VALUE value) {
   rb_funcall(str_writer, push_value_id, 2, value, key);
 }
 
-void serialize_method_fields(VALUE subject, VALUE str_writer,
+void serialize_method_fields(VALUE object, VALUE str_writer,
                              SerializationDescriptor descriptor) {
   if (RARRAY_LEN(descriptor->method_fields) == 0) {
     return;
@@ -28,7 +28,7 @@ void serialize_method_fields(VALUE subject, VALUE str_writer,
   method_fields = descriptor->method_fields;
 
   serializer = descriptor->serializer;
-  rb_ivar_set(serializer, object_id, subject);
+  rb_ivar_set(serializer, object_id, object);
 
   for (i = 0; i < RARRAY_LEN(method_fields); i++) {
     volatile VALUE raw_attribute = RARRAY_AREF(method_fields, i);
@@ -42,65 +42,65 @@ void serialize_method_fields(VALUE subject, VALUE str_writer,
   rb_ivar_set(serializer, object_id, Qnil);
 }
 
-void serialize_fields(VALUE subject, VALUE str_writer,
+void serialize_fields(VALUE object, VALUE str_writer,
                       SerializationDescriptor descriptor) {
-  descriptor->attributes_writer.write_attributes(
-      subject, descriptor->attributes, write_value, str_writer);
+  descriptor->attributes_writer.write_attributes(object, descriptor->attributes,
+                                                 write_value, str_writer);
 
-  serialize_method_fields(subject, str_writer, descriptor);
+  serialize_method_fields(object, str_writer, descriptor);
 }
 
-void serialize_has_one_associations(VALUE subject, VALUE str_writer,
+void serialize_has_one_associations(VALUE object, VALUE str_writer,
                                     VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
     volatile VALUE association_el = RARRAY_AREF(associations, i);
     Association association = association_read(association_el);
 
-    volatile VALUE value = rb_funcall(subject, association->name_id, 0);
+    volatile VALUE value = rb_funcall(object, association->name_id, 0);
 
     if (NIL_P(value)) {
       write_value(str_writer, association->name_str, value);
     } else {
-      serialize_subject(association->name_str, value, str_writer,
-                        association->descriptor);
+      serialize_object(association->name_str, value, str_writer,
+                       association->descriptor);
     }
   }
 }
 
-void serialize_has_many_associations(VALUE subject, VALUE str_writer,
+void serialize_has_many_associations(VALUE object, VALUE str_writer,
                                      VALUE associations) {
   long i;
   for (i = 0; i < RARRAY_LEN(associations); i++) {
     volatile VALUE association_el = RARRAY_AREF(associations, i);
     Association association = association_read(association_el);
 
-    volatile VALUE value = rb_funcall(subject, association->name_id, 0);
+    volatile VALUE value = rb_funcall(object, association->name_id, 0);
 
     if (NIL_P(value)) {
       write_value(str_writer, association->name_str, value);
     } else {
-      serialize_subjects(association->name_str, value, str_writer,
-                         association->descriptor);
+      serialize_objects(association->name_str, value, str_writer,
+                        association->descriptor);
     }
   }
 }
 
-VALUE serialize_subject(VALUE key, VALUE subject, VALUE str_writer,
-                        SerializationDescriptor descriptor) {
-  sd_set_writer(descriptor, subject);
+VALUE serialize_object(VALUE key, VALUE object, VALUE str_writer,
+                       SerializationDescriptor descriptor) {
+  sd_set_writer(descriptor, object);
 
   rb_funcall(str_writer, push_object_id, 1, key);
 
-  serialize_fields(subject, str_writer, descriptor);
+  serialize_fields(object, str_writer, descriptor);
 
   if (RARRAY_LEN(descriptor->has_one_associations) > 0) {
-    serialize_has_one_associations(subject, str_writer,
+    serialize_has_one_associations(object, str_writer,
                                    descriptor->has_one_associations);
   }
 
   if (RARRAY_LEN(descriptor->has_many_associations) > 0) {
-    serialize_has_many_associations(subject, str_writer,
+    serialize_has_many_associations(object, str_writer,
                                     descriptor->has_many_associations);
   }
 
@@ -109,19 +109,19 @@ VALUE serialize_subject(VALUE key, VALUE subject, VALUE str_writer,
   return Qnil;
 }
 
-VALUE serialize_subjects(VALUE key, VALUE subjects, VALUE str_writer,
-                         SerializationDescriptor descriptor) {
+VALUE serialize_objects(VALUE key, VALUE objects, VALUE str_writer,
+                        SerializationDescriptor descriptor) {
   long i;
 
   rb_funcall(str_writer, push_array_id, 1, key);
 
-  if (!RB_TYPE_P(subjects, T_ARRAY)) {
-    subjects = rb_funcall(subjects, to_a_id, 0);
+  if (!RB_TYPE_P(objects, T_ARRAY)) {
+    objects = rb_funcall(objects, to_a_id, 0);
   }
 
-  for (i = 0; i < RARRAY_LEN(subjects); i++) {
-    volatile VALUE subject = RARRAY_AREF(subjects, i);
-    serialize_subject(Qnil, subject, str_writer, descriptor);
+  for (i = 0; i < RARRAY_LEN(objects); i++) {
+    volatile VALUE object = RARRAY_AREF(objects, i);
+    serialize_object(Qnil, object, str_writer, descriptor);
   }
 
   rb_funcall(str_writer, pop_id, 0);
@@ -129,15 +129,15 @@ VALUE serialize_subjects(VALUE key, VALUE subjects, VALUE str_writer,
   return Qnil;
 }
 
-VALUE serialize_subject_api(VALUE klass, VALUE subject, VALUE str_writer,
-                            VALUE descriptor) {
+VALUE serialize_object_api(VALUE klass, VALUE object, VALUE str_writer,
+                           VALUE descriptor) {
   SerializationDescriptor sd = sd_read(descriptor);
-  return serialize_subject(Qnil, subject, str_writer, sd);
+  return serialize_object(Qnil, object, str_writer, sd);
 }
 
-VALUE serialize_subjects_api(VALUE klass, VALUE subjects, VALUE str_writer,
-                             VALUE descriptor) {
-  serialize_subjects(Qnil, subjects, str_writer, sd_read(descriptor));
+VALUE serialize_objects_api(VALUE klass, VALUE objects, VALUE str_writer,
+                            VALUE descriptor) {
+  serialize_objects(Qnil, objects, str_writer, sd_read(descriptor));
 
   return Qnil;
 }
@@ -153,11 +153,11 @@ void Init_panko_serializer() {
 
   VALUE mPanko = rb_define_module("Panko");
 
-  rb_define_singleton_method(mPanko, "serialize_subject", serialize_subject_api,
+  rb_define_singleton_method(mPanko, "serialize_object", serialize_object_api,
                              3);
 
-  rb_define_singleton_method(mPanko, "serialize_subjects",
-                             serialize_subjects_api, 3);
+  rb_define_singleton_method(mPanko, "serialize_objects", serialize_objects_api,
+                             3);
 
   panko_init_serialization_descriptor(mPanko);
   init_attributes_writer(mPanko);

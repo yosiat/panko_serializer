@@ -120,7 +120,7 @@ module Panko
 
     def serialize_to_json(object)
       writer = Oj::StringWriter.new(mode: :rails)
-      Panko.serialize_subject(object, writer, @descriptor)
+      Panko.serialize_object(object, writer, @descriptor)
       @descriptor.set_serialization_context(nil) unless @serialization_context.is_a?(EmptySerializerContext)
       writer.to_s
     end

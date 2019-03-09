@@ -5,12 +5,8 @@
 #include "serialization_descriptor/attribute.h"
 #include "serialization_descriptor/serialization_descriptor.h"
 
-VALUE serialize_subject(VALUE key,
-                        VALUE subject,
-                        VALUE str_writer,
-                        SerializationDescriptor descriptor);
+VALUE serialize_object(VALUE key, VALUE object, VALUE str_writer,
+                       SerializationDescriptor descriptor);
 
-VALUE serialize_subjects(VALUE key,
-                         VALUE subjects,
-                         VALUE str_writer,
-                         SerializationDescriptor descriptor);
+VALUE serialize_objects(VALUE key, VALUE objects, VALUE str_writer,
+                        SerializationDescriptor descriptor);

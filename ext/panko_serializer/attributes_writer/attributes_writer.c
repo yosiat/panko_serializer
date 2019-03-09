@@ -17,13 +17,13 @@ VALUE init_types(VALUE v) {
   return Qundef;
 }
 
-AttributesWriter create_attributes_writer(VALUE subject) {
+AttributesWriter create_attributes_writer(VALUE object) {
   // If ActiveRecord::Base can't be found it will throw error
   int isErrored;
   rb_protect(init_types, Qnil, &isErrored);
 
   if (ar_base_type != Qundef &&
-      rb_obj_is_kind_of(subject, ar_base_type) == Qtrue) {
+      rb_obj_is_kind_of(object, ar_base_type) == Qtrue) {
     return (AttributesWriter){
         .object_type = ActiveRecord,
         .write_attributes = active_record_attributes_writer};
