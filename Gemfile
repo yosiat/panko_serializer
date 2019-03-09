@@ -11,8 +11,8 @@ gem "activemodel", rails_version
 gem "activerecord", rails_version, group: :test
 
 group :benchmarks do
-  gem "sqlite3"
-  gem "pg", "0.21"
+  gem "sqlite3", "~> 1.3.6"
+  gem "pg"
 
   gem "memory_profiler"
   gem "ruby-prof"
