@@ -12,7 +12,12 @@ gem "activerecord", rails_version, group: :test
 
 group :benchmarks do
   gem "sqlite3", "~> 1.3.6"
-  gem "pg", "1.1.4"
+
+  if raw_rails_version.include? "4.2"
+    gem "pg", "~> 0.15"
+  else
+    gem "pg", ">= 0.18", "< 2.0"
+  end
 
   gem "memory_profiler"
   gem "ruby-prof"
