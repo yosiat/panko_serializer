@@ -31,15 +31,12 @@ def run_process(cmd)
   puts "> Running #{cmd}"
   lines = []
   PTY.spawn(cmd) do |stdout, stdin, pid|
-    begin
-      stdout.each do |line|
-        print_and_flush '.'
-        lines << line
-      end
-    rescue Errno::EIO
-      puts "Errno:EIO error, but this probably just means " +
-            "that the process has finished giving output - #{cmd}"
+    stdout.each do |line|
+      print_and_flush '.'
+      lines << line
     end
+  rescue Errno::EIO
+    # ignore this
   end
 
   lines
@@ -57,7 +54,7 @@ def run_benchmarks(files, items_count: 2_300)
       row = JSON.parse(line)
       row.values
     rescue JSON::ParserError
-      puts "> Failed running #{benchmark_file} - #{lines.join}"
+      puts "> [ERROR] Failed running #{benchmark_file} - #{lines.join}"
     end
 
     puts "\n\n"
