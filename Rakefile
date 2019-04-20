@@ -31,12 +31,14 @@ def run_process(cmd)
   puts "> Running #{cmd}"
   lines = []
   PTY.spawn(cmd) do |stdout, stdin, pid|
-    stdout.each do |line|
-      print_and_flush '.'
-      lines << line
+    begin
+      stdout.each do |line|
+        print_and_flush '.'
+        lines << line
+      end
+    rescue Errno::EIO
+      # ignore this
     end
-  rescue Errno::EIO
-    # ignore this
   end
 
   lines
@@ -51,10 +53,12 @@ def run_benchmarks(files, items_count: 2_300)
 
     lines = run_process "ITEMS_COUNT=#{items_count} RAILS_ENV=production ruby #{benchmark_file}"
     rows = lines.map do |line|
-      row = JSON.parse(line)
-      row.values
-    rescue JSON::ParserError
-      puts "> [ERROR] Failed running #{benchmark_file} - #{lines.join}"
+      begin
+        row = JSON.parse(line)
+        row.values
+      rescue JSON::ParserError
+        puts "> [ERROR] Failed running #{benchmark_file} - #{lines.join}"
+      end
     end
 
     puts "\n\n"
