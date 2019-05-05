@@ -86,7 +86,7 @@ Sometimes you find yourself have the same filtering logic in actions in order to
 class UserSerializer < Panko::Serializer
   attributes :id, :name, :email
 
-  def self.filters_for(context)
+  def self.filters_for(context, scope)
     {
       only: [:name]
     }
