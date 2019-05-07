@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "panko/version"
+require "panko/group"
 require "panko/attribute"
 require "panko/association"
 require "panko/serializer"
