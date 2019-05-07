@@ -51,9 +51,16 @@ module Panko
       end
 
       attr_accessor :_descriptor
+      attr_accessor :_default_attributes
+      attr_accessor :_groups
+
+      def _default_attributes
+        @_default_attributes ||= []
+      end
 
       def attributes(*attrs)
-        @_descriptor.attributes.push(*attrs.map { |attr| Attribute.create(attr) }).uniq!
+        self._default_attributes += attrs
+        _attributes(*attrs)
       end
 
       def aliases(aliases = {})
@@ -69,6 +76,61 @@ module Panko
       end
 
       def has_one(name, options = {})
+        self._default_attributes << name
+        _has_one(name, options)
+      end
+
+      def has_many(name, options = {})
+        self._default_attributes << name
+        _has_many(name, options)
+      end
+
+      def group(*groups_names, &block)
+        def group_has_one(name, options = {})
+          add_groups_field(@group_name, name)
+          _has_one(name, options)
+        end
+
+        def group_has_many(name, options = {})
+          add_groups_field(@group_name, name)
+          _has_many(name, options)
+        end
+
+        def group_attributes(*attrs)
+          attrs.each { |attr| add_groups_field(@group_name, attr) }
+          _attributes(*attrs)
+        end
+
+        init_groups(groups_names, &block)
+      end
+
+      private
+
+      def filters_for_groups(group)
+        return {only: _default_attributes} if !@_groups[group] or !group
+        @_groups[group].make_filter()
+      end
+
+      def init_groups(groups_names, &block)
+        groups_names.each do |group_name|
+          @group_name = group_name
+          block.call
+        end
+      end
+
+      def add_groups_field(group_name, value)
+        if value
+          @_groups                    ||= {}
+          @_groups[group_name.to_sym] ||= Group.new(serializer: self)
+          @_groups[group_name.to_sym].fields << value
+        end
+      end
+
+      def _attributes(*attrs)
+        @_descriptor.attributes.push(*attrs.map { |attr| Attribute.create(attr) }).uniq!
+      end
+
+      def _has_one(name, options = {})
         serializer_const = options[:serializer]
         serializer_const = Panko::SerializerResolver.resolve(name.to_s) if serializer_const.nil?
 
@@ -81,7 +143,7 @@ module Panko
         )
       end
 
-      def has_many(name, options = {})
+      def _has_many(name, options = {})
         serializer_const = options[:serializer] || options[:each_serializer]
         serializer_const = Panko::SerializerResolver.resolve(name.to_s) if serializer_const.nil?
 
