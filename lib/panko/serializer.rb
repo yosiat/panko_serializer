@@ -112,7 +112,7 @@ module Panko
       private
 
       def filters_for_groups(group)
-        return {only: _default_attributes} if !@_groups[group] or !group
+        return {only: _default_attributes} if !@_groups&.method(:[])&.call(group) or !group
         @_groups[group].make_filter()
       end
 
