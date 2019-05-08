@@ -53,6 +53,7 @@ module Panko
           base._descriptor = Panko::SerializationDescriptor.duplicate(_descriptor)
         end
         base._descriptor.type = base
+        base._default_attributes += _default_attributes
       end
 
       attr_accessor :_descriptor
@@ -70,8 +71,9 @@ module Panko
 
       def aliases(aliases = {})
         aliases.each do |attr, alias_name|
-          @_descriptor.attributes << Attribute.create(attr, alias_name: alias_name)
+          self._default_attributes << alias_name
         end
+        _aliases(aliases)
       end
 
       def method_added(method)
@@ -128,6 +130,12 @@ module Panko
           @_groups                    ||= {}
           @_groups[group_name.to_sym] ||= Group.new(serializer: self)
           @_groups[group_name.to_sym].fields << value
+        end
+      end
+
+      def _aliases(aliases = {})
+        aliases.each do |attr, alias_name|
+          @_descriptor.attributes << Attribute.create(attr, alias_name: alias_name)
         end
       end
 
