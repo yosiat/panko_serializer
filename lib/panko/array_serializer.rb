@@ -19,7 +19,8 @@ Please pass valid each_serializer to ArraySerializer, for example:
         only: options.fetch(:only, []),
         except: options.fetch(:except, []),
         context: options[:context],
-        scope: options[:scope]
+        scope: options[:scope],
+        group: options[:group]
       }
 
       @serialization_context = SerializationContext.create(options)
