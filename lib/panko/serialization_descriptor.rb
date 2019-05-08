@@ -7,8 +7,8 @@ module Panko
     # on the new descriptor
     #
     def self.build(serializer, options = {}, serialization_context = nil)
-      options.merge! serializer.send(:filters_for_groups, options[:group])
       options.merge! serializer.filters_for(options[:context], options[:scope]) if serializer.respond_to? :filters_for
+      options.merge! serializer.send(:filters_for_groups, options[:group]) if options[:only].nil? || options[:only].empty?
       
       backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
 
