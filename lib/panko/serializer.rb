@@ -4,16 +4,17 @@ require_relative "serialization_descriptor"
 require "oj"
 
 class SerializationContext
-  attr_accessor :context, :scope
+  attr_accessor :context, :scope, :group
 
-  def initialize(context, scope)
+  def initialize(context, scope, group)
     @context = context
     @scope = scope
+    @group = group
   end
 
   def self.create(options)
-    if options.key?(:context) || options.key?(:scope)
-      SerializationContext.new(options[:context], options[:scope])
+    if options.key?(:context) || options.key?(:scope) || options.key?(:group)
+      SerializationContext.new(options[:context], options[:scope], options[:group])
     else
       EmptySerializerContext.new
     end
@@ -26,6 +27,10 @@ class EmptySerializerContext
   end
 
   def context
+    nil
+  end
+
+  def group
     nil
   end
 end
@@ -171,6 +176,10 @@ module Panko
 
     def scope
       @serialization_context.scope
+    end
+
+    def group
+      @serialization_context.group
     end
 
     attr_writer :serialization_context
