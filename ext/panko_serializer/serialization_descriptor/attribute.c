@@ -48,7 +48,7 @@ Attribute attribute_read(VALUE attribute) {
 }
 
 void attribute_try_invalidate(Attribute attribute, VALUE new_record_class) {
-  if (rb_equal(attribute->record_class, new_record_class) == Qfalse) {
+  if (attribute->record_class != new_record_class) {
     attribute->type = Qnil;
     attribute->record_class = new_record_class;
 
