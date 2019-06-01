@@ -19,6 +19,7 @@ end
 
 RSpec::Core::RakeTask.new(:spec)
 Rake::Task[:spec].prerequisites << :compile
+Rake::Task[:compile].prerequisites << :clean
 
 task default: :spec
 
