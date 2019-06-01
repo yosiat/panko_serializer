@@ -30,7 +30,7 @@ class Panko::ObjectWriter
       @next_key = nil
     end
 
-    @values.last[key] = value
+    @values.last[key] = value.as_json
   end
 
   def pop

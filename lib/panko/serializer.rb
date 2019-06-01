@@ -116,7 +116,7 @@ module Panko
     attr_reader :object
 
     def serialize(object)
-      Oj.load serialize_with_writer(object, Oj::StringWriter.new(mode: :rails)).to_s
+      serialize_with_writer(object, Panko::ObjectWriter.new).output
     end
 
     def serialize_to_json(object)
@@ -127,7 +127,6 @@ module Panko
 
     def serialize_with_writer(object, writer)
       Panko.serialize_object(object, writer, @descriptor)
-      @descriptor.set_serialization_context(nil) unless @serialization_context.is_a?(EmptySerializerContext)
       writer
     end
   end
