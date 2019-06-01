@@ -73,11 +73,12 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   volatile VALUE member, value;
 
   member = attribute->name_str;
-  value = Qundef;
+  value = Qnil;
 
   if (attributes_ctx.shouldReadFromHash == true) {
     volatile VALUE attribute_metadata =
         rb_hash_aref(attributes_ctx.attributes_hash, member);
+
     if (attribute_metadata != Qnil) {
       value = rb_ivar_get(attribute_metadata, value_before_type_cast_id);
 
@@ -87,11 +88,8 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
     }
   }
 
-  if (value == Qundef && !NIL_P(attributes_ctx.values)) {
+  if (NIL_P(value) && !NIL_P(attributes_ctx.values)) {
     value = rb_hash_aref(attributes_ctx.values, member);
-    if (NIL_P(value)) {
-      value = Qundef;
-    }
   }
 
   if (NIL_P(attribute->type) && !NIL_P(value)) {
