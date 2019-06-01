@@ -33,3 +33,25 @@ RSpec.configure do |config|
     Foo.delete_all
   end
 end
+
+RSpec::Matchers.define :serialized_as do |serializer, output|
+  match do |object|
+    expect(serializer.serialize(object)).to eq(output)
+
+    json = Oj.load serializer.serialize_to_json(object)
+    expect(json).to eq(output)
+  end
+
+  failure_message do |object|
+    <<~FAILURE
+
+      Expected Output:
+      #{output}
+
+      Got:
+
+      Object: #{serializer.serialize(object)}
+      JSON: #{Oj.load(serializer.serialize_to_json(object))}
+    FAILURE
+  end
+end

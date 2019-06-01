@@ -46,7 +46,6 @@ Please pass valid each_serializer to ArraySerializer, for example:
 
     def serialize_with_writer(subjects, writer)
       Panko.serialize_objects(subjects.to_a, writer, @descriptor)
-      @descriptor.set_serialization_context(nil) unless @serialization_context.is_a?(EmptySerializerContext)
       writer
     end
   end
