@@ -29,7 +29,6 @@ struct attributes {
   VALUE values;
 
   // heuristicts
-  bool shouldReadFromHash;
   bool tryToReadFromAdditionalTypes;
 };
 
@@ -40,28 +39,22 @@ struct attributes init_context(VALUE obj) {
   attributes_ctx.types = Qnil;
   attributes_ctx.additional_types = Qnil;
 
-  attributes_ctx.shouldReadFromHash = false;
   attributes_ctx.tryToReadFromAdditionalTypes = false;
 
   volatile VALUE lazy_attributes_hash = panko_read_lazy_attributes_hash(obj);
 
   if (RB_TYPE_P(lazy_attributes_hash, T_HASH)) {
     attributes_ctx.attributes_hash = lazy_attributes_hash;
-    attributes_ctx.shouldReadFromHash = true;
   } else {
     volatile VALUE delegate_hash =
         rb_ivar_get(lazy_attributes_hash, delegate_hash_id);
-    size_t delegateHashSize = PANKO_SAFE_HASH_SIZE(delegate_hash);
 
-    if (delegateHashSize > 0) {
+    if (PANKO_EMPTY_HASH(delegate_hash) == false) {
       attributes_ctx.attributes_hash = delegate_hash;
     }
 
     attributes_ctx.types = rb_ivar_get(lazy_attributes_hash, types_id);
     attributes_ctx.values = rb_ivar_get(lazy_attributes_hash, values_id);
-
-    size_t valuesHashSize = PANKO_SAFE_HASH_SIZE(attributes_ctx.values);
-    attributes_ctx.shouldReadFromHash = delegateHashSize > valuesHashSize;
 
     attributes_ctx.additional_types =
         rb_ivar_get(lazy_attributes_hash, additional_types_id);
@@ -78,7 +71,8 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   member = attribute->name_str;
   value = Qnil;
 
-  if (attributes_ctx.shouldReadFromHash == true) {
+
+  if (!NIL_P(attributes_ctx.attributes_hash)) {
     volatile VALUE attribute_metadata =
         rb_hash_aref(attributes_ctx.attributes_hash, member);
 
@@ -94,6 +88,7 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   if (NIL_P(value) && !NIL_P(attributes_ctx.values)) {
     value = rb_hash_aref(attributes_ctx.values, member);
   }
+
 
   if (NIL_P(attribute->type) && !NIL_P(value)) {
     if (attributes_ctx.tryToReadFromAdditionalTypes == true) {
