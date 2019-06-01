@@ -51,14 +51,17 @@ struct attributes init_context(VALUE obj) {
   } else {
     volatile VALUE delegate_hash =
         rb_ivar_get(lazy_attributes_hash, delegate_hash_id);
+    size_t delegateHashSize = PANKO_SAFE_HASH_SIZE(delegate_hash);
 
-    if (PANKO_EMPTY_HASH(delegate_hash) == false) {
+    if (delegateHashSize > 0) {
       attributes_ctx.attributes_hash = delegate_hash;
-      attributes_ctx.shouldReadFromHash = true;
     }
 
     attributes_ctx.types = rb_ivar_get(lazy_attributes_hash, types_id);
     attributes_ctx.values = rb_ivar_get(lazy_attributes_hash, values_id);
+
+    size_t valuesHashSize = PANKO_SAFE_HASH_SIZE(attributes_ctx.values);
+    attributes_ctx.shouldReadFromHash = delegateHashSize > valuesHashSize;
 
     attributes_ctx.additional_types =
         rb_ivar_get(lazy_attributes_hash, additional_types_id);
