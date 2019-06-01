@@ -120,7 +120,7 @@ UserSerializer.new(<span class="hljs-symbol">except:</span> [<span class="hljs-s
 <pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">UserSerializer</span> &lt; Panko::Serializer</span>
   attributes <span class="hljs-symbol">:id</span>, <span class="hljs-symbol">:name</span>, <span class="hljs-symbol">:email</span>
 
-  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">self</span>.<span class="pl-ent">filters_for</span><span class="hljs-params">(context)</span></span>
+  <span class="hljs-function"><span class="pl-k">def</span> <span class="pl-ent">self</span>.<span class="pl-ent">filters_for</span><span class="hljs-params">(context, scope)</span></span>
     {
       <span class="hljs-symbol">only:</span> [<span class="hljs-symbol">:name</span>]
     }
