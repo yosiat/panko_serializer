@@ -93,43 +93,54 @@ module Panko
       end
 
       def group(*groups_names, &block)
-        def group_has_one(name, options = {})
-          add_groups_field(@group_name, name)
-          _has_one(name, options)
-        end
+        new_methods = Proc.new do
+          def group_has_one(name, options = {})
+            add_groups_field(@group_name, name)
+            _has_one(name, options)
+          end
 
-        def group_has_many(name, options = {})
-          add_groups_field(@group_name, name)
-          _has_many(name, options)
-        end
+          def group_has_many(name, options = {})
+            add_groups_field(@group_name, name)
+            _has_many(name, options)
+          end
 
-        def group_attributes(*attrs)
-          attrs.each { |attr| add_groups_field(@group_name, attr) }
-          _attributes(*attrs)
+          def group_attributes(*attrs)
+            attrs.each { |attr| add_groups_field(@group_name, attr) }
+            _attributes(*attrs)
+          end
         end
-
-        init_groups(groups_names, &block)
+        
+        combine_block = Proc.new { block.call(new_methods.call) }
+        
+        init_groups(groups_names, combine_block)
       end
 
       private
 
       def filters_for_groups(group)
         return {only: _default_attributes} if !@_groups&.method(:[])&.call(group) or !group
+        @group_name = group
+        @_groups[group].block.call
         @_groups[group].make_filter()
       end
 
-      def init_groups(groups_names, &block)
+      def init_groups(groups_names, block)
         groups_names.each do |group_name|
-          @group_name = group_name
-          block.call
+          add_groups_block(group_name, block)
         end
       end
 
       def add_groups_field(group_name, value)
         if value
+          @_groups[group_name.to_sym].fields << value
+        end
+      end
+
+      def add_groups_block(group_name, block)
+        if block
           @_groups                    ||= {}
           @_groups[group_name.to_sym] ||= Group.new(serializer: self)
-          @_groups[group_name.to_sym].fields << value
+          @_groups[group_name.to_sym].block  = block
         end
       end
 

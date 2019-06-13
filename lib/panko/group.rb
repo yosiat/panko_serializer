@@ -4,10 +4,12 @@ module Panko
   class Group
     attr_accessor :serializer
     attr_accessor :fields
+    attr_accessor :block
 
-    def initialize(serializer: nil, fields: [])
+    def initialize(serializer: nil, fields: [], block: ->{})
       self.serializer = serializer
       self.fields     = fields
+      self.block      = block
     end
 
     def make_filter
