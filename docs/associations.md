@@ -5,7 +5,7 @@ A serializer can define it's own associations - both `has_many` and `has_one` to
 For example:
 
 ```ruby
-class PostSerializer < Panko::Serailizer
+class PostSerializer < Panko::Serializer
   attributes :title, :body
 
   has_one :author, serializer: AuthorSerializer
@@ -19,7 +19,7 @@ Panko can find the type of the serializer by looking at the realtionship name, s
 the serializer at the above example, we can -
 
 ```ruby
-class PostSerializer < Panko::Serailizer
+class PostSerializer < Panko::Serializer
   attributes :title, :body
 
   has_one :author
