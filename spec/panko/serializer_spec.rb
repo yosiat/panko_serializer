@@ -78,7 +78,7 @@ describe Panko::Serializer do
                                                "something" => "#{foo.name} #{foo.address}")
     end
 
-    it "supports serailizer inheritance" do
+    it "supports serializer inheritance" do
       class BaseSerializer < Panko::Serializer
         attributes :name
       end
