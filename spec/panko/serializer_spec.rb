@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-
 require "spec_helper"
 require "active_record/connection_adapters/postgresql_adapter"
 
@@ -40,6 +39,39 @@ describe Panko::Serializer do
       expect(foo).to serialized_as(FooSerializer,
                                    "name" => foo.name,
                                    "address" => foo.address)
+    end
+
+    it "hash (with string keys)" do
+      foo = {
+        "name" => Faker::Lorem.word,
+        "address" => Faker::Lorem.word
+      }
+
+      expect(foo).to serialized_as(FooSerializer,
+                                   "name" => foo["name"],
+                                   "address" => foo["address"])
+    end
+
+    it "HashWithIndifferentAccess (with symbol keys)" do
+      foo = ActiveSupport::HashWithIndifferentAccess.new(
+        name: Faker::Lorem.word,
+        address: Faker::Lorem.word
+      )
+
+      expect(foo).to serialized_as(FooSerializer,
+                                   "name" => foo["name"],
+                                   "address" => foo["address"])
+    end
+
+    it "HashWithIndifferentAccess (with string keys)" do
+      foo = ActiveSupport::HashWithIndifferentAccess.new(
+        "name" => Faker::Lorem.word,
+        "address" => Faker::Lorem.word
+      )
+
+      expect(foo).to serialized_as(FooSerializer,
+                                   "name" => foo["name"],
+                                   "address" => foo["address"])
     end
   end
 
@@ -167,7 +199,7 @@ describe Panko::Serializer do
       end
 
       context = { value: Faker::Lorem.word }
-      serializer_factory = -> { FooWithContextSerializer.new(context: context) } 
+      serializer_factory = -> { FooWithContextSerializer.new(context: context) }
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
       expect(foo).to serialized_as(serializer_factory,
@@ -197,7 +229,7 @@ describe Panko::Serializer do
 
     it "passes scope to attribute methods" do
       scope = 123
-      serializer_factory = -> { FooHolderWithScopeSerializer.new(scope: scope) } 
+      serializer_factory = -> { FooHolderWithScopeSerializer.new(scope: scope) }
 
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
