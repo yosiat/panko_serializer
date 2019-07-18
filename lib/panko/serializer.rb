@@ -102,6 +102,7 @@ module Panko
 
       @serialization_context = SerializationContext.create(options)
       @descriptor = Panko::SerializationDescriptor.build(self.class, options, @serialization_context)
+      @used = false
     end
 
     def context
@@ -126,7 +127,9 @@ module Panko
     private
 
     def serialize_with_writer(object, writer)
+      raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
       Panko.serialize_object(object, writer, @descriptor)
+      @used = true
       writer
     end
   end
