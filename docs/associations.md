@@ -13,6 +13,20 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
+# Associations with aliases
+
+An association key name can be aliased with the `name` option.
+
+For example:
+the `actual_author` property will be converted to `alias_author`.
+```ruby
+class PostSerializer < Panko::Serializer
+  attributes :title, :body
+
+  has_one :actual_author, serializer: AuthorSerializer, name: alias_author
+  has_many :comments, each_serializer: CommentSerializer
+end
+```
 ### Inference
 
 Panko can find the type of the serializer by looking at the realtionship name, so instead specifying
