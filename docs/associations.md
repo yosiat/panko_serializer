@@ -23,7 +23,7 @@ the `actual_author` property will be converted to `alias_author`.
 class PostSerializer < Panko::Serializer
   attributes :title, :body
 
-  has_one :actual_author, serializer: AuthorSerializer, name: alias_author
+  has_one :actual_author, serializer: AuthorSerializer, name: :alias_author
   has_many :comments, each_serializer: CommentSerializer
 end
 ```
