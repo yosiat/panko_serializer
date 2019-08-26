@@ -80,11 +80,6 @@
             "slug": "associations",
             "headings": [
               {
-                "title": "Associations with aliases",
-                "depth": 3,
-                "id": "associations-with-aliases"
-              },
-              {
                 "title": "Inference",
                 "depth": 3,
                 "id": "inference"
@@ -242,11 +237,6 @@
       "pageTitle": "Associations",
       "slug": "associations",
       "headings": [
-        {
-          "title": "Associations with aliases",
-          "depth": 3,
-          "id": "associations-with-aliases"
-        },
         {
           "title": "Inference",
           "depth": 3,
