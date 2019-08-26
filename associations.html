@@ -51,17 +51,28 @@
         <div class="markdown-body"><h1 id="associations">Associations</h1>
 <p>A serializer can define it&apos;s own associations - both <code>has_many</code> and <code>has_one</code> to serializer under the context of the object.</p>
 <p>For example:</p>
-<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serailizer</span>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serializer</span>
   attributes <span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>
 
   has_one <span class="hljs-symbol">:author</span>, <span class="hljs-symbol">serializer:</span> AuthorSerializer
   has_many <span class="hljs-symbol">:comments</span>, <span class="hljs-symbol">each_serializer:</span> CommentSerializer
 <span class="pl-k">end</span>
 </code></pre>
+<h1 id="associations-with-aliases">Associations with aliases</h1>
+<p>An association key name can be aliased with the <code>name</code> option.</p>
+<p>For example:
+the <code>actual_author</code> property will be converted to <code>alias_author</code>.</p>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serializer</span>
+  attributes <span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>
+
+  has_one <span class="hljs-symbol">:actual_author</span>, <span class="hljs-symbol">serializer:</span> AuthorSerializer, <span class="hljs-symbol">name:</span> <span class="hljs-symbol">:alias_author</span>
+  has_many <span class="hljs-symbol">:comments</span>, <span class="hljs-symbol">each_serializer:</span> CommentSerializer
+<span class="pl-k">end</span>
+</code></pre>
 <h3 id="inference">Inference</h3>
 <p>Panko can find the type of the serializer by looking at the realtionship name, so instead specifying
 the serializer at the above example, we can -</p>
-<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serailizer</span>
+<pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">PostSerializer</span> &lt; Panko::Serializer</span>
   attributes <span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>
 
   has_one <span class="hljs-symbol">:author</span>
