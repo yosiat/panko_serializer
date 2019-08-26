@@ -13,7 +13,7 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-# Associations with aliases
+### Associations with aliases
 
 An association key name can be aliased with the `name` option.
 
