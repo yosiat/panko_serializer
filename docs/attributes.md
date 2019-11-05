@@ -9,11 +9,11 @@ There are two types of attributes:
 
 ```ruby
 class UserSerializer < Panko::Serializer
- attributes :full_name
- 
- def full_name
-  "#{object.first_name} #{object.last_name}"
- end
+  attributes :full_name
+
+  def full_name
+    "#{object.first_name} #{object.last_name}"
+   end
 end
 ```
 
@@ -32,9 +32,11 @@ The serializer's attribute methods can access the object being serialized as `ob
 
 ```ruby
 class PostSerializer < Panko::Serializer
- def author_name
-  "#{object.author.first_name} #{object.author.last_name}"
- end
+  attributes :author_name
+
+  def author_name
+    "#{object.author.first_name} #{object.author.last_name}"
+  end
 end
 ```
 
@@ -122,4 +124,3 @@ class PostSerializer < Panko::Serializer
   aliases created_at: :published_at
 end
 ```
-
