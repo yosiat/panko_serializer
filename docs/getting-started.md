@@ -31,6 +31,20 @@ class UserSerializer < Panko::Serializer
 end
 ```
 
+### Serializing an object
+
+And now serialize a single object
+
+```ruby
+# Using Oj serializer
+PostSerializer.new.serialize_to_json(Post.first)
+
+# or, similar to #serializable_hash
+PostSerializer.new.serialize(Post.first).to_json
+```
+
+### Using the serializers in a controller
+
 As you can see, defining serializers is simple and resembles ActiveModelSerializers 0.9,
 To utilize the `UserSerializer` inside a Rails controller and serialize some users, all we need to do is:
 
@@ -44,4 +58,3 @@ end
 ```
 
 And voila, we have endpoint which serialize users using Panko!
-
