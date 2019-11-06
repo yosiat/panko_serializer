@@ -80,9 +80,16 @@ UserSerializer.new(only: [:name]).serialize(User.first)
 UserSerializer.new(except: [:name]).serialize(User.first)
 ```
 
+> **Note** that if you want to user filter on an associations, the `:name`
+> property is not taken into account.
+> If you have a `has_many :state_transitions, name: :history` association
+> defined, the key to use in filters is `:state_transitions`
+> (e.g. `{ except: [:state_statitions] }`)
+
 ## Filters For
 
-Sometimes you find yourself have the same filtering logic in actions in order to solve this duplication, Panko allows you to write the filters in the serializer.
+Sometimes you find yourself have the same filtering logic in actions in order to
+solve this duplication, Panko allows you to write the filters in the serializer.
 
 ```ruby
 class UserSerializer < Panko::Serializer
