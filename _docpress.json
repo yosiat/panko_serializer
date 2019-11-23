@@ -33,7 +33,19 @@
           {
             "title": "Creating your first serializer",
             "depth": 2,
-            "id": "creating-your-first-serializer"
+            "id": "creating-your-first-serializer",
+            "headings": [
+              {
+                "title": "Serializing an object",
+                "depth": 3,
+                "id": "serializing-an-object"
+              },
+              {
+                "title": "Using the serializers in a controller",
+                "depth": 3,
+                "id": "using-the-serializers-in-a-controller"
+              }
+            ]
           }
         ]
       },
@@ -79,6 +91,11 @@
             "url": "associations.html",
             "slug": "associations",
             "headings": [
+              {
+                "title": "Associations with aliases",
+                "depth": 3,
+                "id": "associations-with-aliases"
+              },
               {
                 "title": "Inference",
                 "depth": 3,
@@ -194,7 +211,19 @@
         {
           "title": "Creating your first serializer",
           "depth": 2,
-          "id": "creating-your-first-serializer"
+          "id": "creating-your-first-serializer",
+          "headings": [
+            {
+              "title": "Serializing an object",
+              "depth": 3,
+              "id": "serializing-an-object"
+            },
+            {
+              "title": "Using the serializers in a controller",
+              "depth": 3,
+              "id": "using-the-serializers-in-a-controller"
+            }
+          ]
         }
       ]
     },
@@ -237,6 +266,11 @@
       "pageTitle": "Associations",
       "slug": "associations",
       "headings": [
+        {
+          "title": "Associations with aliases",
+          "depth": 3,
+          "id": "associations-with-aliases"
+        },
         {
           "title": "Inference",
           "depth": 3,

@@ -21,6 +21,12 @@
                   <li class="heading-item -depth-2"><a class="hlink link-installation" href="#installation">Installation</a>
                   </li>
                   <li class="heading-item -depth-2"><a class="hlink link-creating-your-first-serializer" href="#creating-your-first-serializer">Creating your first serializer</a>
+                    <ul class="heading-list -depth-2">
+                      <li class="heading-item -depth-3"><a class="hlink link-serializing-an-object" href="#serializing-an-object">Serializing an object</a>
+                      </li>
+                      <li class="heading-item -depth-3"><a class="hlink link-using-the-serializers-in-a-controller" href="#using-the-serializers-in-a-controller">Using the serializers in a controller</a>
+                      </li>
+                    </ul>
                   </li>
                 </ul>
               </li>
@@ -68,6 +74,15 @@
   has_many <span class="hljs-symbol">:posts</span>, <span class="hljs-symbol">serializer:</span> PostSerializer
 <span class="pl-k">end</span>
 </code></pre>
+<h3 id="serializing-an-object">Serializing an object</h3>
+<p>And now serialize a single object</p>
+<pre><code class="lang-ruby"><span class="pl-c"># Using Oj serializer</span>
+PostSerializer.new.serialize_to_json(Post.first)
+
+<span class="pl-c"># or, similar to #serializable_hash</span>
+PostSerializer.new.serialize(Post.first).to_json
+</code></pre>
+<h3 id="using-the-serializers-in-a-controller">Using the serializers in a controller</h3>
 <p>As you can see, defining serializers is simple and resembles ActiveModelSerializers 0.9,
 To utilize the <code>UserSerializer</code> inside a Rails controller and serialize some users, all we need to do is:</p>
 <pre><code class="lang-ruby"><span class="hljs-class"><span class="pl-k">class</span> <span class="pl-ent">UsersController</span> &lt; ApplicationController</span>
