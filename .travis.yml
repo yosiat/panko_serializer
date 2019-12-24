@@ -27,3 +27,8 @@ env:
   - "RAILS_VERSION=4.2.0"
   - "RAILS_VERSION=5.2.0"
   - "RAILS_VERSION=6.0.0"
+
+jobs:
+  exclude:
+    - rvm: 2.7.0-rc2
+    - env: RAILS_VERSION=4.2.0
