@@ -2,9 +2,9 @@ sudo: false
 cache: bundler
 language: ruby
 rvm:
-  - 2.5.5
-  - 2.6.3
-  - 2.7.0-preview1
+  - 2.5.7
+  - 2.6.5
+  - 2.7.0-rc2
 
 env:
   global:
