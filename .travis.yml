@@ -5,6 +5,7 @@ rvm:
   - 2.5.7
   - 2.6.5
   - 2.7.0
+  - ruby-head
 
 env:
   global:
@@ -31,3 +32,6 @@ matrix:
   exclude:
     - rvm: 2.7.0
       env: RAILS_VERSION=4.2.0
+  allow_failures:
+    - rvm: ruby-head
+  fast_finish: true
