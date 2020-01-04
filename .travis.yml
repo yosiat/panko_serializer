@@ -4,12 +4,17 @@ language: ruby
 rvm:
   - 2.5.7
   - 2.6.5
-  - 2.7.0-rc2
+  - 2.7.0
 
 env:
   global:
     - GIT_NAME: Travis CI
     - GIT_EMAIL: nobody@nobody.org
+
+  matrix:
+  - "RAILS_VERSION=4.2.0"
+  - "RAILS_VERSION=5.2.0"
+  - "RAILS_VERSION=6.0.0"
 
 install: bundle install --path=vendor/bundle --retry=3
 
@@ -22,13 +27,7 @@ after_success:
   - if [ -n "$TRAVIS_TAG" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm install git-update-ghpages && $(npm bin)/git-update-ghpages yosiat/panko_serializer _docpress; fi
   - bundle exec rake benchmarks
 
-env:
-  matrix:
-  - "RAILS_VERSION=4.2.0"
-  - "RAILS_VERSION=5.2.0"
-  - "RAILS_VERSION=6.0.0"
-
-jobs:
+matrix:
   exclude:
-    - rvm: 2.7.0-rc2
-    - env: RAILS_VERSION=4.2.0
+    - rvm: 2.7.0
+      env: RAILS_VERSION=4.2.0
