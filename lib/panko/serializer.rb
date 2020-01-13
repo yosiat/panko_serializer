@@ -63,6 +63,8 @@ module Panko
       end
 
       def method_added(method)
+        super(method)
+
         return if @_descriptor.nil?
 
         deleted_attr = @_descriptor.attributes.delete(method)
