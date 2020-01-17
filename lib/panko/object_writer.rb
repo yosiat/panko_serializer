@@ -33,6 +33,14 @@ class Panko::ObjectWriter
     @values.last[key] = value.as_json
   end
 
+  def push_json(value, key = nil)
+    if value.is_a?(String)
+      value = Oj.load(value) rescue nil
+    end
+
+    push_value(value, key)
+  end
+
   def pop
     result = @values.pop
 

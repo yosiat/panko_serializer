@@ -25,6 +25,7 @@ ActiveRecord::Schema.define do
     t.text :body
     t.string :title
     t.references :author
+    t.json :data
     t.timestamps(null: false)
   end
 end
@@ -47,7 +48,8 @@ Post.transaction do
     Post.create(
       body: "something about how password restrictions are evil, and less secure, and with the math to prove it.",
       title: "Your bank is does not know how to do security",
-      author: Author.create(name: "Preston Sego")
+      author: Author.create(name: "Preston Sego"),
+      data: { a: 1, b: 2, c: 3 }
     )
   end
 end

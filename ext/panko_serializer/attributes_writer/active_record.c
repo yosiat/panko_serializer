@@ -65,7 +65,7 @@ struct attributes init_context(VALUE obj) {
   return attributes_ctx;
 }
 
-VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
+VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute, VALUE* isJson) {
   volatile VALUE member, value;
 
   member = attribute->name_str;
@@ -101,14 +101,14 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute) {
   }
 
   if (!NIL_P(attribute->type) && !NIL_P(value)) {
-    return type_cast(attribute->type, value);
+    return type_cast(attribute->type, value, isJson);
   }
 
   return value;
 }
 
 void active_record_attributes_writer(VALUE obj, VALUE attributes,
-                                     EachAttributeFunc func, VALUE writer) {
+                                     EachAttributeFunc write_value, VALUE writer) {
   long i;
   struct attributes attributes_ctx = init_context(obj);
   volatile VALUE record_class = CLASS_OF(obj);
@@ -118,9 +118,10 @@ void active_record_attributes_writer(VALUE obj, VALUE attributes,
     Attribute attribute = PANKO_ATTRIBUTE_READ(raw_attribute);
     attribute_try_invalidate(attribute, record_class);
 
-    volatile VALUE value = read_attribute(attributes_ctx, attribute);
+    volatile VALUE isJson = Qfalse;
+    volatile VALUE value = read_attribute(attributes_ctx, attribute, &isJson);
 
-    func(writer, attr_name_for_serialization(attribute), value);
+    write_value(writer, attr_name_for_serialization(attribute), value, isJson);
   }
 }
 

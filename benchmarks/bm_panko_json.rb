@@ -12,6 +12,10 @@ class PostFastSerializer < Panko::Serializer
   attributes :id, :body, :title, :author_id, :created_at
 end
 
+class PostFastWithJsonSerializer < Panko::Serializer
+  attributes :id, :body, :title, :author_id, :created_at, :data
+end
+
 class PostFastWithMethodCallSerializer < Panko::Serializer
   attributes :id, :body, :title, :author_id, :method_call
 
@@ -31,7 +35,6 @@ class AuthorWithHasManyFastSerializer < Panko::Serializer
 
   has_many :posts, serializer: PostFastSerializer
 end
-
 
 def benchmark(prefix, serializer, options = {})
   data = Benchmark.data
@@ -54,6 +57,7 @@ def benchmark(prefix, serializer, options = {})
 end
 
 benchmark "Simple", PostFastSerializer
+benchmark "SimpleWithJson", PostFastWithJsonSerializer
 benchmark "HasOne", PostWithHasOneFastSerializer
 benchmark "SimpleWithMethodCall", PostFastWithMethodCallSerializer
 benchmark "Except", PostWithHasOneFastSerializer, except: [:title]

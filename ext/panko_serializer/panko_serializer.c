@@ -5,6 +5,7 @@
 static ID push_value_id;
 static ID push_array_id;
 static ID push_object_id;
+static ID push_json_id;
 static ID pop_id;
 
 static ID to_a_id;
@@ -12,8 +13,12 @@ static ID to_a_id;
 static ID object_id;
 static ID serialization_context_id;
 
-void write_value(VALUE str_writer, VALUE key, VALUE value) {
-  rb_funcall(str_writer, push_value_id, 2, value, key);
+void write_value(VALUE str_writer, VALUE key, VALUE value, VALUE isJson) {
+  if(isJson == Qtrue) {
+    rb_funcall(str_writer, push_json_id, 2, value, key);
+  } else {
+    rb_funcall(str_writer, push_value_id, 2, value, key);
+  }
 }
 
 void serialize_method_fields(VALUE object, VALUE str_writer,
@@ -36,7 +41,7 @@ void serialize_method_fields(VALUE object, VALUE str_writer,
 
     volatile VALUE result = rb_funcall(serializer, attribute->name_id, 0);
 
-    write_value(str_writer, attribute->name_str, result);
+    write_value(str_writer, attribute->name_str, result, Qfalse);
   }
 
   rb_ivar_set(serializer, object_id, Qnil);
@@ -44,8 +49,10 @@ void serialize_method_fields(VALUE object, VALUE str_writer,
 
 void serialize_fields(VALUE object, VALUE str_writer,
                       SerializationDescriptor descriptor) {
-  descriptor->attributes_writer.write_attributes(object, descriptor->attributes,
-                                                 write_value, str_writer);
+  descriptor->attributes_writer.write_attributes(object,
+                                                 descriptor->attributes,
+                                                 write_value,
+                                                 str_writer);
 
   serialize_method_fields(object, str_writer, descriptor);
 }
@@ -60,7 +67,7 @@ void serialize_has_one_associations(VALUE object, VALUE str_writer,
     volatile VALUE value = rb_funcall(object, association->name_id, 0);
 
     if (NIL_P(value)) {
-      write_value(str_writer, association->name_str, value);
+      write_value(str_writer, association->name_str, value, Qfalse);
     } else {
       serialize_object(association->name_str, value, str_writer,
                        association->descriptor);
@@ -78,7 +85,7 @@ void serialize_has_many_associations(VALUE object, VALUE str_writer,
     volatile VALUE value = rb_funcall(object, association->name_id, 0);
 
     if (NIL_P(value)) {
-      write_value(str_writer, association->name_str, value);
+      write_value(str_writer, association->name_str, value, Qfalse);
     } else {
       serialize_objects(association->name_str, value, str_writer,
                         association->descriptor);
@@ -146,6 +153,7 @@ void Init_panko_serializer() {
   push_value_id = rb_intern("push_value");
   push_array_id = rb_intern("push_array");
   push_object_id = rb_intern("push_object");
+  push_json_id = rb_intern("push_json");
   pop_id = rb_intern("pop");
   to_a_id = rb_intern("to_a");
   object_id = rb_intern("@object");
