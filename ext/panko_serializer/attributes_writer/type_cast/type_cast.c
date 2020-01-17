@@ -7,7 +7,7 @@ ID to_i_id = 0;
 
 static VALUE oj_type = Qundef;
 static VALUE oj_parseerror_type = Qundef;
-ID load_id = 0;
+ID oj_sc_parse_id = 0;
 
 // Caching ActiveRecord Types
 static VALUE ar_string_type = Qundef;
@@ -212,19 +212,6 @@ bool is_json_type(VALUE type_klass) {
           (ar_json_type != Qundef && type_klass == ar_json_type));
 }
 
-VALUE rescue_func() { return Qnil; }
-
-VALUE parse_json(VALUE value) { return rb_funcall(oj_type, load_id, 1, value); }
-
-VALUE cast_json_type(VALUE value) {
-  if (!RB_TYPE_P(value, T_STRING)) {
-    return value;
-  }
-
-  volatile VALUE result =
-      rb_rescue2(parse_json, value, rescue_func, Qundef, oj_parseerror_type, 0);
-  return result;
-}
 
 bool is_boolean_type(VALUE type_klass) { return type_klass == ar_boolean_type; }
 
@@ -287,7 +274,36 @@ VALUE cast_date_time_type(VALUE value) {
   return Qundef;
 }
 
-VALUE type_cast(VALUE type_metadata, VALUE value) {
+VALUE rescue_func() { return Qfalse; }
+
+VALUE parse_json(VALUE value) { return rb_funcall(oj_type, oj_sc_parse_id, 2, rb_cObject, value); }
+
+VALUE is_json_value(VALUE value) {
+  if (!RB_TYPE_P(value, T_STRING)) {
+    return value;
+  }
+
+
+  if(RSTRING_LEN(value) == 0) {
+    return Qfalse;
+  }
+
+  volatile VALUE result =
+      rb_rescue2(parse_json, value, rescue_func, Qundef, oj_parseerror_type, 0);
+
+  if(NIL_P(result)) {
+    return Qtrue;
+  }
+
+  if(result == Qfalse) {
+    return Qfalse;
+  }
+
+  // TODO: fix me!
+  return Qfalse;
+}
+
+VALUE type_cast(VALUE type_metadata, VALUE value, VALUE* isJson) {
   if (value == Qnil || value == Qundef) {
     return value;
   }
@@ -307,6 +323,14 @@ VALUE type_cast(VALUE type_metadata, VALUE value) {
     }
   }
 
+  if(is_json_type(type_klass)) {
+    if(is_json_value(value) == Qfalse) {
+      return Qnil;
+    }
+    *isJson = Qtrue;
+    return value;
+  }
+
   if (typeCastedValue == Qundef) {
     return rb_funcall(type_metadata, deserialize_from_db_id, 1, value);
   }
@@ -314,19 +338,28 @@ VALUE type_cast(VALUE type_metadata, VALUE value) {
   return typeCastedValue;
 }
 
-VALUE public_type_cast(VALUE module, VALUE type_metadata, VALUE value) {
-  return type_cast(type_metadata, value);
+VALUE public_type_cast(int argc, VALUE* argv, VALUE self) {
+  VALUE type_metadata, value, isJson;
+  rb_scan_args(argc, argv, "21", &type_metadata, &value, &isJson);
+
+  if (isJson == Qnil || isJson == Qundef) {
+    isJson = Qfalse;
+  }
+
+  return type_cast(type_metadata, value, &isJson);
 }
 
 void panko_init_type_cast(VALUE mPanko) {
-  to_s_id = rb_intern_const("to_s");
-  to_i_id = rb_intern_const("to_i");
+  to_s_id = rb_intern("to_s");
+  to_i_id = rb_intern("to_i");
 
   oj_type = rb_const_get_at(rb_cObject, rb_intern("Oj"));
   oj_parseerror_type = rb_const_get_at(oj_type, rb_intern("ParseError"));
-  load_id = rb_intern_const("load");
+  oj_sc_parse_id = rb_intern("sc_parse");
 
-  rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, 2);
+
+  // TODO: pass 3 arguments here
+  rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, -1);
 
   panko_init_time(mPanko);
 }

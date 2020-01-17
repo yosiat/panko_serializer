@@ -59,10 +59,10 @@ if ENV["RAILS_VERSION"].start_with? "4.2"
 end
 
 if check_if_exists "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json"
-  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a:1}
+  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', '{"a":1}'
 end
 if check_if_exists "ActiveRecord::Type::Json"
-  panko_type_convert ActiveRecord::Type::Json, '{"a":1}', {a:1}
+  panko_type_convert ActiveRecord::Type::Json, '{"a":1}', '{"a":1}'
 end
 db_panko_time
 utc_panko_time

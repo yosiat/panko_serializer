@@ -85,8 +85,8 @@ describe "Type Casting" do
     it { expect(Panko._type_cast(type, "shnitzel")).to be_nil }
     it { expect(Panko._type_cast(type, nil)).to be_nil }
 
-    it { expect(Panko._type_cast(type, '{"a":1}')).to eq("a" => 1) }
-    it { expect(Panko._type_cast(type, "[6,12]")).to eq([6, 12]) }
+    it { expect(Panko._type_cast(type, '{"a":1}')).to eq('{"a":1}') }
+    it { expect(Panko._type_cast(type, "[6,12]")).to eq("[6,12]") }
 
     it { expect(Panko._type_cast(type, "a" => 1)).to eq("a" => 1) }
     it { expect(Panko._type_cast(type, [6, 12])).to eq([6, 12]) }
@@ -99,8 +99,8 @@ describe "Type Casting" do
     it { expect(Panko._type_cast(type, "shnitzel")).to be_nil }
     it { expect(Panko._type_cast(type, nil)).to be_nil }
 
-    it { expect(Panko._type_cast(type, '{"a":1}')).to eq("a" => 1) }
-    it { expect(Panko._type_cast(type, "[6,12]")).to eq([6, 12]) }
+    it { expect(Panko._type_cast(type, '{"a":1}')).to eq('{"a":1}') }
+    it { expect(Panko._type_cast(type, "[6,12]")).to eq("[6,12]") }
 
     it { expect(Panko._type_cast(type, "a" => 1)).to eq("a" => 1) }
     it { expect(Panko._type_cast(type, [6, 12])).to eq([6, 12]) }

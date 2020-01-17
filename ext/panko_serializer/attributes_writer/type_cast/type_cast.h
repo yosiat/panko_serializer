@@ -68,11 +68,10 @@ static struct _TypeCast type_casts[] = {
     {is_boolean_type, cast_boolean_type},
     {is_date_time_type, cast_date_time_type},
     {is_float_type, cast_float_type},
-    {is_json_type, cast_json_type},
 
     {NULL, NULL}};
 
-extern VALUE type_cast(VALUE type_metadata, VALUE value);
+extern VALUE type_cast(VALUE type_metadata, VALUE value, VALUE* isJson);
 void panko_init_type_cast(VALUE mPanko);
 
 // Introduced in ruby 2.4
