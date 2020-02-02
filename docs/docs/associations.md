@@ -1,4 +1,8 @@
-# Associations
+---
+id: associations
+title: Associations
+sidebar_label: Associations
+---
 
 A serializer can define it's own associations - both `has_many` and `has_one` to serializer under the context of the object.
 

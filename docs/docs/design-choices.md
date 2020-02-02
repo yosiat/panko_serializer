@@ -1,4 +1,8 @@
-# Design Choices
+---
+id: design-choices
+title: Design Choices
+sidebar_label: Design Choices
+---
 
 In short, Panko, is a serializer for ActiveRecord objects (it can't serialize any other object), which strives for high performance & simple API (which is inspired by ActiveModelSerializers).
 

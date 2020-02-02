@@ -1,4 +1,8 @@
-# Attributes
+---
+id: attributes
+title: Attributes
+sidebar_label: Attributes
+---
 
 Attributes allow you to specify which record attributes you want to serialize,
 There are two types of attributes:
@@ -42,7 +46,7 @@ end
 
 Another useful, thing you can pass your serializer is `context`, a `context` is a bag of data whom your serializer may need.
 
-For example, here we will pass the current user:
+For example, here we will pass feature flags:
 ```ruby
 class UserSerializer < Panko::Serializer
   attributes :id, :email

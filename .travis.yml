@@ -21,11 +21,11 @@ install: bundle install --path=vendor/bundle --retry=3
 
 before_install:
   - gem install bundler
-  - nvm install 9
+  - nvm install 12
 
 after_success:
-  - npm install docpress && $(npm bin)/docpress build
-  - if [ -n "$TRAVIS_TAG" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm install git-update-ghpages && $(npm bin)/git-update-ghpages yosiat/panko_serializer _docpress; fi
+  - cd docs/ && npm install
+  - if [ -n "$TRAVIS_TAG" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then cd docs/ && npm install && GIT_USER=yosiat CURRENT_BRANCH=news-docs USE_SSH=true npm run publish-gh-pages; fi
   - bundle exec rake benchmarks
 
 matrix:
