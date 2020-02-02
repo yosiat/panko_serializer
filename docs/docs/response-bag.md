@@ -1,4 +1,8 @@
-# Response
+---
+id: response-bag
+title: Response
+sidebar_label: Response
+---
 
 Let's say you have some JSON payload which can is constructed using Panko serialization result,
 like this:

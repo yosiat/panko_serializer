@@ -1,18 +1,22 @@
-# Performance
+---
+id: performance
+title: Performance
+sidebar_label: Performance
+---
 
 The performance of Panko is measured using microbenchmarks and load testing.
 
 ## Microbenchmarks
 
-The following microbenchmarks are run on MacBook Pro (Retina, 15-inch, 2017), Ruby 2.5.1 with Rails 5.2.1
-demonstrating the performance of ActiveModelSerializers 0.10.7 and Panko 0.5.6
+The following microbenchmarks are run on MacBook Pro (15-inch, 2018), Ruby 2.6.3 with Rails 6.0.2.1
+demonstrating the performance of ActiveModelSerializers 0.10.10 and Panko 0.7.2
 
 | Benchmark         | AMS ip/s | Panko ip/s |
 | ----------------- | -------- | ---------- |
-| Simple_Posts_2300 | 9.47     | 185.9      |
-| Simple_Posts_50   | 450.49   | 9,237.66   |
-| HasOne_Posts_2300 | 4.27     | 104.39     |
-| HasOne_Posts_50   | 219.67   | 4,901.09   |
+| Simple_Posts_2300 | 5.4      | 190.48     |
+| Simple_Posts_50   | 261.28   | 9,347.4    |
+| HasOne_Posts_2300 | 2.54     | 90.71      |
+| HasOne_Posts_50   | 124.29   | 5,421.55   |
 
 ## Real-world benchmark
 

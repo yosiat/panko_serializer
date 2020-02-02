@@ -1,0 +1,15 @@
+{
+  "docs": {
+    "Panko": [
+      "index",
+      "getting-started",
+      "performance",
+      "design-choices"
+    ],
+    "Reference": [
+      "attributes",
+      "associations",
+      "response-bag"
+    ]
+  }
+}
