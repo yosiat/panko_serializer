@@ -24,8 +24,8 @@ const users = [
 const siteConfig = {
   title: 'Panko Serializers',
   tagline: 'High Performance JSON Serialization for ActiveRecord & Ruby Objects',
-  url: 'https://yosiat.github.io/panko_serializer',
-  baseUrl: '/panko_serializer/',
+  url: 'https://panko.dev',
+  baseUrl: '/',
   repoPath: 'yosiat/panko_serializer',
   // For github.io type URLs, you would set the url and baseUrl like:
   //   url: 'https://facebook.github.io',
