@@ -1,0 +1,147 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>Design Choices · Panko Serializers</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="In short, Panko, is a serializer for ActiveRecord objects (it can&#x27;t serialize any other object), which strives for high performance &amp; simple API (which is inspired by ActiveModelSerializers)."/><meta name="docsearch:language" content="en"/><meta property="og:title" content="Design Choices · Panko Serializers"/><meta property="og:type" content="website"/><meta property="og:url" content="https://yosiat.github.io/panko_serializer/"/><meta property="og:description" content="In short, Panko, is a serializer for ActiveRecord objects (it can&#x27;t serialize any other object), which strives for high performance &amp; simple API (which is inspired by ActiveModelSerializers)."/><meta property="og:image" content="https://yosiat.github.io/panko_serializer/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://yosiat.github.io/panko_serializer/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/undefined"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-dark.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><h2 class="headerTitle">Panko Serializers</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class="siteNavGroupActive"><a href="/docs/" target="_self">Docs</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Panko</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Panko</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/">Introduction</a></li><li class="navListItem"><a class="navItem" href="/docs/getting-started">Getting Started</a></li><li class="navListItem"><a class="navItem" href="/docs/performance">Performance</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/docs/design-choices">Design Choices</a></li></ul></div><div class="navGroup"><h3 class="navGroupCategoryTitle">Reference</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/attributes">Attributes</a></li><li class="navListItem"><a class="navItem" href="/docs/associations">Associations</a></li><li class="navListItem"><a class="navItem" href="/docs/response-bag">Response</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">Design Choices</h1></header><article><div><span><p>In short, Panko, is a serializer for ActiveRecord objects (it can't serialize any other object), which strives for high performance &amp; simple API (which is inspired by ActiveModelSerializers).</p>
+<p>Its performance is achieved by:</p>
+<ul>
+<li><code>Oj::StringWriter</code> - I will elaborate later.</li>
+<li>Type casting — instead of relying on ActiveRecord to do its type cast, Panko is doing it by itself.</li>
+<li>Figuring out the metadata, ahead of time — therefore, we ask less questions during the <code>serialization loop</code>.</li>
+</ul>
+<h2><a class="anchor" aria-hidden="true" id="serialization-overview"></a><a href="#serialization-overview" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Serialization overview</h2>
+<p>First, let's start with overview. Let's say we want to serialize <code>User</code> object, which has
+<code>first_name</code>, <code>last_name</code>, <code>age</code>, and <code>email</code> properties.</p>
+<p>The serializer definition will be something like this:</p>
+<pre><code class="hljs css language-ruby"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UserSerializer</span> &lt; Panko::Serializer</span>
+  attributes <span class="hljs-symbol">:name</span>, <span class="hljs-symbol">:age</span>, <span class="hljs-symbol">:email</span>
+  
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">name</span></span>
+    <span class="hljs-string">"<span class="hljs-subst">#{object.first_name}</span> <span class="hljs-subst">#{object.last_name}</span>"</span>
+  <span class="hljs-keyword">end</span>
+<span class="hljs-keyword">end</span>
+</code></pre>
+<p>And the usage of this serializer will be:</p>
+<pre><code class="hljs css language-ruby"><span class="hljs-comment"># fetch user from database</span>
+user = User.first
+
+<span class="hljs-comment"># create serializer, with empty options</span>
+serializer = UserSerilizer.new
+
+<span class="hljs-comment"># serialize to JSON</span>
+serializer.serialize_to_json(user)
+</code></pre>
+<p>Let's go over the steps that Panko will execute behind the scenes for this flow.
+<em>I will skip the serializer definition part, because it's fairly simple and straightforward (see <code>lib/panko/serializer.rb</code>)</em></p>
+<p>First step, while initializing the UserSerializer, we will create a <strong>Serialization Descriptor</strong> for this class.
+Serialization Descriptor's goal is to answer those questions:</p>
+<ul>
+<li>Which fields do we have? In our case, <code>:age</code>, <code>:email</code></li>
+<li>Which method fields do we have? In our case <code>:name</code></li>
+<li>Which associations do we have (and their serialization descriptors)</li>
+</ul>
+<p>The serialization description is also responsible for filtering the attributes (<code>only</code> \ <code>except</code>).</p>
+<p>Now, that we have the serialization descriptor, we are finished with the Ruby part of Panko, and all we did here is done in <em>initialization time</em> and now we move to C code.</p>
+<p>In C land, we take the <code>user</code> object and the serialization descriptor, and start the serialization process which is separated to 4 parts:</p>
+<ul>
+<li>Serializing Fields - looping through serialization descriptor's <code>fields</code> and read them from the ActiveRecord object (see <code>Type Casting</code>) and write them to the writer.</li>
+<li>Serializing Method Fields - creating (a cached) serializer instance, setting its <code>@object</code> and <code>@context</code>, calling all the method fields and writing them to the writer.</li>
+<li>Serializing associations — this is simple, once we have fields + method fields, we just repeat the process.</li>
+</ul>
+<p>Once this is finished, we have nice JSON string.
+Now let's dig deeper.</p>
+<h2><a class="anchor" aria-hidden="true" id="interesting-parts"></a><a href="#interesting-parts" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Interesting parts</h2>
+<h3><a class="anchor" aria-hidden="true" id="ojstringwriter"></a><a href="#ojstringwriter" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Oj::StringWriter</h3>
+<p>If you read the code of ActiveRecord serialization code in Ruby, you will observe this flow:</p>
+<ol>
+<li>Get an array of ActiveRecord objects (<code>User.all</code> for example)</li>
+<li>Build new array of hashes where each hash is <code>User</code> with the attributes we selected</li>
+<li>The JSON serializer, takes this array of hashes and loop them, and converts it to JSON string</li>
+</ol>
+<p>This entire process is expensive in terms of Memory &amp; CPU, and this where the combination of Panko and Oj::StringWriter really shines.</p>
+<p>In Panko, the serialization process of the above is:</p>
+<ol>
+<li>Get an array of ActiveRecord objects (<code>User.all</code> for example)</li>
+<li>Create <code>Oj::StringWriter</code> and feed the values to it, via <code>push_value</code> / <code>push_object</code> / <code>push_object</code> and behind the scene, <code>Oj::StringWriter</code> will serialize the objects incrementally into a string.</li>
+<li>Get from <code>Oj::StringWriter</code> the completed JSON string — which is a no-op, since <code>Oj::StringWriter</code> already built the string.</li>
+</ol>
+<h3><a class="anchor" aria-hidden="true" id="figuring-out-the-metadata-ahead-of-time"></a><a href="#figuring-out-the-metadata-ahead-of-time" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Figuring out the metadata, ahead of time.</h3>
+<p>Another observation I noticed in the ruby serializers is that they ask and do a lot in a serialization loop:</p>
+<ul>
+<li>Is this field a method? is it a property?</li>
+<li>Which fields and associations do I need for the serializer to consider the <code>only</code> and <code>except</code> options</li>
+<li>What is the serializer of this has_one association?</li>
+</ul>
+<p>Panko tries to ask the bare minimum in serialization by building <code>Serialization Descriptor</code> for each serialization and caching it.</p>
+<p>The Serialization Descriptor will do the filtering of <code>only</code> and <code>except</code> and will check if a field is a method or not (therefore Panko doesn't have list of <code>attributes</code>)</p>
+<h3><a class="anchor" aria-hidden="true" id="type-casting"></a><a href="#type-casting" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Type Casting</h3>
+<p>This is the final part, which helped yield most of the performance improvements.
+In ActiveRecord, when we read a value of attribute, it does type casting of the DB value to its real ruby type.</p>
+<p>For example, time strings are converted to Time objects, Strings are duplicated, and Integers are converts from their values to Number.</p>
+<p>This type casting is really expensive, as it's responsible for most of the allocations in the serialization flow and most of them can be &quot;relaxed&quot;.</p>
+<p>If we think about it, we don't need to duplicate strings or convert time strings to time objects or even parse JSON strings for the JSON serialization process.</p>
+<p>What Panko does is that if we have ActiveRecord type string, we won't duplicate it.
+If we have an integer string value, we will convert it to an integer, and the same goes for other types.</p>
+<p>All of these conversions are done in C, which of course yields a big performance improvement.</p>
+<h4><a class="anchor" aria-hidden="true" id="time-type-casting"></a><a href="#time-type-casting" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Time type casting</h4>
+<p>While you read Panko source code, you will encounter the time type casting and immediately you will have a &quot;WTF?&quot; moment.</p>
+<p>The idea behind the time type casting code relies on the end result of JSON type casting — what we need in order to serialize Time to JSON? UTC ISO8601 time format representation.</p>
+<p>The time type casting works as follows:</p>
+<ul>
+<li>If it's a string that ends with <code>Z</code>, and the strings matches the UTC ISO8601 regex, then we just return the string.</li>
+<li>If it's a string and it doesn't follow the rules above, we check if it's a timestamp in database format and convert it via regex + string concat to UTC ISO8601 - Yes, there is huge assumption here, that the database returns UTC timestamps — this will be configureable (before Panko official release).</li>
+<li>If it's none of the above, I will let ActiveRecord type casting do it's magic.</li>
+</ul>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/performance"><span class="arrow-prev">← </span><span>Performance</span></a><a class="docs-next button" href="/docs/attributes"><span>Attributes</span><span class="arrow-next"> →</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#serialization-overview">Serialization overview</a></li><li><a href="#interesting-parts">Interesting parts</a><ul class="toc-headings"><li><a href="#ojstringwriter">Oj::StringWriter</a></li><li><a href="#figuring-out-the-metadata-ahead-of-time">Figuring out the metadata, ahead of time.</a></li><li><a href="#type-casting">Type Casting</a></li></ul></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="sitemap"><a href="/" class="nav-home"></a><div><h5>Docs</h5><a href="/docs/getting-started.html">Getting Started</a><a href="/docs/attributes.html">Guides</a><a href="/docs/performance.html">Performance</a></div><div><h5>More</h5><a href="https://github.com/yosiat/panko_serializer">GitHub</a><a href="https://pankoserializer.herokuapp.com/">Slack</a><a class="github-button" href="https://github.com/yosiat/panko_serializer" data-icon="octicon-star" data-count-href="/yosiat/panko_serializer/stargazers" data-show-count="true" data-count-aria-label="# stargazers on GitHub" aria-label="Star this project on GitHub">Star</a></div></section><section class="copyright">Copyright © 2020 Panko Serializer</section></footer></div></body></html>
