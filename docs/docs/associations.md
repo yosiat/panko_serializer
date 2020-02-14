@@ -70,7 +70,7 @@ Panko::ArraySerializer.new(posts, only: {
 })
 ```
 
-Let's disect `only` option we passed -
+Let's dissect `only` option we passed -
 * `instance` - list of attributes (and associations) we want to serializer for current instance of the serializer, in this case - `PostSerializer`.
 * `author`, `comments` - here we specify the list of attributes we want to serialize for each association.
 
@@ -91,4 +91,4 @@ Panko::ArraySerializer.new(posts, only: {
 })
 ```
 
-As you see now in `comments` the `instance` have differenet meaning, the `CommentSerializer`.
+As you see now in `comments` the `instance` have different meaning, the `CommentSerializer`.

@@ -37,7 +37,7 @@ And the usage of this serializer will be:
 user = User.first
 
 # create serializer, with empty options
-serializer = UserSerilizer.new
+serializer = UserSerializer.new
 
 # serialize to JSON
 serializer.serialize_to_json(user)

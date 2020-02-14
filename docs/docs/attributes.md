@@ -88,7 +88,7 @@ UserSerializer.new(except: [:name]).serialize(User.first)
 > property is not taken into account.
 > If you have a `has_many :state_transitions, name: :history` association
 > defined, the key to use in filters is `:state_transitions`
-> (e.g. `{ except: [:state_statitions] }`)
+> (e.g. `{ except: [:state_transitions] }`)
 
 ## Filters For
 
@@ -110,7 +110,7 @@ end
 UserSerializer.serialize(User.first)
 ```
 
-> See disucssion in: https://github.com/yosiat/panko_serializer/issues/16
+> See discussion in: https://github.com/yosiat/panko_serializer/issues/16
 
 ## Aliases
 
