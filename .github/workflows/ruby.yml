@@ -31,15 +31,20 @@ jobs:
       uses: actions/cache@v1
       with:
        path: vendor/bundle
-       key: ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem-${{ hashFiles('**/Gemfile.lock') }}
+       key: ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem
        restore-keys: |
-         ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem-
+         ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem
     
-    - name: Build and test with Rake
+    - name: Install gems
       env:
         RAILS_VERSION: ${{ matrix.rails }}
       run: |
         gem install bundler
         bundle check || bundle install --path vendor/bundle --jobs 4 --retry 3
-        bundle exec rake
-        bundle exec rake benchmarks
+        
+    - name: Compile & test
+      run: bundle exec rake
+      
+    - name: Benchmarks
+      if: success()
+      run: bundle exec rake benchmarks
