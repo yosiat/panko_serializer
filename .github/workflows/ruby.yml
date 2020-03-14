@@ -28,8 +28,8 @@ jobs:
     
     - name: Install deps
       run: |
-        apt update -y
-        apt install -y libsqlite3-dev
+        sudo apt update -y
+        sudo apt install -y libsqlite3-dev
     
     - name: Gems Cache
       id: gem-cache
