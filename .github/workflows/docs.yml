@@ -3,11 +3,9 @@
 
 name: Docs Publishing
 
-on: [push, pull_request]
-
-# on:
-#   push:
-#     branches: [ master ]
+on:
+ push:
+   branches: [ master ]
 
 jobs:
   build:
@@ -15,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       working_directory: 'docs/'
-      
+
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
@@ -26,7 +24,7 @@ jobs:
     - name: Install Dependencies
       working-directory: ${{ env.working_directory }}
       run: npm install
-      
+
     - name: Install SSH Client 🔑
       uses: webfactory/ssh-agent@v0.2.0
       with:
