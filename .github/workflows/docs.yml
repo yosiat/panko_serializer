@@ -34,5 +34,8 @@ jobs:
 
     - name: Publish
       working-directory: ${{ env.working_directory }}
-      run: GIT_USER=yosiat CURRENT_BRANCH=news-docs USE_SSH=true npm run publish-gh-pages
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        GIT_USER=yosiat CURRENT_BRANCH=news-docs USE_SSH=true npm run publish-gh-pages
 
