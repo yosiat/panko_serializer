@@ -11,6 +11,7 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         ruby: [ '2.5', '2.6', '2.7.0']
         rails: ['4.2.0', '5.2.0', '6.0.0']
@@ -24,11 +25,21 @@ jobs:
       uses: actions/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
+    
+    - name: Gems Cache
+      id: gem-cache
+      uses: actions/cache@v1
+      with:
+       path: vendor/bundle
+       key: ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem-${{ hashFiles('**/Gemfile.lock') }}
+       restore-keys: |
+         ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem-
+    
     - name: Build and test with Rake
       env:
         RAILS_VERSION: ${{ matrix.rails }}
       run: |
         gem install bundler
-        bundle install --jobs 4 --retry 3
+        bundle check || bundle install --path vendor/bundle --jobs 4 --retry 3
         bundle exec rake
         bundle exec rake benchmarks
