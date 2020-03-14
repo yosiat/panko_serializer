@@ -3,9 +3,12 @@
 
 name: Docs Publishing
 
-on:
-  push:
-    branches: [ master ]
+on: [push, pull_request]
+
+# on:
+#   push:
+#     branches: [ master ]
+
 jobs:
   build:
 
@@ -20,11 +23,16 @@ jobs:
       with:
         node-version: '12.x'
 
-    - name: deps
+    - name: Install Dependencies
       working-directory: ${{ env.working_directory }}
       run: npm install
+      
+    - name: Install SSH Client 🔑
+      uses: webfactory/ssh-agent@v0.2.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
-    - name: publish docs
+    - name: Publish
       working-directory: ${{ env.working_directory }}
       run: GIT_USER=yosiat CURRENT_BRANCH=news-docs USE_SSH=true npm run publish-gh-pages
 
