@@ -44,13 +44,20 @@ jobs:
       env:
         RAILS_VERSION: ${{ matrix.rails }}
       run: |
+        echo $RAILS_VERSION
         gem install bundler
         bundle config set path 'vendor/bundle'
         bundle check || bundle install --jobs 4 --retry 3
         
     - name: Compile & test
-      run: bundle exec rake
+      env:
+        RAILS_VERSION: ${{ matrix.rails }}
+      run: |
+        echo $RAILS_VERSION
+        bundle exec rake
       
     - name: Benchmarks
       if: success()
+      env:
+        RAILS_VERSION: ${{ matrix.rails }}
       run: bundle exec rake benchmarks
