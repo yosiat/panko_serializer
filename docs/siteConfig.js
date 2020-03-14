@@ -35,6 +35,7 @@ const siteConfig = {
   repoUrl: 'https://github.com/yosiat/panko_serializer',
   projectName: 'panko_serializer',
   organizationName: 'yosiat',
+  cname: 'panko.dev',
 
   headerLinks: [
     {doc: 'index', label: 'Docs'},
