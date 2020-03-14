@@ -55,9 +55,3 @@ jobs:
       run: |
         echo $RAILS_VERSION
         bundle exec rake
-      
-    - name: Benchmarks
-      if: success()
-      env:
-        RAILS_VERSION: ${{ matrix.rails }}
-      run: bundle exec rake benchmarks
