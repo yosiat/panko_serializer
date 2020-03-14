@@ -1,0 +1,30 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Docs Publishing
+
+on:
+  push:
+    branches: [ master ]
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      working_directory: 'docs/'
+      
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
+    - name: deps
+      working-directory: ${{ env.working_directory }}
+      run: npm install
+
+    - name: publish docs
+      working-directory: ${{ env.working_directory }}
+      run: GIT_USER=yosiat CURRENT_BRANCH=news-docs USE_SSH=true npm run publish-gh-pages
+
