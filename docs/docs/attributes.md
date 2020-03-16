@@ -110,7 +110,7 @@ end
 UserSerializer.serialize(User.first)
 ```
 
-> See discussion in: https://github.com/yosiat/panko_serializer/issues/16
+> See discussion in: https://github.com/panko-serializer/panko_serializer/issues/16
 
 ## Aliases
 
