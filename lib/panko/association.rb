@@ -11,7 +11,7 @@ module Panko
     end
 
     def inspect
-      "<Panko::Attribute name=#{name_str.inspect}>"
+      "<Panko::Association name=#{name_str.inspect}>"
     end
   end
 end
