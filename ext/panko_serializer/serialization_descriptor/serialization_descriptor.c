@@ -122,7 +122,7 @@ VALUE sd_type_set(VALUE self, VALUE type) {
   return Qnil;
 }
 
-VALUE sd_type_aref(VALUE self, VALUE type) {
+VALUE sd_type_aref(VALUE self) {
   SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
   return sd->serializer_type;
 }
