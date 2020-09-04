@@ -1,7 +1,5 @@
 #include "serialization_descriptor.h"
 
-VALUE cSerializationDescriptor;
-
 static ID object_id;
 static ID sc_id;
 
@@ -10,8 +8,8 @@ static void sd_free(SerializationDescriptor sd) {
     return;
   }
 
-  sd->serializer_type = Qnil;
   sd->serializer = Qnil;
+  sd->serializer_type = Qnil;
   sd->attributes = Qnil;
   sd->method_fields = Qnil;
   sd->has_one_associations = Qnil;
@@ -21,8 +19,8 @@ static void sd_free(SerializationDescriptor sd) {
 }
 
 void sd_mark(SerializationDescriptor data) {
-  rb_gc_mark(data->serializer_type);
   rb_gc_mark(data->serializer);
+  rb_gc_mark(data->serializer_type);
   rb_gc_mark(data->attributes);
   rb_gc_mark(data->method_fields);
   rb_gc_mark(data->has_one_associations);
@@ -43,7 +41,7 @@ static VALUE sd_alloc(VALUE klass) {
 
   sd->attributes_writer = create_empty_attributes_writer();
 
-  return Data_Wrap_Struct(cSerializationDescriptor, sd_mark, sd_free, sd);
+  return Data_Wrap_Struct(klass, sd_mark, sd_free, sd);
 }
 
 SerializationDescriptor sd_read(VALUE descriptor) {
@@ -142,7 +140,7 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
   object_id = rb_intern("@object");
   sc_id = rb_intern("@sc");
 
-  cSerializationDescriptor =
+  VALUE cSerializationDescriptor =
       rb_define_class_under(mPanko, "SerializationDescriptor", rb_cObject);
 
   rb_define_alloc_func(cSerializationDescriptor, sd_alloc);
