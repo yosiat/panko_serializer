@@ -12,7 +12,7 @@ jobs:
         ruby: [ '2.5', '2.6', '2.7']
         rails: ['4.2.0', '5.2.0', '6.0.0']
         exclude:
-          - ruby: 2.7.0
+          - ruby: 2.7
             rails: 4.2.0
 
     steps:
