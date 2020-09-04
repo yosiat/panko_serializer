@@ -30,7 +30,7 @@ void sd_mark(SerializationDescriptor data) {
   rb_gc_mark(data->aliases);
 }
 
-static VALUE sd_new(int argc, VALUE* argv, VALUE self) {
+static VALUE sd_alloc(VALUE klass) {
   SerializationDescriptor sd = ALLOC(struct _SerializationDescriptor);
 
   sd->serializer = Qnil;
@@ -145,8 +145,7 @@ void panko_init_serialization_descriptor(VALUE mPanko) {
   cSerializationDescriptor =
       rb_define_class_under(mPanko, "SerializationDescriptor", rb_cObject);
 
-  rb_define_module_function(cSerializationDescriptor, "new", sd_new, -1);
-
+  rb_define_alloc_func(cSerializationDescriptor, sd_alloc);
   rb_define_method(cSerializationDescriptor, "serializer=", sd_serializer_set,
                    1);
   rb_define_method(cSerializationDescriptor, "serializer", sd_serializer_ref,
