@@ -7,6 +7,14 @@ describe Panko::Response do
     attributes :name, :address
   end
 
+  class FooWithContextSerializer < Panko::Serializer
+    attributes :name, :context_value
+
+    def context_value
+      context[:value]
+    end
+  end
+
   it "serializes primitive values" do
     response = Panko::Response.new(success: true, num: 1)
 
@@ -122,6 +130,38 @@ describe Panko::Response do
                                        "foos" => [{
                                          "name" => foo.name,
                                          "address" => foo.address
+                                       }]
+                                     } }
+                                 ])
+  end
+
+  it "create with context" do
+    foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+    context = { value: Faker::Lorem.word }
+
+    response = Panko::Response.create do |t|
+      [
+        {
+          data: t.value(
+            foos: t.array_serializer(Foo.all, FooWithContextSerializer, context: context),
+            foo: t.serializer(Foo.first, FooWithContextSerializer, context: context)
+          )
+        }
+      ]
+    end
+
+    json_response = Oj.load(response.to_json)
+
+    expect(json_response).to eql([
+                                   { "data" =>
+                                     {
+                                       "foo" => {
+                                         "name" => foo.name,
+                                         "context_value" => context[:value]
+                                       },
+                                       "foos" => [{
+                                         "name" => foo.name,
+                                         "context_value" => context[:value]
                                        }]
                                      } }
                                  ])
