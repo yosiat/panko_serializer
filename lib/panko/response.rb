@@ -22,12 +22,13 @@ module Panko
       Panko::JsonValue.from(value)
     end
 
-    def self.array_serializer(data, serializer)
-      Panko::ArraySerializer.new(data, each_serializer: serializer)
+    def self.array_serializer(data, serializer, options = {})
+      merged_options = options.merge(each_serializer: serializer)
+      Panko::ArraySerializer.new(data, merged_options)
     end
 
-    def self.serializer(data, serializer)
-      json serializer.new.serialize_to_json(data)
+    def self.serializer(data, serializer, options = {})
+      json serializer.new(options).serialize_to_json(data)
     end
   end
 
