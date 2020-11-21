@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
     "changelog_uri" => "https://github.com/panko-serializer/panko_serializer/releases"
   }
 
-  spec.required_ruby_version = ">= 2.3.7"
+  spec.required_ruby_version = ">= 2.5.0"
 
   spec.files = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
