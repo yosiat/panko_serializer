@@ -13,6 +13,7 @@ VALUE init_types(VALUE v) {
 
   volatile VALUE ar_type =
       rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
+
   ar_base_type = rb_const_get_at(ar_type, rb_intern("Base"));
 
   hash_type = rb_const_get_at(rb_cObject, rb_intern("Hash"));
@@ -25,11 +26,13 @@ AttributesWriter create_attributes_writer(VALUE object) {
   int isErrored;
   rb_protect(init_types, Qnil, &isErrored);
 
+
   if (ar_base_type != Qundef &&
       rb_obj_is_kind_of(object, ar_base_type) == Qtrue) {
-    return (AttributesWriter){
-        .object_type = ActiveRecord,
-        .write_attributes = active_record_attributes_writer};
+
+      return (AttributesWriter){
+          .object_type = ActiveRecord,
+          .write_attributes = active_record_attributes_writer};
   }
 
   if (rb_obj_is_kind_of(object, hash_type) == Qtrue) {

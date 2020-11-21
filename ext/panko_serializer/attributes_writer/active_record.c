@@ -9,12 +9,22 @@ static ID delegate_hash_id;
 static ID value_before_type_cast_id;
 static ID type_id;
 
-VALUE panko_read_lazy_attributes_hash(VALUE object) {
+static bool type_detection_ran = false;
+static bool is_lazy_attributes_set_defined = false;
+
+/***
+ * Returns ActiveModel::LazyAttributeSet or ActiveModel::LazyAttributesHash
+ */
+VALUE panko_read_attributes_container(VALUE object) {
   volatile VALUE attributes_set, lazy_attributes_hash;
 
   attributes_set = rb_ivar_get(object, attributes_id);
   if (NIL_P(attributes_set)) {
     return Qnil;
+  }
+
+  if (is_lazy_attributes_set_defined) {
+    return attributes_set;
   }
 
   lazy_attributes_hash = rb_ivar_get(attributes_set, attributes_id);
@@ -41,23 +51,32 @@ struct attributes init_context(VALUE obj) {
 
   attributes_ctx.tryToReadFromAdditionalTypes = false;
 
-  volatile VALUE lazy_attributes_hash = panko_read_lazy_attributes_hash(obj);
+  volatile VALUE attributes_container = panko_read_attributes_container(obj);
 
-  if (RB_TYPE_P(lazy_attributes_hash, T_HASH)) {
-    attributes_ctx.attributes_hash = lazy_attributes_hash;
+  if (RB_TYPE_P(attributes_container, T_HASH)) {
+    attributes_ctx.attributes_hash = attributes_container;
   } else {
-    volatile VALUE delegate_hash =
-        rb_ivar_get(lazy_attributes_hash, delegate_hash_id);
+    if(is_lazy_attributes_set_defined == false) {
+      volatile VALUE delegate_hash =
+          rb_ivar_get(attributes_container, delegate_hash_id);
 
-    if (PANKO_EMPTY_HASH(delegate_hash) == false) {
-      attributes_ctx.attributes_hash = delegate_hash;
+      if (PANKO_EMPTY_HASH(delegate_hash) == false) {
+        attributes_ctx.attributes_hash = delegate_hash;
+      }
+    } else {
+      volatile VALUE attributes_hash =
+          rb_ivar_get(attributes_container, attributes_id);
+
+      if (PANKO_EMPTY_HASH(attributes_hash) == false) {
+        attributes_ctx.attributes_hash = attributes_hash;
+      }
     }
 
-    attributes_ctx.types = rb_ivar_get(lazy_attributes_hash, types_id);
-    attributes_ctx.values = rb_ivar_get(lazy_attributes_hash, values_id);
+    attributes_ctx.types = rb_ivar_get(attributes_container, types_id);
+    attributes_ctx.values = rb_ivar_get(attributes_container, values_id);
 
     attributes_ctx.additional_types =
-        rb_ivar_get(lazy_attributes_hash, additional_types_id);
+        rb_ivar_get(attributes_container, additional_types_id);
     attributes_ctx.tryToReadFromAdditionalTypes =
         PANKO_EMPTY_HASH(attributes_ctx.additional_types) == false;
   }
@@ -107,8 +126,30 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute, VALU
   return value;
 }
 
+VALUE detect_active_model_changes(VALUE v) {
+  if (type_detection_ran == true) {
+    return Qundef;
+  }
+
+  type_detection_ran = true;
+
+  volatile VALUE active_model_type =
+      rb_const_get_at(rb_cObject, rb_intern("ActiveModel"));
+
+  is_lazy_attributes_set_defined =
+    rb_const_defined(active_model_type, rb_intern("LazyAttributeSet")) > 0;
+
+  return Qundef;
+}
+
 void active_record_attributes_writer(VALUE obj, VALUE attributes,
                                      EachAttributeFunc write_value, VALUE writer) {
+  if (type_detection_ran == false) {
+    // If ActiveModel can't be found it will throw error
+    int isErrored;
+    rb_protect(detect_active_model_changes, Qnil, &isErrored);
+  }
+
   long i;
   struct attributes attributes_ctx = init_context(obj);
   volatile VALUE record_class = CLASS_OF(obj);
