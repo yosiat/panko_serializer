@@ -177,6 +177,20 @@ describe Panko::Serializer do
       expect(Foo.create).to serialized_as(FooSerializer, "name" => nil, "address" => nil)
     end
 
+    it "can skip fields" do
+      class FooSkipSerializer < FooSerializer
+        def address
+          object.address || SKIP
+        end
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      expect(foo).to serialized_as(FooSkipSerializer, "name" => foo.name, "address" => foo.address)
+
+      foo = Foo.create(name: Faker::Lorem.word, address: nil).reload
+      expect(foo).to serialized_as(FooSkipSerializer, "name" => foo.name)
+    end
+
     it "preserves changed attributes" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
