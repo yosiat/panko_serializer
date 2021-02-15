@@ -9,8 +9,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [ '2.5', '2.6', '2.7']
-        rails: ['5.2.0', '6.0.0', '6.1.0rc1']
+        ruby: [ '2.5', '2.6', '2.7', '3.0']
+        rails: ['5.2.0', '6.0.0', '6.1.0']
+        exclude:
+          - ruby: '3.0'
+            rails: '5.2.0'
 
     steps:
     - uses: actions/checkout@v2
