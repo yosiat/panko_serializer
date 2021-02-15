@@ -1,25 +1,38 @@
 # frozen_string_literal: true
 
+require 'active_support/core_ext/string/inflections'
+require 'active_support/core_ext/module/introspection'
+
 class Panko::SerializerResolver
-  def self.resolve(name)
-    serializer_name = "#{name.singularize.camelize}Serializer"
-    serializer_const = safe_const_get(serializer_name)
+  class << self
+    def resolve(name, from)
+      serializer_const = nil
 
-    return nil if serializer_const.nil?
-    return nil unless is_serializer(serializer_const)
+      if namespace = namespace_for(from)
+        serializer_const = safe_serializer_get("#{namespace}::#{name.singularize.camelize}Serializer")
+      end
 
-    serializer_const
-  end
+      serializer_const ||= safe_serializer_get("#{name.singularize.camelize}Serializer")
+      serializer_const
+    end
 
-  private
+    private
 
-  def self.is_serializer(const)
-    const < Panko::Serializer
-  end
+    if Module.method_defined?(:module_parent_name)
+      def namespace_for(from)
+        from.module_parent_name
+      end
+    else
+      def namespace_for(from)
+        from.parent_name
+      end
+    end
 
-  def self.safe_const_get(name)
-    Object.const_get(name)
-  rescue NameError
-    nil
+    def safe_serializer_get(name)
+      const = Object.const_get(name)
+      const < Panko::Serializer ? const : nil
+    rescue NameError
+      nil
+    end
   end
 end
