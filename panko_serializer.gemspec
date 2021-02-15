@@ -31,4 +31,5 @@ Gem::Specification.new do |spec|
   spec.extensions << "ext/panko_serializer/extconf.rb"
 
   spec.add_dependency "oj", "~> 3.10.0"
+  spec.add_dependency "activesupport"
 end
