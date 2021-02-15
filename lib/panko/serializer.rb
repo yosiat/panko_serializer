@@ -32,6 +32,8 @@ end
 
 module Panko
   class Serializer
+    SKIP = Object.new.freeze
+
     class << self
       def inherited(base)
         if _descriptor.nil?

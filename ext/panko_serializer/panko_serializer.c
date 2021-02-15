@@ -13,6 +13,8 @@ static ID to_a_id;
 static ID object_id;
 static ID serialization_context_id;
 
+static VALUE SKIP = Qundef;
+
 void write_value(VALUE str_writer, VALUE key, VALUE value, VALUE isJson) {
   if(isJson == Qtrue) {
     rb_funcall(str_writer, push_json_id, 2, value, key);
@@ -40,8 +42,9 @@ void serialize_method_fields(VALUE object, VALUE str_writer,
     Attribute attribute = PANKO_ATTRIBUTE_READ(raw_attribute);
 
     volatile VALUE result = rb_funcall(serializer, attribute->name_id, 0);
-
-    write_value(str_writer, attribute->name_str, result, Qfalse);
+    if (result != SKIP) {
+        write_value(str_writer, attribute->name_str, result, Qfalse);
+    }
   }
 
   rb_ivar_set(serializer, object_id, Qnil);
@@ -166,6 +169,10 @@ void Init_panko_serializer() {
 
   rb_define_singleton_method(mPanko, "serialize_objects", serialize_objects_api,
                              3);
+
+  VALUE mPankoSerializer = rb_const_get(mPanko, rb_intern("Serializer"));
+  SKIP = rb_const_get(mPankoSerializer, rb_intern("SKIP"));
+  rb_global_variable(&SKIP);
 
   panko_init_serialization_descriptor(mPanko);
   init_attributes_writer(mPanko);
