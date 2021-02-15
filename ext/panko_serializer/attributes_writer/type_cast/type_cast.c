@@ -362,4 +362,20 @@ void panko_init_type_cast(VALUE mPanko) {
   rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, -1);
 
   panko_init_time(mPanko);
+
+  rb_global_variable(&oj_type);
+  rb_global_variable(&oj_parseerror_type);
+  rb_global_variable(&ar_string_type);
+  rb_global_variable(&ar_text_type);
+  rb_global_variable(&ar_float_type);
+  rb_global_variable(&ar_integer_type);
+  rb_global_variable(&ar_boolean_type);
+  rb_global_variable(&ar_date_time_type);
+  rb_global_variable(&ar_time_zone_converter);
+  rb_global_variable(&ar_json_type);
+  rb_global_variable(&ar_pg_integer_type);
+  rb_global_variable(&ar_pg_float_type);
+  rb_global_variable(&ar_pg_uuid_type);
+  rb_global_variable(&ar_pg_json_type);
+  rb_global_variable(&ar_pg_date_time_type);
 }

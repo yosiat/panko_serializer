@@ -85,6 +85,7 @@ void panko_init_attribute(VALUE mPanko) {
   attribute_aliases_id = rb_intern("attribute_aliases");
 
   cAttribute = rb_define_class_under(mPanko, "Attribute", rb_cObject);
+  rb_global_variable(&cAttribute);
 
   rb_define_module_function(cAttribute, "new", attribute_new, -1);
 

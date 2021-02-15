@@ -77,6 +77,7 @@ VALUE association_decriptor_aset(VALUE self, VALUE descriptor) {
 
 void panko_init_association(VALUE mPanko) {
   cAssociation = rb_define_class_under(mPanko, "Association", rb_cObject);
+  rb_global_variable(&cAssociation);
 
   rb_define_module_function(cAssociation, "new", association_new, -1);
 

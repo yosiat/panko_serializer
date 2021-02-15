@@ -2,7 +2,6 @@
 
 static bool types_initialized = false;
 static VALUE ar_base_type = Qundef;
-static VALUE hash_type = Qundef;
 
 VALUE init_types(VALUE v) {
   if (types_initialized == true) {
@@ -15,8 +14,7 @@ VALUE init_types(VALUE v) {
       rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
 
   ar_base_type = rb_const_get_at(ar_type, rb_intern("Base"));
-
-  hash_type = rb_const_get_at(rb_cObject, rb_intern("Hash"));
+  rb_global_variable(&ar_base_type);
 
   return Qundef;
 }
@@ -35,7 +33,7 @@ AttributesWriter create_attributes_writer(VALUE object) {
           .write_attributes = active_record_attributes_writer};
   }
 
-  if (rb_obj_is_kind_of(object, hash_type) == Qtrue) {
+  if (!RB_SPECIAL_CONST_P(object) && BUILTIN_TYPE(object) == T_HASH) {
     return (AttributesWriter){.object_type = Hash,
                             .write_attributes = hash_attributes_writer};
   }
