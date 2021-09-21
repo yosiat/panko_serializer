@@ -3,7 +3,7 @@ source "https://rubygems.org"
 
 gemspec
 
-raw_rails_version = ENV.fetch("RAILS_VERSION", "5.2")
+raw_rails_version = ENV.fetch("RAILS_VERSION", "6.1.0")
 rails_version = "~> #{raw_rails_version}"
 
 gem "activesupport", rails_version
@@ -12,17 +12,8 @@ gem "activerecord", rails_version, group: :test
 
 
 group :benchmarks do
-  if raw_rails_version.include? "4.2"
-    gem 'sqlite3', '~> 1.3.6'
-  else
-    gem "sqlite3", "~> 1.4"
-  end
-
-  if raw_rails_version.include? "4.2"
-    gem "pg", "~> 0.15"
-  else
-    gem "pg", ">= 0.18", "< 2.0"
-  end
+  gem "sqlite3", "~> 1.4"
+  gem "pg", ">= 0.18", "< 2.0"
 
   gem "memory_profiler"
   gem "ruby-prof", platforms: [:mri]
