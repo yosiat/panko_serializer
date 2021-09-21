@@ -75,7 +75,7 @@ module Panko
 
       def has_one(name, options = {})
         serializer_const = options[:serializer]
-        serializer_const = Panko::SerializerResolver.resolve(name.to_s, self) if serializer_const.nil?
+        serializer_const = Panko::SerializerResolver.resolve(name.to_s, self) if serializer_const.nil? || serializer_const.kind_of?(String)
 
         raise "Can't find serializer for #{self.name}.#{name} has_one relationship." if serializer_const.nil?
 
