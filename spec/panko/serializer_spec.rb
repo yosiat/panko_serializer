@@ -316,6 +316,23 @@ describe Panko::Serializer do
                                                       })
     end
 
+    it "accepts serializer name as string" do
+      class FooHolderHasOneWithStringSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :foo, serializer: "FooSerializer"
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+
+      expect(foo_holder).to serialized_as(FooHolderHasOneWithStringSerializer, "name" => foo_holder.name,
+                                                      "foo" => {
+                                                        "name" => foo.name,
+                                                        "address" => foo.address
+                                                      })
+    end
+
     it "accepts name option" do
       class FooHolderHasOneWithNameSerializer < Panko::Serializer
         attributes :name
