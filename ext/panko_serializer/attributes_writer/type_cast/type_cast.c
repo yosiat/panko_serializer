@@ -46,23 +46,23 @@ VALUE cache_postgres_type_lookup(VALUE ar) {
     return Qfalse;
   }
 
-  if (rb_const_defined_at(ar_oid, rb_intern("Float")) == (int)Qtrue) {
+  if (rb_const_defined(ar_oid, rb_intern("Float"))) {
     ar_pg_float_type = rb_const_get_at(ar_oid, rb_intern("Float"));
   }
 
-  if (rb_const_defined_at(ar_oid, rb_intern("Integer")) == (int)Qtrue) {
+  if (rb_const_defined(ar_oid, rb_intern("Integer"))) {
     ar_pg_integer_type = rb_const_get_at(ar_oid, rb_intern("Integer"));
   }
 
-  if (rb_const_defined_at(ar_oid, rb_intern("Uuid")) == (int)Qtrue) {
+  if (rb_const_defined(ar_oid, rb_intern("Uuid"))) {
     ar_pg_uuid_type = rb_const_get_at(ar_oid, rb_intern("Uuid"));
   }
 
-  if (rb_const_defined_at(ar_oid, rb_intern("Json")) == (int)Qtrue) {
+  if (rb_const_defined(ar_oid, rb_intern("Json"))) {
     ar_pg_json_type = rb_const_get_at(ar_oid, rb_intern("Json"));
   }
 
-  if (rb_const_defined_at(ar_oid, rb_intern("DateTime")) == (int)Qtrue) {
+  if (rb_const_defined(ar_oid, rb_intern("DateTime"))) {
     ar_pg_date_time_type = rb_const_get_at(ar_oid, rb_intern("DateTime"));
   }
 
@@ -120,7 +120,7 @@ void cache_type_lookup() {
     deserialize_from_db_id = rb_intern("type_cast_from_database");
   }
 
-  if (rb_const_defined_at(ar_type, rb_intern("Json")) == (int)Qtrue) {
+  if (rb_const_defined(ar_type, rb_intern("Json"))) {
     ar_json_type = rb_const_get_at(ar_type, rb_intern("Json"));
   }
 
@@ -311,6 +311,7 @@ VALUE type_cast(VALUE type_metadata, VALUE value, VALUE* isJson) {
   cache_type_lookup();
 
   VALUE type_klass, typeCastedValue;
+
 
   type_klass = CLASS_OF(type_metadata);
   typeCastedValue = Qundef;
