@@ -4,7 +4,6 @@ require "rspec/core/rake_task"
 require "json"
 require "terminal-table"
 require "rake/extensiontask"
-require "pty"
 
 gem = Gem::Specification.load( File.dirname(__FILE__) + "/panko_serializer.gemspec" )
 
@@ -29,6 +28,7 @@ def print_and_flush(str)
 end
 
 def run_process(cmd)
+  require "pty"
   puts "> Running #{cmd}"
   lines = []
   PTY.spawn(cmd) do |stdout, stdin, pid|
