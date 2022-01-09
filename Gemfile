@@ -11,9 +11,11 @@ gem "activemodel", rails_version
 gem "activerecord", rails_version, group: :test
 
 
+
 group :benchmarks do
   gem "sqlite3", "~> 1.4"
-  gem "pg", ">= 0.18", "< 2.0"
+  # Reference: https://github.com/ged/ruby-pg/issues/414
+  gem "pg", "1.3.0.rc2"
 
   gem "memory_profiler"
   gem "ruby-prof", platforms: [:mri]
