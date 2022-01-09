@@ -261,11 +261,11 @@ VALUE cast_date_time_type(VALUE value) {
   if (RB_TYPE_P(value, T_STRING)) {
     const char* val = StringValuePtr(value);
     // 'Z' in ISO8601 says it's UTC
-    if (val[strlen(val) - 1] == 'Z' && is_iso8601_time_string(val) == Qtrue) {
+    if (val[strlen(val) - 1] == 'Z' && is_iso8601_time_string(value) == Qtrue) {
       return value;
     }
 
-    volatile VALUE iso8601_string = iso_ar_iso_datetime_string(val);
+    volatile VALUE iso8601_string = iso_ar_iso_datetime_string(value);
     if (iso8601_string != Qnil) {
       return iso8601_string;
     }

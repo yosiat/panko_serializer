@@ -7,22 +7,12 @@ const int HOUR_REGION = 4;
 const int MINUTE_REGION = 5;
 const int SECOND_REGION = 6;
 
-static regex_t* iso8601_time_regex;
-static regex_t* ar_iso_datetime_regex;
+static VALUE rb_iso8601_time_regex = Qundef;
+static VALUE rb_ar_iso_datetime_regex = Qundef;
 
-VALUE is_iso8601_time_string(const char* value) {
-  const UChar *start, *range, *end;
-  OnigPosition r;
-
-  const UChar* str = (const UChar*)(value);
-
-  end = str + strlen(value);
-  start = str;
-  range = end;
-  r = onig_search(iso8601_time_regex, str, end, start, range, NULL,
-                  ONIG_OPTION_NONE);
-
-  return r >= 0 ? Qtrue : Qfalse;
+VALUE is_iso8601_time_string(const VALUE value) {
+  const VALUE isMatch = rb_reg_match(rb_iso8601_time_regex, value);
+  return NIL_P(isMatch) ? Qfalse: Qtrue;
 }
 
 void append_region_str(const char* source, char** to, int regionBegin,
@@ -51,65 +41,55 @@ bool is_iso_ar_iso_datetime_string_fast_case(const char* value) {
       isdigit(value[17]) && isdigit(value[18]));
 }
 
-bool is_iso_ar_iso_datetime_string_slow_case(const char* value) {
-  const UChar *start, *range, *end;
-  OnigPosition r;
-  OnigRegion* region = onig_region_new();
-
-  const UChar* str = (const UChar*)(value);
-
-  end = str + strlen(value);
-  start = str;
-  range = end;
-  r = onig_search(ar_iso_datetime_regex, str, end, start, range, region,
-                  ONIG_OPTION_NONE);
-
-  onig_region_free(region, 1);
-
-  return (r >= 0);
+bool is_iso_ar_iso_datetime_string_slow_case(const VALUE value) {
+  const VALUE isMatch = rb_reg_match(rb_ar_iso_datetime_regex, value);
+  return !NIL_P(isMatch);
 }
 
-VALUE iso_ar_iso_datetime_string(const char* value) {
-  if (is_iso_ar_iso_datetime_string_fast_case(value) == true ||
+
+VALUE iso_ar_iso_datetime_string(const VALUE value) {
+  const char* str = StringValuePtr(value);
+
+  if (is_iso_ar_iso_datetime_string_fast_case(str) == true ||
       is_iso_ar_iso_datetime_string_slow_case(value) == true) {
     volatile VALUE output;
 
     char buf[24] = "";
     char* cur = buf;
 
-    append_region_str(value, &cur, 0, 4);
+    append_region_str(str, &cur, 0, 4);
     *cur++ = '-';
 
-    append_region_str(value, &cur, 5, 7);
+    append_region_str(str, &cur, 5, 7);
     *cur++ = '-';
 
-    append_region_str(value, &cur, 8, 10);
+    append_region_str(str, &cur, 8, 10);
     *cur++ = 'T';
 
-    append_region_str(value, &cur, 11, 13);
+    append_region_str(str, &cur, 11, 13);
     *cur++ = ':';
 
-    append_region_str(value, &cur, 14, 16);
+    append_region_str(str, &cur, 14, 16);
     *cur++ = ':';
 
-    append_region_str(value, &cur, 17, 19);
+    append_region_str(str, &cur, 17, 19);
 
     *cur++ = '.';
-    if (value[19] == '.' && isdigit(value[20])) {
-      if (isdigit(value[20])) {
-        *cur++ = value[20];
+    if (str[19] == '.' && isdigit(str[20])) {
+      if (isdigit(str[20])) {
+        *cur++ = str[20];
       } else {
         *cur++ = '0';
       }
 
-      if (isdigit(value[21])) {
-        *cur++ = value[21];
+      if (isdigit(str[21])) {
+        *cur++ = str[21];
       } else {
         *cur++ = '0';
       }
 
-      if (isdigit(value[22])) {
-        *cur++ = value[22];
+      if (isdigit(str[22])) {
+        *cur++ = str[22];
       } else {
         *cur++ = '0';
       }
@@ -127,30 +107,14 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
   return Qnil;
 }
 
-void build_regex(OnigRegex* reg, const UChar* pattern) {
-  OnigErrorInfo einfo;
 
-  int r = onig_new(reg, pattern, pattern + strlen((char*)pattern),
-                   ONIG_OPTION_DEFAULT, ONIG_ENCODING_ASCII,
-                   ONIG_SYNTAX_DEFAULT, &einfo);
-
-  if (r != ONIG_NORMAL) {
-    char s[ONIG_MAX_ERROR_MESSAGE_LEN];
-    onig_error_code_to_str((UChar*)s, r, &einfo);
-    printf("ERROR: %s\n", s);
-  }
-}
 
 void panko_init_time(VALUE mPanko) {
-  const UChar *ISO8601_PATTERN, *AR_ISO_DATETIME_PATTERN;
+  rb_iso8601_time_regex = rb_reg_new_str(rb_str_new_cstr("^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$"), 0);
 
-  ISO8601_PATTERN =
-      (UChar*)"^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$";
+  rb_ar_iso_datetime_regex = rb_reg_new_str(rb_str_new_cstr("\\A(?<year>\\d{4})-(?<month>\\d\\d)-(?<mday>\\d\\d) (?<hour>\\d\\d):(?<min>\\d\\d):(?<sec>\\d\\d)(\\.(?<microsec>\\d+))?\\z"), 0);
 
-  build_regex(&iso8601_time_regex, ISO8601_PATTERN);
 
-  AR_ISO_DATETIME_PATTERN =
-      (UChar*)"\\A(?<year>\\d{4})-(?<month>\\d\\d)-(?<mday>\\d\\d) (?<hour>\\d\\d):(?<min>\\d\\d):(?<sec>\\d\\d)(\\.(?<microsec>\\d+))?\\z";
-
-  build_regex(&ar_iso_datetime_regex, AR_ISO_DATETIME_PATTERN);
+  rb_global_variable(&rb_iso8601_time_regex);
+  rb_global_variable(&rb_ar_iso_datetime_regex);
 }
