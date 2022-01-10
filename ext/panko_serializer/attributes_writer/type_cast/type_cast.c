@@ -41,10 +41,11 @@ VALUE cache_postgres_type_lookup(VALUE ar) {
     return Qfalse;
   }
 
-  ar_oid = rb_const_get_at(ar_postgresql, rb_intern("OID"));
-  if (ar_oid == Qundef) {
+  if (!rb_const_defined(ar_postgresql, rb_intern("OID"))) {
     return Qfalse;
   }
+
+  ar_oid = rb_const_get_at(ar_postgresql, rb_intern("OID"));
 
   if (rb_const_defined(ar_oid, rb_intern("Float"))) {
     ar_pg_float_type = rb_const_get_at(ar_oid, rb_intern("Float"));
