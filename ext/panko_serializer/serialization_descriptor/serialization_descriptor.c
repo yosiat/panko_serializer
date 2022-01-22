@@ -49,7 +49,7 @@ SerializationDescriptor sd_read(VALUE descriptor) {
 }
 
 void sd_set_writer(SerializationDescriptor sd, VALUE object) {
-  if (sd->attributes_writer.object_type != Unknown) {
+  if (sd->attributes_writer.object_type != UnknownObjectType) {
     return;
   }
 
