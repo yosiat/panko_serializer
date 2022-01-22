@@ -48,7 +48,7 @@ void empty_write_attributes(VALUE obj, VALUE attributes, EachAttributeFunc func,
                             VALUE writer) {}
 
 AttributesWriter create_empty_attributes_writer() {
-  return (AttributesWriter){.object_type = Unknown,
+  return (AttributesWriter){.object_type = UnknownObjectType,
                             .write_attributes = empty_write_attributes};
 }
 
