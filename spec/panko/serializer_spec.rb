@@ -333,6 +333,26 @@ describe Panko::Serializer do
                                                       })
     end
 
+    it "can use the serializer string name when resolving the serializer" do
+      class FooHolderHasOnePooWithStringSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :goo, serializer: "FooSerializer"
+      end
+
+      goo = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, goo: goo).reload
+
+      expect(foo_holder).to serialized_as(
+        FooHolderHasOnePooWithStringSerializer,
+        "name" => foo_holder.name,
+        "goo" => {
+          "name" => goo.name,
+          "address" => goo.address
+        }
+      )
+    end
+
     it "accepts name option" do
       class FooHolderHasOneWithNameSerializer < Panko::Serializer
         attributes :name
@@ -478,6 +498,33 @@ describe Panko::Serializer do
                                                            "address" => foo2.address
                                                          }
                                                        ])
+    end
+
+    it "uses the serializer string name when resolving the serializer" do
+      class FoosHasManyPoosHolderSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :goos, serializer: "FooSerializer"
+      end
+
+      goo1 = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      goo2 = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, goos: [goo1, goo2]).reload
+
+      expect(foos_holder).to serialized_as(
+        FoosHasManyPoosHolderSerializer,
+        "name" => foos_holder.name,
+        "goos" => [
+          {
+            "name" => goo1.name,
+            "address" => goo1.address
+          },
+          {
+            "name" => goo2.name,
+            "address" => goo2.address
+          }
+        ]
+      )
     end
 
     it "supports :name" do
