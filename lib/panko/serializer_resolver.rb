@@ -13,6 +13,7 @@ class Panko::SerializerResolver
       end
 
       serializer_const ||= safe_serializer_get("#{name.singularize.camelize}Serializer")
+      serializer_const ||= safe_serializer_get(name)
       serializer_const
     end
 

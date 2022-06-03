@@ -23,6 +23,16 @@ ActiveRecord::Schema.define do
     t.timestamps(null: false)
   end
 
+  create_table :goos, force: true do |t|
+    t.string :name
+    t.string :address
+
+    t.references :foos_holder
+    t.references :foo_holder
+
+    t.timestamps(null: false)
+  end
+
   create_table :foo_holders, force: true do |t|
     t.string :name
     t.references :foo
@@ -40,10 +50,15 @@ end
 class Foo < ActiveRecord::Base
 end
 
+class Goo < ActiveRecord::Base
+end
+
 class FoosHolder < ActiveRecord::Base
   has_many :foos
+  has_many :goos
 end
 
 class FooHolder < ActiveRecord::Base
   has_one :foo
+  has_one :goo
 end
