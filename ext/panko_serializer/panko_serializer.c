@@ -1,6 +1,6 @@
-#include <ruby.h>
-
 #include "panko_serializer.h"
+
+#include <ruby.h>
 
 static ID push_value_id;
 static ID push_array_id;
@@ -16,7 +16,7 @@ static ID serialization_context_id;
 static VALUE SKIP = Qundef;
 
 void write_value(VALUE str_writer, VALUE key, VALUE value, VALUE isJson) {
-  if(isJson == Qtrue) {
+  if (isJson == Qtrue) {
     rb_funcall(str_writer, push_json_id, 2, value, key);
   } else {
     rb_funcall(str_writer, push_value_id, 2, value, key);
@@ -43,7 +43,7 @@ void serialize_method_fields(VALUE object, VALUE str_writer,
 
     volatile VALUE result = rb_funcall(serializer, attribute->name_id, 0);
     if (result != SKIP) {
-        write_value(str_writer, attribute->name_str, result, Qfalse);
+      write_value(str_writer, attribute->name_str, result, Qfalse);
     }
   }
 
@@ -52,10 +52,8 @@ void serialize_method_fields(VALUE object, VALUE str_writer,
 
 void serialize_fields(VALUE object, VALUE str_writer,
                       SerializationDescriptor descriptor) {
-  descriptor->attributes_writer.write_attributes(object,
-                                                 descriptor->attributes,
-                                                 write_value,
-                                                 str_writer);
+  descriptor->attributes_writer.write_attributes(object, descriptor->attributes,
+                                                 write_value, str_writer);
 
   serialize_method_fields(object, str_writer, descriptor);
 }

@@ -19,7 +19,7 @@ typedef struct _SerializationDescriptor {
   VALUE has_many_associations;
 
   AttributesWriter attributes_writer;
-} * SerializationDescriptor;
+}* SerializationDescriptor;
 
 SerializationDescriptor sd_read(VALUE descriptor);
 

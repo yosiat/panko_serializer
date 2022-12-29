@@ -1,4 +1,5 @@
 #include "type_cast.h"
+
 #include "time_conversion.h"
 
 ID deserialize_from_db_id = 0;
@@ -212,7 +213,6 @@ bool is_json_type(VALUE type_klass) {
           (ar_json_type != Qundef && type_klass == ar_json_type));
 }
 
-
 bool is_boolean_type(VALUE type_klass) { return type_klass == ar_boolean_type; }
 
 VALUE cast_boolean_type(VALUE value) {
@@ -276,26 +276,27 @@ VALUE cast_date_time_type(VALUE value) {
 
 VALUE rescue_func() { return Qfalse; }
 
-VALUE parse_json(VALUE value) { return rb_funcall(oj_type, oj_sc_parse_id, 2, rb_cObject, value); }
+VALUE parse_json(VALUE value) {
+  return rb_funcall(oj_type, oj_sc_parse_id, 2, rb_cObject, value);
+}
 
 VALUE is_json_value(VALUE value) {
   if (!RB_TYPE_P(value, T_STRING)) {
     return value;
   }
 
-
-  if(RSTRING_LEN(value) == 0) {
+  if (RSTRING_LEN(value) == 0) {
     return Qfalse;
   }
 
   volatile VALUE result =
       rb_rescue2(parse_json, value, rescue_func, Qundef, oj_parseerror_type, 0);
 
-  if(NIL_P(result)) {
+  if (NIL_P(result)) {
     return Qtrue;
   }
 
-  if(result == Qfalse) {
+  if (result == Qfalse) {
     return Qfalse;
   }
 
@@ -323,8 +324,8 @@ VALUE type_cast(VALUE type_metadata, VALUE value, VALUE* isJson) {
     }
   }
 
-  if(is_json_type(type_klass)) {
-    if(is_json_value(value) == Qfalse) {
+  if (is_json_type(type_klass)) {
+    if (is_json_value(value) == Qfalse) {
       return Qnil;
     }
     *isJson = Qtrue;
@@ -356,7 +357,6 @@ void panko_init_type_cast(VALUE mPanko) {
   oj_type = rb_const_get_at(rb_cObject, rb_intern("Oj"));
   oj_parseerror_type = rb_const_get_at(oj_type, rb_intern("ParseError"));
   oj_sc_parse_id = rb_intern("sc_parse");
-
 
   // TODO: pass 3 arguments here
   rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, -1);

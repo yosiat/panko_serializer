@@ -24,18 +24,16 @@ AttributesWriter create_attributes_writer(VALUE object) {
   int isErrored;
   rb_protect(init_types, Qnil, &isErrored);
 
-
   if (ar_base_type != Qundef &&
       rb_obj_is_kind_of(object, ar_base_type) == Qtrue) {
-
-      return (AttributesWriter){
-          .object_type = ActiveRecord,
-          .write_attributes = active_record_attributes_writer};
+    return (AttributesWriter){
+        .object_type = ActiveRecord,
+        .write_attributes = active_record_attributes_writer};
   }
 
   if (!RB_SPECIAL_CONST_P(object) && BUILTIN_TYPE(object) == T_HASH) {
     return (AttributesWriter){.object_type = Hash,
-                            .write_attributes = hash_attributes_writer};
+                              .write_attributes = hash_attributes_writer};
   }
 
   return (AttributesWriter){.object_type = Plain,

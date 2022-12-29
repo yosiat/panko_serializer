@@ -4,10 +4,15 @@
 
 #include "active_record.h"
 #include "common.h"
-#include "plain.h"
 #include "hash.h"
+#include "plain.h"
 
-enum ObjectType { UnknownObjectType = 0, ActiveRecord = 1, Plain = 2, Hash = 3 };
+enum ObjectType {
+  UnknownObjectType = 0,
+  ActiveRecord = 1,
+  Plain = 2,
+  Hash = 3
+};
 
 typedef struct _AttributesWriter {
   enum ObjectType object_type;
