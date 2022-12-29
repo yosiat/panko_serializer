@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 source "https://rubygems.org"
 
 gemspec
@@ -9,7 +10,6 @@ rails_version = "~> #{raw_rails_version}"
 gem "activesupport", rails_version
 gem "activemodel", rails_version
 gem "activerecord", rails_version, group: :test
-
 
 group :benchmarks do
   gem "sqlite3", "~> 1.4"
@@ -33,5 +33,6 @@ group :development do
   gem "rake"
   gem "rspec", "~> 3.0"
   gem "rake-compiler"
-  gem "rubocop"
 end
+
+gem "standard", group: [:development, :test]

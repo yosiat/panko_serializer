@@ -35,7 +35,11 @@ class Panko::ObjectWriter
 
   def push_json(value, key = nil)
     if value.is_a?(String)
-      value = Oj.load(value) rescue nil
+      value = begin
+        Oj.load(value)
+      rescue
+        nil
+      end
     end
 
     push_value(value, key)

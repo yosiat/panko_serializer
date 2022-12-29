@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative "./benchmarking_support"
 require_relative "./app"
 require_relative "./setup"
@@ -22,7 +23,7 @@ class BenchmarkApp < Rails::Application
     get "/serialize_to_stream" => "streaming#serialize_to_stream"
   end
 
-  config.secret_token = "s"*30
+  config.secret_token = "s" * 30
   config.secret_key_base = "foo"
   config.consider_all_requests_local = false
 
@@ -55,7 +56,7 @@ class StreamingController < ActionController::Base
   include ActionController::Live
 
   def serialize_to_stream
-    headers["Content-Type".freeze] = "application/json".freeze
+    headers["Content-Type"] = "application/json"
 
     data = Benchmark.data[:all]
     serializer = Panko::ArraySerializer.new([], each_serializer: PostWithHasOneFastSerializer)
@@ -67,18 +68,15 @@ class StreamingController < ActionController::Base
   end
 end
 
-
-class RouteNotFoundError < StandardError;end
-
+class RouteNotFoundError < StandardError; end
 
 def request(method, path)
   response = Rack::MockRequest.new(BenchmarkApp).send(method, path)
   if response.status.in?([404, 500])
-    raise RouteNotFoundError.new, 'not found #{method.to_s.upcase} #{path}'
+    raise RouteNotFoundError.new, "not found #{method.to_s.upcase} #{path}"
   end
   response
 end
-
 
 def memory(&block)
   mem = MemoryProfiler.report(&block)

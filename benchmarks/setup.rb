@@ -1,10 +1,10 @@
 # frozen_string_literal: true
+
 ###########################################
 # Setup active record models
 ##########################################
 require "active_record"
 require "sqlite3"
-
 
 # Change the following to reflect your database settings
 ActiveRecord::Base.establish_connection(
@@ -49,7 +49,7 @@ Post.transaction do
       body: "something about how password restrictions are evil, and less secure, and with the math to prove it.",
       title: "Your bank is does not know how to do security",
       author: Author.create(name: "Preston Sego"),
-      data: { a: 1, b: 2, c: 3 }
+      data: {a: 1, b: 2, c: 3}
     )
   end
 end

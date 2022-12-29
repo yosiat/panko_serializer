@@ -74,7 +74,7 @@ module Panko
       unless has_many_associations.empty?
         self.has_many_associations = apply_association_filters(
           has_many_associations,
-          { attributes: attributes_only_filters, associations: associations_only_filters },
+          {attributes: attributes_only_filters, associations: associations_only_filters},
           attributes: attributes_except_filters, associations: associations_except_filters
         )
       end
@@ -82,7 +82,7 @@ module Panko
       unless has_one_associations.empty?
         self.has_one_associations = apply_association_filters(
           has_one_associations,
-          { attributes: attributes_only_filters, associations: associations_only_filters },
+          {attributes: attributes_only_filters, associations: associations_only_filters},
           attributes: attributes_except_filters, associations: associations_except_filters
         )
       end

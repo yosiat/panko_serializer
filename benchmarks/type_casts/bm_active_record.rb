@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative "./support"
 
 def ar_type_convert(type_klass, from, to)
@@ -28,9 +29,9 @@ def ar_type_convert(type_klass, from, to)
 end
 
 def utc_ar_time
-	date = DateTime.new(2017, 3, 4, 12, 45, 23)
-	tz = ActiveSupport::TimeZone.new("UTC")
-	from = date.in_time_zone(tz).iso8601
+  date = DateTime.new(2017, 3, 4, 12, 45, 23)
+  tz = ActiveSupport::TimeZone.new("UTC")
+  from = date.in_time_zone(tz).iso8601
 
   type = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::DateTime.new
   converter = ActiveRecord::AttributeMethods::TimeZoneConversion::TimeZoneConverter.new(type)
@@ -46,14 +47,11 @@ def utc_ar_time
   end
 end
 
-
-
 def db_ar_time
   type = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::DateTime.new
   converter = ActiveRecord::AttributeMethods::TimeZoneConversion::TimeZoneConverter.new(type)
 
   from = "2017-07-10 09:26:40.937392"
-
 
   if ENV["RAILS_VERSION"].start_with? "4.2"
     Benchmark.run("ActiveRecord_Time_TypeCast_WithISO8601") do
@@ -79,10 +77,10 @@ if ENV["RAILS_VERSION"].start_with? "4.2"
   ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "Infinity", ::Float::INFINITY
 end
 if check_if_exists "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json"
-  ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a:1}
+  ar_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', {a: 1}
 end
 if check_if_exists "ActiveRecord::Type::Json"
-  ar_type_convert ActiveRecord::Type::Json, '{"a":1}', {a:1}
+  ar_type_convert ActiveRecord::Type::Json, '{"a":1}', {a: 1}
 end
 
 db_ar_time

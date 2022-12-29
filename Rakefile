@@ -1,13 +1,14 @@
 # frozen_string_literal: true
+
 require "bundler/gem_tasks"
 require "rspec/core/rake_task"
 require "json"
 require "terminal-table"
 require "rake/extensiontask"
 require "pty"
+require "standard/rake"
 
-gem = Gem::Specification.load( File.dirname(__FILE__) + "/panko_serializer.gemspec" )
-
+gem = Gem::Specification.load(File.dirname(__FILE__) + "/panko_serializer.gemspec")
 
 Rake::ExtensionTask.new("panko_serializer", gem) do |ext|
   ext.lib_dir = "lib/panko"
@@ -32,14 +33,12 @@ def run_process(cmd)
   puts "> Running #{cmd}"
   lines = []
   PTY.spawn(cmd) do |stdout, stdin, pid|
-    begin
-      stdout.each do |line|
-        print_and_flush '.'
-        lines << line
-      end
-    rescue Errno::EIO
-      # ignore this
+    stdout.each do |line|
+      print_and_flush "."
+      lines << line
     end
+  rescue Errno::EIO
+    # ignore this
   end
 
   lines
@@ -51,15 +50,12 @@ end
 def run_benchmarks(files, items_count: 2_300)
   headings = ["Benchmark", "ip/s", "allocs/retained"]
   files.each do |benchmark_file|
-
     lines = run_process "ITEMS_COUNT=#{items_count} RAILS_ENV=production ruby #{benchmark_file}"
     rows = lines.map do |line|
-      begin
-        row = JSON.parse(line)
-        row.values
-      rescue JSON::ParserError
-        puts "> [ERROR] Failed running #{benchmark_file} - #{lines.join}"
-      end
+      row = JSON.parse(line)
+      row.values
+    rescue JSON::ParserError
+      puts "> [ERROR] Failed running #{benchmark_file} - #{lines.join}"
     end
 
     puts "\n\n"

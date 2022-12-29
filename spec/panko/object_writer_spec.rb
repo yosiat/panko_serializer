@@ -64,7 +64,7 @@ describe Panko::ObjectWriter do
           "value" => "key1"
         },
         "values" => [
-          { "key" => "item" }
+          {"key" => "item"}
         ]
       )
     end
@@ -84,12 +84,12 @@ describe Panko::ObjectWriter do
     writer.pop
 
     expect(writer.output).to eql([
-                                   {
-                                     "value" => "key1"
-                                   },
-                                   {
-                                     "value2" => "key2"
-                                   }
-                                 ])
+      {
+        "value" => "key1"
+      },
+      {
+        "value2" => "key2"
+      }
+    ])
   end
 end

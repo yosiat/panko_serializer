@@ -36,6 +36,7 @@ describe Panko::SerializerResolver do
   it "resolves serializer in namespace first" do
     class CoolSerializer < Panko::Serializer
     end
+
     module MyApp
       class CoolSerializer < Panko::Serializer
       end

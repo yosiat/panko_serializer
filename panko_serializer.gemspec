@@ -5,14 +5,14 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "panko/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "panko_serializer"
-  spec.version       = Panko::VERSION
-  spec.authors       = ["Yosi Attias"]
-  spec.email         = ["yosy101@gmail.com"]
+  spec.name = "panko_serializer"
+  spec.version = Panko::VERSION
+  spec.authors = ["Yosi Attias"]
+  spec.email = ["yosy101@gmail.com"]
 
-  spec.summary       = "High Performance JSON Serialization for ActiveRecord & Ruby Objects"
-  spec.homepage      = "https://panko.dev"
-  spec.license       = "MIT"
+  spec.summary = "High Performance JSON Serialization for ActiveRecord & Ruby Objects"
+  spec.homepage = "https://panko.dev"
+  spec.license = "MIT"
 
   spec.metadata = {
     "bug_tracker_uri" => "https://github.com/panko-serializer/panko_serializer/issues",
@@ -30,6 +30,6 @@ Gem::Specification.new do |spec|
 
   spec.extensions << "ext/panko_serializer/extconf.rb"
 
-  spec.add_dependency "oj", '> 3.11.0', '< 4.0.0'
+  spec.add_dependency "oj", "> 3.11.0", "< 4.0.0"
   spec.add_dependency "activesupport"
 end

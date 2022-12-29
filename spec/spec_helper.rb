@@ -42,9 +42,9 @@ RSpec::Matchers.define :serialized_as do |serializer_factory_or_class, output|
   end
 
   match do |object|
-    expect(serializer_factory.().serialize(object)).to eq(output)
+    expect(serializer_factory.call.serialize(object)).to eq(output)
 
-    json = Oj.load serializer_factory.().serialize_to_json(object)
+    json = Oj.load serializer_factory.call.serialize_to_json(object)
     expect(json).to eq(output)
   end
 
@@ -56,8 +56,8 @@ RSpec::Matchers.define :serialized_as do |serializer_factory_or_class, output|
 
       Got:
 
-      Object: #{serializer_factory.().serialize(object)}
-      JSON: #{Oj.load(serializer_factory.().serialize_to_json(object))}
+      Object: #{serializer_factory.call.serialize(object)}
+      JSON: #{Oj.load(serializer_factory.call.serialize_to_json(object))}
     FAILURE
   end
 end

@@ -75,7 +75,7 @@ module Panko
 
       def has_one(name, options = {})
         serializer_const = options[:serializer]
-        if serializer_const.kind_of?(String)
+        if serializer_const.is_a?(String)
           serializer_const = Panko::SerializerResolver.resolve(serializer_const, self)
         end
         serializer_const ||= Panko::SerializerResolver.resolve(name.to_s, self)
@@ -91,7 +91,7 @@ module Panko
 
       def has_many(name, options = {})
         serializer_const = options[:serializer] || options[:each_serializer]
-        if serializer_const.kind_of?(String)
+        if serializer_const.is_a?(String)
           serializer_const = Panko::SerializerResolver.resolve(serializer_const, self)
         end
         serializer_const ||= Panko::SerializerResolver.resolve(name.to_s, self)

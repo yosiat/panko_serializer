@@ -5,10 +5,10 @@ require "active_record/connection_adapters/postgresql_adapter"
 
 def check_if_exists(module_name)
   mod = (begin
-           module_name.constantize
-         rescue StandardError
-           nil
-         end)
+    module_name.constantize
+  rescue
+    nil
+  end)
   return true if mod
   return false unless mod
 end
@@ -18,19 +18,19 @@ describe "Type Casting" do
     context "ActiveRecord::Type::String" do
       let(:type) { ActiveRecord::Type::String.new }
 
-      it { expect(Panko._type_cast(type, true)).to          eq("t") }
-      it { expect(Panko._type_cast(type, nil)).to           be_nil }
-      it { expect(Panko._type_cast(type, false)).to         eq("f") }
-      it { expect(Panko._type_cast(type, 123)).to           eq("123") }
+      it { expect(Panko._type_cast(type, true)).to eq("t") }
+      it { expect(Panko._type_cast(type, nil)).to be_nil }
+      it { expect(Panko._type_cast(type, false)).to eq("f") }
+      it { expect(Panko._type_cast(type, 123)).to eq("123") }
       it { expect(Panko._type_cast(type, "hello world")).to eq("hello world") }
     end
 
     context "ActiveRecord::Type::Text" do
       let(:type) { ActiveRecord::Type::Text.new }
 
-      it { expect(Panko._type_cast(type, true)).to          eq("t") }
-      it { expect(Panko._type_cast(type, false)).to         eq("f") }
-      it { expect(Panko._type_cast(type, 123)).to           eq("123") }
+      it { expect(Panko._type_cast(type, true)).to eq("t") }
+      it { expect(Panko._type_cast(type, false)).to eq("f") }
+      it { expect(Panko._type_cast(type, 123)).to eq("123") }
       it { expect(Panko._type_cast(type, "hello world")).to eq("hello world") }
     end
 
@@ -46,12 +46,12 @@ describe "Type Casting" do
     context "ActiveRecord::Type::Integer" do
       let(:type) { ActiveRecord::Type::Integer.new }
 
-      it { expect(Panko._type_cast(type, "")).to  be_nil }
+      it { expect(Panko._type_cast(type, "")).to be_nil }
       it { expect(Panko._type_cast(type, nil)).to be_nil }
 
       it { expect(Panko._type_cast(type, 1)).to eq(1) }
-      it { expect(Panko._type_cast(type, "1")).to  eq(1) }
-      it { expect(Panko._type_cast(type, 1.7)).to  eq(1) }
+      it { expect(Panko._type_cast(type, "1")).to eq(1) }
+      it { expect(Panko._type_cast(type, 1.7)).to eq(1) }
 
       it { expect(Panko._type_cast(type, true)).to eq(1) }
       it { expect(Panko._type_cast(type, false)).to eq(0) }
@@ -67,8 +67,8 @@ describe "Type Casting" do
       it { expect(Panko._type_cast(type, nil)).to be_nil }
 
       it { expect(Panko._type_cast(type, 1)).to eq(1) }
-      it { expect(Panko._type_cast(type, "1")).to  eq(1) }
-      it { expect(Panko._type_cast(type, 1.7)).to  eq(1) }
+      it { expect(Panko._type_cast(type, "1")).to eq(1) }
+      it { expect(Panko._type_cast(type, 1.7)).to eq(1) }
 
       it { expect(Panko._type_cast(type, true)).to eq(1) }
       it { expect(Panko._type_cast(type, false)).to eq(0) }

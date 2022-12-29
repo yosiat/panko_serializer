@@ -25,7 +25,7 @@ describe Panko::Response do
   end
 
   it "serializes hash values" do
-    hash = { "a" => 1, "b" => 2 }
+    hash = {"a" => 1, "b" => 2}
     response = Panko::Response.new(success: true, hash: hash)
 
     json_response = Oj.load(response.to_json)
@@ -46,15 +46,15 @@ describe Panko::Response do
     foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
     response = Panko::Response.new(success: true,
-                                   foos: Panko::ArraySerializer.new(Foo.all, each_serializer: FooSerializer))
+      foos: Panko::ArraySerializer.new(Foo.all, each_serializer: FooSerializer))
 
     json_response = Oj.load(response.to_json)
 
     expect(json_response["success"]).to eq(true)
     expect(json_response["foos"]).to eq([
-                                          "name" => foo.name,
-                                          "address" => foo.address
-                                        ])
+      "name" => foo.name,
+      "address" => foo.address
+    ])
   end
 
   it "supports nesting of responses" do
@@ -90,16 +90,16 @@ describe Panko::Response do
 
   it "supports array" do
     response = Panko::Response.new([
-                                     data: Panko::Response.new(
-                                       json_data: Panko::JsonValue.from({ a: 1 }.to_json)
-                                     )
-                                   ])
+      data: Panko::Response.new(
+        json_data: Panko::JsonValue.from({a: 1}.to_json)
+      )
+    ])
 
     json_response = Oj.load(response.to_json)
 
     expect(json_response).to eql([
-                                   { "data" => { "json_data" => { "a" => 1 } } }
-                                 ])
+      {"data" => {"json_data" => {"a" => 1}}}
+    ])
   end
 
   it "create" do
@@ -109,7 +109,7 @@ describe Panko::Response do
       [
         {
           data: t.value(
-            json_data: t.json({ a: 1 }.to_json),
+            json_data: t.json({a: 1}.to_json),
             foos: t.array_serializer(Foo.all, FooSerializer),
             foo: t.serializer(Foo.first, FooSerializer)
           )
@@ -120,24 +120,24 @@ describe Panko::Response do
     json_response = Oj.load(response.to_json)
 
     expect(json_response).to eql([
-                                   { "data" =>
-                                     {
-                                       "json_data" => { "a" => 1 },
-                                       "foo" => {
-                                         "name" => foo.name,
-                                         "address" => foo.address
-                                       },
-                                       "foos" => [{
-                                         "name" => foo.name,
-                                         "address" => foo.address
-                                       }]
-                                     } }
-                                 ])
+      {"data" =>
+        {
+          "json_data" => {"a" => 1},
+          "foo" => {
+            "name" => foo.name,
+            "address" => foo.address
+          },
+          "foos" => [{
+            "name" => foo.name,
+            "address" => foo.address
+          }]
+        }}
+    ])
   end
 
   it "create with context" do
     foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
-    context = { value: Faker::Lorem.word }
+    context = {value: Faker::Lorem.word}
 
     response = Panko::Response.create do |t|
       [
@@ -153,17 +153,17 @@ describe Panko::Response do
     json_response = Oj.load(response.to_json)
 
     expect(json_response).to eql([
-                                   { "data" =>
-                                     {
-                                       "foo" => {
-                                         "name" => foo.name,
-                                         "context_value" => context[:value]
-                                       },
-                                       "foos" => [{
-                                         "name" => foo.name,
-                                         "context_value" => context[:value]
-                                       }]
-                                     } }
-                                 ])
+      {"data" =>
+        {
+          "foo" => {
+            "name" => foo.name,
+            "context_value" => context[:value]
+          },
+          "foos" => [{
+            "name" => foo.name,
+            "context_value" => context[:value]
+          }]
+        }}
+    ])
   end
 end

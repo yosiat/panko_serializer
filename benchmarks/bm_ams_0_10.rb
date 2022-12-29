@@ -1,11 +1,11 @@
 # frozen_string_literal: true
+
 require_relative "./benchmarking_support"
 require_relative "./app"
 require_relative "./setup"
 
 # disable logging for benchmarks
-ActiveModelSerializers.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new('/dev/null'))
-
+ActiveModelSerializers.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new("/dev/null"))
 
 class AmsAuthorFastSerializer < ActiveModel::Serializer
   attributes :id, :name
@@ -28,7 +28,6 @@ def benchmark_ams(prefix, serializer, options = {})
   posts = data[:all]
   posts_50 = data[:small]
 
-
   Benchmark.run("AMS_#{prefix}_Posts_#{posts.count}") do
     ActiveModelSerializers::SerializableResource.new(posts, merged_options).to_json
   end
@@ -42,9 +41,7 @@ def benchmark_ams(prefix, serializer, options = {})
   end
 end
 
-
 benchmark_ams "Attributes_Simple", AmsPostFastSerializer
 benchmark_ams "Attributes_HasOne", AmsPostWithHasOneFastSerializer
 benchmark_ams "Attributes_Except", AmsPostWithHasOneFastSerializer, except: [:title]
 benchmark_ams "Attributes_Only", AmsPostWithHasOneFastSerializer, only: [:id, :body, :author_id, :author]
-
