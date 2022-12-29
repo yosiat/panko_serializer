@@ -33,7 +33,7 @@ typedef VALUE (*TypeCastFunc)(VALUE value);
 typedef struct _TypeCast {
   TypeMatchFunc canCast;
   TypeCastFunc typeCast;
-} * TypeCast;
+}* TypeCast;
 
 // ActiveRecord::Type::String
 // ActiveRecord::Type::Text
@@ -76,6 +76,5 @@ void panko_init_type_cast(VALUE mPanko);
 
 // Introduced in ruby 2.4
 #ifndef RB_INTEGER_TYPE_P
-# define RB_INTEGER_TYPE_P(obj) (RB_FIXNUM_P(obj) || RB_TYPE_P(obj, T_BIGNUM))
+#define RB_INTEGER_TYPE_P(obj) (RB_FIXNUM_P(obj) || RB_TYPE_P(obj, T_BIGNUM))
 #endif
-

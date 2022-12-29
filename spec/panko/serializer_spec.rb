@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "spec_helper"
 require "active_record/connection_adapters/postgresql_adapter"
 
@@ -12,16 +13,16 @@ describe Panko::Serializer do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo.name,
-                                   "address" => foo.address)
+        "name" => foo.name,
+        "address" => foo.address)
     end
 
     it "from memory" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo.name,
-                                   "address" => foo.address)
+        "name" => foo.name,
+        "address" => foo.address)
     end
 
     it "plain object" do
@@ -37,8 +38,8 @@ describe Panko::Serializer do
       foo = PlainFoo.new(Faker::Lorem.word, Faker::Lorem.word)
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo.name,
-                                   "address" => foo.address)
+        "name" => foo.name,
+        "address" => foo.address)
     end
 
     it "hash (with string keys)" do
@@ -48,8 +49,8 @@ describe Panko::Serializer do
       }
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo["name"],
-                                   "address" => foo["address"])
+        "name" => foo["name"],
+        "address" => foo["address"])
     end
 
     it "HashWithIndifferentAccess (with symbol keys)" do
@@ -59,8 +60,8 @@ describe Panko::Serializer do
       )
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo["name"],
-                                   "address" => foo["address"])
+        "name" => foo["name"],
+        "address" => foo["address"])
     end
 
     it "HashWithIndifferentAccess (with string keys)" do
@@ -70,8 +71,8 @@ describe Panko::Serializer do
       )
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo["name"],
-                                   "address" => foo["address"])
+        "name" => foo["name"],
+        "address" => foo["address"])
     end
   end
 
@@ -80,8 +81,8 @@ describe Panko::Serializer do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => foo.name,
-                                   "address" => foo.address)
+        "name" => foo.name,
+        "address" => foo.address)
     end
 
     it "method attributes" do
@@ -100,8 +101,8 @@ describe Panko::Serializer do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
       expect(foo).to serialized_as(FooWithMethodsSerializer, "name" => foo.name,
-                                               "address" => foo.address,
-                                               "something" => "#{foo.name} #{foo.address}")
+        "address" => foo.address,
+        "something" => "#{foo.name} #{foo.address}")
     end
 
     it "supports serializer inheritance" do
@@ -116,7 +117,7 @@ describe Panko::Serializer do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
       expect(foo).to serialized_as(ChildSerializer, "name" => foo.name,
-                                               "address" => foo.address)
+        "address" => foo.address)
     end
 
     it "serializes time correctly" do
@@ -131,8 +132,8 @@ describe Panko::Serializer do
       obj = Foo.create.reload
 
       expect(obj).to serialized_as(ObjectWithTimeSerializer,
-                                   "created_at" => obj.created_at.as_json,
-                                   "method" => obj.created_at.as_json)
+        "created_at" => obj.created_at.as_json,
+        "method" => obj.created_at.as_json)
     end
 
     it "honors additional types" do
@@ -140,8 +141,8 @@ describe Panko::Serializer do
         attributes :value
       end
 
-      foo = Foo.instantiate({ "value" => "1" },
-                            "value" => ActiveRecord::Type::Integer.new)
+      foo = Foo.instantiate({"value" => "1"},
+        "value" => ActiveRecord::Type::Integer.new)
 
       expect(foo).to serialized_as(FooValueSerializer, "value" => 1)
     end
@@ -197,8 +198,8 @@ describe Panko::Serializer do
       foo.update!(name: "This is a new name")
 
       expect(foo).to serialized_as(FooSerializer,
-                                   "name" => "This is a new name",
-                                   "address" => foo.address)
+        "name" => "This is a new name",
+        "address" => foo.address)
     end
   end
 
@@ -212,13 +213,13 @@ describe Panko::Serializer do
         end
       end
 
-      context = { value: Faker::Lorem.word }
+      context = {value: Faker::Lorem.word}
       serializer_factory = -> { FooWithContextSerializer.new(context: context) }
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
       expect(foo).to serialized_as(serializer_factory,
-                                   "name" => foo.name,
-                                   "context_value" => context[:value])
+        "name" => foo.name,
+        "context_value" => context[:value])
     end
   end
 
@@ -249,10 +250,10 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(serializer_factory,
-                                          "scope_value" => scope,
-                                          "foo" => {
-                                            "scope_value" => scope
-                                          })
+        "scope_value" => scope,
+        "foo" => {
+          "scope_value" => scope
+        })
     end
 
     it "default scope is nil" do
@@ -260,9 +261,9 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(FooHolderWithScopeSerializer, "scope_value" => nil,
-                                                      "foo" => {
-                                                        "scope_value" => nil
-                                                      })
+        "foo" => {
+          "scope_value" => nil
+        })
     end
   end
 
@@ -310,10 +311,10 @@ describe Panko::Serializer do
       foo_holder = PlainFooHolder.new(Faker::Lorem.word, foo)
 
       expect(foo_holder).to serialized_as(PlainFooHolderHasOneSerializer, "name" => foo_holder.name,
-                                                      "foo" => {
-                                                        "name" => foo.name,
-                                                        "address" => foo.address
-                                                      })
+        "foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
     end
 
     it "accepts serializer name as string" do
@@ -327,10 +328,10 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(FooHolderHasOneWithStringSerializer, "name" => foo_holder.name,
-                                                      "foo" => {
-                                                        "name" => foo.name,
-                                                        "address" => foo.address
-                                                      })
+        "foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
     end
 
     it "can use the serializer string name when resolving the serializer" do
@@ -364,10 +365,10 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(FooHolderHasOneWithNameSerializer, "name" => foo_holder.name,
-                                                      "my_foo" => {
-                                                        "name" => foo.name,
-                                                        "address" => foo.address
-                                                      })
+        "my_foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
     end
     it "serializes using the :serializer option" do
       class FooHolderHasOneSerializer < Panko::Serializer
@@ -380,10 +381,10 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
-                                                      "foo" => {
-                                                        "name" => foo.name,
-                                                        "address" => foo.address
-                                                      })
+        "foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
     end
 
     it "infers the serializer name by name of the realtionship" do
@@ -397,10 +398,10 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
-                                                      "foo" => {
-                                                        "name" => foo.name,
-                                                        "address" => foo.address
-                                                      })
+        "foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
     end
 
     it "raises if it can't find the serializer" do
@@ -432,9 +433,9 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
 
       expect(foo_holder).to serialized_as(FooHolderHasOneVirtualSerializer, "name" => foo_holder.name,
-                                                      "foo" => {
-                                                        "virtual" => "Hello #{foo.name}"
-                                                      })
+        "foo" => {
+          "virtual" => "Hello #{foo.name}"
+        })
     end
 
     it "handles nil" do
@@ -447,7 +448,7 @@ describe Panko::Serializer do
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: nil).reload
 
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
-                                                      "foo" => nil)
+        "foo" => nil)
     end
   end
 
@@ -464,16 +465,16 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
-                                                       "foos" => [
-                                                         {
-                                                           "name" => foo1.name,
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "name" => foo2.name,
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "foos" => [
+          {
+            "name" => foo1.name,
+            "address" => foo1.address
+          },
+          {
+            "name" => foo2.name,
+            "address" => foo2.address
+          }
+        ])
     end
 
     it "accepts serializer name as string" do
@@ -488,16 +489,16 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
-                                                       "foos" => [
-                                                         {
-                                                           "name" => foo1.name,
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "name" => foo2.name,
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "foos" => [
+          {
+            "name" => foo1.name,
+            "address" => foo1.address
+          },
+          {
+            "name" => foo2.name,
+            "address" => foo2.address
+          }
+        ])
     end
 
     it "uses the serializer string name when resolving the serializer" do
@@ -539,16 +540,16 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderWithNameSerializer, "name" => foos_holder.name,
-                                                       "my_foos" => [
-                                                         {
-                                                           "name" => foo1.name,
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "name" => foo2.name,
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "my_foos" => [
+          {
+            "name" => foo1.name,
+            "address" => foo1.address
+          },
+          {
+            "name" => foo2.name,
+            "address" => foo2.address
+          }
+        ])
     end
     it "infers the serializer name by name of the realtionship" do
       class FoosHasManyHolderSerializer < Panko::Serializer
@@ -562,16 +563,16 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
-                                                       "foos" => [
-                                                         {
-                                                           "name" => foo1.name,
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "name" => foo2.name,
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "foos" => [
+          {
+            "name" => foo1.name,
+            "address" => foo1.address
+          },
+          {
+            "name" => foo2.name,
+            "address" => foo2.address
+          }
+        ])
     end
 
     it "raises if it can't find the serializer" do
@@ -596,16 +597,16 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
-                                                       "foos" => [
-                                                         {
-                                                           "name" => foo1.name,
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "name" => foo2.name,
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "foos" => [
+          {
+            "name" => foo1.name,
+            "address" => foo1.address
+          },
+          {
+            "name" => foo2.name,
+            "address" => foo2.address
+          }
+        ])
     end
 
     it "accepts only as option" do
@@ -620,14 +621,14 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(FoosHolderWithOnlySerializer, "name" => foos_holder.name,
-                                                       "foos" => [
-                                                         {
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "foos" => [
+          {
+            "address" => foo1.address
+          },
+          {
+            "address" => foo2.address
+          }
+        ])
     end
 
     it "filters associations" do
@@ -644,15 +645,15 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(serializer_factory, "foos" => [
-                                             {
-                                               "name" => foo1.name,
-                                               "address" => foo1.address
-                                             },
-                                             {
-                                               "name" => foo2.name,
-                                               "address" => foo2.address
-                                             }
-                                           ])
+        {
+          "name" => foo1.name,
+          "address" => foo1.address
+        },
+        {
+          "name" => foo2.name,
+          "address" => foo2.address
+        }
+      ])
     end
 
     it "fetches the the filters from the serializer" do
@@ -684,14 +685,14 @@ describe Panko::Serializer do
       foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
 
       expect(foos_holder).to serialized_as(serializer_factory, "name" => foos_holder.name,
-                                                       "foos" => [
-                                                         {
-                                                           "address" => foo1.address
-                                                         },
-                                                         {
-                                                           "address" => foo2.address
-                                                         }
-                                                       ])
+        "foos" => [
+          {
+            "address" => foo1.address
+          },
+          {
+            "address" => foo2.address
+          }
+        ])
     end
   end
 

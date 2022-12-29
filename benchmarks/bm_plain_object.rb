@@ -1,11 +1,11 @@
 # frozen_string_literal: true
+
 require_relative "./benchmarking_support"
 require_relative "./app"
 
 class AuthorFastSerializer < Panko::Serializer
   attributes :id, :name
 end
-
 
 class PostFastSerializer < Panko::Serializer
   attributes :id, :body, :title, :author_id, :created_at
@@ -32,11 +32,12 @@ class AuthorWithHasManyFastSerializer < Panko::Serializer
 end
 
 class Post
-  attr_accessor :id, :body, :title, :created_at, :author, :author_id
+  attr_accessor :id, :body, :title, :created_at, :author_id
+  attr_reader :author
 
   def self.create(attrs)
     p = Post.new
-    attrs.each do |k,v|
+    attrs.each do |k, v|
       p.send :"#{k}=", v
     end
     p
@@ -44,7 +45,7 @@ class Post
 
   def author=(author)
     @author = author
-    @author_id = author_id
+    @author_id = author.id
   end
 end
 
@@ -53,7 +54,7 @@ class Author
 
   def self.create(attrs)
     a = Author.new
-    attrs.each do |k,v|
+    attrs.each do |k, v|
       a.send :"#{k}=", v
     end
     a
@@ -71,9 +72,8 @@ def benchmark_data
     )
   end
 
-  { all: posts, small: posts.first(50) }
+  {all: posts, small: posts.first(50)}
 end
-
 
 def benchmark(prefix, serializer, options = {})
   data = benchmark_data

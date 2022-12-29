@@ -1,0 +1,4 @@
+ignore:
+  - "ext/**/*"
+  - "spec/**/*":
+    - Lint/ConstantDefinitionInBlock

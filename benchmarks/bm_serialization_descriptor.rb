@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative "./benchmarking_support"
 require "active_support"
 
@@ -9,15 +10,15 @@ def generate_attributes(count)
 end
 
 class LeafASerializer < Panko::Serializer
-  attributes *generate_attributes(5)
+  attributes(*generate_attributes(5))
 end
 
 class LeafBSerializer < Panko::Serializer
-  attributes *generate_attributes(6)
+  attributes(*generate_attributes(6))
 end
 
 class ChildrenSerializer < Panko::Serializer
-  attributes *generate_attributes(28)
+  attributes(*generate_attributes(28))
 
   has_one :leaf_a, serializer: LeafASerializer
   has_one :leaf_b, serializer: LeafBSerializer
@@ -39,10 +40,9 @@ class ChildrenSerializer < Panko::Serializer
 end
 
 class ParentSerializer < Panko::Serializer
-  attributes *generate_attributes(46)
+  attributes(*generate_attributes(46))
 
   has_many :children, serializer: ChildrenSerializer
-
 
   def attr_1
   end

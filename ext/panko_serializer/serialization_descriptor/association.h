@@ -12,7 +12,7 @@ typedef struct _Association {
 
   VALUE rb_descriptor;
   SerializationDescriptor descriptor;
-} * Association;
+}* Association;
 
 Association association_read(VALUE association);
 void panko_init_association(VALUE mPanko);

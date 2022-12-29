@@ -7,9 +7,9 @@ module Panko
       Attribute.new(name.to_s, alias_name)
     end
 
-    def ==(attr)
-      return name.to_sym == attr if attr.is_a? Symbol
-      return name == attr.name && alias_name == attr.alias_name if attr.is_a? Panko::Attribute
+    def ==(other)
+      return name.to_sym == other if other.is_a? Symbol
+      return name == other.name && alias_name == other.alias_name if other.is_a? Panko::Attribute
 
       super
     end
@@ -18,8 +18,8 @@ module Panko
       name.to_sym.hash
     end
 
-    def eql?(attr)
-      self.==(attr)
+    def eql?(other)
+      self.==(other)
     end
 
     def inspect

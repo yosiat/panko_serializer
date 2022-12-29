@@ -56,7 +56,7 @@ struct attributes init_context(VALUE obj) {
   if (RB_TYPE_P(attributes_container, T_HASH)) {
     attributes_ctx.attributes_hash = attributes_container;
   } else {
-    if(is_lazy_attributes_set_defined == false) {
+    if (is_lazy_attributes_set_defined == false) {
       volatile VALUE delegate_hash =
           rb_ivar_get(attributes_container, delegate_hash_id);
 
@@ -84,12 +84,12 @@ struct attributes init_context(VALUE obj) {
   return attributes_ctx;
 }
 
-VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute, VALUE* isJson) {
+VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute,
+                     VALUE* isJson) {
   volatile VALUE member, value;
 
   member = attribute->name_str;
   value = Qnil;
-
 
   if (!NIL_P(attributes_ctx.attributes_hash)) {
     volatile VALUE attribute_metadata =
@@ -107,7 +107,6 @@ VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute, VALU
   if (NIL_P(value) && !NIL_P(attributes_ctx.values)) {
     value = rb_hash_aref(attributes_ctx.values, member);
   }
-
 
   if (NIL_P(attribute->type) && !NIL_P(value)) {
     if (attributes_ctx.tryToReadFromAdditionalTypes == true) {
@@ -137,13 +136,14 @@ VALUE detect_active_model_changes(VALUE v) {
       rb_const_get_at(rb_cObject, rb_intern("ActiveModel"));
 
   is_lazy_attributes_set_defined =
-    rb_const_defined(active_model_type, rb_intern("LazyAttributeSet")) > 0;
+      rb_const_defined(active_model_type, rb_intern("LazyAttributeSet")) > 0;
 
   return Qundef;
 }
 
 void active_record_attributes_writer(VALUE obj, VALUE attributes,
-                                     EachAttributeFunc write_value, VALUE writer) {
+                                     EachAttributeFunc write_value,
+                                     VALUE writer) {
   if (type_detection_ran == false) {
     // If ActiveModel can't be found it will throw error
     int isErrored;

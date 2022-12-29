@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative "./benchmarking_support"
 require_relative "./app"
 require_relative "./setup"
@@ -6,7 +7,6 @@ require_relative "./setup"
 class AuthorFastSerializer < Panko::Serializer
   attributes :id, :name
 end
-
 
 class PostFastSerializer < Panko::Serializer
   attributes :id, :body, :title, :author_id
@@ -23,7 +23,6 @@ class AuthorWithHasManyFastSerializer < Panko::Serializer
 
   has_many :posts, serializer: PostFastSerializer
 end
-
 
 def benchmark(prefix, serializer, options = {})
   data = Benchmark.data

@@ -75,9 +75,9 @@ module Panko
 
     def write_value(writer, value, key = nil)
       if value.is_a?(Panko::ArraySerializer) ||
-         value.is_a?(Panko::Serializer) ||
-         value.is_a?(Panko::Response) ||
-         value.is_a?(Panko::JsonValue)
+          value.is_a?(Panko::Serializer) ||
+          value.is_a?(Panko::Response) ||
+          value.is_a?(Panko::JsonValue)
         writer.push_json(value.to_json, key)
       else
         writer.push_value(value, key)

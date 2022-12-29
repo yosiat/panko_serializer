@@ -1,10 +1,11 @@
 # frozen_string_literal: true
+
 require_relative "./benchmarking_support"
 require_relative "./app"
 require_relative "./setup"
 
 class PostWithAliasModel < ActiveRecord::Base
-  self.table_name = 'posts'
+  self.table_name = "posts"
 
   alias_attribute :new_id, :id
   alias_attribute :new_body, :body
@@ -20,17 +21,12 @@ end
 def benchmark_aliased(prefix, serializer, options = {})
   posts = PostWithAliasModel.all.to_a
   posts_50 = posts.first(50).to_a
-  data = { all: posts, small: posts_50 }
 
   merged_options = options.merge(each_serializer: serializer)
 
   Benchmark.run("Panko_#{prefix}_PostWithAliasModels_#{posts.count}") do
     Panko::ArraySerializer.new(posts, merged_options).to_json
   end
-
-  posts = PostWithAliasModel.all.to_a
-  posts_50 = posts.first(50).to_a
-  data = { all: posts, small: posts_50 }
 
   Benchmark.run("Panko_#{prefix}_Posts_50") do
     Panko::ArraySerializer.new(posts_50, merged_options).to_json
@@ -40,7 +36,6 @@ end
 class AuthorFastSerializer < Panko::Serializer
   attributes :id, :name
 end
-
 
 class PostFastSerializer < Panko::Serializer
   attributes :id, :body, :title, :author_id, :created_at
@@ -66,7 +61,6 @@ class AuthorWithHasManyFastSerializer < Panko::Serializer
   has_many :posts, serializer: PostFastSerializer
 end
 
-
 def benchmark(prefix, serializer, options = {})
   data = Benchmark.data
   posts = data[:all]
@@ -86,8 +80,6 @@ def benchmark(prefix, serializer, options = {})
     Panko::ArraySerializer.new(posts_50, merged_options).to_a
   end
 end
-
-
 
 benchmark "Simple", PostFastSerializer
 benchmark "HasOne", PostWithHasOneFastSerializer

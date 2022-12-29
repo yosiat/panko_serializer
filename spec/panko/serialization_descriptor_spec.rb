@@ -13,9 +13,9 @@ describe Panko::SerializationDescriptor do
 
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([
-                                            Panko::Attribute.create(:name),
-                                            Panko::Attribute.create(:address)
-                                          ])
+        Panko::Attribute.create(:name),
+        Panko::Attribute.create(:address)
+      ])
     end
 
     it "method attributes" do
@@ -31,9 +31,9 @@ describe Panko::SerializationDescriptor do
 
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([
-                                            Panko::Attribute.create(:name),
-                                            Panko::Attribute.create(:address)
-                                          ])
+        Panko::Attribute.create(:name),
+        Panko::Attribute.create(:address)
+      ])
       expect(descriptor.method_fields).to eq([:something])
     end
 
@@ -46,8 +46,8 @@ describe Panko::SerializationDescriptor do
 
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([
-                                            Panko::Attribute.create(:name, alias_name: :full_name)
-                                          ])
+        Panko::Attribute.create(:name, alias_name: :full_name)
+      ])
     end
 
     it "allows multiple filters in other runs" do
@@ -57,32 +57,32 @@ describe Panko::SerializationDescriptor do
       end
 
       descriptor = Panko::SerializationDescriptor.build(MultipleFiltersTestSerializer, only: {
-                                                          instance: [:foos],
-                                                          foos: [:name]
-                                                        })
+        instance: [:foos],
+        foos: [:name]
+      })
 
       expect(descriptor.has_many_associations.first.descriptor.attributes).to eq([
-                                                                                   Panko::Attribute.create(:name)
-                                                                                 ])
+        Panko::Attribute.create(:name)
+      ])
 
       descriptor = Panko::SerializationDescriptor.build(MultipleFiltersTestSerializer)
 
       expect(descriptor.has_many_associations.first.descriptor.attributes).to eq([
-                                                                                   Panko::Attribute.create(:name),
-                                                                                   Panko::Attribute.create(:address)
-                                                                                 ])
+        Panko::Attribute.create(:name),
+        Panko::Attribute.create(:address)
+      ])
     end
   end
 
   context "associations" do
     it "has_one: build_descriptor" do
-      class BuilderTest_FooHolderHasOneSerializer < Panko::Serializer
+      class BuilderTestFooHolderHasOneSerializer < Panko::Serializer
         attributes :name
 
         has_one :foo, serializer: FooSerializer
       end
 
-      descriptor = Panko::SerializationDescriptor.build(BuilderTest_FooHolderHasOneSerializer)
+      descriptor = Panko::SerializationDescriptor.build(BuilderTestFooHolderHasOneSerializer)
 
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([Panko::Attribute.create(:name)])
@@ -99,13 +99,13 @@ describe Panko::SerializationDescriptor do
     end
 
     it "has_many: builds descriptor" do
-      class BuilderTest_FoosHasManyHolderSerializer < Panko::Serializer
+      class BuilderTestFoosHasManyHolderSerializer < Panko::Serializer
         attributes :name
 
         has_many :foos, serializer: FooSerializer
       end
 
-      descriptor = Panko::SerializationDescriptor.build(BuilderTest_FoosHasManyHolderSerializer)
+      descriptor = Panko::SerializationDescriptor.build(BuilderTestFoosHasManyHolderSerializer)
 
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([Panko::Attribute.create(:name)])
@@ -173,9 +173,9 @@ describe Panko::SerializationDescriptor do
 
       expect(descriptor).not_to be_nil
       expect(descriptor.attributes).to eq([
-                                            Panko::Attribute.create(:address),
-                                            Panko::Attribute.create(:name, alias_name: :full_name)
-                                          ])
+        Panko::Attribute.create(:address),
+        Panko::Attribute.create(:name, alias_name: :full_name)
+      ])
     end
 
     it "filters associations" do
@@ -198,12 +198,12 @@ describe Panko::SerializationDescriptor do
 
     describe "association filters" do
       it "accepts only as option" do
-        class AssocFilterTest_FoosHolderSerializer < Panko::Serializer
+        class AssocFilterTestFoosHolderSerializer < Panko::Serializer
           attributes :name
           has_many :foos, serializer: FooSerializer
         end
 
-        descriptor = Panko::SerializationDescriptor.build(AssocFilterTest_FoosHolderSerializer, only: { foos: [:address] })
+        descriptor = Panko::SerializationDescriptor.build(AssocFilterTestFoosHolderSerializer, only: {foos: [:address]})
 
         expect(descriptor.attributes).to eq([Panko::Attribute.create(:name)])
         expect(descriptor.has_many_associations.count).to eq(1)

@@ -1,0 +1,41 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.1.0
+
+      - name: Install deps
+        run: |
+          sudo apt update -y
+          sudo apt install -y libsqlite3-dev
+
+      - name: Install gems
+        env:
+          RAILS_VERSION: "7.0"
+        run: |
+          gem install bundler
+          bundle config set path 'vendor/bundle'
+          bundle check || bundle install --jobs 4 --retry 3
+
+      - name: Lint ruby
+        env:
+          RAILS_VERSION: "7.0"
+        run: |
+          bundle exec rake standard
+          clang-format ext/**/*.{c,h}
+
+      - name: Lint C
+        uses: jidicula/clang-format-action@v4.10.1
+        with:
+          clang-format-version: "15"
+          check-path: "ext/panko_serializer"
+          fallback-style: "Google"

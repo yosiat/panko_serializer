@@ -1,36 +1,36 @@
 # frozen_string_literal: true
+
 require_relative "./support"
 
 def panko_type_convert(type_klass, from, to)
   converter = type_klass.new
-  assert "#{type_klass.name}", Panko::_type_cast(converter, from), to
+  assert type_klass.name.to_s, Panko._type_cast(converter, from), to
 
   Benchmark.run("#{type_klass.name}_TypeCast") do
-    Panko::_type_cast(converter, from)
+    Panko._type_cast(converter, from)
   end
 
   Benchmark.run("#{type_klass.name}_NoTypeCast") do
-    Panko::_type_cast(converter, to)
+    Panko._type_cast(converter, to)
   end
 end
 
-
 def utc_panko_time
-	date = DateTime.new(2017, 3, 4, 12, 45, 23)
-	tz = ActiveSupport::TimeZone.new("UTC")
-	from = date.in_time_zone(tz).iso8601
+  date = DateTime.new(2017, 3, 4, 12, 45, 23)
+  tz = ActiveSupport::TimeZone.new("UTC")
+  from = date.in_time_zone(tz).iso8601
 
   type = ActiveRecord::ConnectionAdapters::PostgreSQL::OID::DateTime.new
   converter = ActiveRecord::AttributeMethods::TimeZoneConversion::TimeZoneConverter.new(type)
 
-  to = Panko::_type_cast(converter, from)
+  to = Panko._type_cast(converter, from)
 
   Benchmark.run("#{tz}_#{type.class.name}_TypeCast") do
-    Panko::_type_cast(converter, from)
+    Panko._type_cast(converter, from)
   end
 
   Benchmark.run("#{tz}_#{type.class.name}_NoTypeCast") do
-    Panko::_type_cast(converter, to)
+    Panko._type_cast(converter, to)
   end
 end
 
@@ -41,7 +41,7 @@ def db_panko_time
   from = "2017-07-10 09:26:40.937392"
 
   Benchmark.run("Panko_Time_TypeCast") do
-		Panko::_type_cast(converter, from)
+    Panko._type_cast(converter, from)
   end
 end
 

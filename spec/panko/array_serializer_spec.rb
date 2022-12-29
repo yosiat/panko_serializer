@@ -21,9 +21,9 @@ describe Panko::ArraySerializer do
       foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(Foo.all).to serialized_as(array_serializer_factory, [
-                                         { "name" => foo1.name, "address" => foo1.address },
-                                         { "name" => foo2.name, "address" => foo2.address }
-                                       ])
+        {"name" => foo1.name, "address" => foo1.address},
+        {"name" => foo2.name, "address" => foo2.address}
+      ])
     end
 
     it "serializes array of elements with virtual attribtues" do
@@ -41,14 +41,16 @@ describe Panko::ArraySerializer do
 
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
-      array_serializer_factory = -> { Panko::ArraySerializer.new([],
-                                                    each_serializer: TestSerializerWithMethodsSerializer,
-                                                    context: { value: 6 }) }
+      array_serializer_factory = -> {
+        Panko::ArraySerializer.new([],
+          each_serializer: TestSerializerWithMethodsSerializer,
+          context: {value: 6})
+      }
 
-      expect(Foo.all).to serialized_as(array_serializer_factory, [{ "name" => foo.name,
-                                                            "address" => foo.address,
-                                                            "something" => "#{foo.name} #{foo.address}",
-                                                            "context_fetch" => 6 }])
+      expect(Foo.all).to serialized_as(array_serializer_factory, [{"name" => foo.name,
+                                                                   "address" => foo.address,
+                                                                   "something" => "#{foo.name} #{foo.address}",
+                                                                   "context_fetch" => 6}])
     end
   end
 
@@ -60,9 +62,9 @@ describe Panko::ArraySerializer do
       foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(Foo.all).to serialized_as(array_serializer_factory, [
-                                         { "name" => foo1.name },
-                                         { "name" => foo2.name }
-                                       ])
+        {"name" => foo1.name},
+        {"name" => foo2.name}
+      ])
     end
 
     it "except" do
@@ -72,9 +74,9 @@ describe Panko::ArraySerializer do
       foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(Foo.all).to serialized_as(array_serializer_factory, [
-                                         { "address" => foo1.address },
-                                         { "address" => foo2.address }
-                                       ])
+        {"address" => foo1.address},
+        {"address" => foo2.address}
+      ])
     end
   end
 end
