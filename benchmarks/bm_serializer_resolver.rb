@@ -10,13 +10,13 @@ class RealSerializer < Panko::Serializer
 end
 
 Benchmark.run("CantFindConst") do
-  Panko::SerializerResolver.resolve("cant_find_const")
+  Panko::SerializerResolver.resolve("cant_find_const", Object)
 end
 
 Benchmark.run("NotSerializer") do
-  Panko::SerializerResolver.resolve("not")
+  Panko::SerializerResolver.resolve("not", Object)
 end
 
 Benchmark.run("RealSerializer") do
-  Panko::SerializerResolver.resolve("real")
+  Panko::SerializerResolver.resolve("real", Object)
 end
