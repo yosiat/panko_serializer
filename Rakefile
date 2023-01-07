@@ -32,7 +32,8 @@ end
 def run_process(cmd)
   puts "> Running #{cmd}"
   lines = []
-  PTY.spawn(cmd) do |stdout, stdin, pid|
+  stderr_reader, stderr_writer = IO.pipe
+  PTY.spawn(cmd, err: stderr_writer.fileno) do |stdout, stdin, pid|
     stdout.each do |line|
       print_and_flush "."
       lines << line

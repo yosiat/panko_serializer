@@ -10,6 +10,7 @@ require "oj"
 require_relative "../benchmarking_support"
 require_relative "../../lib/panko_serializer"
 
+
 def assert(type_name, from, to)
   raise "#{type_name} - #{from.class} is not equals to #{to.class}" unless from.to_json == to.to_json
 end
@@ -25,3 +26,4 @@ def check_if_exists(module_name)
 end
 
 Time.zone = "UTC"
+ActiveSupport::Deprecation.behavior = :stderr
