@@ -31,11 +31,12 @@ void association_mark(Association data) {
 }
 
 static VALUE association_new(int argc, VALUE* argv, VALUE self) {
-  Association association = ALLOC(struct _Association);
+  Association association;
 
   Check_Type(argv[0], T_SYMBOL);
   Check_Type(argv[1], T_STRING);
 
+  association = ALLOC(struct _Association);
   association->name_sym = argv[0];
   association->name_str = argv[1];
   association->rb_descriptor = argv[2];

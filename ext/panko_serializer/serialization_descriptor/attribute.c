@@ -26,13 +26,14 @@ void attribute_mark(Attribute data) {
 }
 
 static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {
-  Attribute attribute = ALLOC(struct _Attribute);
+  Attribute attribute;
 
   Check_Type(argv[0], T_STRING);
   if (argv[1] != Qnil) {
     Check_Type(argv[1], T_STRING);
   }
 
+  attribute = ALLOC(struct _Attribute);
   attribute->name_str = argv[0];
   attribute->name_id = rb_intern_str(attribute->name_str);
   attribute->alias_name = argv[1];
