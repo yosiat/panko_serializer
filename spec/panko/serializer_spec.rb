@@ -706,4 +706,39 @@ describe Panko::Serializer do
       expect { serializer.serialize(foo_b) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
     end
   end
+
+  context "alias" do
+    let(:data) { {"created_at" => created_at} }
+    let(:created_at) { "2023-04-18T09:24:41+00:00" }
+
+    context "with alias" do
+      let(:serializer_class) do
+        Class.new(Panko::Serializer) do
+          aliases({created_at: :createdAt})
+        end
+      end
+
+      it "has createdAt" do
+        expect(data).to serialized_as(serializer_class,
+          "createdAt" => created_at)
+      end
+    end
+
+    context "with alias + method_fields" do
+      let(:serializer_class) do
+        Class.new(Panko::Serializer) do
+          aliases({created_at: :createdAt})
+
+          def created_at
+            "2023-04-18T09:24:41+00:00"
+          end
+        end
+      end
+
+      it "has createdAt" do
+        expect(data).to serialized_as(serializer_class,
+          "createdAt" => created_at)
+      end
+    end
+  end
 end
