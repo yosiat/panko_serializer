@@ -20,7 +20,7 @@ group :benchmarks do
   gem "ruby-prof-flamegraph", platforms: [:mri]
 
   gem "benchmark-ips"
-gem "active_model_serializers", "~> 0.10"
+  gem "active_model_serializers", "~> 0.10"
   gem "terminal-table"
 end
 

@@ -32,7 +32,7 @@ end
 def run_process(cmd)
   puts "> Running #{cmd}"
   lines = []
-  stderr_reader, stderr_writer = IO.pipe
+  _stderr_reader, stderr_writer = IO.pipe
   PTY.spawn(cmd, err: stderr_writer.fileno) do |stdout, stdin, pid|
     stdout.each do |line|
       print_and_flush "."
@@ -67,7 +67,6 @@ def run_benchmarks(files, items_count: 2_300)
 end
 
 namespace :benchmarks do
-
   desc "All"
   task :all do
     run_benchmarks Dir[File.join(__dir__, "benchmarks", "**", "bm_*")]
