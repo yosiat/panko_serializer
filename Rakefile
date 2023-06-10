@@ -66,24 +66,27 @@ def run_benchmarks(files, items_count: 2_300)
   end
 end
 
-desc "Run all benchmarks"
-task :benchmarks do
-  run_benchmarks Dir[File.join(__dir__, "benchmarks", "**", "bm_*")]
-end
+namespace :benchmarks do
 
-desc "Type Casts - Benchmarks"
-task :bm_type_casts do
-  run_benchmarks Dir[File.join(__dir__, "benchmarks", "type_casts", "bm_*")], items_count: 0
-end
+  desc "All"
+  task :all do
+    run_benchmarks Dir[File.join(__dir__, "benchmarks", "**", "bm_*")]
+  end
 
-desc "Sanity Benchmarks"
-task :sanity do
-  puts Time.now.strftime("%d/%m %H:%M:%S")
-  puts "=========================="
+  desc "Type Casts"
+  task :type_casts do
+    run_benchmarks Dir[File.join(__dir__, "benchmarks", "type_casts", "bm_*")], items_count: 0
+  end
 
-  run_benchmarks [
-    File.join(__dir__, "benchmarks", "sanity.rb")
-  ], items_count: 2300
+  desc "Sanity"
+  task :sanity do
+    puts Time.now.strftime("%d/%m %H:%M:%S")
+    puts "=========================="
 
-  puts "\n\n"
+    run_benchmarks [
+      File.join(__dir__, "benchmarks", "sanity.rb")
+    ], items_count: 2300
+
+    puts "\n\n"
+  end
 end
