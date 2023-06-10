@@ -71,7 +71,8 @@ static struct _TypeCast type_casts[] = {
 
     {NULL, NULL}};
 
-extern VALUE type_cast(VALUE type_metadata, VALUE value, volatile VALUE* isJson);
+extern VALUE type_cast(VALUE type_metadata, VALUE value,
+                       volatile VALUE* isJson);
 void panko_init_type_cast(VALUE mPanko);
 
 // Introduced in ruby 2.4

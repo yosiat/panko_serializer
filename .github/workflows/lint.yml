@@ -31,11 +31,10 @@ jobs:
           RAILS_VERSION: "7.0"
         run: |
           bundle exec rake standard
-          clang-format ext/**/*.{c,h}
 
       - name: Lint C
-        uses: jidicula/clang-format-action@v4.10.1
+        uses: jidicula/clang-format-action@v4.11.0
         with:
-          clang-format-version: "15"
+          clang-format-version: "16"
           check-path: "ext/panko_serializer"
           fallback-style: "Google"
