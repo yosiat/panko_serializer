@@ -85,7 +85,7 @@ struct attributes init_context(VALUE obj) {
 }
 
 VALUE read_attribute(struct attributes attributes_ctx, Attribute attribute,
-                     VALUE* isJson) {
+                     volatile VALUE* isJson) {
   volatile VALUE member, value;
 
   member = attribute->name_str;

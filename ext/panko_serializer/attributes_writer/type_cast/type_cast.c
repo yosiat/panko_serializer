@@ -304,7 +304,7 @@ VALUE is_json_value(VALUE value) {
   return Qfalse;
 }
 
-VALUE type_cast(VALUE type_metadata, VALUE value, VALUE* isJson) {
+VALUE type_cast(VALUE type_metadata, VALUE value, volatile VALUE* isJson) {
   if (value == Qnil || value == Qundef) {
     return value;
   }
