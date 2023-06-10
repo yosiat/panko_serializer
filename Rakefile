@@ -32,7 +32,8 @@ end
 def run_process(cmd)
   puts "> Running #{cmd}"
   lines = []
-  PTY.spawn(cmd) do |stdout, stdin, pid|
+  _stderr_reader, stderr_writer = IO.pipe
+  PTY.spawn(cmd, err: stderr_writer.fileno) do |stdout, stdin, pid|
     stdout.each do |line|
       print_and_flush "."
       lines << line
@@ -65,24 +66,26 @@ def run_benchmarks(files, items_count: 2_300)
   end
 end
 
-desc "Run all benchmarks"
-task :benchmarks do
-  run_benchmarks Dir[File.join(__dir__, "benchmarks", "**", "bm_*")]
-end
+namespace :benchmarks do
+  desc "All"
+  task :all do
+    run_benchmarks Dir[File.join(__dir__, "benchmarks", "**", "bm_*")]
+  end
 
-desc "Type Casts - Benchmarks"
-task :bm_type_casts do
-  run_benchmarks Dir[File.join(__dir__, "benchmarks", "type_casts", "bm_*")], items_count: 0
-end
+  desc "Type Casts"
+  task :type_casts do
+    run_benchmarks Dir[File.join(__dir__, "benchmarks", "type_casts", "bm_*")], items_count: 0
+  end
 
-desc "Sanity Benchmarks"
-task :sanity do
-  puts Time.now.strftime("%d/%m %H:%M:%S")
-  puts "=========================="
+  desc "Sanity"
+  task :sanity do
+    puts Time.now.strftime("%d/%m %H:%M:%S")
+    puts "=========================="
 
-  run_benchmarks [
-    File.join(__dir__, "benchmarks", "sanity.rb")
-  ], items_count: 2300
+    run_benchmarks [
+      File.join(__dir__, "benchmarks", "sanity.rb")
+    ], items_count: 2300
 
-  puts "\n\n"
+    puts "\n\n"
+  end
 end
