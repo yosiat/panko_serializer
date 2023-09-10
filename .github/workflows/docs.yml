@@ -35,5 +35,5 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        GIT_USER=panko-serializer CURRENT_BRANCH=master USE_SSH=true npm run publish-gh-pages
+        GIT_USER=yosiat CURRENT_BRANCH=master USE_SSH=true npm run publish-gh-pages
 

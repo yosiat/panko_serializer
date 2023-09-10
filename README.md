@@ -1,6 +1,6 @@
 # Panko
 
-![Build Status](https://github.com/panko-serializer/panko_serializer/workflows/Panko%20Serializer%20CI/badge.svg?branch=master)
+![Build Status](https://github.com/yosiat/panko_serializer/workflows/Panko%20Serializer%20CI/badge.svg?branch=master)
 
 Panko is library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord/Ruby objects to JSON strings, fast.
 
@@ -18,7 +18,6 @@ Support
 
 - [Documentation](https://panko.dev/docs)
 - [Getting Started](https://panko.dev/docs/getting-started.html)
-- Join our [slack community](https://pankoserializer.herokuapp.com/)
 
 License
 -------
