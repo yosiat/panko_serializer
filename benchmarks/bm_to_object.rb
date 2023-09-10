@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "./benchmarking_support"
-require_relative "./app"
-require_relative "./setup"
+require_relative "benchmarking_support"
+require_relative "app"
+require_relative "setup"
 
 class PostWithAliasModel < ActiveRecord::Base
   self.table_name = "posts"

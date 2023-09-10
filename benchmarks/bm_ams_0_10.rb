@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "./benchmarking_support"
-require_relative "./app"
-require_relative "./setup"
+require_relative "benchmarking_support"
+require_relative "app"
+require_relative "setup"
 
 # disable logging for benchmarks
 ActiveModelSerializers.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new("/dev/null"))

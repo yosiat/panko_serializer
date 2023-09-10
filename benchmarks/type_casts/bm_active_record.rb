@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "./support"
+require_relative "support"
 
 def ar_type_convert(type_klass, from, to)
   converter = type_klass.new

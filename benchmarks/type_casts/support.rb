@@ -21,7 +21,7 @@ def check_if_exists(module_name)
     nil
   end
   return true if mod
-  return false unless mod
+  false unless mod
 end
 
 Time.zone = "UTC"
