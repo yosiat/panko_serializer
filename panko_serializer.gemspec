@@ -15,10 +15,10 @@ Gem::Specification.new do |spec|
   spec.license = "MIT"
 
   spec.metadata = {
-    "bug_tracker_uri" => "https://github.com/panko-serializer/panko_serializer/issues",
-    "source_code_uri" => "https://github.com/panko-serializer/panko_serializer",
-    "documentation_uri" => "https://panko-serializer.github.io/panko_serializer/",
-    "changelog_uri" => "https://github.com/panko-serializer/panko_serializer/releases"
+    "bug_tracker_uri" => "https://github.com/yosiat/panko_serializer/issues",
+    "source_code_uri" => "https://github.com/yosiat/panko_serializer",
+    "documentation_uri" => "https://panko.dev",
+    "changelog_uri" => "https://github.com/yosiat/panko_serializer/releases"
   }
 
   spec.required_ruby_version = ">= 2.5.0"

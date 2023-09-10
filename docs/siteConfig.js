@@ -26,15 +26,15 @@ const siteConfig = {
   tagline: 'High Performance JSON Serialization for ActiveRecord & Ruby Objects',
   url: 'https://panko.dev',
   baseUrl: '/',
-  repoPath: 'panko-serializer/panko_serializer',
+  repoPath: 'yosiat/panko_serializer',
   // For github.io type URLs, you would set the url and baseUrl like:
   //   url: 'https://facebook.github.io',
   //   baseUrl: '/test-site/',
   customDocsPath: require('path').basename(__dirname) + '/docs',
 
-  repoUrl: 'https://github.com/panko-serializer/panko_serializer',
+  repoUrl: 'https://github.com/yosiat/panko_serializer',
   projectName: 'panko_serializer',
-  organizationName: 'panko-serializer',
+  organizationName: 'yosiat',
   cname: 'panko.dev',
 
   headerLinks: [
