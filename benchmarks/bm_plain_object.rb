@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "./benchmarking_support"
-require_relative "./app"
+require_relative "benchmarking_support"
+require_relative "app"
 
 class AuthorFastSerializer < Panko::Serializer
   attributes :id, :name
