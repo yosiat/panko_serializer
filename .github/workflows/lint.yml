@@ -19,16 +19,12 @@ jobs:
           sudo apt install -y libsqlite3-dev
 
       - name: Install gems
-        env:
-          RAILS_VERSION: "7.0"
         run: |
           gem install bundler
           bundle config set path 'vendor/bundle'
           bundle check || bundle install --jobs 4 --retry 3
 
       - name: Lint ruby
-        env:
-          RAILS_VERSION: "7.0"
         run: |
           bundle exec rake standard
 

@@ -4,7 +4,7 @@ source "https://rubygems.org"
 
 gemspec
 
-raw_rails_version = ENV.fetch("RAILS_VERSION", "6.1.0")
+raw_rails_version = ENV.fetch("RAILS_VERSION", "7.1.0")
 rails_version = "~> #{raw_rails_version}"
 
 gem "activesupport", rails_version
