@@ -63,7 +63,7 @@ We can declare tailored serializer for this, or we can re-use the above defined 
 ```ruby
 posts = Post.all
 
-Panko::ArraySerializer.new(posts, only: {
+Panko::ArraySerializer.new(posts, each_serializer: PostSerializer, only: {
   instance: [:title, :body, :author, :comments],
   author: [:id],
   comments: [:id],
