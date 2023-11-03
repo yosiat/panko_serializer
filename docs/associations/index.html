@@ -99,7 +99,7 @@ But Panko let you take that step further, and filters the attributes of you asso
 <p>We can declare tailored serializer for this, or we can re-use the above defined serializer - <code>PostSerializer</code> and use nested filters.</p>
 <pre><code class="hljs css language-ruby">posts = Post.all
 
-Panko::ArraySerializer.new(posts, <span class="hljs-symbol">only:</span> {
+Panko::ArraySerializer.new(posts, <span class="hljs-symbol">each_serializer:</span> PostSerializer, <span class="hljs-symbol">only:</span> {
   <span class="hljs-symbol">instance:</span> [<span class="hljs-symbol">:title</span>, <span class="hljs-symbol">:body</span>, <span class="hljs-symbol">:author</span>, <span class="hljs-symbol">:comments</span>],
   <span class="hljs-symbol">author:</span> [<span class="hljs-symbol">:id</span>],
   <span class="hljs-symbol">comments:</span> [<span class="hljs-symbol">:id</span>],
