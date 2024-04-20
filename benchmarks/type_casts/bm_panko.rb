@@ -52,12 +52,6 @@ panko_type_convert ActiveRecord::Type::Float, "1.23", 1.23
 panko_type_convert ActiveRecord::Type::Boolean, "true", true
 panko_type_convert ActiveRecord::Type::Boolean, "t", true
 
-if ENV["RAILS_VERSION"].start_with? "4.2"
-  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Integer, "1", 1
-  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "1.23", 1.23
-  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Float, "Infinity", ::Float::INFINITY
-end
-
 if check_if_exists "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json"
   panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', '{"a":1}'
 end
