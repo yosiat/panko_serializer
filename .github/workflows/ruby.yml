@@ -34,7 +34,7 @@ jobs:
 
       - name: Install gems
         env:
-          RAILS_VERSION: ${{ matrix.rails }}
+          BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
         run: |
           gem install bundler
           bundle config set path 'vendor/bundle'
@@ -42,6 +42,6 @@ jobs:
 
       - name: Compile & test
         env:
-          RAILS_VERSION: ${{ matrix.rails }}
+          BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
         run: |
           bundle exec rake

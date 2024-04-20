@@ -32,4 +32,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "oj", "> 3.11.0", "< 4.0.0"
   spec.add_dependency "activesupport"
+  spec.add_development_dependency "appraisal"
 end
