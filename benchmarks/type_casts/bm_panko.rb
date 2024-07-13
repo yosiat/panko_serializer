@@ -55,6 +55,9 @@ panko_type_convert ActiveRecord::Type::Boolean, "t", true
 if check_if_exists "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json"
   panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Json, '{"a":1}', '{"a":1}'
 end
+if check_if_exists "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb"
+  panko_type_convert ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb, '{"a":1}', '{"a":1}'
+end
 if check_if_exists "ActiveRecord::Type::Json"
   panko_type_convert ActiveRecord::Type::Json, '{"a":1}', '{"a":1}'
 end
