@@ -24,7 +24,10 @@ static VALUE ar_pg_integer_type = Qundef;
 static VALUE ar_pg_float_type = Qundef;
 static VALUE ar_pg_uuid_type = Qundef;
 static VALUE ar_pg_json_type = Qundef;
+static VALUE ar_pg_jsonb_type = Qundef;
+static VALUE ar_pg_array_type = Qundef;
 static VALUE ar_pg_date_time_type = Qundef;
+static VALUE ar_pg_timestamp_type = Qundef;
 
 static int initiailized = 0;
 
@@ -63,8 +66,16 @@ VALUE cache_postgres_type_lookup(VALUE ar) {
     ar_pg_json_type = rb_const_get_at(ar_oid, rb_intern("Json"));
   }
 
+  if (rb_const_defined_at(ar_oid, rb_intern("Jsonb")) == (int)Qtrue) {
+    ar_pg_jsonb_type = rb_const_get_at(ar_oid, rb_intern("Jsonb"));
+  }
+
   if (rb_const_defined_at(ar_oid, rb_intern("DateTime")) == (int)Qtrue) {
     ar_pg_date_time_type = rb_const_get_at(ar_oid, rb_intern("DateTime"));
+  }
+
+  if (rb_const_defined_at(ar_oid, rb_intern("Timestamp")) == (int)Qtrue) {
+    ar_pg_timestamp_type = rb_const_get_at(ar_oid, rb_intern("Timestamp"));
   }
 
   return Qtrue;
@@ -210,6 +221,7 @@ VALUE cast_integer_type(VALUE value) {
 
 bool is_json_type(VALUE type_klass) {
   return ((ar_pg_json_type != Qundef && type_klass == ar_pg_json_type) ||
+          (ar_pg_jsonb_type != Qundef && type_klass == ar_pg_jsonb_type) ||
           (ar_json_type != Qundef && type_klass == ar_json_type));
 }
 
@@ -250,6 +262,8 @@ bool is_date_time_type(VALUE type_klass) {
   return (type_klass == ar_date_time_type) ||
          (ar_pg_date_time_type != Qundef &&
           type_klass == ar_pg_date_time_type) ||
+         (ar_pg_timestamp_type != Qundef &&
+          type_klass == ar_pg_timestamp_type) ||
          (ar_time_zone_converter != Qundef &&
           type_klass == ar_time_zone_converter);
 }
@@ -377,5 +391,8 @@ void panko_init_type_cast(VALUE mPanko) {
   rb_global_variable(&ar_pg_float_type);
   rb_global_variable(&ar_pg_uuid_type);
   rb_global_variable(&ar_pg_json_type);
+  rb_global_variable(&ar_pg_jsonb_type);
+  rb_global_variable(&ar_pg_array_type);
   rb_global_variable(&ar_pg_date_time_type);
+  rb_global_variable(&ar_pg_timestamp_type);
 }

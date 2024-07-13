@@ -65,7 +65,7 @@ module Panko
       end
 
       def method_added(method)
-        super(method)
+        super
 
         return if @_descriptor.nil?
 
