@@ -741,4 +741,82 @@ describe Panko::Serializer do
       end
     end
   end
+
+  context "key_type" do
+    let(:configuration) { Panko::Configuration.new }
+    let(:data) { {"created_at" => created_at} }
+    let(:created_at) { "2023-04-18T09:24:41+00:00" }
+
+    before do
+      allow(Panko).to receive_messages(configuration: configuration)
+    end
+
+    context "with camelCase" do
+      before { configuration.key_type = "camelCase" }
+
+      context "with key_type" do
+        let(:serializer_class) do
+          Class.new(Panko::Serializer) do
+            attributes :created_at
+          end
+        end
+
+        it "has createdAt" do
+          expect(data).to serialized_as(serializer_class,
+            "createdAt" => created_at)
+        end
+      end
+
+      context "with key_type + method_fields" do
+        let(:serializer_class) do
+          Class.new(Panko::Serializer) do
+            attributes :created_at
+
+            def created_at
+              "2023-04-18T09:24:41+00:00"
+            end
+          end
+        end
+
+        it "has createdAt" do
+          expect(data).to serialized_as(serializer_class,
+            "createdAt" => created_at)
+        end
+      end
+    end
+
+    context "with CamelCase" do
+      before { configuration.key_type = "CamelCase" }
+
+      context "with key_type" do
+        let(:serializer_class) do
+          Class.new(Panko::Serializer) do
+            attributes :created_at
+          end
+        end
+
+        it "has CreatedAt" do
+          expect(data).to serialized_as(serializer_class,
+            "CreatedAt" => created_at)
+        end
+      end
+
+      context "with key_type + method_fields" do
+        let(:serializer_class) do
+          Class.new(Panko::Serializer) do
+            attributes :created_at
+
+            def created_at
+              "2023-04-18T09:24:41+00:00"
+            end
+          end
+        end
+
+        it "has CreatedAt" do
+          expect(data).to serialized_as(serializer_class,
+            "CreatedAt" => created_at)
+        end
+      end
+    end
+  end
 end
