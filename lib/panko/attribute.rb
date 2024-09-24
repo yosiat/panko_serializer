@@ -12,6 +12,7 @@ module Panko
       case Panko.configuration.key_type
       when Panko::Configuration::CAMEL_CASE_LOWER then name.camelize(:lower)
       when Panko::Configuration::CAMEL_CASE then name.camelize
+      else name
       end
     end
 

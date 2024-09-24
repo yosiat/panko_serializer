@@ -16,6 +16,7 @@ module Panko
 
     def key_type=(value)
       raise InitializeError, "Invalid key type" unless AVAILABLE_KEY_TYPES.include?(key_type)
+
       @key_type = value
     end
   end

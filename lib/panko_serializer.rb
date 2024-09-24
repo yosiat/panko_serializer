@@ -25,8 +25,6 @@ module Panko
   #
   def configure
     yield configuration
-
-    configuration.validate
   end
 
   # Public: Returns Panko::Configuration instance.
