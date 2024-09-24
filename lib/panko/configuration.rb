@@ -6,25 +6,17 @@ module Panko
 
     CAMEL_CASE_LOWER = "camelCase"
     CAMEL_CASE = "CamelCase"
-
     AVAILABLE_KEY_TYPES = [CAMEL_CASE_LOWER, CAMEL_CASE].freeze
 
-    attr_accessor :key_type
+    attr_reader :key_type
 
     def initialize
       @key_type = nil
     end
 
-    def validate
-      validate_key_type
-    end
-
-    private
-
-    def validate_key_type
-      return unless key_type
-
+    def key_type=(value)
       raise InitializeError, "Invalid key type" unless AVAILABLE_KEY_TYPES.include?(key_type)
+      @key_type = value
     end
   end
 end
