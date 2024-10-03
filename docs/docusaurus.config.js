@@ -33,6 +33,10 @@ module.exports = {
   ],
   "plugins": [],
   "themeConfig": {
+    colorMode: {
+      defaultMode: 'light',
+      disableSwitch: true,
+    },
     "navbar": {
       "title": "Panko Serializers",
       "items": [
