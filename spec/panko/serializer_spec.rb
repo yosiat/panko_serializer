@@ -783,6 +783,19 @@ describe Panko::Serializer do
             "createdAt" => created_at)
         end
       end
+
+      context "with key_type and alias" do
+        let(:serializer_class) do
+          Class.new(Panko::Serializer) do
+            aliases({created_at: :CreatedAt})
+          end
+        end
+
+        it "alias has priority over configuration" do
+          expect(data).to serialized_as(serializer_class,
+            "CreatedAt" => created_at)
+        end
+      end
     end
 
     context "with CamelCase" do

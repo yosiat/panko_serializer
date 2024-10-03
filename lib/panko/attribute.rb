@@ -3,8 +3,7 @@
 module Panko
   class Attribute
     def self.create(name, alias_name: nil)
-      alias_name = alias_name.to_s unless alias_name.nil?
-      alias_name = transform_key(name.to_s) if alias_name.nil? && Panko.configuration.key_type
+      alias_name = alias_name.nil? ? transform_key(name.to_s) : alias_name.to_s
       Attribute.new(name.to_s, alias_name)
     end
 
