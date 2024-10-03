@@ -21,7 +21,7 @@ module.exports = {
           "showLastUpdateAuthor": false,
           "showLastUpdateTime": false,
           "sidebarPath": "./sidebars.json",
-          "routeBasePath": "/"
+          "routeBasePath": process.env.NODE_ENV === 'production' ? '/docs' : '/',
         },
         "blog": false,
         "pages": false,
