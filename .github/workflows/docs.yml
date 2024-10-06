@@ -5,7 +5,7 @@ name: Docs Publishing
 
 on:
  push:
-   branches: [ master ]
+   branches: [ master, docup ]
 
 jobs:
   build:
@@ -19,7 +19,7 @@ jobs:
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
-        node-version: '16.x'
+        node-version: '20.x'
 
     - name: Install Dependencies
       working-directory: ${{ env.working_directory }}
@@ -35,5 +35,5 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        GIT_USER=yosiat CURRENT_BRANCH=master USE_SSH=true npm run publish-gh-pages
+        GIT_USER=yosiat CURRENT_BRANCH=master USE_SSH=true npm run deploy
 

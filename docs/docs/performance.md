@@ -3,7 +3,6 @@ id: performance
 title: Performance
 sidebar_label: Performance
 ---
-
 The performance of Panko is measured using microbenchmarks and load testing.
 
 ## Microbenchmarks

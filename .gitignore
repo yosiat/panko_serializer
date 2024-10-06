@@ -17,3 +17,5 @@ node_modules
 
 /docs/build/
 .DS_Store
+.cache/
+.docusaurus/
