@@ -197,7 +197,7 @@ DEPENDENCIES
   faker
   memory_profiler
   panko_serializer!
-  pg (>= 0.18, < 2.0)
+  pg
   rake
   rake-compiler
   rspec (~> 3.0)

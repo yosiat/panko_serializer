@@ -84,7 +84,7 @@ GEM
     parser (3.3.0.5)
       ast (~> 2.4.1)
       racc
-    pg (1.5.5)
+    pg (1.5.8)
     racc (1.7.3)
     rack (3.0.10)
     rack-session (2.0.0)
@@ -169,7 +169,7 @@ DEPENDENCIES
   faker
   memory_profiler
   panko_serializer!
-  pg (>= 0.18, < 2.0)
+  pg
   rake
   rake-compiler
   rspec (~> 3.0)

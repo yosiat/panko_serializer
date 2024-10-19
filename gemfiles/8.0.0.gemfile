@@ -9,7 +9,7 @@ gem "activemodel", "~> 8.0.0.rc1"
 gem "activerecord", "~> 8.0.0.rc1", group: :test
 
 group :benchmarks do
-  gem "pg", ">= 0.18", "< 2.0"
+  gem "pg"
   gem "benchmark-ips"
   gem "active_model_serializers", "~> 0.10"
   gem "terminal-table"
