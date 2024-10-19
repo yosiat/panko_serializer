@@ -150,12 +150,12 @@ GEM
       rubocop-ast (>= 1.31.1, < 2.0)
     ruby-progressbar (1.13.0)
     securerandom (0.3.1)
-    sqlite3 (1.7.3-aarch64-linux)
-    sqlite3 (1.7.3-arm-linux)
-    sqlite3 (1.7.3-arm64-darwin)
-    sqlite3 (1.7.3-x86-linux)
-    sqlite3 (1.7.3-x86_64-darwin)
-    sqlite3 (1.7.3-x86_64-linux)
+    sqlite3 (2.1.0-aarch64-linux-gnu)
+    sqlite3 (2.1.0-arm-linux-gnu)
+    sqlite3 (2.1.0-arm64-darwin)
+    sqlite3 (2.1.0-x86-linux-gnu)
+    sqlite3 (2.1.0-x86_64-darwin)
+    sqlite3 (2.1.0-x86_64-linux-gnu)
     standard (1.41.1)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.0)
@@ -201,7 +201,7 @@ DEPENDENCIES
   rake
   rake-compiler
   rspec (~> 3.0)
-  sqlite3 (~> 1.4)
+  sqlite3 (>= 2.1)
   standard
   terminal-table
 

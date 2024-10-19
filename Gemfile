@@ -5,7 +5,6 @@ source "https://rubygems.org"
 gemspec
 
 group :benchmarks do
-  gem "sqlite3", "~> 1.4"
   gem "pg", ">= 0.18", "< 2.0"
 
   gem "benchmark-ips"
