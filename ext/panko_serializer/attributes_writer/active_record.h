@@ -13,3 +13,5 @@ extern void active_record_attributes_writer(VALUE object, VALUE attributes,
                                             VALUE writer);
 
 void init_active_record_attributes_writer(VALUE mPanko);
+
+void panko_init_active_record(VALUE mPanko);
