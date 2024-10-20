@@ -46,5 +46,4 @@ void Init_panko_serializer() {
   init_attributes_writer(mPanko);
   panko_init_type_cast(mPanko);
   panko_init_attribute(mPanko);
-  panko_init_association(mPanko);
 }

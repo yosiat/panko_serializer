@@ -46,9 +46,7 @@ module Panko::Impl
         if value.nil?
           write_value writer, assoc.name_str, nil
         else
-          # NOTE: we can maybe cache this
-          assoc_serializer = Seriaizer.new(assoc.descriptor)
-          assoc_serializer.serialize_one object: value, writer: writer, key: assoc.name_str
+          assoc.serializer_writer.serialize_one object: value, writer: writer, key: assoc.name_str
         end
         i += 1
       end
@@ -67,9 +65,7 @@ module Panko::Impl
         if value.nil?
           write_value writer, assoc.name_str, nil
         else
-          # NOTE: we can maybe cache this
-          assoc_serializer = Seriaizer.new(assoc.descriptor)
-          assoc_serializer.serialize_many objects: value, writer: writer, key: assoc.name_str
+          assoc.serializer_writer.serialize_many objects: value, writer: writer, key: assoc.name_str
         end
 
         i += 1
