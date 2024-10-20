@@ -3,8 +3,6 @@
 require_relative "serialization_descriptor"
 require "oj"
 
-require_relative "impl/serializer"
-
 class SerializationContext
   attr_accessor :context, :scope
 
@@ -140,7 +138,7 @@ module Panko
 
     def serialize_with_writer(object, writer)
       raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
-      srz = Panko::Impl::Seriaizer.new(@descriptor)
+      srz = Panko::Impl::Serializer.new(@descriptor)
       srz.serialize_one(object: object, writer: writer)
       @used = true
       writer

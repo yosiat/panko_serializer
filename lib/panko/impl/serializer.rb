@@ -1,7 +1,7 @@
 module Panko::Impl
   SKIP = Object.new.freeze
 
-  class Seriaizer
+  class Serializer
     def initialize(descriptor)
       @descriptor = descriptor
     end
