@@ -5,7 +5,6 @@
 static ID push_value_id;
 static ID push_json_id;
 
-
 void write_value(VALUE str_writer, VALUE key, VALUE value, VALUE isJson) {
   if (isJson == Qtrue) {
     rb_funcall(str_writer, push_json_id, 2, value, key);

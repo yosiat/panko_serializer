@@ -2,6 +2,20 @@
 
 module Panko
   class SerializationDescriptor
+    attr_accessor :method_fields,
+      :has_one_associations,
+      :has_many_associations,
+      :type,
+      :serializer
+
+    def initialize
+      @method_fields = []
+      @has_one_associations = []
+      @has_many_associations = []
+      @type = nil
+      @serializer = nil
+    end
+
     #
     # Creates new description and apply the options
     # on the new descriptor
