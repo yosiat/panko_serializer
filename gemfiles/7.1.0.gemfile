@@ -3,13 +3,13 @@
 source "https://rubygems.org"
 
 gem "standard", group: [:development, :test]
+gem "sqlite3", "~> 1.4"
 gem "activesupport", "~> 7.1.0"
 gem "activemodel", "~> 7.1.0"
 gem "activerecord", "~> 7.1.0", group: :test
 
 group :benchmarks do
-  gem "sqlite3", "~> 1.4"
-  gem "pg", ">= 0.18", "< 2.0"
+  gem "pg"
   gem "benchmark-ips"
   gem "active_model_serializers", "~> 0.10"
   gem "terminal-table"
