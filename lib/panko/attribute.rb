@@ -15,7 +15,16 @@ module Panko
     end
 
     def hash
-      name.to_sym.hash
+      name_sym.hash
+    end
+
+    def name_sym
+      @name_sym ||= name.to_sym
+    end
+
+    def name_for_serialization
+      return alias_name unless alias_name.nil?
+      name
     end
 
     def eql?(other)
