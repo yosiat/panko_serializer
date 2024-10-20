@@ -2,6 +2,27 @@
 
 module Panko
   class SerializationDescriptor
+    attr_accessor :attributes,
+      :method_fields,
+      :has_one_associations,
+      :has_many_associations,
+      :aliases,
+      :type,
+      :serializer,
+      :attributes_writer
+
+    def initialize
+      @attributes = []
+      @method_fields = []
+      @has_one_associations = []
+      @has_many_associations = []
+      # TODO: check if we need aliases
+      @aliases = []
+      @type = nil
+      @serializer = nil
+      @attributes_writer = nil
+    end
+
     #
     # Creates new description and apply the options
     # on the new descriptor
@@ -131,16 +152,18 @@ module Panko
       end
     end
 
+    EMPTY_OBJECT = {}.freeze
+
     def resolve_filters(options, filter)
-      filters = options.fetch(filter, {})
-      return filters, {} if filters.is_a? Array
+      filters = options.fetch(filter, EMPTY_OBJECT)
+      return filters, EMPTY_OBJECT if filters.is_a? Array
 
       # hash filters looks like this
       # { instance: [:a], foo: [:b] }
       # which mean, for the current instance use `[:a]` as filter
       # and for association named `foo` use `[:b]`
 
-      return [], {} if filters.empty?
+      return [], EMPTY_OBJECT if filters.empty?
 
       attributes_filters = filters.fetch(:instance, [])
       association_filters = filters.except(:instance)

@@ -45,7 +45,8 @@ Please pass valid each_serializer to ArraySerializer, for example:
     private
 
     def serialize_with_writer(subjects, writer)
-      Panko.serialize_objects(subjects.to_a, writer, @descriptor)
+      srz = Panko::Impl::Serializer.new(@descriptor)
+      srz.serialize_many(objects: subjects.to_a, writer: writer)
       writer
     end
   end
