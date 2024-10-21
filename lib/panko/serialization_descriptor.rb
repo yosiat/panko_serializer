@@ -2,17 +2,22 @@
 
 module Panko
   class SerializationDescriptor
-    attr_accessor :method_fields,
+    attr_accessor :attributes,
+      :method_fields,
       :has_one_associations,
       :has_many_associations,
+      :aliases,
       :type,
       :serializer,
       :attributes_writer
 
     def initialize
+      @attributes = []
       @method_fields = []
       @has_one_associations = []
       @has_many_associations = []
+      # TODO: check if we need aliases
+      @aliases = []
       @type = nil
       @serializer = nil
       @attributes_writer = nil

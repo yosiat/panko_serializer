@@ -105,12 +105,8 @@ module Panko::Impl
       end
     end
 
-    def write_value(writer, key, value, is_json: false)
-      if is_json
-        writer.push_json(value, key)
-      else
-        writer.push_value(value, key)
-      end
+    def write_value(writer, key, value)
+      writer.push_value(value, key)
     end
   end
 end
