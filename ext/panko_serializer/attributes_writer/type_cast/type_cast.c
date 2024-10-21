@@ -364,6 +364,14 @@ VALUE public_type_cast(int argc, VALUE* argv, VALUE self) {
   return type_cast(type_metadata, value, &isJson);
 }
 
+VALUE public_is_iso8601_time_string(VALUE klass, VALUE value) {
+  return is_iso8601_time_string(StringValuePtr(value)) ? Qtrue : Qfalse;
+}
+
+VALUE public_iso_ar_iso_datetime_string(VALUE klass, VALUE value) {
+  return iso_ar_iso_datetime_string(StringValuePtr(value));
+}
+
 void panko_init_type_cast(VALUE mPanko) {
   to_s_id = rb_intern("to_s");
   to_i_id = rb_intern("to_i");
@@ -374,6 +382,11 @@ void panko_init_type_cast(VALUE mPanko) {
 
   // TODO: pass 3 arguments here
   rb_define_singleton_method(mPanko, "_type_cast", public_type_cast, -1);
+
+  rb_define_singleton_method(mPanko, "is_iso8601_time_string",
+                             public_is_iso8601_time_string, 1);
+  rb_define_singleton_method(mPanko, "iso_ar_iso_datetime_string",
+                             public_iso_ar_iso_datetime_string, 1);
 
   panko_init_time(mPanko);
 
