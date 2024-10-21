@@ -89,7 +89,8 @@ module Panko::Impl
           if !attribute.type.nil? && !value.nil?
             # TODO: handle is_json
             is_json = false
-            return Panko._type_cast(attribute.type, value, is_json)
+
+            return TypeCast.public_type_cast(attribute.type, value, is_json)
           end
 
           value
