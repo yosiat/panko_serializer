@@ -31,14 +31,6 @@ AttributesWriter create_attributes_writer(VALUE object) {
         .write_attributes = active_record_attributes_writer};
   }
 
-  if (!RB_SPECIAL_CONST_P(object) && BUILTIN_TYPE(object) == T_HASH) {
-    return (AttributesWriter){.object_type = Hash,
-                              .write_attributes = hash_attributes_writer};
-  }
-
-  return (AttributesWriter){.object_type = Plain,
-                            .write_attributes = plain_attributes_writer};
-
   return create_empty_attributes_writer();
 }
 

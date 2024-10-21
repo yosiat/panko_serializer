@@ -6,7 +6,8 @@ module Panko
       :has_one_associations,
       :has_many_associations,
       :type,
-      :serializer
+      :serializer,
+      :attributes_writer
 
     def initialize
       @method_fields = []
@@ -14,6 +15,7 @@ module Panko
       @has_many_associations = []
       @type = nil
       @serializer = nil
+      @attributes_writer = nil
     end
 
     #

@@ -17,12 +17,9 @@ module Panko::Impl
     end
 
     def serialize_one(object:, writer:, key: nil)
-      # TODO: get rid of it, when we have attributes writer
-      Panko._sd_set_writer(@descriptor, object)
-
       writer.push_object(key)
 
-      Panko._write_attributes(object, @descriptor, writer)
+      write_fields object, writer
       write_method_fields object, writer
 
       serialize_has_one_association(object, writer)
@@ -32,6 +29,19 @@ module Panko::Impl
     end
 
     private
+
+    def write_fields(object, writer)
+      if @descriptor.attributes_writer.nil?
+        @descriptor.attributes_writer = Panko::Impl::AttributesWriter.create(object)
+      end
+
+      if @descriptor.attributes_writer.nil?
+        Panko._sd_set_writer(@descriptor, object)
+        Panko._write_attributes(object, @descriptor, writer)
+      else
+        @descriptor.attributes_writer.write_attributes(object, @descriptor, writer)
+      end
+    end
 
     def serialize_has_one_association(object, writer)
       assocs = @descriptor.has_one_associations
