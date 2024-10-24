@@ -9,7 +9,8 @@ module Benchmark
     def data
       posts = Post.all.includes(:author).to_a
       posts_50 = posts.first(50).to_a
-      {all: posts, small: posts_50}
+      posts_single = posts.first(1).to_a
+      {all: posts, small: posts_50, single: posts_single}
     end
 
     def run(label = nil, time: 10, disable_gc: true, warmup: 3, &block)
