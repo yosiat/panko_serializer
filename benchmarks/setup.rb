@@ -5,6 +5,7 @@
 ##########################################
 require "active_record"
 require "sqlite3"
+require "securerandom"
 
 # Change the following to reflect your database settings
 ActiveRecord::Base.establish_connection(
@@ -46,9 +47,9 @@ Author.destroy_all
 Post.transaction do
   ENV.fetch("ITEMS_COUNT", "2300").to_i.times do
     Post.create(
-      body: "something about how password restrictions are evil, and less secure, and with the math to prove it.",
-      title: "Your bank is does not know how to do security",
-      author: Author.create(name: "Preston Sego"),
+      body: SecureRandom.hex(30),
+      title: SecureRandom.hex(20),
+      author: Author.create(name: SecureRandom.alphanumeric),
       data: {a: 1, b: 2, c: 3}
     )
   end
