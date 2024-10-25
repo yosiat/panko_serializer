@@ -25,4 +25,3 @@ def check_if_exists(module_name)
 end
 
 Time.zone = "UTC"
-ActiveSupport::Deprecation.behavior = :stderr
