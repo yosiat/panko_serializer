@@ -1,5 +1,0 @@
-ignore:
-  - "ext/**/*"
-  - "benchmarks/**/*"
-  - "spec/**/*":
-    - Lint/ConstantDefinitionInBlock

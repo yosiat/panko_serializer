@@ -27,7 +27,7 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.before(:each) do
+  config.before do
     FooHolder.delete_all
     FoosHolder.delete_all
     Foo.delete_all

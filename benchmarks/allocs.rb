@@ -10,8 +10,8 @@ class PostFastSerializer < Panko::Serializer
   attributes :id, :body, :title, :author_id
 end
 
-def count_allocs(&block)
-  memory_report = MemoryProfiler.report(&block)
+def count_allocs(&)
+  memory_report = MemoryProfiler.report(&)
   puts memory_report.pretty_print
 end
 

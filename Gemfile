@@ -5,6 +5,8 @@ source "https://rubygems.org"
 gemspec
 
 group :benchmarks do
+  gem "vernier"
+  gem "stackprof"
   gem "pg"
 
   gem "benchmark-ips"
@@ -24,4 +26,11 @@ group :development do
   gem "rake-compiler"
 end
 
-gem "standard", group: [:development, :test]
+group :development, :test do
+  gem "rubocop"
+
+  gem "standard"
+  gem "standard-performance"
+  gem "rubocop-performance"
+  gem "rubocop-rspec"
+end

@@ -119,8 +119,11 @@ GEM
     rubocop-performance (1.22.1)
       rubocop (>= 1.48.1, < 2.0)
       rubocop-ast (>= 1.31.1, < 2.0)
+    rubocop-rspec (3.1.0)
+      rubocop (~> 1.61)
     ruby-progressbar (1.13.0)
     sqlite3 (1.7.3-arm64-darwin)
+    stackprof (0.2.26)
     standard (1.41.1)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.0)
@@ -139,6 +142,7 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.6.0)
+    vernier (1.2.1)
 
 PLATFORMS
   arm64-darwin-23
@@ -158,9 +162,15 @@ DEPENDENCIES
   rake
   rake-compiler
   rspec (~> 3.0)
+  rubocop
+  rubocop-performance
+  rubocop-rspec
   sqlite3 (~> 1.4)
+  stackprof
   standard
+  standard-performance
   terminal-table
+  vernier
 
 BUNDLED WITH
    2.4.6
