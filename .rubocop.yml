@@ -1,29 +1,37 @@
+# We want Exclude directives from different
+# config files to get merged, not overwritten
+inherit_mode:
+  merge:
+    - Exclude
+
+require:
+  - standard
+  - rubocop-performance
+  - standard-performance
+  - rubocop-rspec
+
+inherit_gem:
+  standard: config/base.yml
+  standard-performance: config/base.yml
+
 AllCops:
-  TargetRubyVersion: 2.5
-  DisplayCopNames: true
-  StyleGuideCopsOnly: false
+  TargetRubyVersion: 3.1
+  SuggestExtensions: false
+  NewCops: disable
+  Exclude:
+    - ext/**/*
+    - gemfiles/**/*
 
-Metrics/LineLength:
-  Max: 120
-
-Style/StringLiterals:
-  EnforcedStyle: double_quotes
 
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
+  SafeAutoCorrect: true
 
-Layout/TrailingBlankLines:
-  Enabled: true
+# TODO: need to work on specs.
+RSpec:
+  Enabled: false
 
-Layout/TrailingWhitespace:
-  Enabled: true
-
-Style/FrozenStringLiteralComment:
-  Enabled: true
-
-Style/RedundantFreeze:
-  Enabled: true
-
-Performance/UnfreezeString:
-  Enabled: true
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - spec/**/*

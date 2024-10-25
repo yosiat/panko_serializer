@@ -6,7 +6,7 @@ require "active_support"
 require "panko_serializer"
 
 def generate_attributes(count)
-  (1..count).map { |i| "attr_#{i}".to_sym }
+  (1..count).map { |i| :"attr_#{i}" }
 end
 
 class LeafASerializer < Panko::Serializer

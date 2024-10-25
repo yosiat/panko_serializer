@@ -78,8 +78,8 @@ def request(method, path)
   response
 end
 
-def memory(&block)
-  mem = MemoryProfiler.report(&block)
+def memory(&)
+  mem = MemoryProfiler.report(&)
   mem.pretty_print
 end
 

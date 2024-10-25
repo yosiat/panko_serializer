@@ -370,6 +370,7 @@ describe Panko::Serializer do
           "address" => foo.address
         })
     end
+
     it "serializes using the :serializer option" do
       class FooHolderHasOneSerializer < Panko::Serializer
         attributes :name
@@ -551,6 +552,7 @@ describe Panko::Serializer do
           }
         ])
     end
+
     it "infers the serializer name by name of the realtionship" do
       class FoosHasManyHolderSerializer < Panko::Serializer
         attributes :name
@@ -702,7 +704,7 @@ describe Panko::Serializer do
       foo_a = Foo.create
       foo_b = Foo.create
 
-      expect { serializer.serialize(foo_a) }.to_not raise_error
+      expect { serializer.serialize(foo_a) }.not_to raise_error
       expect { serializer.serialize(foo_b) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
     end
   end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 appraise "7.0.0" do
   gem "sqlite3", "~> 1.4"
   gem "activesupport", "~> 7.0.0"

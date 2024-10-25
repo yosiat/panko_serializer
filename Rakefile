@@ -6,7 +6,7 @@ require "json"
 require "terminal-table"
 require "rake/extensiontask"
 require "pty"
-require "standard/rake"
+require "rubocop/rake_task"
 
 gem = Gem::Specification.load(File.dirname(__FILE__) + "/panko_serializer.gemspec")
 
@@ -23,6 +23,8 @@ Rake::Task[:spec].prerequisites << :compile
 Rake::Task[:compile].prerequisites << :clean
 
 task default: :spec
+
+RuboCop::RakeTask.new
 
 def print_and_flush(str)
   print str
