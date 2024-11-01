@@ -1,31 +1,112 @@
 # frozen_string_literal: true
 
+begin
+  require "active_support"
+  require "active_support/rails"
+  require "active_model/attribute_set/builder"
+
+  class ActiveModel::AttributeSet
+    def _panko_attributes_hash
+      @attributes
+    end
+
+    def _panko_types
+      @types
+    end
+
+    def _panko_additional_types
+      @additional_types
+    end
+
+    def _panko_values
+      @values
+    end
+  end
+
+  class ActiveModel::LazyAttributeSet
+    def _panko_attributes_hash
+      @attributes
+    end
+
+    def _panko_types
+      @types
+    end
+
+    def _panko_additional_types
+      @additional_types
+    end
+
+    def _panko_values
+      @values
+    end
+  end
+rescue => e
+  puts "FAILED to patch ActiveModel::LazyAttributeSet #{e}"
+  raise e
+end
+
 module Panko::Impl::AttributesWriter::ActiveRecord
+  begin
+    require "active_record"
+
+    class ActiveRecord::Base
+      def _panko_attributes
+        @attributes
+      end
+    end
+
+    if defined?(::ActiveRecord::Result::IndexedRow)
+      class ::ActiveRecord::Result::IndexedRow
+        def _panko_column_indexes
+          @column_indexes
+        end
+
+        def _panko_row
+          @row
+        end
+      end
+
+      PANKO_INDEX_ROW_DEFINED = true
+    else
+      PANKO_INDEX_ROW_DEFINED = false
+    end
+  rescue
+    PANKO_INDEX_ROW_DEFINED = false
+  end
+
+  EMPTY_HASH = {}.freeze
+
   # TODO: this is a bad name for the class.
   class Context
     attr_reader :attributes_hash, :types, :additional_types, :values
 
     def initialize(record)
-      attributes_set = record.instance_variable_get(:@attributes)
-      attributes_hash = attributes_set.instance_variable_get(:@attributes)
+      attributes_set = record._panko_attributes
 
-      @attributes_hash = (attributes_hash.nil? || attributes_hash.empty?) ? {} : attributes_hash
-      @attributes_hash_size = @attributes_hash.size
+      attributes_hash = attributes_set._panko_attributes_hash
+      if attributes_hash&.empty?
+        @attributes_hash = EMPTY_HASH
+        @attributes_hash_size = 0
+      else
+        @attributes_hash = attributes_hash
+        @attributes_hash_size = attributes_hash.size
+      end
 
-      @types = attributes_set.instance_variable_get(:@types)
-      @additional_types = attributes_set.instance_variable_get(:@additional_types)
+      @types = attributes_set._panko_types
+      @additional_types = attributes_set._panko_additional_types
       @try_to_read_from_additional_types = !@additional_types.nil? && !@additional_types.empty?
 
-      @values = attributes_set.instance_variable_get(:@values)
-      @is_indexed_row = false
-      @indexed_row_column_indexes = nil
-      @indexed_row_row = nil
+      @values = attributes_set._panko_values
 
       # Check if the values are of type ActiveRecord::Result::IndexedRow
-      if defined?(ActiveRecord::Result::IndexedRow) && @values.is_a?(ActiveRecord::Result::IndexedRow)
-        @indexed_row_column_indexes = @values.instance_variable_get(:@column_indexes)
-        @indexed_row_row = @values.instance_variable_get(:@row)
+      if PANKO_INDEX_ROW_DEFINED && @values.is_a?(ActiveRecord::Result::IndexedRow)
+        @indexed_row_column_indexes = @values._panko_column_indexes
+        @indexed_row_row = @values._panko_row
         @is_indexed_row = true
+      else
+        @indexed_row_column_indexes = nil
+        @is_indexed_row = false
+        @indexed_row_row = nil
       end
     end
 
@@ -48,7 +129,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       value = nil
 
       # If we have a populated attributes_hash
-      if !@attributes_hash.nil? && @attributes_hash_size > 0
+      if @attributes_hash_size > 0 && !@attributes_hash.nil?
         attribute_metadata = @attributes_hash[member]
         unless attribute_metadata.nil?
           value = attribute_metadata.instance_variable_get(:@value_before_type_cast)
