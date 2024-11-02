@@ -3,9 +3,9 @@
 source "https://rubygems.org"
 
 gem "sqlite3", ">= 2.1"
-gem "activesupport", "~> 8.0.0.rc1"
-gem "activemodel", "~> 8.0.0.rc1"
-gem "activerecord", "~> 8.0.0.rc1", group: :test
+gem "activesupport", "~> 8.0.0.rc2"
+gem "activemodel", "~> 8.0.0.rc2"
+gem "activerecord", "~> 8.0.0.rc2", group: :test
 
 group :benchmarks do
   gem "vernier"

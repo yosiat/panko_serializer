@@ -8,9 +8,9 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    actionpack (7.1.4.1)
-      actionview (= 7.1.4.1)
-      activesupport (= 7.1.4.1)
+    actionpack (7.1.5)
+      actionview (= 7.1.5)
+      activesupport (= 7.1.5)
       nokogiri (>= 1.8.5)
       racc
       rack (>= 2.2.4)
@@ -18,8 +18,8 @@ GEM
       rack-test (>= 0.6.3)
       rails-dom-testing (~> 2.2)
       rails-html-sanitizer (~> 1.6)
-    actionview (7.1.4.1)
-      activesupport (= 7.1.4.1)
+    actionview (7.1.5)
+      activesupport (= 7.1.5)
       builder (~> 3.1)
       erubi (~> 1.11)
       rails-dom-testing (~> 2.2)
@@ -29,21 +29,24 @@ GEM
       activemodel (>= 4.1)
       case_transform (>= 0.2)
       jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
-    activemodel (7.1.4.1)
-      activesupport (= 7.1.4.1)
-    activerecord (7.1.4.1)
-      activemodel (= 7.1.4.1)
-      activesupport (= 7.1.4.1)
+    activemodel (7.1.5)
+      activesupport (= 7.1.5)
+    activerecord (7.1.5)
+      activemodel (= 7.1.5)
+      activesupport (= 7.1.5)
       timeout (>= 0.4.0)
-    activesupport (7.1.4.1)
+    activesupport (7.1.5)
       base64
+      benchmark (>= 0.3)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
       connection_pool (>= 2.2.5)
       drb
       i18n (>= 1.6, < 2)
+      logger (>= 1.4.2)
       minitest (>= 5.1)
       mutex_m
+      securerandom (>= 0.3)
       tzinfo (~> 2.0)
     appraisal (2.5.0)
       bundler
@@ -51,6 +54,7 @@ GEM
       thor (>= 0.14.0)
     ast (2.4.2)
     base64 (0.2.0)
+    benchmark (0.3.0)
     benchmark-ips (2.14.0)
     bigdecimal (3.1.8)
     builder (3.3.0)
@@ -67,11 +71,12 @@ GEM
       i18n (>= 1.8.11, < 2)
     i18n (1.14.6)
       concurrent-ruby (~> 1.0)
-    json (2.7.2)
+    json (2.7.4)
     jsonapi-renderer (0.2.2)
     language_server-protocol (3.17.0.3)
     lint_roller (1.1.0)
-    loofah (2.22.0)
+    logger (1.6.1)
+    loofah (2.23.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
     memory_profiler (1.1.0)
@@ -87,7 +92,7 @@ GEM
     parser (3.3.5.0)
       ast (~> 2.4.1)
       racc
-    pg (1.5.8)
+    pg (1.5.9)
     racc (1.8.1)
     rack (3.1.8)
     rack-session (2.0.0)
@@ -134,9 +139,10 @@ GEM
     rubocop-performance (1.22.1)
       rubocop (>= 1.48.1, < 2.0)
       rubocop-ast (>= 1.31.1, < 2.0)
-    rubocop-rspec (3.1.0)
+    rubocop-rspec (3.2.0)
       rubocop (~> 1.61)
     ruby-progressbar (1.13.0)
+    securerandom (0.3.1)
     sqlite3 (1.7.3-arm64-darwin)
     stackprof (0.2.26)
     standard (1.41.1)
@@ -161,13 +167,13 @@ GEM
     vernier (1.2.1)
 
 PLATFORMS
-  arm64-darwin-23
+  arm64-darwin
 
 DEPENDENCIES
   active_model_serializers (~> 0.10)
-  activemodel (~> 7.1.0)
-  activerecord (~> 7.1.0)
-  activesupport (~> 7.1.0)
+  activemodel (~> 7.1.5)
+  activerecord (~> 7.1.5)
+  activesupport (~> 7.1.5)
   appraisal
   benchmark-ips
   byebug
@@ -189,4 +195,4 @@ DEPENDENCIES
   vernier
 
 BUNDLED WITH
-   2.4.6
+   2.5.21

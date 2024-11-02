@@ -8,9 +8,9 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    actionpack (8.0.0.rc1)
-      actionview (= 8.0.0.rc1)
-      activesupport (= 8.0.0.rc1)
+    actionpack (8.0.0.rc2)
+      actionview (= 8.0.0.rc2)
+      activesupport (= 8.0.0.rc2)
       nokogiri (>= 1.8.5)
       rack (>= 2.2.4)
       rack-session (>= 1.0.1)
@@ -18,8 +18,8 @@ GEM
       rails-dom-testing (~> 2.2)
       rails-html-sanitizer (~> 1.6)
       useragent (~> 0.16)
-    actionview (8.0.0.rc1)
-      activesupport (= 8.0.0.rc1)
+    actionview (8.0.0.rc2)
+      activesupport (= 8.0.0.rc2)
       builder (~> 3.1)
       erubi (~> 1.11)
       rails-dom-testing (~> 2.2)
@@ -29,13 +29,13 @@ GEM
       activemodel (>= 4.1)
       case_transform (>= 0.2)
       jsonapi-renderer (>= 0.1.1.beta1, < 0.3)
-    activemodel (8.0.0.rc1)
-      activesupport (= 8.0.0.rc1)
-    activerecord (8.0.0.rc1)
-      activemodel (= 8.0.0.rc1)
-      activesupport (= 8.0.0.rc1)
+    activemodel (8.0.0.rc2)
+      activesupport (= 8.0.0.rc2)
+    activerecord (8.0.0.rc2)
+      activemodel (= 8.0.0.rc2)
+      activesupport (= 8.0.0.rc2)
       timeout (>= 0.4.0)
-    activesupport (8.0.0.rc1)
+    activesupport (8.0.0.rc2)
       base64
       benchmark (>= 0.3)
       bigdecimal
@@ -192,9 +192,9 @@ PLATFORMS
 
 DEPENDENCIES
   active_model_serializers (~> 0.10)
-  activemodel (~> 8.0.0.rc1)
-  activerecord (~> 8.0.0.rc1)
-  activesupport (~> 8.0.0.rc1)
+  activemodel (~> 8.0.0.rc2)
+  activerecord (~> 8.0.0.rc2)
+  activesupport (~> 8.0.0.rc2)
   appraisal
   benchmark-ips
   byebug
