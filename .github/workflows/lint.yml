@@ -8,24 +8,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.1.0
 
       - name: Install deps
         run: |
           sudo apt update -y
           sudo apt install -y libsqlite3-dev
 
-      - name: Install gems
-        run: |
-          gem install bundler
-          bundle config set path 'vendor/bundle'
-          bundle check || bundle install --jobs 4 --retry 3
-
-      - name: Lint ruby
-        run: |
+      - name: Lint Ruby code
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3
+          bundler-cache: true
+      - run: |
           bundle exec rake rubocop
 
       - name: Lint C

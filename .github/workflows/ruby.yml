@@ -15,16 +15,17 @@ jobs:
             rails: 8.0.0
 
     steps:
+      - name: Install deps
+        run: |
+          sudo apt update -y
+          sudo apt install -y libsqlite3-dev
+
       - uses: actions/checkout@v4
       - name: Set up Ruby ${{ matrix.ruby }}
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
 
-      - name: Install deps
-        run: |
-          sudo apt update -y
-          sudo apt install -y libsqlite3-dev
 
       - name: Gems Cache
         id: gem-cache
