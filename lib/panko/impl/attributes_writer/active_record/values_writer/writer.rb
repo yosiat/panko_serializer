@@ -46,7 +46,12 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
         return
       end
 
-      # TODO: validate against arrays
+      if attribute.type.respond_to?(:subtype)
+        # TODO: test this.
+        writer.push_value(attribute.type.deserialize(value), key)
+        return
+      end
+
       written = case attribute.type.type
       when :string, :text, :uuid
         @string_writer.write(value, writer, key)
