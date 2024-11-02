@@ -8,9 +8,11 @@ module Panko::Impl::AttributesWriter::ActiveRecord
     def initialize
       @attributes_hash = EMPTY_HASH
       @attributes_hash_size = 0
+
       @indexed_row_column_indexes = nil
       @is_indexed_row = false
       @indexed_row_row = nil
+      @attribute_indices = []
     end
 
     def write_attributes(object, descriptor, writer)
@@ -24,7 +26,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
         attribute.invalidate!(object_class)
 
-        value = read_attribute(attribute)
+        value = read_attribute(attribute, i)
 
         ValuesWriter.write(writer, attribute, value)
 
@@ -65,10 +67,14 @@ module Panko::Impl::AttributesWriter::ActiveRecord
     end
 
     # Reads a value from the indexed row
-    def read_value_from_indexed_row(member)
+    def read_value_from_indexed_row(member, index)
       return nil if @indexed_row_column_indexes.nil? || @indexed_row_row.nil?
 
-      column_index = @indexed_row_column_indexes[member]
+      column_index = @attribute_indices[index]
+      if column_index.nil?
+        column_index = @indexed_row_column_indexes[member]
+        @attribute_indices[index] = column_index
+      end
       return nil if column_index.nil?
 
       row = @indexed_row_row
@@ -78,7 +84,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
     end
 
     # Reads the attribute value
-    def read_attribute(attribute)
+    def read_attribute(attribute, index)
       member = attribute.name
       value = nil
 
@@ -94,7 +100,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       # Fallback to reading from values or indexed row
       if value.nil? && !@values.nil?
         value = if @is_indexed_row
-          read_value_from_indexed_row(member)
+          read_value_from_indexed_row(member, index)
         else
           @values[member]
         end
