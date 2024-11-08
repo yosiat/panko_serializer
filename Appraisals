@@ -23,7 +23,7 @@ end
 
 appraise "8.0.0" do
   gem "sqlite3", ">= 2.1"
-  gem "activesupport", "~> 8.0.0.rc2"
-  gem "activemodel", "~> 8.0.0.rc2"
-  gem "activerecord", "~> 8.0.0.rc2", group: :test
+  gem "activesupport", "~> 8.0.0"
+  gem "activemodel", "~> 8.0.0"
+  gem "activerecord", "~> 8.0.0", group: :test
 end
