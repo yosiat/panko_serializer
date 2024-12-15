@@ -78,7 +78,6 @@ end
 def benchmark(prefix, serializer, options = {})
   data = benchmark_data
   posts = data[:all]
-  posts_50 = data[:small]
 
   merged_options = options.merge(each_serializer: serializer)
 
@@ -86,9 +85,7 @@ def benchmark(prefix, serializer, options = {})
     Panko::ArraySerializer.new(posts, merged_options).to_json
   end
 
-  data = benchmark_data
-  posts = data[:all]
-  posts_50 = data[:small]
+  posts_50 = benchmark_data[:small]
 
   Benchmark.run("Panko_Plain_#{prefix}_Posts_50") do
     Panko::ArraySerializer.new(posts_50, merged_options).to_json

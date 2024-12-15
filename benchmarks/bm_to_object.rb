@@ -62,9 +62,7 @@ class AuthorWithHasManyFastSerializer < Panko::Serializer
 end
 
 def benchmark(prefix, serializer, options = {})
-  data = Benchmark.data
-  posts = data[:all]
-  posts_50 = data[:small]
+  posts = Benchmark.data[:all]
 
   merged_options = options.merge(each_serializer: serializer)
 
@@ -72,9 +70,7 @@ def benchmark(prefix, serializer, options = {})
     Panko::ArraySerializer.new(posts, merged_options).to_a
   end
 
-  data = Benchmark.data
-  posts = data[:all]
-  posts_50 = data[:small]
+  posts_50 = Benchmark.data[:small]
 
   Benchmark.run("Panko_#{prefix}_Posts_50") do
     Panko::ArraySerializer.new(posts_50, merged_options).to_a
