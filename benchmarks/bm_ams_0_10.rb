@@ -5,7 +5,7 @@ require_relative "app"
 require_relative "setup"
 
 # disable logging for benchmarks
-ActiveModelSerializers.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new("/dev/null"))
+ActiveModelSerializers.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(File::NULL))
 
 class AmsAuthorFastSerializer < ActiveModel::Serializer
   attributes :id, :name
@@ -24,17 +24,13 @@ end
 def benchmark_ams(prefix, serializer, options = {})
   merged_options = options.merge(each_serializer: serializer)
 
-  data = Benchmark.data
-  posts = data[:all]
-  posts_50 = data[:small]
+  posts = Benchmark.data[:all]
 
   Benchmark.run("AMS_#{prefix}_Posts_#{posts.count}") do
     ActiveModelSerializers::SerializableResource.new(posts, merged_options).to_json
   end
 
-  data = Benchmark.data
-  posts = data[:all]
-  posts_50 = data[:small]
+  posts_50 = Benchmark.data[:small]
 
   Benchmark.run("AMS_#{prefix}_Posts_50") do
     ActiveModelSerializers::SerializableResource.new(posts_50, merged_options).to_json
