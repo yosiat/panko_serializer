@@ -8,7 +8,7 @@ The performance of Panko is measured using microbenchmarks and load testing.
 ## Microbenchmarks
 
 The following microbenchmarks are run on MacBook Pro (16-inch, 2021, M1 Max), Ruby 3.2.0 with Rails 7.0.5
-demonstrating the performance of ActiveModelSerializers 0.10.13 and Panko 0.8.0
+demonstrating the performance of ActiveModelSerializers 0.10.13 and Panko 0.8.0.
 
 | Benchmark         | AMS ip/s | Panko ip/s |
 | ----------------- | -------- | ---------- |
@@ -19,8 +19,8 @@ demonstrating the performance of ActiveModelSerializers 0.10.13 and Panko 0.8.0
 
 ## Real-world benchmark
 
-The real-world benchmark here is endpoint which serializes 7,884 entries with 48 attributes and no associations.
-The benchmark took place in environment that simulates production environment and run using `wrk` from machine on the same cluster.
+The real-world benchmark here is an endpoint which serializes 7,884 entries with 48 attributes and no associations.
+The benchmark took place in an environment that simulates production environment and run using `wrk` from machine on the same cluster.
 
 | Metric             | AMS   | Panko |
 | ------------------ | ----- | ----- |
@@ -29,4 +29,4 @@ The benchmark took place in environment that simulates production environment an
 | 99th Response Time | 5.42s | 1.74s |
 | Total Requests     | 61    | 202   |
 
-_Thanks to [Bringg](https://www.bringg.com) for providing the infrastructure for the benchmarks_
+_Thanks to [Bringg](https://www.bringg.com) for providing the infrastructure for the benchmarks._

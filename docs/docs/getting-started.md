@@ -23,7 +23,7 @@ Then, install it on the command line:
 
 ## Creating your first serializer
 
-Let's create serializer and use it inside Rails controller.
+Let's create a serializer and use it inside of a Rails controller:
 
 ```ruby
 class PostSerializer < Panko::Serializer
@@ -39,7 +39,7 @@ end
 
 ### Serializing an object
 
-And now serialize a single object
+And now serialize a single object:
 
 ```ruby
 
@@ -53,7 +53,7 @@ PostSerializer.new.serialize(Post.first).to_json
 
 ### Using the serializers in a controller
 
-As you can see, defining serializers is simple and resembles ActiveModelSerializers 0.9,
+As you can see, defining serializers is simple and resembles ActiveModelSerializers 0.9.
 To utilize the `UserSerializer` inside a Rails controller and serialize some users, all we need to do is:
 
 ```ruby
@@ -67,4 +67,4 @@ end
 
 ```
 
-And voila, we have endpoint which serialize users using Panko!
+And voila, we have an endpoint which serializes users using Panko!
