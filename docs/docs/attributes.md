@@ -3,7 +3,8 @@ id: attributes
 title: Attributes
 sidebar_label: Attributes
 ---
-Attributes allow you to specify which record attributes you want to serialize,
+Attributes allow you to specify which record attributes you want to serialize.
+
 There are two types of attributes:
 
 -   Field - simple columns defined on the record it self.
@@ -25,13 +26,13 @@ end
 
 Using field attributes you can control which columns of the given ActiveRecord object you want to serialize.
 
-Instead of relying ActiveRecord to do it's type casting, Panko does on it's own for performance reasons (read more in [Design Choices](design-choices.md#type-casting)).
+Instead of relying on ActiveRecord to do it's type casting, Panko does on it's own for performance reasons (read more in [Design Choices](design-choices.md#type-casting)).
 
 ## Method Attributes
 
 Method attributes are used when your serialized values can be derived from the object you are serializing.
 
-The serializer's attribute methods can access the object being serialized as `object` -
+The serializer's attribute methods can access the object being serialized as `object`:
 
 ```ruby
 
@@ -45,7 +46,7 @@ end
 
 ```
 
-Another useful, thing you can pass your serializer is `context`, a `context` is a bag of data whom your serializer may need.
+Another useful thing you can pass your serializer is `context`, a `context` is a bag of data whom your serializer may need.
 
 For example, here we will pass feature flags:
 
@@ -73,8 +74,8 @@ Filters allows us to reduce the amount of attributes we can serialize, therefore
 
 There are two types of filters:
 
--   only - use those attributes **only** and nothing else
--   except - all attributes **except** those attributes
+-   only - use those attributes **only** and nothing else.
+-   except - all attributes **except** those attributes.
 
 Usage example:
 
@@ -92,15 +93,13 @@ UserSerializer.new(except: [:name]).serialize(User.first)
 
 ```
 
-&gt; **Note** that if you want to user filter on an associations, the `:name`
-&gt; property is not taken into account.
-&gt; If you have a `has_many :state_transitions, name: :history` association
-&gt; defined, the key to use in filters is `:state_transitions`
-&gt; (e.g. `{ except: [:state_transitions] }`)
+&gt; **Note** that if you want to user filter on an associations, the `:name` property is not taken into account.
+If you have a `has_many :state_transitions, name: :history` association defined, the key to use in filters is 
+`:state_transitions` (e.g. `{ except: [:state_transitions] }`).
 
 ## Filters For
 
-Sometimes you find yourself have the same filtering logic in actions in order to
+Sometimes you find yourself having the same filtering logic in actions. In order to
 solve this duplication, Panko allows you to write the filters in the serializer.
 
 ```ruby
@@ -120,24 +119,32 @@ UserSerializer.serialize(User.first)
 
 ```
 
-&gt; See discussion in: https:
+&gt; See discussion in: [https:](https://github.com/yosiat/panko_serializer/issues/16)
 
 ## Aliases
 
-Let's say we have attribute name that we want to expose to client as different name, the current way of doing so is using method attribute, for example:
+Let's say we have an attribute name that we want to expose to client as different name, the current way of doing so is using method attribute, for example:
 
 ```ruby
 
+class PostSerializer < Panko::Serializer
+  attributes :published_at
 
+  def published_at
+    object.created_at
+  end
+end
 
 ```
 
-The downside of this approach is that `` skips Panko's type casting, therefore we get direct hit on performance.
+The downside of this approach is that `created_at` skips Panko's type casting, therefore we get a direct hit on performance.
 
-To fix this, we can use aliases -
+To fix this, we can use aliases:
 
 ```ruby
 
-
+class PostSerializer < Panko::Serializer
+  aliases created_at: :published_at
+end
 
 ```
