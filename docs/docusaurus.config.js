@@ -78,8 +78,8 @@ module.exports = {
       "copyright": `Copyright © ${new Date().getFullYear()} Panko Serializer`,
     },
     prism: {
-      theme: require('prism-react-renderer/themes/github'), // Optional: Customize theme
-      darkTheme: require('prism-react-renderer/themes/dracula'), // Optional: Dark theme
+      theme: require('prism-react-renderer').themes.github, // Optional: Customize theme
+      darkTheme: require('prism-react-renderer').themes.dracula, // Optional: Dark theme
       additionalLanguages: ['ruby'], // Add Ruby as an additional language
     },
   }
