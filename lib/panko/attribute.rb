@@ -3,8 +3,16 @@
 module Panko
   class Attribute
     def self.create(name, alias_name: nil)
-      alias_name = alias_name.to_s unless alias_name.nil?
+      alias_name = alias_name.nil? ? transform_key(name.to_s) : alias_name.to_s
       Attribute.new(name.to_s, alias_name)
+    end
+
+    def self.transform_key(name)
+      case Panko.configuration.key_type
+      when Panko::Configuration::CAMEL_CASE_LOWER then name.camelize(:lower)
+      when Panko::Configuration::CAMEL_CASE then name.camelize
+      else name
+      end
     end
 
     def ==(other)
