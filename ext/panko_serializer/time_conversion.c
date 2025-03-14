@@ -120,7 +120,7 @@ VALUE iso_ar_iso_datetime_string(const char* value) {
     }
     *cur++ = 'Z';
 
-    output = rb_str_new(buf, cur - buf);
+    output = rb_utf8_str_new(buf, cur - buf);
     return output;
   }
 
