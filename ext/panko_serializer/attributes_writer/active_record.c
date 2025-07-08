@@ -67,13 +67,11 @@ struct attributes init_context(VALUE obj) {
       .attributes_hash =
           PANKO_EMPTY_HASH(attributes_hash) ? Qnil : attributes_hash,
       .attributes_hash_size = 0,
-
       .types = rb_ivar_get(attributes_set, types_id),
       .additional_types = rb_ivar_get(attributes_set, additional_types_id),
       .tryToReadFromAdditionalTypes =
           PANKO_EMPTY_HASH(rb_ivar_get(attributes_set, additional_types_id)) ==
           false,
-
       .values = rb_ivar_get(attributes_set, values_id),
       .is_indexed_row = false,
       .indexed_row_column_indexes = Qnil,
@@ -87,13 +85,17 @@ struct attributes init_context(VALUE obj) {
   if (CLASS_OF(attrs.values) == fetch_ar_result_indexed_row_type()) {
     volatile VALUE indexed_row_column_indexes =
         rb_ivar_get(attrs.values, rb_intern("@column_indexes"));
-
     volatile VALUE indexed_row_row =
         rb_ivar_get(attrs.values, rb_intern("@row"));
 
     attrs.indexed_row_column_indexes = indexed_row_column_indexes;
     attrs.indexed_row_row = indexed_row_row;
     attrs.is_indexed_row = true;
+    rb_p(CLASS_OF(attrs.values));
+  } else {
+    rb_p(attrs.values);
+    rb_p(CLASS_OF(attrs.values));
+    rb_p(fetch_ar_result_indexed_row_type());
   }
 
   return attrs;
