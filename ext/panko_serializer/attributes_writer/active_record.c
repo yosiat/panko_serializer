@@ -93,8 +93,10 @@ struct attributes init_context(VALUE obj) {
     attrs.is_indexed_row = true;
     rb_p(CLASS_OF(attrs.values));
   } else {
-    rb_p(attrs.values);
+    printf("ERROR: Expected ActiveRecord::Result::IndexedRow, got: ");
     rb_p(CLASS_OF(attrs.values));
+    rb_p(attrs.values);
+    printf("ERROR: %s\n", fetch_ar_result_indexed_row_type());
     rb_p(fetch_ar_result_indexed_row_type());
   }
 
