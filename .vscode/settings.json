@@ -25,7 +25,8 @@
     "string_view": "c",
     "variant": "c",
     "vector": "c",
-    "serialization_descriptor.h": "c"
+    "serialization_descriptor.h": "c",
+    "cstring": "c"
   },
   "C_Cpp.errorSquiggles": "enabled"
 }
