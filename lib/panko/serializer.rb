@@ -123,7 +123,7 @@ module Panko
       @serialization_context.scope
     end
 
-    attr_writer :serialization_context
+    attr_accessor :serialization_context
     attr_reader :object
 
     def serialize(object)
