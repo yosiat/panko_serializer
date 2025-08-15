@@ -288,7 +288,7 @@ VALUE cast_date_time_type(VALUE value) {
   return Qundef;
 }
 
-VALUE rescue_func() { return Qfalse; }
+VALUE rescue_func(VALUE _arg, VALUE _data) { return Qfalse; }
 
 VALUE parse_json(VALUE value) {
   return rb_funcall(oj_type, oj_sc_parse_id, 2, rb_cObject, value);
