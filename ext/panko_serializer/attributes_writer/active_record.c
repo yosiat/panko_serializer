@@ -11,31 +11,6 @@ static ID type_id;
 
 static ID fetch_id;
 
-// ActiveRecord::Result::IndexedRow
-static VALUE ar_result_indexed_row = Qundef;
-static int fetched_ar_result_indexed_row = 0;
-
-VALUE fetch_ar_result_indexed_row_type() {
-  if (fetched_ar_result_indexed_row == 1) {
-    return ar_result_indexed_row;
-  }
-
-  fetched_ar_result_indexed_row = 1;
-
-  VALUE ar, ar_result;
-
-  ar = rb_const_get_at(rb_cObject, rb_intern("ActiveRecord"));
-
-  // ActiveRecord::Result
-  ar_result = rb_const_get_at(ar, rb_intern("Result"));
-
-  if (rb_const_defined_at(ar_result, rb_intern("IndexedRow")) == (int)Qtrue) {
-    ar_result_indexed_row = rb_const_get_at(ar_result, rb_intern("IndexedRow"));
-  }
-
-  return ar_result_indexed_row;
-}
-
 struct attributes {
   // Hash
   VALUE attributes_hash;
@@ -67,13 +42,11 @@ struct attributes init_context(VALUE obj) {
       .attributes_hash =
           PANKO_EMPTY_HASH(attributes_hash) ? Qnil : attributes_hash,
       .attributes_hash_size = 0,
-
       .types = rb_ivar_get(attributes_set, types_id),
       .additional_types = rb_ivar_get(attributes_set, additional_types_id),
       .tryToReadFromAdditionalTypes =
           PANKO_EMPTY_HASH(rb_ivar_get(attributes_set, additional_types_id)) ==
           false,
-
       .values = rb_ivar_get(attributes_set, values_id),
       .is_indexed_row = false,
       .indexed_row_column_indexes = Qnil,
@@ -84,12 +57,9 @@ struct attributes init_context(VALUE obj) {
     attrs.attributes_hash_size = RHASH_SIZE(attrs.attributes_hash);
   }
 
-  if (CLASS_OF(attrs.values) == fetch_ar_result_indexed_row_type()) {
-    volatile VALUE indexed_row_column_indexes =
-        rb_ivar_get(attrs.values, rb_intern("@column_indexes"));
-
-    volatile VALUE indexed_row_row =
-        rb_ivar_get(attrs.values, rb_intern("@row"));
+  if (strcmp(rb_class2name(CLASS_OF(attrs.values)), "ActiveRecord::Result::IndexedRow") == 0) {
+    volatile VALUE indexed_row_column_indexes = rb_ivar_get(attrs.values, rb_intern("@column_indexes"));
+    volatile VALUE indexed_row_row = rb_ivar_get(attrs.values, rb_intern("@row"));
 
     attrs.indexed_row_column_indexes = indexed_row_column_indexes;
     attrs.indexed_row_row = indexed_row_row;

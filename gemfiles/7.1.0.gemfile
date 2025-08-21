@@ -6,6 +6,7 @@ gem "sqlite3", "~> 1.4"
 gem "activesupport", "~> 7.1.5"
 gem "activemodel", "~> 7.1.5"
 gem "activerecord", "~> 7.1.5", group: :test
+gem "mutex_m"
 
 group :benchmarks do
   gem "vernier"
