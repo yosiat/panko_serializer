@@ -3,16 +3,34 @@
 require "spec_helper"
 
 describe Panko::Response do
-  class FooSerializer < Panko::Serializer
-    attributes :name, :address
+  before do
+    Temping.create(:foo) do
+      with_columns do |t|
+        t.string :name
+        t.string :address
+      end
+    end
   end
 
-  class FooWithContextSerializer < Panko::Serializer
-    attributes :name, :context_value
-
-    def context_value
-      context[:value]
+  let(:foo_serializer_class) do
+    Class.new(Panko::Serializer) do
+      attributes :name, :address
     end
+  end
+
+  let(:foo_with_context_serializer_class) do
+    Class.new(Panko::Serializer) do
+      attributes :name, :context_value
+
+      def context_value
+        context[:value]
+      end
+    end
+  end
+
+  before do
+    stub_const("FooSerializer", foo_serializer_class)
+    stub_const("FooWithContextSerializer", foo_with_context_serializer_class)
   end
 
   it "serializes primitive values" do

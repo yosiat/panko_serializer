@@ -1,16 +1,22 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "active_record/connection_adapters/postgresql_adapter"
 
 describe "Attributes Serialization" do
-  class FooSerializer < Panko::Serializer
-    attributes :name, :address
-  end
-
   context "instance variables" do
     it "serializes instance variables" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(FooSerializer,
         "name" => foo.name,
@@ -20,6 +26,13 @@ describe "Attributes Serialization" do
 
   context "method attributes" do
     it "serializes method attributes" do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
       class FooWithMethodsSerializer < Panko::Serializer
         attributes :name, :address, :something
 
@@ -32,7 +45,7 @@ describe "Attributes Serialization" do
         end
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(FooWithMethodsSerializer, "name" => foo.name,
         "address" => foo.address,
@@ -42,6 +55,13 @@ describe "Attributes Serialization" do
 
   context "inheritance" do
     it "supports serializer inheritance" do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
       class BaseSerializer < Panko::Serializer
         attributes :name
       end
@@ -50,7 +70,7 @@ describe "Attributes Serialization" do
         attributes :address
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(ChildSerializer, "name" => foo.name,
         "address" => foo.address)
@@ -59,6 +79,14 @@ describe "Attributes Serialization" do
 
   context "time serialization" do
     it "serializes time correctly" do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.timestamps
+        end
+      end
+
       class ObjectWithTimeSerializer < Panko::Serializer
         attributes :created_at, :method
 
@@ -67,7 +95,7 @@ describe "Attributes Serialization" do
         end
       end
 
-      obj = Foo.create.reload
+      obj = Foo.create
 
       expect(obj).to serialized_as(ObjectWithTimeSerializer,
         "created_at" => obj.created_at.as_json,
@@ -76,6 +104,14 @@ describe "Attributes Serialization" do
   end
 
   context "type handling" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :value
+        end
+      end
+    end
+
     it "honors additional types" do
       class FooValueSerializer < Panko::Serializer
         attributes :value
@@ -89,6 +125,15 @@ describe "Attributes Serialization" do
   end
 
   context "aliases" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
     it "supports active record alias attributes" do
       class FooWithAliasesModel < ActiveRecord::Base
         self.table_name = "foos"
@@ -99,7 +144,7 @@ describe "Attributes Serialization" do
         attributes :full_name, :address
       end
 
-      foo = FooWithAliasesModel.create(full_name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = FooWithAliasesModel.create(full_name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(FooWithArAliasesSerializer, "full_name" => foo.name, "address" => foo.address)
     end
@@ -111,7 +156,7 @@ describe "Attributes Serialization" do
         aliases name: :full_name
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(FooWithAliasesSerializer, "full_name" => foo.name, "address" => foo.address)
     end
@@ -154,11 +199,31 @@ describe "Attributes Serialization" do
 
   context "null values" do
     it "serializes null values" do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
+      end
+
       expect(Foo.create).to serialized_as(FooSerializer, "name" => nil, "address" => nil)
     end
   end
 
   context "SKIP functionality" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
     it "can skip fields" do
       class FooSkipSerializer < FooSerializer
         def address
@@ -166,16 +231,29 @@ describe "Attributes Serialization" do
         end
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect(foo).to serialized_as(FooSkipSerializer, "name" => foo.name, "address" => foo.address)
 
-      foo = Foo.create(name: Faker::Lorem.word, address: nil).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: nil)
       expect(foo).to serialized_as(FooSkipSerializer, "name" => foo.name)
     end
   end
 
   context "serializer reuse" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
     it "raises an error when reusing serializer instances" do
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
+      end
+
       serializer = FooSerializer.new
       foo_a = Foo.create
       foo_b = Foo.create

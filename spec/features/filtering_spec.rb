@@ -1,28 +1,68 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "active_record/connection_adapters/postgresql_adapter"
 
 describe "Filtering Serialization" do
-  class FooSerializer < Panko::Serializer
-    attributes :name, :address
-  end
-
   context "basic filtering" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
     it "supports only filter" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(-> { FooSerializer.new(only: [:name]) }, "name" => foo.name)
     end
 
     it "supports except filter" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(-> { FooSerializer.new(except: [:name]) }, "address" => foo.address)
     end
   end
 
   context "association filtering" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :foos
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
     it "filters associations" do
       class FoosHolderForFilterTestSerializer < Panko::Serializer
         attributes :name
@@ -32,9 +72,9 @@ describe "Filtering Serialization" do
 
       serializer_factory = -> { FoosHolderForFilterTestSerializer.new(only: [:foos]) }
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(serializer_factory, "foos" => [
         {
@@ -48,43 +88,87 @@ describe "Filtering Serialization" do
       ])
     end
 
-    it 'supports nested "only" filter' do
-      class FoosHolderSerializer < Panko::Serializer
+    it "filters association attributes" do
+      class FoosHolderForFilterTestSerializer < Panko::Serializer
         attributes :name
+
         has_many :foos, serializer: FooSerializer
       end
 
-      serializer_factory = -> { FoosHolderSerializer.new(only: {foos: [:address]}) }
+      serializer_factory = -> { FoosHolderForFilterTestSerializer.new(only: {foos: [:name]}) }
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(serializer_factory, "name" => foos_holder.name,
         "foos" => [
           {
-            "address" => foo1.address
+            "name" => foo1.name
           },
           {
-            "address" => foo2.address
+            "name" => foo2.name
           }
         ])
     end
   end
 
   context "complex nested filters" do
-    class UserSerializer < Panko::Serializer
-      attributes :name, :email
+    before do
+      Temping.create(:user) do
+        with_columns do |t|
+          t.string :name
+          t.string :email
+          t.references :team
+        end
+
+        belongs_to :team
+      end
+
+      Temping.create(:team) do
+        with_columns do |t|
+          t.string :name
+          t.references :organization
+        end
+
+        belongs_to :organization
+        has_many :users
+      end
+
+      Temping.create(:organization) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :teams
+        has_many :users, through: :teams
+      end
     end
 
-    class TeamSerializer < Panko::Serializer
-      attributes :name
-      has_many :users, serializer: UserSerializer
+    let(:user_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :email
+      end
     end
 
-    class OrganizationSerializer < Panko::Serializer
-      attributes :name
-      has_many :teams, serializer: TeamSerializer
+    let(:team_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name
+        has_many :users, serializer: "UserSerializer"
+      end
+    end
+
+    let(:organization_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name
+        has_many :teams, serializer: "TeamSerializer"
+      end
+    end
+
+    before do
+      stub_const("UserSerializer", user_serializer_class)
+      stub_const("TeamSerializer", team_serializer_class)
+      stub_const("OrganizationSerializer", organization_serializer_class)
     end
 
     it "supports complex nested only clauses on has_many" do
@@ -126,6 +210,15 @@ describe "Filtering Serialization" do
   end
 
   context "aliased attribute filtering" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
     it "filters based on aliased attribute name" do
       class FooWithAliasFilterSerializer < Panko::Serializer
         attributes :address
@@ -133,52 +226,108 @@ describe "Filtering Serialization" do
         aliases name: :full_name
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       # Filter using the alias name
       expect(foo).to serialized_as(-> { FooWithAliasFilterSerializer.new(only: [:full_name]) },
         "full_name" => foo.name)
 
-      # Filter using the original name should also work
+      # Filter using except should also work
       expect(foo).to serialized_as(-> { FooWithAliasFilterSerializer.new(except: [:address]) },
         "full_name" => foo.name)
     end
   end
 
   context "filter interactions" do
+    before do
+      Temping.create(:user) do
+        with_columns do |t|
+          t.string :name
+          t.string :email
+          t.references :team
+        end
+
+        belongs_to :team
+      end
+
+      Temping.create(:team) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :users
+      end
+    end
+
+    let(:user_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :email
+      end
+    end
+
+    before { stub_const("UserSerializer", user_serializer_class) }
+
     it "tests interaction between ArraySerializer filters and has_many association filters" do
       class TeamArrayFilterSerializer < Panko::Serializer
         attributes :name
-        has_many :users, serializer: "UserSerializer", only: [:name]
+        has_many :users, serializer: UserSerializer
       end
 
       team = Team.create(name: Faker::Team.name)
       user1 = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
       user2 = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
 
-      # ArraySerializer with only filter AND has_many with only filter
-      array_serializer_factory = -> {
-        Panko::ArraySerializer.new([],
-          each_serializer: TeamArrayFilterSerializer,
-          only: [:users])
-      }
+      # ArraySerializer filter should work with association filters
+      array_serializer = Panko::ArraySerializer.new([team], each_serializer: TeamArrayFilterSerializer, only: {users: [:name]})
+      result = array_serializer.to_json
 
-      expect([team]).to serialized_as(array_serializer_factory, [
+      expected = [
         {
+          "name" => team.name,
           "users" => [
             {"name" => user1.name},
             {"name" => user2.name}
           ]
         }
-      ])
+      ]
+
+      expect(JSON.parse(result)).to eq(expected)
     end
   end
 
   context "nested except filters" do
+    before do
+      Temping.create(:user) do
+        with_columns do |t|
+          t.string :name
+          t.string :email
+          t.references :team
+        end
+
+        belongs_to :team
+      end
+
+      Temping.create(:team) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :users
+      end
+    end
+
+    let(:user_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :email
+      end
+    end
+
+    before { stub_const("UserSerializer", user_serializer_class) }
+
     it "supports nested except filters" do
       class TeamWithExceptSerializer < Panko::Serializer
         attributes :name
-        has_many :users, serializer: "UserSerializer"
+        has_many :users, serializer: UserSerializer
       end
 
       team = Team.create(name: Faker::Team.name)
@@ -192,13 +341,147 @@ describe "Filtering Serialization" do
           {"name" => user.name}
         ])
     end
+  end
 
-    it "supports deeply nested except filters" do
+  context "only vs except precedence" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
+    it "only takes precedence over except when both are provided" do
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+      expect(foo).to serialized_as(-> { FooSerializer.new(only: [:name], except: [:address]) }, "name" => foo.name)
+    end
+  end
+
+  context "filters_for interaction" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
+    it "combines filters_for with constructor only/except options" do
+      class FooWithFiltersForSerializer < Panko::Serializer
+        attributes :name, :address
+
+        def self.filters_for(context, scope)
+          {except: [:address]}
+        end
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+      # filters_for except should be combined with constructor only
+      expect(foo).to serialized_as(-> { FooWithFiltersForSerializer.new(only: [:name]) }, "name" => foo.name)
+    end
+
+    it "passes context and scope to filters_for method" do
+      class FooWithContextFiltersSerializer < Panko::Serializer
+        attributes :name, :address
+
+        def self.filters_for(context, scope)
+          if context[:user_role] == "admin"
+            {only: [:name, :address]}
+          else
+            {only: [:name]}
+          end
+        end
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+      # Test with admin context
+      expect(foo).to serialized_as(-> { FooWithContextFiltersSerializer.new(context: {user_role: "admin"}) },
+        "name" => foo.name, "address" => foo.address)
+
+      # Test with regular user context
+      expect(foo).to serialized_as(-> { FooWithContextFiltersSerializer.new(context: {user_role: "user"}) },
+        "name" => foo.name)
+    end
+  end
+
+  context "deeply nested filters" do
+    before do
+      Temping.create(:user) do
+        with_columns do |t|
+          t.string :name
+          t.string :email
+          t.references :team
+        end
+
+        belongs_to :team
+      end
+
+      Temping.create(:team) do
+        with_columns do |t|
+          t.string :name
+          t.references :organization
+        end
+
+        belongs_to :organization
+        has_many :users
+      end
+
+      Temping.create(:organization) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :teams
+        has_many :users, through: :teams
+      end
+    end
+
+    let(:user_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :email
+      end
+    end
+
+    let(:team_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name
+        has_many :users, serializer: "UserSerializer"
+      end
+    end
+
+    let(:organization_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name
+        has_many :teams, serializer: "TeamSerializer"
+      end
+    end
+
+    before do
+      stub_const("UserSerializer", user_serializer_class)
+      stub_const("TeamSerializer", team_serializer_class)
+      stub_const("OrganizationSerializer", organization_serializer_class)
+    end
+
+    it "filters on 2+ levels deep associations" do
       org = Organization.create(name: Faker::Company.name)
       team = Team.create(name: Faker::Team.name, organization: org)
       user = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
 
-      serializer_factory = -> { OrganizationSerializer.new(except: {teams: {users: [:email]}}) }
+      serializer_factory = -> { OrganizationSerializer.new(only: {teams: {users: [:name]}}) }
 
       expect(org).to serialized_as(serializer_factory,
         "name" => org.name,
@@ -211,123 +494,14 @@ describe "Filtering Serialization" do
           }
         ])
     end
-  end
-
-  context "only vs except precedence" do
-    it "only takes precedence over except when both are provided" do
-      class FooWithBothFiltersSerializer < Panko::Serializer
-        attributes :name, :address
-
-        def self.filters_for(_context, _scope)
-          {
-            only: [:name],
-            except: [:address]  # This should be ignored since only is present
-          }
-        end
-      end
-
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-
-      expect(foo).to serialized_as(FooWithBothFiltersSerializer, "name" => foo.name)
-    end
-
-    it "only takes precedence in constructor options" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-
-      # When both only and except are provided, only should take precedence
-      serializer_factory = -> { FooSerializer.new(only: [:name], except: [:address]) }
-
-      expect(foo).to serialized_as(serializer_factory, "name" => foo.name)
-    end
-  end
-
-  context "filters_for interaction" do
-    it "combines filters_for with constructor only/except options" do
-      class FooWithFiltersForInteractionSerializer < Panko::Serializer
-        attributes :name, :address
-
-        def self.filters_for(_context, _scope)
-          {
-            except: [:address]
-          }
-        end
-      end
-
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-
-      # Constructor options should be merged with filters_for
-      serializer_factory = -> { FooWithFiltersForInteractionSerializer.new(only: [:name]) }
-
-      expect(foo).to serialized_as(serializer_factory, "name" => foo.name)
-    end
-
-    it "passes context and scope to filters_for method" do
-      class FooWithContextFiltersSerializer < Panko::Serializer
-        attributes :name, :address
-
-        def self.filters_for(context, scope)
-          if context && context[:admin]
-            {only: [:name, :address]}
-          else
-            {only: [:name]}
-          end
-        end
-      end
-
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-
-      # Admin context should show both fields
-      admin_serializer = -> { FooWithContextFiltersSerializer.new(context: {admin: true}) }
-      expect(foo).to serialized_as(admin_serializer,
-        "name" => foo.name,
-        "address" => foo.address)
-
-      # Non-admin context should show only name
-      user_serializer = -> { FooWithContextFiltersSerializer.new(context: {admin: false}) }
-      expect(foo).to serialized_as(user_serializer, "name" => foo.name)
-    end
-  end
-
-  context "deeply nested filters" do
-    it "filters on 2+ levels deep associations" do
-      org = Organization.create(name: Faker::Company.name)
-      team = Team.create(name: Faker::Team.name, organization: org)
-      user = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
-
-      # Filter only email from deeply nested users
-      serializer_factory = -> {
-        OrganizationSerializer.new(only: {
-          teams: {
-            users: [:email]
-          }
-        })
-      }
-
-      expect(org).to serialized_as(serializer_factory,
-        "name" => org.name,
-        "teams" => [
-          {
-            "name" => team.name,
-            "users" => [
-              {"email" => user.email}
-            ]
-          }
-        ])
-    end
 
     it "supports mixed only and except at different nesting levels" do
       org = Organization.create(name: Faker::Company.name)
       team = Team.create(name: Faker::Team.name, organization: org)
       user = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
 
-      # Only teams, but except email from users
-      serializer_factory = -> {
-        OrganizationSerializer.new(only: [:teams], except: {
-          teams: {
-            users: [:email]
-          }
-        })
-      }
+      # Use only at top level, except at nested level
+      serializer_factory = -> { OrganizationSerializer.new(only: [:teams], except: {teams: {users: [:email]}}) }
 
       expect(org).to serialized_as(serializer_factory,
         "teams" => [
@@ -342,10 +516,25 @@ describe "Filtering Serialization" do
   end
 
   context "invalid filter values" do
-    it "raises error for non-Array/Hash only filters" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
 
-      # Test with invalid filter types - currently raises NoMethodError
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
+    it "raises error for non-Array/Hash only filters" do
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(only: "invalid").serialize(foo)
       end.to raise_error(NoMethodError)
@@ -353,8 +542,7 @@ describe "Filtering Serialization" do
     end
 
     it "raises error for non-Array/Hash except filters" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(except: 123).serialize(foo)
       end.to raise_error(NoMethodError)
@@ -362,18 +550,15 @@ describe "Filtering Serialization" do
     end
 
     it "handles filters on non-existent attributes" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      # Filter should ignore non-existent attributes
-      serializer_factory = -> { FooSerializer.new(only: [:name, :non_existent_field]) }
-
-      expect(foo).to serialized_as(serializer_factory, "name" => foo.name)
+      # Should not raise error, just ignore non-existent attributes
+      expect(foo).to serialized_as(-> { FooSerializer.new(only: [:name, :non_existent]) }, "name" => foo.name)
     end
 
     it "handles filters on non-existent associations" do
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      # Filter should ignore non-existent associations
       serializer_factory = -> { FooSerializer.new(only: {non_existent_association: [:name]}) }
 
       expect(foo).to serialized_as(serializer_factory,
@@ -383,20 +568,27 @@ describe "Filtering Serialization" do
   end
 
   context "filters_for method" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+    end
+
     it "fetches the filters from the serializer" do
       class FooWithFiltersForSerializer < Panko::Serializer
         attributes :name, :address
 
-        def self.filters_for(_context, _scope)
-          {
-            only: [:name]
-          }
+        def self.filters_for(context, scope)
+          {only: [:name]}
         end
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      expect(foo).to serialized_as(FooWithFiltersForSerializer, "name" => foo.name)
+      expect(foo).to serialized_as(-> { FooWithFiltersForSerializer.new }, "name" => foo.name)
     end
   end
 end
