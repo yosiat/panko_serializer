@@ -5,6 +5,7 @@ appraise "7.0.0" do
   gem "activesupport", "~> 7.0.0"
   gem "activemodel", "~> 7.0.0"
   gem "activerecord", "~> 7.0.0", group: :test
+  gem "mutex_m"
 end
 
 appraise "7.1.0" do
