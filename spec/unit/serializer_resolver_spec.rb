@@ -56,7 +56,7 @@ describe Panko::SerializerResolver do
 
   describe "errors cases" do
     it "returns nil when the serializer name can't be found" do
-      expect(Panko::SerializerResolver.resolve("post", Object)).to be_nil
+      expect(Panko::SerializerResolver.resolve("nonexistent_model", Object)).to be_nil
     end
 
     it "returns nil when the serializer is not Panko::Serializer" do

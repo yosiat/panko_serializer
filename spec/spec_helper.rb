@@ -31,6 +31,13 @@ RSpec.configure do |config|
     FooHolder.delete_all
     FoosHolder.delete_all
     Foo.delete_all
+    Goo.delete_all
+    Comment.delete_all
+    Post.delete_all
+    Article.delete_all
+    User.delete_all
+    Team.delete_all
+    Organization.delete_all
   end
 end
 
