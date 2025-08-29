@@ -17,6 +17,7 @@ end
 
 group :test do
   gem "faker"
+  gem "temping"
 end
 
 group :development do

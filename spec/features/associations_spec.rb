@@ -1,14 +1,35 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "active_record/connection_adapters/postgresql_adapter"
 
 describe "Associations Serialization" do
-  class FooSerializer < Panko::Serializer
-    attributes :name, :address
-  end
-
   context "has_one" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
+      Temping.create(:foo_holder) do
+        with_columns do |t|
+          t.string :name
+          t.references :foo
+        end
+
+        belongs_to :foo, optional: true
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
     it "serializes plain object associations" do
       class PlainFooHolder
         attr_accessor :name, :foo
@@ -26,6 +47,10 @@ describe "Associations Serialization" do
           @name = name
           @address = address
         end
+      end
+
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
       end
 
       class PlainFooHolderHasOneSerializer < Panko::Serializer
@@ -51,34 +76,14 @@ describe "Associations Serialization" do
         has_one :foo, serializer: "FooSerializer"
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderHasOneWithStringSerializer, "name" => foo_holder.name,
         "foo" => {
           "name" => foo.name,
           "address" => foo.address
         })
-    end
-
-    it "can use the serializer string name when resolving the serializer" do
-      class FooHolderHasOnePooWithStringSerializer < Panko::Serializer
-        attributes :name
-
-        has_one :goo, serializer: "FooSerializer"
-      end
-
-      goo = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, goo: goo).reload
-
-      expect(foo_holder).to serialized_as(
-        FooHolderHasOnePooWithStringSerializer,
-        "name" => foo_holder.name,
-        "goo" => {
-          "name" => goo.name,
-          "address" => goo.address
-        }
-      )
     end
 
     it "accepts name option" do
@@ -88,8 +93,8 @@ describe "Associations Serialization" do
         has_one :foo, serializer: FooSerializer, name: :my_foo
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderHasOneWithNameSerializer, "name" => foo_holder.name,
         "my_foo" => {
@@ -105,8 +110,8 @@ describe "Associations Serialization" do
         has_one :foo, serializer: FooSerializer
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
         "foo" => {
@@ -122,8 +127,8 @@ describe "Associations Serialization" do
         has_one :foo
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
         "foo" => {
@@ -143,7 +148,7 @@ describe "Associations Serialization" do
     end
 
     it "allows virtual method in has one serializer" do
-      class VirtualSerialier < Panko::Serializer
+      class VirtualSerializer < Panko::Serializer
         attributes :virtual
 
         def virtual
@@ -154,11 +159,11 @@ describe "Associations Serialization" do
       class FooHolderHasOneVirtualSerializer < Panko::Serializer
         attributes :name
 
-        has_one :foo, serializer: VirtualSerialier
+        has_one :foo, serializer: VirtualSerializer
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderHasOneVirtualSerializer, "name" => foo_holder.name,
         "foo" => {
@@ -173,14 +178,84 @@ describe "Associations Serialization" do
         has_one :foo, serializer: FooSerializer
       end
 
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: nil).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: nil)
 
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
         "foo" => nil)
     end
   end
 
+  context "has_one with different model types" do
+    it "can use the serializer string name when resolving the serializer" do
+      Temping.create(:goo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
+      Temping.create(:foo_holder) do
+        with_columns do |t|
+          t.string :name
+          t.references :goo
+        end
+
+        belongs_to :goo
+      end
+
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
+      end
+
+      class FooHolderHasOnePooWithStringSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :goo, serializer: "FooSerializer"
+      end
+
+      goo = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, goo: goo)
+
+      expect(foo_holder).to serialized_as(
+        FooHolderHasOnePooWithStringSerializer,
+        "name" => foo_holder.name,
+        "goo" => {
+          "name" => goo.name,
+          "address" => goo.address
+        }
+      )
+    end
+  end
+
   context "has_many" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :foos
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
     it "serializes using the :serializer option" do
       class FoosHasManyHolderSerializer < Panko::Serializer
         attributes :name
@@ -188,9 +263,9 @@ describe "Associations Serialization" do
         has_many :foos, serializer: FooSerializer
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
         "foos" => [
@@ -212,9 +287,9 @@ describe "Associations Serialization" do
         has_many :foos, serializer: "FooSerializer"
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
         "foos" => [
@@ -229,33 +304,6 @@ describe "Associations Serialization" do
         ])
     end
 
-    it "uses the serializer string name when resolving the serializer" do
-      class FoosHasManyPoosHolderSerializer < Panko::Serializer
-        attributes :name
-
-        has_many :goos, serializer: "FooSerializer"
-      end
-
-      goo1 = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      goo2 = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, goos: [goo1, goo2]).reload
-
-      expect(foos_holder).to serialized_as(
-        FoosHasManyPoosHolderSerializer,
-        "name" => foos_holder.name,
-        "goos" => [
-          {
-            "name" => goo1.name,
-            "address" => goo1.address
-          },
-          {
-            "name" => goo2.name,
-            "address" => goo2.address
-          }
-        ]
-      )
-    end
-
     it "supports :name" do
       class FoosHasManyHolderWithNameSerializer < Panko::Serializer
         attributes :name
@@ -263,9 +311,9 @@ describe "Associations Serialization" do
         has_many :foos, serializer: FooSerializer, name: :my_foos
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderWithNameSerializer, "name" => foos_holder.name,
         "my_foos" => [
@@ -287,9 +335,9 @@ describe "Associations Serialization" do
         has_many :foos
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
         "foos" => [
@@ -321,9 +369,9 @@ describe "Associations Serialization" do
         has_many :foos, each_serializer: FooSerializer
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHasManyHolderSerializer, "name" => foos_holder.name,
         "foos" => [
@@ -345,9 +393,9 @@ describe "Associations Serialization" do
         has_many :foos, serializer: FooSerializer, only: [:address]
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHolderWithOnlySerializer, "name" => foos_holder.name,
         "foos" => [
@@ -361,22 +409,86 @@ describe "Associations Serialization" do
     end
   end
 
+  context "has_many with different model types" do
+    it "uses the serializer string name when resolving the serializer" do
+      Temping.create(:goo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :goos
+      end
+
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
+      end
+
+      class FoosHasManyPoosHolderSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :goos, serializer: "FooSerializer"
+      end
+
+      goo1 = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      goo2 = Goo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, goos: [goo1, goo2])
+
+      expect(foos_holder).to serialized_as(
+        FoosHasManyPoosHolderSerializer,
+        "name" => foos_holder.name,
+        "goos" => [
+          {
+            "name" => goo1.name,
+            "address" => goo1.address
+          },
+          {
+            "name" => goo2.name,
+            "address" => goo2.address
+          }
+        ]
+      )
+    end
+  end
+
   context "polymorphic associations" do
-    class CommentSerializer < Panko::Serializer
-      attributes :content
-    end
-
-    class PostSerializer < Panko::Serializer
-      attributes :title, :content
-      has_many :comments, serializer: CommentSerializer
-    end
-
-    class ArticleSerializer < Panko::Serializer
-      attributes :title, :body
-      has_many :comments, serializer: CommentSerializer
-    end
-
     it "serializes polymorphic has_many associations" do
+      Temping.create(:comment) do
+        with_columns do |t|
+          t.string :content
+          t.references :commentable, polymorphic: true
+        end
+
+        belongs_to :commentable, polymorphic: true
+      end
+
+      Temping.create(:post) do
+        with_columns do |t|
+          t.string :title
+          t.string :content
+        end
+
+        has_many :comments, as: :commentable
+      end
+
+      class CommentSerializer < Panko::Serializer
+        attributes :content
+      end
+
+      class PostSerializer < Panko::Serializer
+        attributes :title, :content
+        has_many :comments, serializer: CommentSerializer
+      end
+
       post = Post.create(title: Faker::Lorem.word, content: Faker::Lorem.sentence)
       comment1 = Comment.create(content: Faker::Lorem.sentence, commentable: post)
       comment2 = Comment.create(content: Faker::Lorem.sentence, commentable: post)
@@ -391,6 +503,33 @@ describe "Associations Serialization" do
     end
 
     it "serializes polymorphic associations with different models" do
+      Temping.create(:comment) do
+        with_columns do |t|
+          t.string :content
+          t.references :commentable, polymorphic: true
+        end
+
+        belongs_to :commentable, polymorphic: true
+      end
+
+      Temping.create(:article) do
+        with_columns do |t|
+          t.string :title
+          t.string :body
+        end
+
+        has_many :comments, as: :commentable
+      end
+
+      class CommentSerializer < Panko::Serializer
+        attributes :content
+      end
+
+      class ArticleSerializer < Panko::Serializer
+        attributes :title, :body
+        has_many :comments, serializer: CommentSerializer
+      end
+
       article = Article.create(title: Faker::Lorem.word, body: Faker::Lorem.sentence)
       comment = Comment.create(content: Faker::Lorem.sentence, commentable: article)
 
@@ -404,21 +543,50 @@ describe "Associations Serialization" do
   end
 
   context "deeply nested associations" do
-    class UserSerializer < Panko::Serializer
-      attributes :name, :email
-    end
-
-    class TeamSerializer < Panko::Serializer
-      attributes :name
-      has_many :users, serializer: UserSerializer
-    end
-
-    class OrganizationSerializer < Panko::Serializer
-      attributes :name
-      has_many :teams, serializer: TeamSerializer
-    end
-
     it "serializes 2+ levels of nesting" do
+      Temping.create(:user) do
+        with_columns do |t|
+          t.string :name
+          t.string :email
+          t.references :team
+        end
+
+        belongs_to :team
+      end
+
+      Temping.create(:team) do
+        with_columns do |t|
+          t.string :name
+          t.references :organization
+        end
+
+        belongs_to :organization
+        has_many :users
+      end
+
+      Temping.create(:organization) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :teams
+        has_many :users, through: :teams
+      end
+
+      class UserSerializer < Panko::Serializer
+        attributes :name, :email
+      end
+
+      class TeamSerializer < Panko::Serializer
+        attributes :name
+        has_many :users, serializer: UserSerializer
+      end
+
+      class OrganizationSerializer < Panko::Serializer
+        attributes :name
+        has_many :teams, serializer: TeamSerializer
+      end
+
       org = Organization.create(name: Faker::Company.name)
       team1 = Team.create(name: Faker::Team.name, organization: org)
       team2 = Team.create(name: Faker::Team.name, organization: org)
@@ -451,6 +619,43 @@ describe "Associations Serialization" do
   end
 
   context "combined options" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :foos
+      end
+
+      Temping.create(:foo_holder) do
+        with_columns do |t|
+          t.string :name
+          t.references :foo
+        end
+
+        belongs_to :foo
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
     it "handles multiple options together (name, serializer, only)" do
       class FoosHolderCombinedOptionsSerializer < Panko::Serializer
         attributes :name
@@ -458,9 +663,9 @@ describe "Associations Serialization" do
         has_many :foos, serializer: FooSerializer, name: :my_items, only: [:name]
       end
 
-      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2]).reload
+      foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo1, foo2])
 
       expect(foos_holder).to serialized_as(FoosHolderCombinedOptionsSerializer,
         "name" => foos_holder.name,
@@ -477,8 +682,8 @@ describe "Associations Serialization" do
         has_one :foo, serializer: FooSerializer, name: :my_foo
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderCombinedOptionsSerializer,
         "name" => foo_holder.name,
@@ -490,6 +695,43 @@ describe "Associations Serialization" do
   end
 
   context "nil and empty associations" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foo_holder) do
+        with_columns do |t|
+          t.string :name
+          t.references :foo
+        end
+
+        belongs_to :foo, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :foos
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
     it "explicitly handles has_one returning nil" do
       class FooHolderNilSerializer < Panko::Serializer
         attributes :name
@@ -497,7 +739,7 @@ describe "Associations Serialization" do
         has_one :foo, serializer: FooSerializer
       end
 
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: nil).reload
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: nil)
 
       expect(foo_holder).to serialized_as(FooHolderNilSerializer,
         "name" => foo_holder.name,
@@ -511,7 +753,7 @@ describe "Associations Serialization" do
         has_many :foos, serializer: FooSerializer
       end
 
-      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: []).reload
+      foos_holder = FoosHolder.create(name: Faker::Lorem.word, foos: [])
 
       expect(foos_holder).to serialized_as(FoosHolderEmptySerializer,
         "name" => foos_holder.name,
@@ -520,6 +762,24 @@ describe "Associations Serialization" do
   end
 
   context "invalid associations" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+        end
+      end
+
+      Temping.create(:foo_holder) do
+        with_columns do |t|
+          t.string :name
+          t.references :foo
+        end
+
+        belongs_to :foo
+      end
+    end
+
     it "handles when associated object is not of expected type" do
       # This test verifies graceful handling when an association returns an unexpected type
       class FlexibleSerializer < Panko::Serializer
@@ -542,8 +802,8 @@ describe "Associations Serialization" do
       end
 
       # Create a foo_holder with a regular foo
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
-      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
       expect(foo_holder).to serialized_as(FooHolderFlexibleSerializer,
         "name" => foo_holder.name,

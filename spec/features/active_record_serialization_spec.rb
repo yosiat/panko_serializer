@@ -1,14 +1,22 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "active_record/connection_adapters/postgresql_adapter"
 
 describe "ActiveRecord Serialization" do
-  class FooSerializer < Panko::Serializer
-    attributes :name, :address
+  before do
+    Temping.create(:foo) do
+      with_columns do |t|
+        t.string :name
+        t.string :address
+      end
+    end
   end
 
   it "serializes objects from database" do
+    class FooSerializer < Panko::Serializer
+      attributes :name, :address
+    end
+
     foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
     expect(foo).to serialized_as(FooSerializer,
@@ -17,6 +25,10 @@ describe "ActiveRecord Serialization" do
   end
 
   it "serializes objects from memory" do
+    class FooSerializer < Panko::Serializer
+      attributes :name, :address
+    end
+
     foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
     expect(foo).to serialized_as(FooSerializer,
@@ -25,6 +37,10 @@ describe "ActiveRecord Serialization" do
   end
 
   it "preserves changed attributes" do
+    class FooSerializer < Panko::Serializer
+      attributes :name, :address
+    end
+
     foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
 
     foo.update!(name: "This is a new name")

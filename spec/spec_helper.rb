@@ -3,8 +3,19 @@
 require "bundler/setup"
 require "panko_serializer"
 require "faker"
+require "logger"
+require "active_record"
+require "sqlite3"
+require "temping"
 
-require_relative "models"
+# Set up database connection for temping
+ActiveRecord::Base.establish_connection(
+  adapter: "sqlite3",
+  database: ":memory:"
+)
+
+# Don't show migration output
+ActiveRecord::Migration.verbose = false
 
 RSpec.configure do |config|
   config.order = "random"
@@ -27,17 +38,8 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.before do
-    FooHolder.delete_all
-    FoosHolder.delete_all
-    Foo.delete_all
-    Goo.delete_all
-    Comment.delete_all
-    Post.delete_all
-    Article.delete_all
-    User.delete_all
-    Team.delete_all
-    Organization.delete_all
+  config.after do
+    Temping.teardown
   end
 end
 

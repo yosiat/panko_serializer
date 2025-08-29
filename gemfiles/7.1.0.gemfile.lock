@@ -165,6 +165,9 @@ GEM
     standard-performance (1.8.0)
       lint_roller (~> 1.1)
       rubocop-performance (~> 1.25.0)
+    temping (4.3.0)
+      activerecord (>= 6.0, < 8.1)
+      activesupport (>= 6.0, < 8.1)
     terminal-table (4.0.0)
       unicode-display_width (>= 1.1.1, < 4)
     thor (1.4.0)
@@ -201,6 +204,7 @@ DEPENDENCIES
   stackprof
   standard
   standard-performance
+  temping
   terminal-table
   vernier
 

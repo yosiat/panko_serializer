@@ -3,9 +3,22 @@
 require "spec_helper"
 
 describe Panko::ArraySerializer do
-  class FooSerializer < Panko::Serializer
-    attributes :name, :address
+  before do
+    Temping.create(:foo) do
+      with_columns do |t|
+        t.string :name
+        t.string :address
+      end
+    end
   end
+
+  let(:foo_serializer_class) do
+    Class.new(Panko::Serializer) do
+      attributes :name, :address
+    end
+  end
+
+  before { stub_const("FooSerializer", foo_serializer_class) }
 
   it "throws argument error when each_serializer isnt passed" do
     expect do
@@ -39,7 +52,7 @@ describe Panko::ArraySerializer do
         end
       end
 
-      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word).reload
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       array_serializer_factory = -> {
         Panko::ArraySerializer.new([],
