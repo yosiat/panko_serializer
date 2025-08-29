@@ -2,10 +2,11 @@
 
 source "https://rubygems.org"
 
-gem "sqlite3", "~> 1.4"
 gem "activesupport", "~> 7.2.0"
 gem "activemodel", "~> 7.2.0"
 gem "activerecord", "~> 7.2.0", group: :test
+gem "trilogy"
+gem "sqlite3", "~> 1.4"
 
 group :benchmarks do
   gem "vernier"

@@ -31,6 +31,9 @@ GEM
     activerecord (7.0.8.7)
       activemodel (= 7.0.8.7)
       activesupport (= 7.0.8.7)
+    activerecord-trilogy-adapter (3.2.0)
+      activerecord (>= 6.0.a, < 7.1.a)
+      trilogy (>= 2.4.0)
     activesupport (7.0.8.7)
       concurrent-ruby (~> 1.0, >= 1.0.2)
       i18n (>= 1.6, < 2)
@@ -150,6 +153,7 @@ GEM
     terminal-table (4.0.0)
       unicode-display_width (>= 1.1.1, < 4)
     thor (1.4.0)
+    trilogy (2.9.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.1.5)
@@ -165,6 +169,7 @@ DEPENDENCIES
   active_model_serializers (~> 0.10)
   activemodel (~> 7.0.0)
   activerecord (~> 7.0.0)
+  activerecord-trilogy-adapter
   activesupport (~> 7.0.0)
   appraisal
   benchmark-ips
@@ -186,6 +191,7 @@ DEPENDENCIES
   standard-performance
   temping
   terminal-table
+  trilogy
   vernier
 
 BUNDLED WITH

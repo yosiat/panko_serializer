@@ -1,0 +1,99 @@
+name: Database Tests
+
+on: [push, pull_request]
+
+jobs:
+  database-matrix:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.4"]
+        rails: ["7.2.0", "8.0.0"]
+        database: ["sqlite", "postgresql", "mysql"]
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: panko_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: panko_test
+          MYSQL_ROOT_PASSWORD: password
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+
+    steps:
+      - name: Install system dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y libsqlite3-dev libpq-dev libmysqlclient-dev
+
+      - uses: actions/checkout@v4
+      
+      - name: Configure MySQL authentication
+        if: matrix.database == 'mysql'
+        run: |
+          # Configure MySQL to use mysql_native_password for Trilogy compatibility
+          mysql -h 127.0.0.1 -P 3306 -u root -ppassword -e "
+            ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+            ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'password';
+            FLUSH PRIVILEGES;
+          "
+      
+      - name: Set up Ruby ${{ matrix.ruby }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Gems Cache
+        id: gem-cache
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-${{ matrix.database }}-gem
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-${{ matrix.database }}-gem
+            ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem
+
+      - name: Install gems
+        env:
+          BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
+          DB: ${{ matrix.database }}
+        run: |
+          gem install bundler
+          bundle config set path 'vendor/bundle'
+          bundle check || bundle install --jobs 4 --retry 3
+
+      - name: Compile & test
+        env:
+          BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
+          DB: ${{ matrix.database }}
+          POSTGRES_HOST: localhost
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_PORT: 5432
+          MYSQL_HOST: localhost
+          MYSQL_USER: root
+          MYSQL_PASSWORD: password
+          MYSQL_PORT: 3306
+        run: |
+          bundle exec rake
