@@ -171,6 +171,7 @@ GEM
       unicode-display_width (>= 1.1.1, < 4)
     thor (1.4.0)
     timeout (0.4.3)
+    trilogy (2.9.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.1.5)
@@ -206,6 +207,7 @@ DEPENDENCIES
   standard-performance
   temping
   terminal-table
+  trilogy
   vernier
 
 BUNDLED WITH

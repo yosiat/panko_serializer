@@ -5,14 +5,24 @@ require "panko_serializer"
 require "faker"
 require "logger"
 require "active_record"
-require "sqlite3"
 require "temping"
 
-# Set up database connection for temping
-ActiveRecord::Base.establish_connection(
-  adapter: "sqlite3",
-  database: ":memory:"
-)
+# Load database configuration helper
+require_relative "support/database_config"
+
+# Require database adapters based on environment
+case DatabaseConfig.database_type
+when "sqlite"
+  require "sqlite3"
+when "postgresql"
+  require "pg"
+when "mysql"
+  require "trilogy"
+end
+
+# Set up database connection
+DatabaseConfig.setup_database
+ActiveRecord::Base.establish_connection(DatabaseConfig.config)
 
 # Don't show migration output
 ActiveRecord::Migration.verbose = false
