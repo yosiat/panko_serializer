@@ -43,6 +43,26 @@ module Panko
         end
       end
 
+      # Main cast method that matches the C extension interface
+      # @param type_metadata [Object] ActiveRecord type metadata
+      # @param value [Object] Value to cast
+      # @return [Array] [casted_value, is_json] tuple
+      def cast(type_metadata, value)
+        return [value, false] if value.nil?
+
+        # Check if this is a JSON type
+        is_json = json_type?(type_metadata.class)
+
+        if is_json
+          # For JSON types, return the original value with is_json flag
+          [value, true]
+        else
+          # Cast the value using type casting logic
+          casted_value = type_cast(type_metadata, value)
+          [casted_value, false]
+        end
+      end
+
       private
 
       def cache_type_classes

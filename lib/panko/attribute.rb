@@ -36,5 +36,10 @@ module Panko
     def inspect
       "<Panko::Attribute name=#{name.inspect} alias_name=#{alias_name.inspect}>"
     end
+
+    # Get the name to use for serialization (alias if present, otherwise name)
+    def serialization_name
+      alias_name || name
+    end
   end
 end
