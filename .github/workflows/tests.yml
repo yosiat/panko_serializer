@@ -17,29 +17,15 @@ jobs:
           sudo apt update -y
           sudo apt install -y libsqlite3-dev
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Ruby ${{ matrix.ruby }}
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-
-
-      - name: Gems Cache
-        id: gem-cache
-        uses: actions/cache@v4
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.ruby }}-${{ matrix.rails }}-gem
-
-      - name: Install gems
+          bundler-cache: true
+          working-directory: .
         env:
           BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
-        run: |
-          gem install bundler
-          bundle config set path 'vendor/bundle'
-          bundle check || bundle install --jobs 4 --retry 3
 
       - name: Compile & test
         env:
