@@ -3,6 +3,8 @@
 require "panko/version"
 require "panko/attribute"
 require "panko/association"
+require "panko/time_conversion"
+require "panko/type_cast"
 require "panko/serializer"
 require "panko/array_serializer"
 require "panko/response"
@@ -19,6 +21,11 @@ if ENV["PANKO_PURE_RUBY"] == "true"
 
     def self.serialize_objects(objects, writer, descriptor)
       raise NotImplementedError, "Pure Ruby serialization not yet implemented"
+    end
+
+    # Type casting method for Phase 2
+    def self._type_cast(type_metadata, value)
+      TypeCast.type_cast(type_metadata, value)
     end
   end
 else
