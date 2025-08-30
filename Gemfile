@@ -18,6 +18,7 @@ end
 group :test do
   gem "faker"
   gem "temping"
+  gem "sqlite3"
 end
 
 group :development do

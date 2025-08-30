@@ -2,6 +2,24 @@
 
 module Panko
   class SerializationDescriptor
+    attr_accessor :serializer_class, :serializer, :attributes, :aliases, :method_fields,
+      :has_one_associations, :has_many_associations, :attributes_writer
+
+    # Compatibility aliases for C extension interface
+    alias_method :type, :serializer_class
+    alias_method :type=, :serializer_class=
+
+    def initialize
+      @serializer_class = nil
+      @serializer = nil
+      @attributes = [].freeze
+      @aliases = {}.freeze
+      @method_fields = [].freeze
+      @has_one_associations = [].freeze
+      @has_many_associations = [].freeze
+      @attributes_writer = nil
+    end
+
     #
     # Creates new description and apply the options
     # on the new descriptor
