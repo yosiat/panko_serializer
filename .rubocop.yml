@@ -6,8 +6,10 @@ inherit_mode:
 
 require:
   - standard
-  - rubocop-performance
+
+plugins:
   - standard-performance
+  - rubocop-performance
   - rubocop-rspec
 
 inherit_gem:
