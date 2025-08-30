@@ -84,6 +84,8 @@ GEM
     minitest (5.25.5)
     nokogiri (1.18.9-arm64-darwin)
       racc (~> 1.4)
+    nokogiri (1.18.9-x86_64-linux-gnu)
+      racc (~> 1.4)
     oj (3.16.11)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
@@ -93,6 +95,7 @@ GEM
       ast (~> 2.4.1)
       racc
     pg (1.6.1-arm64-darwin)
+    pg (1.6.1-x86_64-linux)
     prism (1.4.0)
     racc (1.8.1)
     rack (3.1.16)
@@ -182,6 +185,7 @@ GEM
 
 PLATFORMS
   arm64-darwin
+  x86_64-linux
 
 DEPENDENCIES
   active_model_serializers (~> 0.10)
