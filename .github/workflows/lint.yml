@@ -21,10 +21,3 @@ jobs:
           bundler-cache: true
       - run: |
           bundle exec rake rubocop
-
-      - name: Lint C
-        uses: jidicula/clang-format-action@v4.15.0
-        with:
-          clang-format-version: "16"
-          check-path: "ext/panko_serializer"
-          fallback-style: "Google"
