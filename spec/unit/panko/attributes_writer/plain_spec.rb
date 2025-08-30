@@ -20,8 +20,12 @@ RSpec.describe Panko::AttributesWriter::Plain do
     end
 
     it "handles SKIP constant" do
-      skip_attribute = Panko::Attribute.create("SKIP")
-      expect(writer).to receive(:push_value).with(Panko::Serializer::SKIP, "SKIP")
+      skip_attribute = Panko::Attribute.create("skip_method")
+      allow(object).to receive(:respond_to?).with(:skip_method).and_return(true)
+      allow(object).to receive(:public_send).with(:skip_method).and_return(Panko::Serializer::SKIP)
+
+      # When SKIP is returned, no push_value should be called
+      expect(writer).not_to receive(:push_value)
 
       plain_writer.write_attributes(object, [skip_attribute], writer)
     end

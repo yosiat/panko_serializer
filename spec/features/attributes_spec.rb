@@ -225,6 +225,10 @@ describe "Attributes Serialization" do
     end
 
     it "can skip fields" do
+      class FooSerializer < Panko::Serializer
+        attributes :name, :address
+      end
+
       class FooSkipSerializer < FooSerializer
         def address
           object.address || SKIP

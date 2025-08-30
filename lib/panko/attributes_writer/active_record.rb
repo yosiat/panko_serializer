@@ -29,16 +29,19 @@ module Panko
       private
 
       def read_attribute_value(object, attribute, context)
+        # Resolve ActiveRecord alias attributes
+        resolved_attribute = attribute.resolve_activerecord_alias(object.class)
+
         # Get cached attribute context for this object
         attributes_ctx = init_context(object)
 
-        # Read the attribute value
-        value = read_attribute_from_context(attributes_ctx, attribute)
+        # Read the attribute value using the resolved attribute name
+        value = read_attribute_from_context(attributes_ctx, resolved_attribute)
 
         # Apply type casting if needed
         if value
           # Resolve type information for type casting
-          type_metadata = resolve_attribute_type(attributes_ctx, attribute.name_str)
+          type_metadata = resolve_attribute_type(attributes_ctx, resolved_attribute.name_str)
           if type_metadata
             value, _is_json = TypeCast.cast(type_metadata, value)
           end

@@ -7,9 +7,6 @@ module Panko
       private
 
       def read_attribute_value(object, attribute, context)
-        # Handle SKIP constant for conditional attributes
-        return Serializer::SKIP if attribute.name_str == "SKIP"
-
         # Use public_send with cached method symbols for fast method dispatch
         if object.respond_to?(attribute.name_sym)
           begin

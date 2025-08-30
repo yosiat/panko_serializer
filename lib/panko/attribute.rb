@@ -41,5 +41,44 @@ module Panko
     def serialization_name
       alias_name || name
     end
+
+    # Resolve ActiveRecord alias attributes by checking the record class
+    # This mirrors the C extension's attribute_try_invalidate function
+    def resolve_activerecord_alias(new_record_class)
+      return self if record_class == new_record_class
+
+      # Check if this record class has attribute aliases
+      if new_record_class.respond_to?(:attribute_aliases)
+        ar_aliases_hash = new_record_class.attribute_aliases
+
+        unless ar_aliases_hash.empty?
+          aliased_value = ar_aliases_hash[name]
+          if aliased_value
+            # Create a new attribute with the resolved name
+            # The original name becomes the alias_name, and the resolved name becomes name
+            return Attribute.new(
+              name: aliased_value.freeze,
+              alias_name: name,
+              name_sym: aliased_value.to_sym,
+              name_str: aliased_value.freeze,
+              ivar_name: "@#{aliased_value}".freeze,
+              type: type,
+              record_class: new_record_class
+            )
+          end
+        end
+      end
+
+      # Return a copy with updated record_class but same attributes
+      Attribute.new(
+        name: name,
+        alias_name: alias_name,
+        name_sym: name_sym,
+        name_str: name_str,
+        ivar_name: ivar_name,
+        type: type,
+        record_class: new_record_class
+      )
+    end
   end
 end

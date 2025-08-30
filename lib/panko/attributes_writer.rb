@@ -45,6 +45,10 @@ module Panko
       def write_attributes(object, attributes, writer, context = nil)
         attributes.each do |attribute|
           value = read_attribute_value(object, attribute, context)
+
+          # Handle SKIP constant for conditional serialization
+          next if value == Panko::Serializer::SKIP
+
           is_json = attribute.type && type_cast_needed?(attribute.type, value)
 
           if is_json
