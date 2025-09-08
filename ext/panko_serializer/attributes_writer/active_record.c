@@ -57,9 +57,12 @@ struct attributes init_context(VALUE obj) {
     attrs.attributes_hash_size = RHASH_SIZE(attrs.attributes_hash);
   }
 
-  if (strcmp(rb_class2name(CLASS_OF(attrs.values)), "ActiveRecord::Result::IndexedRow") == 0) {
-    volatile VALUE indexed_row_column_indexes = rb_ivar_get(attrs.values, rb_intern("@column_indexes"));
-    volatile VALUE indexed_row_row = rb_ivar_get(attrs.values, rb_intern("@row"));
+  if (strcmp(rb_class2name(CLASS_OF(attrs.values)),
+             "ActiveRecord::Result::IndexedRow") == 0) {
+    volatile VALUE indexed_row_column_indexes =
+        rb_ivar_get(attrs.values, rb_intern("@column_indexes"));
+    volatile VALUE indexed_row_row =
+        rb_ivar_get(attrs.values, rb_intern("@row"));
 
     attrs.indexed_row_column_indexes = indexed_row_column_indexes;
     attrs.indexed_row_row = indexed_row_row;
