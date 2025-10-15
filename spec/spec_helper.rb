@@ -4,7 +4,6 @@ require "bundler/setup"
 require "logger"
 require "panko_serializer"
 require "faker"
-require "logger"
 require "active_record"
 require "temping"
 
