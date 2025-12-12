@@ -6,6 +6,8 @@ inherit_mode:
 
 require:
   - standard
+
+plugins:
   - rubocop-performance
   - standard-performance
   - rubocop-rspec
