@@ -47,7 +47,7 @@ jobs:
           sudo apt update -y
           sudo apt install -y libsqlite3-dev libpq-dev libmysqlclient-dev
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       
       - name: Configure MySQL authentication
         if: matrix.database == 'mysql'
