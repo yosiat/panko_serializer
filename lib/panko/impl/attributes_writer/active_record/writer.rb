@@ -25,13 +25,8 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       # Inline fast path of set_from_record to avoid method call overhead
       attributes_set = object._panko_attributes
       values = attributes_set._panko_values
-      if @is_indexed_row && PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
-        col_indexes = values._panko_column_indexes
-        if @indexed_row_column_indexes.equal?(col_indexes)
-          @indexed_row_row = values._panko_row
-        else
-          _set_from_record_full(object, attributes_set, values)
-        end
+      if @is_indexed_row && @indexed_row_column_indexes.equal?(values._panko_column_indexes)
+        @indexed_row_row = values._panko_row
       else
         _set_from_record_full(object, attributes_set, values)
       end
