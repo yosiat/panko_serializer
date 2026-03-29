@@ -41,6 +41,15 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
         return
       end
 
+      # Fast path: use cached writer (covers most calls after first pass)
+      cached = attribute.cached_writer
+      if cached
+        unless cached.write(value, writer, key)
+          writer.push_value(attribute.type.deserialize(value), key)
+        end
+        return
+      end
+
       type = attribute.type
 
       if type.nil?
@@ -51,15 +60,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
       if type.respond_to?(:subtype)
         # TODO: test this.
         writer.push_value(type.deserialize(value), key)
-        return
-      end
-
-      # Use cached writer if available (set after first resolution)
-      cached = attribute.cached_writer
-      if cached
-        unless cached.write(value, writer, key)
-          writer.push_value(type.deserialize(value), key)
-        end
         return
       end
 
