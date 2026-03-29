@@ -12,6 +12,7 @@ module Panko::Impl
       @has_many_empty = @has_many_assocs.empty?
       @method_fields = descriptor.method_fields
       @method_fields_empty = @method_fields.empty?
+      @attributes_writer = nil
     end
 
     def serialize_many(objects:, writer:, key: nil)
@@ -62,15 +63,19 @@ module Panko::Impl
     private
 
     def write_fields(object, writer)
-      if @descriptor.attributes_writer.nil?
-        @descriptor.attributes_writer = Panko::Impl::AttributesWriter.create(object)
-      end
-
-      if @descriptor.attributes_writer.nil?
-        Panko._sd_set_writer(@descriptor, object)
-        Panko._write_attributes(object, @descriptor, writer)
+      aw = @attributes_writer
+      if aw
+        aw.write_attributes(object, @descriptor, writer)
       else
-        @descriptor.attributes_writer.write_attributes(object, @descriptor, writer)
+        aw = Panko::Impl::AttributesWriter.create(object)
+        @attributes_writer = aw
+        @descriptor.attributes_writer = aw
+        if aw
+          aw.write_attributes(object, @descriptor, writer)
+        else
+          Panko._sd_set_writer(@descriptor, object)
+          Panko._write_attributes(object, @descriptor, writer)
+        end
       end
     end
 
