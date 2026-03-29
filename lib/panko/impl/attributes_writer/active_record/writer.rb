@@ -11,6 +11,10 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       @indexed_row_column_indexes = nil
       @is_indexed_row = false
       @indexed_row_row = nil
+      @last_record_class = nil
+      @types = nil
+      @additional_types = nil
+      @try_to_read_from_additional_types = false
     end
 
     def write_attributes(object, descriptor, writer)
@@ -76,6 +80,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
     def set_from_record(record)
       attributes_set = record._panko_attributes
+      record_class = record.class
 
       attributes_hash = attributes_set._panko_attributes_hash
       if attributes_hash.nil? || attributes_hash.empty?
@@ -86,9 +91,13 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         @attributes_hash_size = attributes_hash.size
       end
 
-      @types = attributes_set._panko_types
-      @additional_types = attributes_set._panko_additional_types
-      @try_to_read_from_additional_types = @additional_types && !@additional_types.empty?
+      # Cache types/additional_types per model class - they don't change between records
+      if @last_record_class != record_class
+        @last_record_class = record_class
+        @types = attributes_set._panko_types
+        @additional_types = attributes_set._panko_additional_types
+        @try_to_read_from_additional_types = @additional_types && !@additional_types.empty?
+      end
 
       values = attributes_set._panko_values
 
