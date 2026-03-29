@@ -36,48 +36,80 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         additional_types = @additional_types
         try_additional = @try_to_read_from_additional_types
 
-        while i < length
-          attribute = attributes[i]
-          attribute.invalidate!(object_class)
+        if has_hash
+          # Slow path: need to check attributes_hash first
+          while i < length
+            attribute = attributes[i]
+            attribute.invalidate!(object_class)
 
-          member = attribute.name
-          value = nil
+            member = attribute.name
+            value = nil
 
-          if has_hash
             attribute_metadata = attrs_hash[member]
             if attribute_metadata
               value = attribute_metadata.instance_variable_get(:@value_before_type_cast)
               attribute.type ||= attribute_metadata.instance_variable_get(:@type)
             end
-          end
 
-          if value.nil?
-            column_index = column_indexes[member]
-            value = row[column_index] if column_index
-          end
-
-          if attribute.type.nil? && value
-            if try_additional
-              attribute.type = additional_types[member]
+            if value.nil?
+              column_index = column_indexes[member]
+              value = row[column_index] if column_index
             end
-            attribute.type ||= types[member]
-          end
 
-          # Inline values writer hot path
-          key = attribute.name_for_serialization
-          if value.nil?
-            writer.push_value(nil, key)
-          else
-            cached = attribute.cached_writer
-            if cached
-              unless cached.write(value, writer, key)
-                writer.push_value(attribute.type.deserialize(value), key)
+            if attribute.type.nil? && value
+              if try_additional
+                attribute.type = additional_types[member]
               end
-            else
-              @values_writer.write(writer, attribute, value)
+              attribute.type ||= types[member]
             end
+
+            key = attribute.name_for_serialization
+            if value.nil?
+              writer.push_value(nil, key)
+            else
+              cached = attribute.cached_writer
+              if cached
+                unless cached.write(value, writer, key)
+                  writer.push_value(attribute.type.deserialize(value), key)
+                end
+              else
+                @values_writer.write(writer, attribute, value)
+              end
+            end
+            i += 1
           end
-          i += 1
+        else
+          # Fast path: no attributes_hash, read directly from indexed row
+          while i < length
+            attribute = attributes[i]
+            attribute.invalidate!(object_class)
+
+            member = attribute.name
+            column_index = column_indexes[member]
+            value = column_index ? row[column_index] : nil
+
+            if attribute.type.nil? && value
+              if try_additional
+                attribute.type = additional_types[member]
+              end
+              attribute.type ||= types[member]
+            end
+
+            key = attribute.name_for_serialization
+            if value.nil?
+              writer.push_value(nil, key)
+            else
+              cached = attribute.cached_writer
+              if cached
+                unless cached.write(value, writer, key)
+                  writer.push_value(attribute.type.deserialize(value), key)
+                end
+              else
+                @values_writer.write(writer, attribute, value)
+              end
+            end
+            i += 1
+          end
         end
       else
         while i < length
