@@ -142,7 +142,7 @@ GEM
       activesupport (>= 6.0, < 8.2)
     thor (1.5.0)
     timeout (0.6.1)
-    trilogy (2.12.2)
+    trilogy (2.12.3)
       bigdecimal
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)

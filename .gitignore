@@ -19,3 +19,8 @@ node_modules
 
 /docs/_site/
 /docs/.jekyll-cache/
+.cache/
+
+mise.toml
+
+docs/superpowers
