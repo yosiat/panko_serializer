@@ -5,6 +5,10 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
     # Template: "0000-00-00T00:00:00.000Z" (24 bytes)
     TEMPLATE = "0000-00-00T00:00:00.000Z"
 
+    def initialize
+      @buf = TEMPLATE.dup
+    end
+
     def write(value, writer, key)
       return false unless value.is_a?(String)
 
@@ -22,8 +26,9 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
       # Validate: space at position 10
       return false unless value.getbyte(10) == 32 # ' '
 
-      # Build result: dup template, splice date and time directly from source
-      result = TEMPLATE.dup
+      # Reuse buffer: reset to template then splice
+      result = @buf
+      result.bytesplice(0, 24, TEMPLATE)
 
       # Copy "YYYY-MM-DD" (10 bytes) - zero-alloc splice from source
       result.bytesplice(0, 10, value, 0, 10)
