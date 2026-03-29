@@ -127,11 +127,11 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             while i < length
               value = row[col_cache[i]]
 
-              if value.nil?
-                writer.push_value(nil, key_cache[i])
-              elsif direct_cache[i]
-                # Direct push for string/integer/float/boolean - skip writer method call
+              if direct_cache[i]
+                # Direct push for string/integer/float/boolean - push_value handles nil natively
                 writer.push_value(value, key_cache[i])
+              elsif value.nil?
+                writer.push_value(nil, key_cache[i])
               else
                 writer_cache[i].write(value, writer, key_cache[i])
               end
