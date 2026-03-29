@@ -21,21 +21,22 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
     def write_attributes(object, descriptor, writer)
       set_from_record(object)
-      object_class = object.class
 
       attributes = descriptor.attributes
       length = attributes.length
-      i = 0
 
       # Batch invalidate check: if object class changed, invalidate all attributes once
+      object_class = object.class
       if @last_invalidated_class != object_class
         @last_invalidated_class = object_class
-        while i < length
-          attributes[i].invalidate!(object_class)
-          i += 1
+        j = 0
+        while j < length
+          attributes[j].invalidate!(object_class)
+          j += 1
         end
-        i = 0
       end
+
+      i = 0
 
       # Hot path: inline indexed row reading to avoid method call overhead
       if @is_indexed_row
