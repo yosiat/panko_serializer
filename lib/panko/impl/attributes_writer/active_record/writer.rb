@@ -94,7 +94,28 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
     def set_from_record(record)
       attributes_set = record._panko_attributes
+      values = attributes_set._panko_values
 
+      # Fast path for indexed rows from same query (most common case in batch serialization)
+      if @is_indexed_row && PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
+        col_indexes = values._panko_column_indexes
+        if @indexed_row_column_indexes.equal?(col_indexes)
+          # Same query result - only need to update the row
+          @indexed_row_row = values._panko_row
+          # Check attributes_hash (usually empty for indexed rows)
+          attributes_hash = attributes_set._panko_attributes_hash
+          if attributes_hash.nil? || attributes_hash.empty?
+            @attributes_hash = EMPTY_HASH
+            @attributes_hash_size = 0
+          else
+            @attributes_hash = attributes_hash
+            @attributes_hash_size = attributes_hash.size
+          end
+          return
+        end
+      end
+
+      # Full initialization path
       attributes_hash = attributes_set._panko_attributes_hash
       if attributes_hash.nil? || attributes_hash.empty?
         @attributes_hash = EMPTY_HASH
@@ -104,7 +125,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         @attributes_hash_size = attributes_hash.size
       end
 
-      # Cache types/additional_types per model class - they don't change between records
+      # Cache types/additional_types per model class
       record_class = record.class
       if @last_record_class != record_class
         @last_record_class = record_class
@@ -113,19 +134,10 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         @try_to_read_from_additional_types = @additional_types && !@additional_types.empty?
       end
 
-      values = attributes_set._panko_values
-
-      # Check if the values are of type ActiveRecord::Result::IndexedRow
       if PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
-        col_indexes = values._panko_column_indexes
-        # Cache column_indexes - they're shared across records from same query
-        if @indexed_row_column_indexes.equal?(col_indexes)
-          @indexed_row_row = values._panko_row
-        else
-          @indexed_row_column_indexes = col_indexes
-          @indexed_row_row = values._panko_row
-          @is_indexed_row = true
-        end
+        @indexed_row_column_indexes = values._panko_column_indexes
+        @indexed_row_row = values._panko_row
+        @is_indexed_row = true
       else
         @indexed_row_column_indexes = nil
         @is_indexed_row = false
