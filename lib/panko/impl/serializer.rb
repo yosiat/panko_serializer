@@ -6,13 +6,19 @@ module Panko::Impl
   class Serializer
     def initialize(descriptor)
       @descriptor = descriptor
+      @has_one_assocs = descriptor.has_one_associations
+      @has_many_assocs = descriptor.has_many_associations
+      @has_one_empty = @has_one_assocs.empty?
+      @has_many_empty = @has_many_assocs.empty?
+      @method_fields = descriptor.method_fields
+      @method_fields_empty = @method_fields.empty?
     end
 
     def serialize_many(objects:, writer:, key: nil)
       writer.push_array(key)
 
       objects.each do |object|
-        serialize_one(object: object, writer: writer)
+        _serialize_one(object, writer)
       end
 
       writer.pop
@@ -22,10 +28,33 @@ module Panko::Impl
       writer.push_object(key)
 
       write_fields object, writer
-      write_method_fields object, writer
+      write_method_fields(object, writer) unless @method_fields_empty
+      serialize_has_one_assocs(object, writer) unless @has_one_empty
+      serialize_has_many_assocs(object, writer) unless @has_many_empty
 
-      serialize_has_one_association(object, writer)
-      serialize_has_many_associations(object, writer)
+      writer.pop
+    end
+
+    # Internal fast path: no keyword args, no key (used in serialize_many)
+    def _serialize_one(object, writer)
+      writer.push_object
+
+      write_fields object, writer
+      write_method_fields(object, writer) unless @method_fields_empty
+      serialize_has_one_assocs(object, writer) unless @has_one_empty
+      serialize_has_many_assocs(object, writer) unless @has_many_empty
+
+      writer.pop
+    end
+
+    # Internal with key (used by has_one associations)
+    def _serialize_one_with_key(object, writer, key)
+      writer.push_object(key)
+
+      write_fields object, writer
+      write_method_fields(object, writer) unless @method_fields_empty
+      serialize_has_one_assocs(object, writer) unless @has_one_empty
+      serialize_has_many_assocs(object, writer) unless @has_many_empty
 
       writer.pop
     end
@@ -45,10 +74,8 @@ module Panko::Impl
       end
     end
 
-    def serialize_has_one_association(object, writer)
-      assocs = @descriptor.has_one_associations
-      return if assocs.empty?
-
+    def serialize_has_one_assocs(object, writer)
+      assocs = @has_one_assocs
       length = assocs.length
       i = 0
       while i < length
@@ -56,18 +83,16 @@ module Panko::Impl
         value = object.public_send(assoc.name_sym)
 
         if value.nil?
-          write_value writer, assoc.name_str, nil
+          writer.push_value(nil, assoc.name_str)
         else
-          assoc.serializer_writer.serialize_one object: value, writer: writer, key: assoc.name_str
+          assoc.serializer_writer._serialize_one_with_key(value, writer, assoc.name_str)
         end
         i += 1
       end
     end
 
-    def serialize_has_many_associations(object, writer)
-      assocs = @descriptor.has_many_associations
-      return if assocs.empty?
-
+    def serialize_has_many_assocs(object, writer)
+      assocs = @has_many_assocs
       length = assocs.length
       i = 0
       while i < length
@@ -75,7 +100,7 @@ module Panko::Impl
         value = object.public_send(assoc.name_sym)
 
         if value.nil?
-          write_value writer, assoc.name_str, nil
+          writer.push_value(nil, assoc.name_str)
         else
           assoc.serializer_writer.serialize_many objects: value, writer: writer, key: assoc.name_str
         end
@@ -85,13 +110,10 @@ module Panko::Impl
     end
 
     def write_method_fields(object, writer)
-      fields = @descriptor.method_fields
-
-      return if fields.empty?
-
       serializer = @descriptor.serializer
       serializer.instance_variable_set(:@object, object)
 
+      fields = @method_fields
       length = fields.length
       i = 0
       while i < length
@@ -99,16 +121,11 @@ module Panko::Impl
         result = serializer.public_send(method_field.name_sym)
 
         unless result == SKIP
-          key = method_field.name_for_serialization
-          write_value(writer, key, result)
+          writer.push_value(result, method_field.name_for_serialization)
         end
 
         i += 1
       end
-    end
-
-    def write_value(writer, key, value)
-      writer.push_value(value, key)
     end
   end
 end
