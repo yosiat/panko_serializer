@@ -97,26 +97,34 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           # Fast path: no attributes_hash, read directly from indexed row
           if @types_resolved
             # Ultra-fast path: all types and cached_writers are already resolved
-            # Use pre-computed column index cache
+            # Use pre-computed caches
             col_cache = @column_index_cache
+            key_cache = @key_cache
+            writer_cache = @writer_cache
             unless col_cache
               col_cache = Array.new(length)
+              key_cache = Array.new(length)
+              writer_cache = Array.new(length)
               j = 0
               while j < length
-                col_cache[j] = column_indexes[attributes[j].name]
+                attr = attributes[j]
+                col_cache[j] = column_indexes[attr.name]
+                key_cache[j] = attr.name_for_serialization
+                writer_cache[j] = attr.cached_writer
                 j += 1
               end
               @column_index_cache = col_cache
+              @key_cache = key_cache
+              @writer_cache = writer_cache
             end
 
             while i < length
-              attribute = attributes[i]
               value = row[col_cache[i]]
 
               if value.nil?
-                writer.push_value(nil, attribute.name_for_serialization)
+                writer.push_value(nil, key_cache[i])
               else
-                attribute.cached_writer.write(value, writer, attribute.name_for_serialization)
+                writer_cache[i].write(value, writer, key_cache[i])
               end
               i += 1
             end
