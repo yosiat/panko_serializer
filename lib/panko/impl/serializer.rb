@@ -124,7 +124,9 @@ module Panko::Impl
       i = 0
       while i < length
         assoc = assocs[i]
-        value = object.public_send(assoc.name_sym)
+        # Bypass Rails association proxy: go directly to association target
+        # This skips stale_target? check and reader method overhead
+        value = object.association(assoc.name_sym).target
 
         if value.nil?
           writer.push_value(nil, assoc.name_str)
