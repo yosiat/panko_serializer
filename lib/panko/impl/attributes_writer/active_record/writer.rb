@@ -17,6 +17,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       @try_to_read_from_additional_types = false
       @values_writer = ValuesWriter::Writer.new
       @last_invalidated_class = nil
+      @types_resolved = false
     end
 
     def write_attributes(object, descriptor, writer)
@@ -29,6 +30,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       object_class = object.class
       if @last_invalidated_class != object_class
         @last_invalidated_class = object_class
+        @types_resolved = false
         j = 0
         while j < length
           attributes[j].invalidate!(object_class)
@@ -91,34 +93,51 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           end
         else
           # Fast path: no attributes_hash, read directly from indexed row
-          while i < length
-            attribute = attributes[i]
+          if @types_resolved
+            # Ultra-fast path: all types and cached_writers are already resolved
+            while i < length
+              attribute = attributes[i]
+              value = row[column_indexes[attribute.name]]
 
-            member = attribute.name
-            column_index = column_indexes[member]
-            value = column_index ? row[column_index] : nil
-
-            if attribute.type.nil? && value
-              if try_additional
-                attribute.type = additional_types[member]
-              end
-              attribute.type ||= types[member]
-            end
-
-            key = attribute.name_for_serialization
-            if value.nil?
-              writer.push_value(nil, key)
-            else
-              cached = attribute.cached_writer
-              if cached
-                unless cached.write(value, writer, key)
-                  writer.push_value(attribute.type.deserialize(value), key)
-                end
+              if value.nil?
+                writer.push_value(nil, attribute.name_for_serialization)
               else
-                @values_writer.write(writer, attribute, value)
+                attribute.cached_writer.write(value, writer, attribute.name_for_serialization)
               end
+              i += 1
             end
-            i += 1
+          else
+            # First pass: need to resolve types and cache writers
+            while i < length
+              attribute = attributes[i]
+
+              member = attribute.name
+              column_index = column_indexes[member]
+              value = column_index ? row[column_index] : nil
+
+              if attribute.type.nil? && value
+                if try_additional
+                  attribute.type = additional_types[member]
+                end
+                attribute.type ||= types[member]
+              end
+
+              key = attribute.name_for_serialization
+              if value.nil?
+                writer.push_value(nil, key)
+              else
+                cached = attribute.cached_writer
+                if cached
+                  unless cached.write(value, writer, key)
+                    writer.push_value(attribute.type.deserialize(value), key)
+                  end
+                else
+                  @values_writer.write(writer, attribute, value)
+                end
+              end
+              i += 1
+            end
+            @types_resolved = true
           end
         end
       else
