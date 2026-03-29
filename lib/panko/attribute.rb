@@ -3,7 +3,7 @@
 module Panko
   class Attribute
     attr_reader :name, :name_sym, :alias_name
-    attr_accessor :type
+    attr_accessor :type, :cached_writer
 
     def initialize(name, alias_name = nil)
       # TODO: validate name & alias_name are strings
@@ -13,6 +13,7 @@ module Panko
 
       @type = nil
       @record_class = nil
+      @cached_writer = nil
     end
 
     def self.create(name, alias_name: nil)
@@ -32,6 +33,7 @@ module Panko
       return if @record_class == new_object_class
 
       @type = nil
+      @cached_writer = nil
       @record_class = new_object_class
 
       # Once the record class is changed for this attribute, check if

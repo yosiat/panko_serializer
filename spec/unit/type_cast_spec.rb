@@ -171,8 +171,10 @@ end
 
 class TestAttribute
   attr_reader :type
+  attr_accessor :cached_writer
   def initialize(type)
     @type = type
+    @cached_writer = nil
   end
 
   def name_for_serialization

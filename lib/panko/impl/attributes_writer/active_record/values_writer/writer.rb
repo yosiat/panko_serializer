@@ -41,36 +41,59 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
         return
       end
 
-      if attribute.type.nil?
+      type = attribute.type
+
+      if type.nil?
         writer.push_value(value, key)
         return
       end
 
-      if attribute.type.respond_to?(:subtype)
+      if type.respond_to?(:subtype)
         # TODO: test this.
-        writer.push_value(attribute.type.deserialize(value), key)
+        writer.push_value(type.deserialize(value), key)
         return
       end
 
-      written = case attribute.type.type
-      when :string, :text, :uuid
-        @string_writer.write(value, writer, key)
-      when :integer
-        @integer_writer.write(value, writer, key)
-      when :float
-        @float_writer.write(value, writer, key)
-      when :boolean
-        @boolean_writer.write(value, writer, key)
-      when :datetime
-        @date_time_writer.write(value, writer, key)
-      when :json, :jsonb
-        @json_writer.write(value, writer, key)
-      else
-        false
+      # Use cached writer if available (set after first resolution)
+      cached = attribute.cached_writer
+      if cached
+        unless cached.write(value, writer, key)
+          writer.push_value(type.deserialize(value), key)
+        end
+        return
       end
 
-      unless written
-        writer.push_value(attribute.type.deserialize(value), key)
+      # First time: resolve writer by type and cache it
+      type_writer = resolve_writer(type.type)
+
+      if type_writer
+        attribute.cached_writer = type_writer
+        unless type_writer.write(value, writer, key)
+          writer.push_value(type.deserialize(value), key)
+        end
+      else
+        writer.push_value(type.deserialize(value), key)
+      end
+    end
+
+    private
+
+    def resolve_writer(type_sym)
+      case type_sym
+      when :string, :text, :uuid
+        @string_writer
+      when :integer
+        @integer_writer
+      when :float
+        @float_writer
+      when :boolean
+        @boolean_writer
+      when :datetime
+        @date_time_writer
+      when :json, :jsonb
+        @json_writer
+      else
+        nil
       end
     end
   end
