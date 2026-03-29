@@ -101,21 +101,27 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             col_cache = @column_index_cache
             key_cache = @key_cache
             writer_cache = @writer_cache
+            direct_cache = @direct_cache
             unless col_cache
               col_cache = Array.new(length)
               key_cache = Array.new(length)
               writer_cache = Array.new(length)
+              direct_cache = Array.new(length)
               j = 0
               while j < length
                 attr = attributes[j]
                 col_cache[j] = column_indexes[attr.name]
                 key_cache[j] = attr.name_for_serialization
-                writer_cache[j] = attr.cached_writer
+                cw = attr.cached_writer
+                writer_cache[j] = cw
+                # String and integer writers just push_value directly - skip method call
+                direct_cache[j] = cw.is_a?(ValuesWriter::StringWriter) || cw.is_a?(ValuesWriter::IntegerWriter) || cw.is_a?(ValuesWriter::FloatWriter) || cw.is_a?(ValuesWriter::BooleanWriter)
                 j += 1
               end
               @column_index_cache = col_cache
               @key_cache = key_cache
               @writer_cache = writer_cache
+              @direct_cache = direct_cache
             end
 
             while i < length
@@ -123,6 +129,9 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
               if value.nil?
                 writer.push_value(nil, key_cache[i])
+              elsif direct_cache[i]
+                # Direct push for string/integer/float/boolean - skip writer method call
+                writer.push_value(value, key_cache[i])
               else
                 writer_cache[i].write(value, writer, key_cache[i])
               end
