@@ -22,7 +22,19 @@ module Panko::Impl::AttributesWriter::ActiveRecord
     end
 
     def write_attributes(object, descriptor, writer)
-      set_from_record(object)
+      # Inline fast path of set_from_record to avoid method call overhead
+      attributes_set = object._panko_attributes
+      values = attributes_set._panko_values
+      if @is_indexed_row && PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
+        col_indexes = values._panko_column_indexes
+        if @indexed_row_column_indexes.equal?(col_indexes)
+          @indexed_row_row = values._panko_row
+        else
+          _set_from_record_full(object, attributes_set, values)
+        end
+      else
+        _set_from_record_full(object, attributes_set, values)
+      end
 
       attributes = descriptor.attributes
       length = attributes.length
@@ -183,20 +195,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
     private
 
-    def set_from_record(record)
-      attributes_set = record._panko_attributes
-      values = attributes_set._panko_values
-
-      # Fast path for indexed rows from same query (most common case in batch serialization)
-      if @is_indexed_row && PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
-        col_indexes = values._panko_column_indexes
-        if @indexed_row_column_indexes.equal?(col_indexes)
-          # Same query result - only need to update the row
-          @indexed_row_row = values._panko_row
-          return
-        end
-      end
-
+    def _set_from_record_full(record, attributes_set, values)
       # Full initialization path
       attributes_hash = attributes_set._panko_attributes_hash
       if attributes_hash.nil? || attributes_hash.empty?
