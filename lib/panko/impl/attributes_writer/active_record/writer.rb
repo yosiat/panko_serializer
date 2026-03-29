@@ -94,7 +94,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
     def set_from_record(record)
       attributes_set = record._panko_attributes
-      record_class = record.class
 
       attributes_hash = attributes_set._panko_attributes_hash
       if attributes_hash.nil? || attributes_hash.empty?
@@ -106,6 +105,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       end
 
       # Cache types/additional_types per model class - they don't change between records
+      record_class = record.class
       if @last_record_class != record_class
         @last_record_class = record_class
         @types = attributes_set._panko_types
@@ -117,9 +117,15 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
       # Check if the values are of type ActiveRecord::Result::IndexedRow
       if PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
-        @indexed_row_column_indexes = values._panko_column_indexes
-        @indexed_row_row = values._panko_row
-        @is_indexed_row = true
+        col_indexes = values._panko_column_indexes
+        # Cache column_indexes - they're shared across records from same query
+        if @indexed_row_column_indexes.equal?(col_indexes)
+          @indexed_row_row = values._panko_row
+        else
+          @indexed_row_column_indexes = col_indexes
+          @indexed_row_row = values._panko_row
+          @is_indexed_row = true
+        end
       else
         @indexed_row_column_indexes = nil
         @is_indexed_row = false
