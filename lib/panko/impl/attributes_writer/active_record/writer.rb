@@ -17,18 +17,58 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       set_from_record(object)
       object_class = object.class
 
-      length = descriptor.attributes.length
+      attributes = descriptor.attributes
+      length = attributes.length
       i = 0
-      while i < length
-        attribute = descriptor.attributes[i]
 
-        attribute.invalidate!(object_class)
+      # Hot path: inline indexed row reading to avoid method call overhead
+      if @is_indexed_row
+        column_indexes = @indexed_row_column_indexes
+        row = @indexed_row_row
+        has_hash = @attributes_hash_size > 0
+        attrs_hash = @attributes_hash
+        types = @types
+        additional_types = @additional_types
+        try_additional = @try_to_read_from_additional_types
 
-        value = read_attribute(attribute)
+        while i < length
+          attribute = attributes[i]
+          attribute.invalidate!(object_class)
 
-        ValuesWriter.write(writer, attribute, value)
+          member = attribute.name
+          value = nil
 
-        i += 1
+          if has_hash
+            attribute_metadata = attrs_hash[member]
+            if attribute_metadata
+              value = attribute_metadata.instance_variable_get(:@value_before_type_cast)
+              attribute.type ||= attribute_metadata.instance_variable_get(:@type)
+            end
+          end
+
+          if value.nil?
+            column_index = column_indexes[member]
+            value = row[column_index] if column_index
+          end
+
+          if attribute.type.nil? && value
+            if try_additional
+              attribute.type = additional_types[member]
+            end
+            attribute.type ||= types[member]
+          end
+
+          ValuesWriter.write(writer, attribute, value)
+          i += 1
+        end
+      else
+        while i < length
+          attribute = attributes[i]
+          attribute.invalidate!(object_class)
+          value = read_attribute(attribute)
+          ValuesWriter.write(writer, attribute, value)
+          i += 1
+        end
       end
     end
 
@@ -38,7 +78,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       attributes_set = record._panko_attributes
 
       attributes_hash = attributes_set._panko_attributes_hash
-      if attributes_hash&.empty?
+      if attributes_hash.nil? || attributes_hash.empty?
         @attributes_hash = EMPTY_HASH
         @attributes_hash_size = 0
       else
@@ -48,41 +88,27 @@ module Panko::Impl::AttributesWriter::ActiveRecord
 
       @types = attributes_set._panko_types
       @additional_types = attributes_set._panko_additional_types
-      @try_to_read_from_additional_types = !@additional_types.nil? && !@additional_types.empty?
+      @try_to_read_from_additional_types = @additional_types && !@additional_types.empty?
 
-      @values = attributes_set._panko_values
+      values = attributes_set._panko_values
 
       # Check if the values are of type ActiveRecord::Result::IndexedRow
-      if PANKO_INDEX_ROW_DEFINED && @values.is_a?(ActiveRecord::Result::IndexedRow)
-        @indexed_row_column_indexes = @values._panko_column_indexes
-        @indexed_row_row = @values._panko_row
+      if PANKO_INDEX_ROW_DEFINED && values.is_a?(ActiveRecord::Result::IndexedRow)
+        @indexed_row_column_indexes = values._panko_column_indexes
+        @indexed_row_row = values._panko_row
         @is_indexed_row = true
       else
         @indexed_row_column_indexes = nil
         @is_indexed_row = false
         @indexed_row_row = nil
+        @values = values
       end
     end
 
-    # Reads a value from the indexed row
-    def read_value_from_indexed_row(member)
-      return nil if @indexed_row_column_indexes.nil? || @indexed_row_row.nil?
-
-      column_index = @indexed_row_column_indexes[member]
-      return nil if column_index.nil?
-
-      row = @indexed_row_row
-      return nil if row.nil?
-
-      row[column_index]
-    end
-
-    # Reads the attribute value
     def read_attribute(attribute)
       member = attribute.name
       value = nil
 
-      # If we have a populated attributes_hash
       if @attributes_hash_size > 0 && !@attributes_hash.nil?
         attribute_metadata = @attributes_hash[member]
         unless attribute_metadata.nil?
@@ -91,16 +117,10 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         end
       end
 
-      # Fallback to reading from values or indexed row
       if value.nil? && !@values.nil?
-        value = if @is_indexed_row
-          read_value_from_indexed_row(member)
-        else
-          @values[member]
-        end
+        value = @values[member]
       end
 
-      # Fetch the type if not yet set
       if attribute.type.nil? && !value.nil?
         if @try_to_read_from_additional_types
           attribute.type = @additional_types[member]
