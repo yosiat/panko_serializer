@@ -102,15 +102,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         if @indexed_row_column_indexes.equal?(col_indexes)
           # Same query result - only need to update the row
           @indexed_row_row = values._panko_row
-          # Check attributes_hash (usually empty for indexed rows)
-          attributes_hash = attributes_set._panko_attributes_hash
-          if attributes_hash.nil? || attributes_hash.empty?
-            @attributes_hash = EMPTY_HASH
-            @attributes_hash_size = 0
-          else
-            @attributes_hash = attributes_hash
-            @attributes_hash_size = attributes_hash.size
-          end
           return
         end
       end
