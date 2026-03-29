@@ -16,6 +16,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       @additional_types = nil
       @try_to_read_from_additional_types = false
       @values_writer = ValuesWriter::Writer.new
+      @last_invalidated_class = nil
     end
 
     def write_attributes(object, descriptor, writer)
@@ -25,6 +26,16 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       attributes = descriptor.attributes
       length = attributes.length
       i = 0
+
+      # Batch invalidate check: if object class changed, invalidate all attributes once
+      if @last_invalidated_class != object_class
+        @last_invalidated_class = object_class
+        while i < length
+          attributes[i].invalidate!(object_class)
+          i += 1
+        end
+        i = 0
+      end
 
       # Hot path: inline indexed row reading to avoid method call overhead
       if @is_indexed_row
@@ -40,7 +51,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           # Slow path: need to check attributes_hash first
           while i < length
             attribute = attributes[i]
-            attribute.invalidate!(object_class)
 
             member = attribute.name
             value = nil
@@ -82,7 +92,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           # Fast path: no attributes_hash, read directly from indexed row
           while i < length
             attribute = attributes[i]
-            attribute.invalidate!(object_class)
 
             member = attribute.name
             column_index = column_indexes[member]
@@ -114,7 +123,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       else
         while i < length
           attribute = attributes[i]
-          attribute.invalidate!(object_class)
           value = read_attribute(attribute)
           @values_writer.write(writer, attribute, value)
           i += 1
