@@ -26,26 +26,29 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       attributes_set = object._panko_attributes
       values = attributes_set._panko_values
       if @is_indexed_row && @indexed_row_column_indexes.equal?(values._panko_column_indexes)
+        # Same query batch: same column_indexes implies same class
         @indexed_row_row = values._panko_row
       else
         _set_from_record_full(object, attributes_set, values)
+
+        # Check if class changed (only on slow path - first record or schema change)
+        attributes = descriptor.attributes
+        length = attributes.length
+        object_class = object.class
+        if @last_invalidated_class != object_class
+          @last_invalidated_class = object_class
+          @types_resolved = false
+          @column_index_cache = nil
+          j = 0
+          while j < length
+            attributes[j].invalidate!(object_class)
+            j += 1
+          end
+        end
       end
 
       attributes = descriptor.attributes
       length = attributes.length
-
-      # Batch invalidate check: if object class changed, invalidate all attributes once
-      object_class = object.class
-      if @last_invalidated_class != object_class
-        @last_invalidated_class = object_class
-        @types_resolved = false
-        @column_index_cache = nil
-        j = 0
-        while j < length
-          attributes[j].invalidate!(object_class)
-          j += 1
-        end
-      end
 
       i = 0
 
