@@ -63,7 +63,20 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             attribute.type ||= types[member]
           end
 
-          @values_writer.write(writer, attribute, value)
+          # Inline values writer hot path
+          key = attribute.name_for_serialization
+          if value.nil?
+            writer.push_value(nil, key)
+          else
+            cached = attribute.cached_writer
+            if cached
+              unless cached.write(value, writer, key)
+                writer.push_value(attribute.type.deserialize(value), key)
+              end
+            else
+              @values_writer.write(writer, attribute, value)
+            end
+          end
           i += 1
         end
       else
