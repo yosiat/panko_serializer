@@ -15,6 +15,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       @types = nil
       @additional_types = nil
       @try_to_read_from_additional_types = false
+      @values_writer = ValuesWriter::Writer.new
     end
 
     def write_attributes(object, descriptor, writer)
@@ -62,7 +63,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             attribute.type ||= types[member]
           end
 
-          ValuesWriter.write(writer, attribute, value)
+          @values_writer.write(writer, attribute, value)
           i += 1
         end
       else
@@ -70,7 +71,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           attribute = attributes[i]
           attribute.invalidate!(object_class)
           value = read_attribute(attribute)
-          ValuesWriter.write(writer, attribute, value)
+          @values_writer.write(writer, attribute, value)
           i += 1
         end
       end
