@@ -16,6 +16,10 @@ module Panko::Impl
     end
 
     def serialize_many(objects:, writer:, key: nil)
+      _serialize_many(objects, writer, key)
+    end
+
+    def _serialize_many(objects, writer, key = nil)
       writer.push_array(key)
 
       desc = @descriptor
@@ -148,7 +152,7 @@ module Panko::Impl
         if value.nil?
           writer.push_value(nil, assoc.name_str)
         else
-          assoc.serializer_writer.serialize_many objects: value, writer: writer, key: assoc.name_str
+          assoc.serializer_writer._serialize_many(value, writer, assoc.name_str)
         end
 
         i += 1
