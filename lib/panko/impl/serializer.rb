@@ -18,8 +18,47 @@ module Panko::Impl
     def serialize_many(objects:, writer:, key: nil)
       writer.push_array(key)
 
-      objects.each do |object|
-        _serialize_one(object, writer)
+      desc = @descriptor
+      mf_empty = @method_fields_empty
+      ho_empty = @has_one_empty
+      hm_empty = @has_many_empty
+      aw = @attributes_writer
+
+      if aw && mf_empty && hm_empty
+        if ho_empty
+          # Ultra-fast: just attributes, no methods/associations
+          objects.each do |object|
+            writer.push_object
+            aw.write_attributes(object, desc, writer)
+            writer.pop
+          end
+        else
+          # Attributes + has_one only
+          objects.each do |object|
+            writer.push_object
+            aw.write_attributes(object, desc, writer)
+            serialize_has_one_assocs(object, writer)
+            writer.pop
+          end
+        end
+      elsif aw
+        objects.each do |object|
+          writer.push_object
+          aw.write_attributes(object, desc, writer)
+          write_method_fields(object, writer) unless mf_empty
+          serialize_has_one_assocs(object, writer) unless ho_empty
+          serialize_has_many_assocs(object, writer) unless hm_empty
+          writer.pop
+        end
+      else
+        objects.each do |object|
+          writer.push_object
+          write_fields(object, writer)
+          write_method_fields(object, writer) unless mf_empty
+          serialize_has_one_assocs(object, writer) unless ho_empty
+          serialize_has_many_assocs(object, writer) unless hm_empty
+          writer.pop
+        end
       end
 
       writer.pop
