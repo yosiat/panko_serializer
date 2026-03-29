@@ -64,10 +64,5 @@ void Init_panko_serializer() {
     return;
   }
 
-  VALUE cDateTimeWriter = safe_const_get(values_writer, "DateTimeWriter");
-  if (NIL_P(cDateTimeWriter)) {
-    printf("Not patching\n");
-  } else {
-    rb_define_method(cDateTimeWriter, "write", datetime_writer_write, 3);
-  }
+  /* DateTimeWriter is now implemented in pure Ruby */
 }
