@@ -18,6 +18,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       @values_writer = ValuesWriter::Writer.new
       @last_invalidated_class = nil
       @types_resolved = false
+      @column_index_cache = nil  # Pre-computed column indices per attribute
     end
 
     def write_attributes(object, descriptor, writer)
@@ -31,6 +32,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       if @last_invalidated_class != object_class
         @last_invalidated_class = object_class
         @types_resolved = false
+        @column_index_cache = nil
         j = 0
         while j < length
           attributes[j].invalidate!(object_class)
@@ -95,9 +97,21 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           # Fast path: no attributes_hash, read directly from indexed row
           if @types_resolved
             # Ultra-fast path: all types and cached_writers are already resolved
+            # Use pre-computed column index cache
+            col_cache = @column_index_cache
+            unless col_cache
+              col_cache = Array.new(length)
+              j = 0
+              while j < length
+                col_cache[j] = column_indexes[attributes[j].name]
+                j += 1
+              end
+              @column_index_cache = col_cache
+            end
+
             while i < length
               attribute = attributes[i]
-              value = row[column_indexes[attribute.name]]
+              value = row[col_cache[i]]
 
               if value.nil?
                 writer.push_value(nil, attribute.name_for_serialization)
