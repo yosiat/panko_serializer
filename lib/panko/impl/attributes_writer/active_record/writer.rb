@@ -22,6 +22,9 @@ module Panko::Impl::AttributesWriter::ActiveRecord
     end
 
     def write_attributes(object, descriptor, writer)
+      attributes = descriptor.attributes
+      length = attributes.length
+
       # Inline fast path of set_from_record to avoid method call overhead
       attributes_set = object._panko_attributes
       values = attributes_set._panko_values
@@ -32,8 +35,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
         _set_from_record_full(object, attributes_set, values)
 
         # Check if class changed (only on slow path - first record or schema change)
-        attributes = descriptor.attributes
-        length = attributes.length
         object_class = object.class
         if @last_invalidated_class != object_class
           @last_invalidated_class = object_class
@@ -46,9 +47,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           end
         end
       end
-
-      attributes = descriptor.attributes
-      length = attributes.length
 
       i = 0
 
