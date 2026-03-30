@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.4"]
+        ruby: ["3.4", "4.0"]
         rails: ["7.2.0", "8.0.0"]
         database: ["sqlite", "postgresql", "mysql"]
     
