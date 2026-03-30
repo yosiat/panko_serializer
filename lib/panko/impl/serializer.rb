@@ -128,9 +128,16 @@ module Panko::Impl
       i = 0
       while i < length
         assoc = assocs[i]
-        # Bypass Rails association proxy: go directly to association target
-        # This skips stale_target? check and reader method overhead
-        value = object.association(assoc.name_sym).target
+        # For ActiveRecord objects, bypass the association proxy by calling
+        # association().target directly. This skips the stale_target? check
+        # and reader method overhead on the hot path.
+        # For plain Ruby objects (PORO), there is no association() method, so
+        # fall back to public_send which simply calls the attribute reader.
+        value = if object.respond_to?(:association)
+          object.association(assoc.name_sym).target
+        else
+          object.public_send(assoc.name_sym)
+        end
 
         if value.nil?
           writer.push_value(nil, assoc.name_str)
