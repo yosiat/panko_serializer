@@ -92,8 +92,6 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
         @date_time_writer
       when :json, :jsonb
         @json_writer
-      else
-        nil
       end
     end
   end

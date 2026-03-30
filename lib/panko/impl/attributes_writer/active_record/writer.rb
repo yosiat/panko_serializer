@@ -101,83 +101,81 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             end
             i += 1
           end
-        else
+        elsif @types_resolved
           # Fast path: no attributes_hash, read directly from indexed row
-          if @types_resolved
-            # Ultra-fast path: all types and cached_writers are already resolved
-            # Use pre-computed caches
-            col_cache = @column_index_cache
-            key_cache = @key_cache
-            writer_cache = @writer_cache
-            direct_cache = @direct_cache
-            unless col_cache
-              col_cache = Array.new(length)
-              key_cache = Array.new(length)
-              writer_cache = Array.new(length)
-              direct_cache = Array.new(length)
-              j = 0
-              while j < length
-                attr = attributes[j]
-                col_cache[j] = column_indexes[attr.name]
-                key_cache[j] = attr.name_for_serialization
-                cw = attr.cached_writer
-                writer_cache[j] = cw
-                # String and integer writers just push_value directly - skip method call
-                direct_cache[j] = cw.is_a?(ValuesWriter::StringWriter) || cw.is_a?(ValuesWriter::IntegerWriter) || cw.is_a?(ValuesWriter::FloatWriter) || cw.is_a?(ValuesWriter::BooleanWriter)
-                j += 1
-              end
-              @column_index_cache = col_cache
-              @key_cache = key_cache
-              @writer_cache = writer_cache
-              @direct_cache = direct_cache
+          col_cache = @column_index_cache
+          key_cache = @key_cache
+          writer_cache = @writer_cache
+          direct_cache = @direct_cache
+          unless col_cache
+            col_cache = Array.new(length)
+            key_cache = Array.new(length)
+            writer_cache = Array.new(length)
+            direct_cache = Array.new(length)
+            j = 0
+            while j < length
+              attr = attributes[j]
+              col_cache[j] = column_indexes[attr.name]
+              key_cache[j] = attr.name_for_serialization
+              cw = attr.cached_writer
+              writer_cache[j] = cw
+              # String and integer writers just push_value directly - skip method call
+              direct_cache[j] = cw.is_a?(ValuesWriter::StringWriter) || cw.is_a?(ValuesWriter::IntegerWriter) || cw.is_a?(ValuesWriter::FloatWriter) || cw.is_a?(ValuesWriter::BooleanWriter)
+              j += 1
             end
-
-            while i < length
-              value = row[col_cache[i]]
-
-              if direct_cache[i]
-                # Direct push for string/integer/float/boolean - push_value handles nil natively
-                writer.push_value(value, key_cache[i])
-              elsif value.nil?
-                writer.push_value(nil, key_cache[i])
-              else
-                writer_cache[i].write(value, writer, key_cache[i])
-              end
-              i += 1
-            end
-          else
-            # First pass: need to resolve types and cache writers
-            while i < length
-              attribute = attributes[i]
-
-              member = attribute.name
-              column_index = column_indexes[member]
-              value = column_index ? row[column_index] : nil
-
-              if attribute.type.nil? && value
-                if try_additional
-                  attribute.type = additional_types[member]
-                end
-                attribute.type ||= types[member]
-              end
-
-              key = attribute.name_for_serialization
-              if value.nil?
-                writer.push_value(nil, key)
-              else
-                cached = attribute.cached_writer
-                if cached
-                  unless cached.write(value, writer, key)
-                    writer.push_value(attribute.type.deserialize(value), key)
-                  end
-                else
-                  @values_writer.write(writer, attribute, value)
-                end
-              end
-              i += 1
-            end
-            @types_resolved = true
+            @column_index_cache = col_cache
+            @key_cache = key_cache
+            @writer_cache = writer_cache
+            @direct_cache = direct_cache
           end
+
+          while i < length
+            value = row[col_cache[i]]
+
+            if direct_cache[i]
+              # Direct push for string/integer/float/boolean - push_value handles nil natively
+              writer.push_value(value, key_cache[i])
+            elsif value.nil?
+              writer.push_value(nil, key_cache[i])
+            else
+              writer_cache[i].write(value, writer, key_cache[i])
+            end
+            i += 1
+          end
+        # Ultra-fast path: all types and cached_writers are already resolved
+        # Use pre-computed caches
+        else
+          # First pass: need to resolve types and cache writers
+          while i < length
+            attribute = attributes[i]
+
+            member = attribute.name
+            column_index = column_indexes[member]
+            value = column_index ? row[column_index] : nil
+
+            if attribute.type.nil? && value
+              if try_additional
+                attribute.type = additional_types[member]
+              end
+              attribute.type ||= types[member]
+            end
+
+            key = attribute.name_for_serialization
+            if value.nil?
+              writer.push_value(nil, key)
+            else
+              cached = attribute.cached_writer
+              if cached
+                unless cached.write(value, writer, key)
+                  writer.push_value(attribute.type.deserialize(value), key)
+                end
+              else
+                @values_writer.write(writer, attribute, value)
+              end
+            end
+            i += 1
+          end
+          @types_resolved = true
         end
       else
         while i < length

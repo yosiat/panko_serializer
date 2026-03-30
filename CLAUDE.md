@@ -17,6 +17,9 @@ bundle exec rspec spec/panko/serializer_spec.rb
 # Lint Ruby
 bundle exec rake rubocop
 
+# Auto-correct Ruby lint issues
+bundle exec rubocop -a
+
 # Compile C extensions
 bundle exec rake compile
 
