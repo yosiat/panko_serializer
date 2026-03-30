@@ -182,8 +182,9 @@ describe Panko::Serializer do
         serializer = serializer_class.new
         mock_object = double("object")
 
-        # Mock the Panko.serialize_object call to avoid dependencies
-        allow(Panko).to receive(:serialize_object)
+        # Stub Panko::Impl::Serializer to avoid dependencies on the object's attributes
+        mock_impl_srz = double("srz", serialize_one: nil)
+        allow(Panko::Impl::Serializer).to receive(:new).and_return(mock_impl_srz)
 
         # First call should work
         expect { serializer.serialize(mock_object) }.not_to raise_error
