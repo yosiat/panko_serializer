@@ -3,21 +3,8 @@
 require "bundler/gem_tasks"
 require "rspec/core/rake_task"
 require "rubocop/rake_task"
-require "rake/extensiontask"
-
-gem = Gem::Specification.load(File.dirname(__FILE__) + "/panko_serializer.gemspec")
-
-Rake::ExtensionTask.new("panko_serializer", gem) do |ext|
-  ext.lib_dir = "lib/panko"
-end
-
-Gem::PackageTask.new(gem) do |pkg|
-  pkg.need_zip = pkg.need_tar = false
-end
 
 RSpec::Core::RakeTask.new(:spec)
-Rake::Task[:spec].prerequisites << :compile
-Rake::Task[:compile].prerequisites << :clean
 
 task default: :spec
 

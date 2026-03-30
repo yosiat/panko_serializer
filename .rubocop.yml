@@ -21,7 +21,6 @@ AllCops:
   SuggestExtensions: false
   NewCops: disable
   Exclude:
-    - ext/**/*
     - gemfiles/**/*
 
 

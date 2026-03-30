@@ -5,11 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run tests (compiles C extensions first, then runs specs)
+# Run tests
 bundle exec rake
-
-# Run only specs
-bundle exec rake spec
 
 # Run a single spec file
 bundle exec rspec spec/panko/serializer_spec.rb
@@ -20,15 +17,15 @@ bundle exec rake rubocop
 # Auto-correct Ruby lint issues
 bundle exec rubocop -a
 
-# Compile C extensions
-bundle exec rake compile
-
 # Run benchmarks
 bundle exec rake benchmarks:sanity
 bundle exec rake benchmarks:all
 
+# Test all versions of Rails (import for sanity checks)
+bundle exec appraisal rake
+
 # Test against a specific Rails version (uses Appraisal)
-bundle exec appraisal 7.1.0 rake
+bundle exec appraisal 8.0.0 rake
 
 # Regenerate gemfiles after editing Appraisals
 bundle exec appraisal install
@@ -73,11 +70,9 @@ Type-specific sub-writers for booleans, integers, floats, strings, datetimes, an
 
 **`lib/panko/response.rb`** — `Response`/`ResponseCreator` compose complex nested structures; `JsonValue` embeds pre-serialized JSON strings.
 
-**`ext/panko_serializer/`** — Minimal C extension (~224 lines). Only handles DateTime/Time conversion optimizations (`time_conversion.c`).
-
 ### Performance Optimization Context
 
-The `ruby-impl-perf` branch is an active performance optimization effort. Benchmarks use `benchmark-ips` comparing against a baseline. Key strategies in the codebase:
+Benchmarks use `benchmark-ips` comparing against a baseline. Key strategies in the codebase:
 - Pre-compute everything possible into descriptors at class load time
 - Inline hot-path operations to eliminate method call overhead
 - Cache `column_indexes` per class to skip `object.class` checks on batch paths
