@@ -30,16 +30,17 @@ module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
       result = @buf
       result.bytesplice(0, 24, TEMPLATE)
 
-      # Copy "YYYY-MM-DD" (10 bytes) - zero-alloc splice from source
-      result.bytesplice(0, 10, value, 0, 10)
-      # Copy "HH:MM:SS" (8 bytes) - zero-alloc splice from source
-      result.bytesplice(11, 8, value, 11, 8)
+      # Copy "YYYY-MM-DD" (10 bytes) and "HH:MM:SS" (8 bytes).
+      # Use the 3-argument bytesplice for Ruby 3.2 compatibility — the
+      # 5-argument form (zero-alloc source range) was added in Ruby 3.3.
+      result.bytesplice(0, 10, value.byteslice(0, 10))
+      result.bytesplice(11, 8, value.byteslice(11, 8))
 
       # Handle fractional seconds
       if len > 20 && value.getbyte(19) == 46 # '.'
         frac_avail = len - 20
         frac_avail = 3 if frac_avail > 3
-        result.bytesplice(20, frac_avail, value, 20, frac_avail)
+        result.bytesplice(20, frac_avail, value.byteslice(20, frac_avail))
       end
 
       writer.push_value(result, key)
