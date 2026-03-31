@@ -2,8 +2,8 @@
 
 module Panko
   class Attribute
-    attr_reader :name, :name_sym, :alias_name
-    attr_accessor :type, :cached_writer
+    attr_reader :name, :name_sym
+    attr_accessor :type, :cached_writer, :alias_name
 
     def initialize(name, alias_name = nil)
       # TODO: validate name & alias_name are strings
@@ -12,7 +12,6 @@ module Panko
       @alias_name = alias_name
 
       @type = nil
-      @record_class = nil
       @cached_writer = nil
     end
 
@@ -28,26 +27,9 @@ module Panko
       super
     end
 
-    # TODO: this logic is specific to ActiveRecord attributes writer and shouldn't be here.
-    def invalidate!(new_object_class)
-      return if @record_class == new_object_class
-
+    def invalidate!
       @type = nil
       @cached_writer = nil
-      @record_class = new_object_class
-
-      # Once the record class is changed for this attribute, check if
-      # we attribute_aliases (from ActivRecord), if so fill in
-      # performance wise - this code should be called once (unless the serialzier
-      # is polymorphic)
-      aliases_hash = @record_class.attribute_aliases
-      return if aliases_hash.empty?
-
-      aliased_value = aliases_hash[@name]
-      if aliased_value.present?
-        @alias_name = @name
-        self.name = aliased_value
-      end
     end
 
     def hash
@@ -66,8 +48,6 @@ module Panko
     def inspect
       "<Panko::Attribute name=#{@name.inspect} alias_name=#{@alias_name.inspect}>"
     end
-
-    private
 
     def name=(name)
       @name = name

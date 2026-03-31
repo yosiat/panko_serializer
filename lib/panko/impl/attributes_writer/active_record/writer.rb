@@ -40,9 +40,18 @@ module Panko::Impl::AttributesWriter::ActiveRecord
           @last_invalidated_class = object_class
           @types_resolved = false
           @column_index_cache = nil
+          aliases_hash = object_class.attribute_aliases
           j = 0
           while j < length
-            attributes[j].invalidate!(object_class)
+            attr = attributes[j]
+            attr.invalidate!
+            unless aliases_hash.empty?
+              aliased_value = aliases_hash[attr.name]
+              if aliased_value.present?
+                attr.alias_name = attr.name
+                attr.name = aliased_value
+              end
+            end
             j += 1
           end
         end
