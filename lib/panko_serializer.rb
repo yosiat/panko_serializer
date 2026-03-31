@@ -9,6 +9,7 @@ require "panko/impl/serializer"
 
 require "panko/attribute"
 require "panko/association"
+require "panko/filters"
 require "panko/serializer"
 require "panko/array_serializer"
 require "panko/response"

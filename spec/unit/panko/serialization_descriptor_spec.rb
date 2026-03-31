@@ -277,34 +277,6 @@ describe Panko::SerializationDescriptor do
         ])
       end
     end
-
-    describe "filter resolution" do
-      let(:descriptor) { described_class.new }
-
-      it "handles empty filters" do
-        attrs, assocs = descriptor.resolve_filters({}, :only)
-        expect(attrs).to be_empty
-        expect(assocs).to eq({})
-      end
-
-      it "handles array filters" do
-        attrs, assocs = descriptor.resolve_filters({only: [:name, :address]}, :only)
-        expect(attrs).to match_array([:name, :address])
-        expect(assocs).to eq({})
-      end
-
-      it "handles hash filters" do
-        filters = {
-          only: {
-            instance: [:name],
-            association: [:address]
-          }
-        }
-        attrs, assocs = descriptor.resolve_filters(filters, :only)
-        expect(attrs).to match_array([:name])
-        expect(assocs).to eq({association: [:address]})
-      end
-    end
   end
 
   describe "context handling" do
