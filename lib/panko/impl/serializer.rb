@@ -100,13 +100,12 @@ module Panko::Impl
     def write_fields(object, writer)
       aw = @attributes_writer
       if aw
-        aw.write_attributes(object, @descriptor, writer)
       else
         aw = Panko::Impl::AttributesWriter.create(object)
         @attributes_writer = aw
         @descriptor.attributes_writer = aw
-        aw.write_attributes(object, @descriptor, writer)
       end
+      aw.write_attributes(object, @descriptor, writer)
     end
 
     def serialize_has_one_assocs(object, writer)

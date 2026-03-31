@@ -86,7 +86,7 @@ describe Panko::Impl::AttributesWriter::ActiveRecord::RecordState do
   describe "#setup" do
     context "with a non-indexed (Rails 7.x) record" do
       let(:klass) { Class.new }
-      let(:types) { {"name" => double("string_type"), "age" => double("integer_type") } }
+      let(:types) { {"name" => double("string_type"), "age" => double("integer_type")} }
 
       it "returns true on first call (class changed from nil)" do
         obj = make_plain_record(klass, types: types, values: {"name" => "Alice"})
@@ -158,7 +158,7 @@ describe Panko::Impl::AttributesWriter::ActiveRecord::RecordState do
       end
 
       let(:klass) { Class.new }
-      let(:types) { {"name" => double("string_type") } }
+      let(:types) { {"name" => double("string_type")} }
       let(:col_indexes) { {"name" => 0, "age" => 1} }
       let(:row) { ["Alice", 30] }
 
