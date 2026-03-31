@@ -30,7 +30,6 @@ describe Panko::Serializer do
 
         descriptor = serializer_class._descriptor
         expect(descriptor.attributes).to eq([])
-        expect(descriptor.aliases).to eq({})
         expect(descriptor.method_fields).to eq([])
         expect(descriptor.has_many_associations).to eq([])
         expect(descriptor.has_one_associations).to eq([])

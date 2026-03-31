@@ -40,8 +40,6 @@ module Panko
           base._descriptor = Panko::SerializationDescriptor.new
 
           base._descriptor.attributes = []
-          base._descriptor.aliases = {}
-
           base._descriptor.method_fields = []
 
           base._descriptor.has_many_associations = []

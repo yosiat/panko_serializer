@@ -113,12 +113,7 @@ module Panko::Impl
         aw = Panko::Impl::AttributesWriter.create(object)
         @attributes_writer = aw
         @descriptor.attributes_writer = aw
-        if aw
-          aw.write_attributes(object, @descriptor, writer)
-        else
-          Panko._sd_set_writer(@descriptor, object)
-          Panko._write_attributes(object, @descriptor, writer)
-        end
+        aw.write_attributes(object, @descriptor, writer)
       end
     end
 

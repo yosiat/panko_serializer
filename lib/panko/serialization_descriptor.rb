@@ -6,7 +6,6 @@ module Panko
       :method_fields,
       :has_one_associations,
       :has_many_associations,
-      :aliases,
       :type,
       :serializer,
       :attributes_writer
@@ -16,8 +15,6 @@ module Panko
       @method_fields = []
       @has_one_associations = []
       @has_many_associations = []
-      # TODO: check if we need aliases
-      @aliases = []
       @type = nil
       @serializer = nil
       @attributes_writer = nil
@@ -169,13 +166,6 @@ module Panko
       association_filters = filters.except(:instance)
 
       [attributes_filters, association_filters]
-    end
-
-    def apply_fields_filters(fields, only, except)
-      return fields & only unless only.empty?
-      return fields - except unless except.empty?
-
-      fields
     end
 
     def apply_attribute_filters(attributes, only, except)
