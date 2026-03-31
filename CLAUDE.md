@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Non-Negotiable Before Every Commit
+
+Before committing any code change, **both** of these must pass with zero errors:
+
+1. `bundle exec appraisal rake` — all tests across all Rails versions
+2. `bundle exec rubocop` — zero offenses (use `-a` / `-A` to auto-correct)
+
+These are equally critical. A commit with failing tests or rubocop offenses is not acceptable.
+
 ## Commands
 
 ```bash
