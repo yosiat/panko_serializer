@@ -101,14 +101,14 @@ module Panko
     def filter_associations(associations, only_filters, except_filters)
       attributes_only_filters = only_filters[:attributes] || []
       unless attributes_only_filters.empty?
-        associations.select! do |association|
+        associations = associations.select do |association|
           attributes_only_filters.include?(association.name_sym)
         end
       end
 
       attributes_except_filters = except_filters[:attributes] || []
       unless attributes_except_filters.empty?
-        associations.reject! do |association|
+        associations = associations.reject do |association|
           attributes_except_filters.include?(association.name_sym)
         end
       end

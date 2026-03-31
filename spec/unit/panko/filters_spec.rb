@@ -30,9 +30,6 @@ describe Panko::Filters do
     has_many :foos, serializer: FiltersSpecFooSerializer
   end
 
-  # ---------------------------------------------------------------
-  # apply — no filters
-  # ---------------------------------------------------------------
   describe ".apply" do
     context "when options contain neither :only nor :except" do
       it "is a no-op and leaves attributes unchanged" do
@@ -54,9 +51,6 @@ describe Panko::Filters do
       end
     end
 
-    # ---------------------------------------------------------------
-    # :only as Array
-    # ---------------------------------------------------------------
     context "with :only as an array" do
       it "keeps only the listed attributes" do
         descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecFooSerializer._descriptor)
@@ -75,9 +69,6 @@ describe Panko::Filters do
       end
     end
 
-    # ---------------------------------------------------------------
-    # :except as Array
-    # ---------------------------------------------------------------
     context "with :except as an array" do
       it "removes the listed attributes" do
         descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecFooSerializer._descriptor)
@@ -99,9 +90,6 @@ describe Panko::Filters do
       end
     end
 
-    # ---------------------------------------------------------------
-    # :only as Hash with :instance key
-    # ---------------------------------------------------------------
     context "with :only as a hash with :instance key" do
       it "filters instance attributes using :instance value" do
         descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecFooSerializer._descriptor)
@@ -136,9 +124,6 @@ describe Panko::Filters do
       end
     end
 
-    # ---------------------------------------------------------------
-    # :except as Hash with :instance key
-    # ---------------------------------------------------------------
     context "with :except as a hash with :instance key" do
       it "removes instance attributes listed under :instance" do
         descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecFooSerializer._descriptor)
@@ -169,9 +154,6 @@ describe Panko::Filters do
       end
     end
 
-    # ---------------------------------------------------------------
-    # method_fields filtering
-    # ---------------------------------------------------------------
     context "with method_fields" do
       it "filters method_fields with :only array" do
         descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecMethodSerializer._descriptor)
@@ -195,9 +177,6 @@ describe Panko::Filters do
       end
     end
 
-    # ---------------------------------------------------------------
-    # Association-level inclusion/exclusion (flat :only / :except)
-    # ---------------------------------------------------------------
     context "with has_one association filtering" do
       it "keeps listed has_one association with flat :only" do
         descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecHasOneSerializer._descriptor)
@@ -233,6 +212,39 @@ describe Panko::Filters do
         Panko::Filters.apply(descriptor, except: [:foos])
 
         expect(descriptor.has_many_associations).to be_empty
+      end
+    end
+
+    context "input mutation" do
+      it "does not mutate the original descriptor association arrays" do
+        descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecBothAssocSerializer._descriptor)
+        original_has_one = descriptor.has_one_associations.dup
+        original_has_many = descriptor.has_many_associations.dup
+
+        Panko::Filters.apply(descriptor, only: [:title])
+
+        expect(original_has_one).not_to be_empty
+        expect(original_has_many).not_to be_empty
+      end
+    end
+
+    context "with empty hash filter" do
+      it "treats only: {} as a no-op" do
+        descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecFooSerializer._descriptor)
+        original_attrs = descriptor.attributes.dup
+
+        Panko::Filters.apply(descriptor, only: {})
+
+        expect(descriptor.attributes).to eq(original_attrs)
+      end
+
+      it "treats except: {} as a no-op" do
+        descriptor = Panko::SerializationDescriptor.duplicate(FiltersSpecFooSerializer._descriptor)
+        original_attrs = descriptor.attributes.dup
+
+        Panko::Filters.apply(descriptor, except: {})
+
+        expect(descriptor.attributes).to eq(original_attrs)
       end
     end
   end
