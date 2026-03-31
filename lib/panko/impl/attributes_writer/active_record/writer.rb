@@ -12,6 +12,9 @@ module Panko::Impl::AttributesWriter::ActiveRecord
       @last_invalidated_class = nil
       @types_resolved = false
       @column_index_cache = nil
+      @key_cache = nil
+      @writer_cache = nil
+      @direct_cache = nil
     end
 
     def write_attributes(object, descriptor, writer)
@@ -93,7 +96,7 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             i += 1
           end
         elsif @types_resolved
-          # Fast path: no attributes_hash, read directly from indexed row
+          # Ultra-fast path: types resolved, caches built — read directly from indexed row
           col_cache = @column_index_cache
           key_cache = @key_cache
           writer_cache = @writer_cache
@@ -133,10 +136,8 @@ module Panko::Impl::AttributesWriter::ActiveRecord
             end
             i += 1
           end
-        # Ultra-fast path: all types and cached_writers are already resolved
-        # Use pre-computed caches
         else
-          # First pass: need to resolve types and cache writers
+          # First pass: resolve types and build per-attribute caches
           while i < length
             attribute = attributes[i]
 
