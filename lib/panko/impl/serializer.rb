@@ -68,38 +68,29 @@ module Panko::Impl
       writer.pop
     end
 
+    # Serializes a single object into the writer at the current level.
+    # Public API — keyword arguments preserve the existing call interface.
+    #
+    # @param object [Object] the object to serialize
+    # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+    # @param key [String, nil] optional key when this object is nested under a parent
     def serialize_one(object:, writer:, key: nil)
-      writer.push_object(key)
-
-      write_fields object, writer
-      write_method_fields(object, writer) unless @method_fields_empty
-      serialize_has_one_assocs(object, writer) unless @has_one_empty
-      serialize_has_many_assocs(object, writer) unless @has_many_empty
-
-      writer.pop
+      _serialize_one(object, writer, key)
     end
 
-    # Internal fast path: no keyword args, no key (used in serialize_many)
-    def _serialize_one(object, writer)
-      writer.push_object
-
-      write_fields object, writer
-      write_method_fields(object, writer) unless @method_fields_empty
-      serialize_has_one_assocs(object, writer) unless @has_one_empty
-      serialize_has_many_assocs(object, writer) unless @has_many_empty
-
-      writer.pop
-    end
-
-    # Internal with key (used by has_one associations)
-    def _serialize_one_with_key(object, writer, key)
+    # Internal fast path for single-object serialization.
+    # Positional args avoid keyword-argument overhead on hot paths.
+    # Used by serialize_one, _serialize_many, and association serialization.
+    #
+    # @param object [Object] the object to serialize
+    # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+    # @param key [String, nil] optional JSON key (nil = no key)
+    def _serialize_one(object, writer, key = nil)
       writer.push_object(key)
-
-      write_fields object, writer
+      write_fields(object, writer)
       write_method_fields(object, writer) unless @method_fields_empty
       serialize_has_one_assocs(object, writer) unless @has_one_empty
       serialize_has_many_assocs(object, writer) unless @has_many_empty
-
       writer.pop
     end
 
@@ -118,16 +109,11 @@ module Panko::Impl
     end
 
     def serialize_has_one_assocs(object, writer)
-      assocs = @has_one_assocs
-      length = assocs.length
-      i = 0
-      while i < length
-        assoc = assocs[i]
+      @has_one_assocs.each do |assoc|
         # For ActiveRecord objects, bypass the association proxy by calling
         # association().target directly. This skips the stale_target? check
         # and reader method overhead on the hot path.
-        # For plain Ruby objects (PORO), there is no association() method, so
-        # fall back to public_send which simply calls the attribute reader.
+        # For plain Ruby objects (PORO), fall back to public_send.
         value = if object.respond_to?(:association)
           object.association(assoc.name_sym).target
         else
@@ -137,18 +123,13 @@ module Panko::Impl
         if value.nil?
           writer.push_value(nil, assoc.name_str)
         else
-          assoc.serializer_writer._serialize_one_with_key(value, writer, assoc.name_str)
+          assoc.serializer_writer._serialize_one(value, writer, assoc.name_str)
         end
-        i += 1
       end
     end
 
     def serialize_has_many_assocs(object, writer)
-      assocs = @has_many_assocs
-      length = assocs.length
-      i = 0
-      while i < length
-        assoc = assocs[i]
+      @has_many_assocs.each do |assoc|
         value = object.public_send(assoc.name_sym)
 
         if value.nil?
@@ -156,8 +137,6 @@ module Panko::Impl
         else
           assoc.serializer_writer._serialize_many(value, writer, assoc.name_str)
         end
-
-        i += 1
       end
     end
 
@@ -165,18 +144,11 @@ module Panko::Impl
       serializer = @descriptor.serializer
       serializer.instance_variable_set(:@object, object)
 
-      fields = @method_fields
-      length = fields.length
-      i = 0
-      while i < length
-        method_field = fields[i]
+      @method_fields.each do |method_field|
         result = serializer.public_send(method_field.name_sym)
-
         unless result == SKIP
           writer.push_value(result, method_field.name_for_serialization)
         end
-
-        i += 1
       end
     end
   end
