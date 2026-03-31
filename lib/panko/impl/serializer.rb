@@ -73,18 +73,19 @@ module Panko::Impl
     #
     # @param object [Object] the object to serialize
     # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
-    # @param key [String, nil] optional key when this object is nested under a parent
+    # @param key [String, nil] JSON key under which the object is nested in the output; nil for root
     def serialize_one(object:, writer:, key: nil)
       _serialize_one(object, writer, key)
     end
 
-    # Internal fast path for single-object serialization.
-    # Positional args avoid keyword-argument overhead on hot paths.
-    # Used by serialize_one, _serialize_many, and association serialization.
+    # Shared helper for single-object serialization called by serialize_one,
+    # serialize_has_one_assocs, and (in the fallback path) _serialize_many.
+    # Public by convention so association sub-serializers can call it directly
+    # without keyword-argument overhead.
     #
     # @param object [Object] the object to serialize
     # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
-    # @param key [String, nil] optional JSON key (nil = no key)
+    # @param key [String, nil] JSON key under which the object is nested; nil for root
     def _serialize_one(object, writer, key = nil)
       writer.push_object(key)
       write_fields(object, writer)
