@@ -26,9 +26,20 @@ bundle exec rake rubocop
 # Auto-correct Ruby lint issues
 bundle exec rubocop -a
 
-# Run benchmarks
-bundle exec rake benchmarks:sanity
+# Run all benchmarks
 bundle exec rake benchmarks:all
+
+# Run a specific benchmark
+bundle exec rake benchmarks:run[panko_json]
+
+# Run type_casts benchmarks (all or specific provider)
+bundle exec rake benchmarks:run[type_casts]
+bundle exec rake benchmarks:run[type_casts:postgresql]
+
+# Env vars: BENCH=pattern SIZE=N PROFILE=cpu|memory IPS_TIME=N IPS_WARMUP=N
+BENCH=HasOne ruby benchmarks/panko_json.rb
+SIZE=2300 ruby benchmarks/panko_json.rb
+PROFILE=cpu ruby benchmarks/panko_json.rb
 
 # Test all versions of Rails (import for sanity checks)
 bundle exec appraisal rake

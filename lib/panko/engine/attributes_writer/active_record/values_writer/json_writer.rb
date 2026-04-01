@@ -13,13 +13,15 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
 
     private
 
+    SC_PARSE_HANDLER = Object.new.freeze
+
     def is_json_value?(value)
       return value unless value.is_a?(String)
 
       return false if value.length == 0
 
       begin
-        result = Oj.sc_parse(Object.new, value)
+        result = Oj.sc_parse(SC_PARSE_HANDLER, value)
 
         return true if result.nil?
         return false if result == false
