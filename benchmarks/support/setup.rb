@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-###########################################
-# Setup active record models
-##########################################
 require "active_record"
 require "sqlite3"
 require "securerandom"
@@ -32,7 +29,6 @@ ActiveRecord::Schema.define do
 end
 
 class Author < ActiveRecord::Base
-  has_one :profile
   has_many :posts
 end
 
@@ -40,12 +36,18 @@ class Post < ActiveRecord::Base
   belongs_to :author
 end
 
-Post.destroy_all
-Author.destroy_all
+class PostWithAliasModel < ActiveRecord::Base
+  self.table_name = "posts"
 
-# Build out the data to serialize
+  alias_attribute :new_id, :id
+  alias_attribute :new_body, :body
+  alias_attribute :new_title, :title
+  alias_attribute :new_author_id, :author_id
+  alias_attribute :new_created_at, :created_at
+end
+
 Post.transaction do
-  ENV.fetch("ITEMS_COUNT", "2300").to_i.times do
+  2300.times do
     Post.create(
       body: SecureRandom.hex(30),
       title: SecureRandom.hex(20),

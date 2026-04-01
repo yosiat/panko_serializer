@@ -10,8 +10,6 @@ group :benchmarks do
   gem "pg"
 
   gem "benchmark-ips"
-  gem "active_model_serializers", "~> 0.10"
-  gem "terminal-table"
   gem "memory_profiler"
 end
 
