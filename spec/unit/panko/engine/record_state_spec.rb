@@ -2,8 +2,8 @@
 
 require "spec_helper"
 
-describe Panko::Impl::AttributesWriter::ActiveRecord::RecordState do
-  EMPTY_HASH = Panko::Impl::AttributesWriter::ActiveRecord::EMPTY_HASH
+describe Panko::Engine::AttributesWriter::ActiveRecord::RecordState do
+  EMPTY_HASH = Panko::Engine::AttributesWriter::ActiveRecord::EMPTY_HASH
 
   # Minimal double for an ActiveModel::Attribute entry
   def make_attribute_metadata(value, type)
@@ -154,7 +154,7 @@ describe Panko::Impl::AttributesWriter::ActiveRecord::RecordState do
 
     context "with an IndexedRow-backed record (Rails 8+)" do
       before do
-        skip "IndexedRow not defined in this Rails version" unless Panko::Impl::AttributesWriter::ActiveRecord::PANKO_INDEX_ROW_DEFINED
+        skip "IndexedRow not defined in this Rails version" unless Panko::Engine::AttributesWriter::ActiveRecord::PANKO_INDEX_ROW_DEFINED
       end
 
       let(:klass) { Class.new }

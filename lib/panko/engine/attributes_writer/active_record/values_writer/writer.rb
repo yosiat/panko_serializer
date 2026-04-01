@@ -7,7 +7,7 @@ require_relative "boolean_writer"
 require_relative "datetime_writer"
 require_relative "json_writer"
 
-module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
+module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
   # Type Casting
   #
   # We do "special" type casting which is mix of two inspirations:

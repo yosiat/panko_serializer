@@ -186,7 +186,7 @@ def type_cast(type, value)
   writer = TestWriter.new
   attribute = TestAttribute.new(type)
 
-  Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, attribute, value)
+  Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, attribute, value)
 
   writer.value
 end

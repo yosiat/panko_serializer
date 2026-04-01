@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Panko::Impl
+module Panko::Engine
   SKIP = Object.new.freeze
 
   class Serializer
@@ -101,7 +101,7 @@ module Panko::Impl
       aw = @attributes_writer
       if aw
       else
-        aw = Panko::Impl::AttributesWriter.create(object)
+        aw = Panko::Engine::AttributesWriter.create(object)
         @attributes_writer = aw
         @descriptor.attributes_writer = aw
       end

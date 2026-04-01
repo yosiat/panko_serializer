@@ -4,7 +4,7 @@ require_relative "hash_writer"
 require_relative "plain_writer"
 require_relative "active_record/writer"
 
-module Panko::Impl
+module Panko::Engine
   module AttributesWriter
     def self.create(object)
       if defined?(::ActiveRecord::Base) && object.is_a?(::ActiveRecord::Base)

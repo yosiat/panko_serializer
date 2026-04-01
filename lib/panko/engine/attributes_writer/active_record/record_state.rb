@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Panko::Impl::AttributesWriter::ActiveRecord
+module Panko::Engine::AttributesWriter::ActiveRecord
   class RecordState
     # The column name → array index map for the current IndexedRow.
     # Why: allows O(1) lookup of a field's position in the raw row array,

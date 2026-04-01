@@ -77,8 +77,8 @@ Serializer.new(options)
   → SerializationContext.create(options)
   → SerializationDescriptor.build(serializer_class)   # cached metadata
   → Panko::Filters.apply(descriptor, options)          # :only/:except filtering
-  → Panko::Impl::Serializer
-  → AttributesWriter (AR/Hash/Plain depending on object type)
+  → Panko::Engine::Serializer
+  → Engine::AttributesWriter (AR/Hash/Plain depending on object type)
   → Oj::StringWriter (JSON output)
 ```
 
@@ -92,7 +92,7 @@ Serializer.new(options)
 
 **`lib/panko/attribute.rb`** — Represents a single serializable field. Holds the field name, optional alias, resolved type, and cached writer. AR-specific concerns (type resolution, alias lookup) are handled externally by `ActiveRecord::Writer` and `RecordState`. `invalidate!` clears the cached type and writer only — it takes no arguments.
 
-**`lib/panko/impl/serializer.rb`** — The hot-path serialization engine. Contains multiple fast paths:
+**`lib/panko/engine/serializer.rb`** — The hot-path serialization engine. Contains multiple fast paths:
 - Ultra-fast: attributes only, no methods/associations
 - Fast: attributes + has_one
 - Full: attributes + methods + associations
@@ -101,7 +101,7 @@ Serializer.new(options)
 
 Optimized to use positional args, inline method calls, and bypass Rails association proxies (`association().target` instead of `public_send`).
 
-**`lib/panko/impl/attributes_writer/`** — Type-specific writers selected at runtime:
+**`lib/panko/engine/attributes_writer/`** — Type-specific writers selected at runtime:
 - `active_record/writer.rb` — Thin orchestrator. Calls `RecordState#setup`, handles attribute invalidation and AR alias resolution on class change, then dispatches into the indexed-row fast paths.
 - `active_record/record_state.rb` — Owns all per-record state: `column_indexes`, `row`, `is_indexed_row`, `attributes_hash`, `has_attributes_hash`, `types`, `additional_types`, `try_additional`, `values`. `setup(object)` returns `true` when the record class changes. `read_attribute` handles the non-indexed (Rails 7.x) fallback path.
 - `active_record/context.rb` — Monkey-patches `ActiveModel::AttributeSet`, `ActiveModel::LazyAttributeSet`, `ActiveRecord::Base`, and `ActiveRecord::Result::IndexedRow` to expose `_panko_*` accessors. Defines `PANKO_INDEX_ROW_DEFINED` and `EMPTY_HASH` constants.

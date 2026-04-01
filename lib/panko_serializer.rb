@@ -2,10 +2,10 @@
 
 require "panko/version"
 
-module Panko::Impl
+module Panko::Engine
 end
-require "panko/impl/attributes_writer/creator"
-require "panko/impl/serializer"
+require "panko/engine/attributes_writer/creator"
+require "panko/engine/serializer"
 
 require "panko/attribute"
 require "panko/association"

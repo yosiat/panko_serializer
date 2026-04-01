@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
+module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
   class JsonWriter
     def write(value, writer, key)
       if is_json_value?(value)

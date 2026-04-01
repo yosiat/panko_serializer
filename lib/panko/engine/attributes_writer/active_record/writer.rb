@@ -4,7 +4,7 @@ require_relative "context"
 require_relative "record_state"
 require_relative "values_writer/writer"
 
-module Panko::Impl::AttributesWriter::ActiveRecord
+module Panko::Engine::AttributesWriter::ActiveRecord
   class Writer
     def initialize
       @record_state = RecordState.new

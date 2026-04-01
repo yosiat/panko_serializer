@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
+module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
   class BooleanWriter
     def write(value, writer, key)
       # TODO: compare against class maybe..

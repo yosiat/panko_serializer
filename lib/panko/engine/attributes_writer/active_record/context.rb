@@ -45,7 +45,7 @@ rescue => e
   raise e
 end
 
-module Panko::Impl::AttributesWriter::ActiveRecord
+module Panko::Engine::AttributesWriter::ActiveRecord
   begin
     require "active_record"
 

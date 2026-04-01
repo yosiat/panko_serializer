@@ -131,15 +131,15 @@ describe Panko::ArraySerializer do
     let(:mock_impl_srz) { double("srz", _serialize_many: nil) }
 
     before do
-      allow(Panko::Impl::Serializer).to receive(:new).and_return(mock_impl_srz)
+      allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
     end
 
     describe "#serialize" do
-      it "creates Panko::Impl::Serializer with correct descriptor" do
+      it "creates Panko::Engine::Serializer with correct descriptor" do
         mock_writer = double("writer", output: [])
         allow(Panko::ObjectWriter).to receive(:new).and_return(mock_writer)
 
-        expect(Panko::Impl::Serializer).to receive(:new).with(
+        expect(Panko::Engine::Serializer).to receive(:new).with(
           array_serializer.instance_variable_get(:@descriptor)
         ).and_return(mock_impl_srz)
 

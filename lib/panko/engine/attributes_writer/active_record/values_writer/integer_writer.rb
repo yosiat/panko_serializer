@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
+module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
   class IntegerWriter
     def write(value, writer, key)
       if value.is_a?(Integer)

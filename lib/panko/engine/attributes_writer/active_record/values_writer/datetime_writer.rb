@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Panko::Impl::AttributesWriter::ActiveRecord::ValuesWriter
+module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
   class DateTimeWriter
     # Template: "0000-00-00T00:00:00.000Z" (24 bytes)
     TEMPLATE = "0000-00-00T00:00:00.000Z"

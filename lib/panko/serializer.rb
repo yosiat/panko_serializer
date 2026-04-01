@@ -32,7 +32,7 @@ end
 
 module Panko
   class Serializer
-    SKIP = Panko::Impl::SKIP
+    SKIP = Panko::Engine::SKIP
 
     class << self
       def inherited(base)
@@ -136,7 +136,7 @@ module Panko
 
     def serialize_with_writer(object, writer)
       raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
-      srz = Panko::Impl::Serializer.new(@descriptor)
+      srz = Panko::Engine::Serializer.new(@descriptor)
       srz.serialize_one(object: object, writer: writer)
       @used = true
       writer
