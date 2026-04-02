@@ -11,6 +11,8 @@
 .byebug_history
 *.bundle
 
+.DS_Store
+
 # rspec failure tracking
 .rspec_status
 node_modules
