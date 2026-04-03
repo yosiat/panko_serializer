@@ -183,6 +183,26 @@ describe "Associations Serialization" do
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
         "foo" => nil)
     end
+
+    it "serializes when association is not eager-loaded" do
+      class FooHolderHasOneNotEagerSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :foo, serializer: FooSerializer
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
+
+      not_eager = FooHolder.find(foo_holder.id)
+
+      expect(not_eager).to serialized_as(FooHolderHasOneNotEagerSerializer,
+        "name" => foo_holder.name,
+        "foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
+    end
   end
 
   context "has_one with different model types" do

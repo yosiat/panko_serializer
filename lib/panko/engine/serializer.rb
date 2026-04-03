@@ -115,7 +115,8 @@ module Panko::Engine
         # and reader method overhead on the hot path.
         # For plain Ruby objects (PORO), fall back to public_send.
         value = if object.respond_to?(:association)
-          object.association(assoc.name_sym).target
+          ar_assoc = object.association(assoc.name_sym)
+          ar_assoc.loaded? ? ar_assoc.target : object.public_send(assoc.name_sym)
         else
           object.public_send(assoc.name_sym)
         end
