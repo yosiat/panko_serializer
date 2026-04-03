@@ -30,21 +30,50 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
       result = @buf
       result.bytesplice(0, 24, TEMPLATE)
 
-      # Copy "YYYY-MM-DD" (10 bytes) and "HH:MM:SS" (8 bytes).
-      # Use the 3-argument bytesplice for Ruby 3.2 compatibility — the
-      # 5-argument form (zero-alloc source range) was added in Ruby 3.3.
-      result.bytesplice(0, 10, value.byteslice(0, 10))
-      result.bytesplice(11, 8, value.byteslice(11, 8))
+      splice_date_and_time(result, value)
 
       # Handle fractional seconds
       if len > 20 && value.getbyte(19) == 46 # '.'
         frac_avail = len - 20
         frac_avail = 3 if frac_avail > 3
-        result.bytesplice(20, frac_avail, value.byteslice(20, frac_avail))
+        splice_fractional(result, value, frac_avail)
       end
 
       writer.push_value(result, key)
       true
+    end
+
+    # Ruby 3.3+ supports 5-argument bytesplice (source offset + length),
+    # which copies directly without allocating an intermediate string.
+    # Fall back to 3-argument bytesplice + byteslice on older Rubies.
+    FIVE_ARG_BYTESPLICE = begin
+      "abcd".dup.bytesplice(0, 2, "xxxx", 0, 2) # rubocop:disable Performance/UnfreezeString
+      true
+    rescue ArgumentError
+      false
+    end
+
+    private_constant :FIVE_ARG_BYTESPLICE
+
+    if FIVE_ARG_BYTESPLICE
+
+      def splice_date_and_time(result, value)
+        result.bytesplice(0, 10, value, 0, 10)
+        result.bytesplice(11, 8, value, 11, 8)
+      end
+
+      def splice_fractional(result, value, frac_avail)
+        result.bytesplice(20, frac_avail, value, 20, frac_avail)
+      end
+    else
+      def splice_date_and_time(result, value)
+        result.bytesplice(0, 10, value.byteslice(0, 10))
+        result.bytesplice(11, 8, value.byteslice(11, 8))
+      end
+
+      def splice_fractional(result, value, frac_avail)
+        result.bytesplice(20, frac_avail, value.byteslice(20, frac_avail))
+      end
     end
   end
 end
