@@ -6,8 +6,6 @@ module Panko
     attr_accessor :type, :cached_writer, :alias_name
 
     def initialize(name, alias_name = nil)
-      # TODO: validate name & alias_name are strings
-
       self.name = name
       @alias_name = alias_name
 

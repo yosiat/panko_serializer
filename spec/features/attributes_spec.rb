@@ -124,6 +124,60 @@ describe "Attributes Serialization" do
     end
   end
 
+  context "serialized columns" do
+    before do
+      Temping.create(:serialized_model) do
+        with_columns do |t|
+          t.string :name
+          t.text :data
+        end
+
+        serialize :data, coder: JSON
+      end
+    end
+
+    it "serializes a single record with a serialized column" do
+      class SerializedModelSerializer < Panko::Serializer
+        attributes :name, :data
+      end
+
+      record = SerializedModel.create(name: "test", data: {"key" => "value", "nested" => [1, 2, 3]})
+
+      expect(record).to serialized_as(SerializedModelSerializer,
+        "name" => "test",
+        "data" => {"key" => "value", "nested" => [1, 2, 3]})
+    end
+
+    it "serializes multiple records with serialized columns" do
+      class SerializedModelSerializer < Panko::Serializer
+        attributes :name, :data
+      end
+
+      SerializedModel.create(name: "first", data: {"a" => 1})
+      SerializedModel.create(name: "second", data: {"b" => 2})
+
+      records = SerializedModel.all.to_a
+      result = Panko::ArraySerializer.new(records, each_serializer: SerializedModelSerializer).to_json
+      parsed = Oj.load(result)
+
+      expect(parsed.length).to eq(2)
+      expect(parsed[0]).to eq("name" => "first", "data" => {"a" => 1})
+      expect(parsed[1]).to eq("name" => "second", "data" => {"b" => 2})
+    end
+
+    it "handles nil serialized columns" do
+      class SerializedModelSerializer < Panko::Serializer
+        attributes :name, :data
+      end
+
+      record = SerializedModel.create(name: "test", data: nil)
+
+      expect(record).to serialized_as(SerializedModelSerializer,
+        "name" => "test",
+        "data" => nil)
+    end
+  end
+
   context "aliases" do
     before do
       Temping.create(:foo) do

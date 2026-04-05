@@ -6,6 +6,7 @@ require_relative "float_writer"
 require_relative "boolean_writer"
 require_relative "datetime_writer"
 require_relative "json_writer"
+require_relative "subtype_writer"
 
 module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
   # Type Casting
@@ -58,8 +59,9 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
       end
 
       if type.respond_to?(:subtype)
-        # TODO: test this.
-        writer.push_value(type.deserialize(value), key)
+        subtype_writer = SubtypeWriter.new(type)
+        attribute.cached_writer = subtype_writer
+        subtype_writer.write(value, writer, key)
         return
       end
 
@@ -96,7 +98,6 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
     end
   end
 
-  # TODO: maybe use `include Singleton` here
   @@writer = Writer.new
 
   def self.write(writer, attribute, value)
