@@ -31,5 +31,12 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
 
       false
     end
+
+    # Whether +push_value+ alone is sufficient for this writer's common types,
+    # allowing the caller to skip the nil check and writer dispatch entirely.
+    # @return [Boolean]
+    def nil_safe_push?
+      true
+    end
   end
 end

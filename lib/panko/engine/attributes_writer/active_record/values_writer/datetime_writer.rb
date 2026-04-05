@@ -43,6 +43,13 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
       true
     end
 
+    # DateTime values require type-specific parsing and cannot be written
+    # with a simple +push_value+ call.
+    # @return [Boolean]
+    def nil_safe_push?
+      false
+    end
+
     # Ruby 3.3+ supports 5-argument bytesplice (source offset + length),
     # which copies directly without allocating an intermediate string.
     # Fall back to 3-argument bytesplice + byteslice on older Rubies.

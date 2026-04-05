@@ -11,6 +11,13 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
       false
     end
 
+    # JSON values require validation/parsing and cannot be written
+    # with a simple +push_value+ call.
+    # @return [Boolean]
+    def nil_safe_push?
+      false
+    end
+
     private
 
     SC_PARSE_HANDLER = Object.new.freeze

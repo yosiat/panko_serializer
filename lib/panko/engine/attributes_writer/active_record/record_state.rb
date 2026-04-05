@@ -52,6 +52,11 @@ module Panko::Engine::AttributesWriter::ActiveRecord
     # @return [Hash{String => Object}, nil]
     attr_reader :values
 
+    # The ActiveRecord class of the most recently set up record.
+    # Why: Writer needs this to look up +attribute_aliases+ when the class changes.
+    # @return [Class, nil]
+    attr_reader :last_record_class
+
     def initialize
       @column_indexes = nil
       @row = nil
