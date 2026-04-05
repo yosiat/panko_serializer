@@ -1,0 +1,24 @@
+title: Panko Serializers
+description: High Performance JSON Serialization for ActiveRecord & Ruby Objects
+url: https://panko.dev
+baseurl: ""
+
+theme: just-the-docs
+
+enable_copy_code_button: true
+
+nav_external_links:
+  - title: GitHub
+    url: https://github.com/yosiat/panko_serializer
+
+footer_content: >-
+  <iframe src="https://ghbtns.com/github-btn.html?user=yosiat&amp;repo=panko_serializer&amp;type=star&amp;count=true&amp;size=medium"
+  frameborder="0" scrolling="0" width="150" height="20" title="GitHub Stars"></iframe>
+  <br>
+  Copyright &copy; 2026 Panko Serializer.
+  Distributed under the
+  <a href="https://github.com/yosiat/panko_serializer/blob/master/LICENSE.txt">MIT License</a>.
+
+exclude:
+  - Gemfile
+  - Gemfile.lock

@@ -17,6 +17,5 @@
 .rspec_status
 node_modules
 
-/docs/build/
-.cache/
-.docusaurus/
+/docs/_site/
+/docs/.jekyll-cache/

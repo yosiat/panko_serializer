@@ -1,21 +1,23 @@
 ---
-id: associations
 title: Associations
-sidebar_label: Associations
+layout: default
+nav_order: 6
+parent: Reference
 ---
+
+# Associations
+
 A serializer can define it's own associations - both `has_many` and `has_one` to serialize under the context of the object.
 
 For example:
 
 ```ruby
-
 class PostSerializer < Panko::Serializer
   attributes :title, :body
 
   has_one :author, serializer: AuthorSerializer
   has_many :comments, each_serializer: CommentSerializer
 end
-
 ```
 
 ### Associations with aliases
@@ -26,14 +28,12 @@ For example:
 the `actual_author` property will be converted to `alias_author`.
 
 ```ruby
-
 class PostSerializer < Panko::Serializer
   attributes :title, :body
 
   has_one :actual_author, serializer: AuthorSerializer, name: :alias_author
   has_many :comments, each_serializer: CommentSerializer
 end
-
 ```
 
 ### Inference
@@ -42,14 +42,12 @@ Panko can find the type of the serializer by looking at the relationship name, s
 the serializer at the above example, we can:
 
 ```ruby
-
 class PostSerializer < Panko::Serializer
   attributes :title, :body
 
   has_one :author
   has_many :comments
 end
-
 ```
 
 The logic of inferencing is:
@@ -57,7 +55,7 @@ The logic of inferencing is:
 -   Take the name of the relationship (for example - `:author` / `:comments`) singularize and camelize it.
 -   Look for const defined with the name above and "Serializer" suffix (by using `Object.const_get`).
 
-&gt; If Panko can't find the serializer it will throw an error on startup time, for example: `Can't find serializer for PostSerializer.author has_one relationship`.
+> If Panko can't find the serializer it will throw an error on startup time, for example: `Can't find serializer for PostSerializer.author has_one relationship`.
 
 ## Nested Filters
 
@@ -69,7 +67,6 @@ For example, let's say one portion of the application needs to serialize a list 
 We can declare tailored serializer for this, or we can re-use the above defined serializer - `PostSerializer` and use nested filters.
 
 ```ruby
-
 posts = Post.all
 
 Panko::ArraySerializer.new(posts, each_serializer: PostSerializer, only: {
@@ -77,7 +74,6 @@ Panko::ArraySerializer.new(posts, each_serializer: PostSerializer, only: {
   author: [:id],
   comments: [:id],
 })
-
 ```
 
 Let's dissect the `only` option we passed:
@@ -90,7 +86,6 @@ It's important to note that Nested Filters are recursive, in other words, we can
 For example, `CommentSerializer` has an `has_one` association `Author`, and for each `comments.author` we can only serialize it's name.
 
 ```ruby
-
 posts = Post.all
 
 Panko::ArraySerializer.new(posts, only: {
@@ -101,7 +96,6 @@ Panko::ArraySerializer.new(posts, only: {
     author: [:name]
   }
 })
-
 ```
 
 As you see now in `comments` the `instance` have different meaning, the `CommentSerializer`.

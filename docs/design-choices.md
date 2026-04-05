@@ -1,8 +1,11 @@
 ---
-id: design-choices
 title: Design Choices
-sidebar_label: Design Choices
+layout: default
+nav_order: 4
 ---
+
+# Design Choices
+
 In short, Panko is a serializer for ActiveRecord objects (it can't serialize any other object), which strives for high performance & simple API (which is inspired by ActiveModelSerializers).
 
 Its performance is achieved by:
@@ -19,21 +22,18 @@ First, let's start with an overview. Let's say we want to serialize an `User` ob
 The serializer definition will be something like this:
 
 ```ruby
-
 class UserSerializer < Panko::Serializer
   attributes :name, :age, :email
-  
+
   def name
     "#{object.first_name} #{object.last_name}"
   end
 end
-
 ```
 
 And the usage of this serializer will be:
 
 ```ruby
-
 # fetch user from database
 user = User.first
 
@@ -42,7 +42,6 @@ serializer = UserSerializer.new
 
 # serialize to JSON
 serializer.serialize_to_json(user)
-
 ```
 
 Let's go over the steps that Panko will execute behind the scenes for this flow.
@@ -78,7 +77,7 @@ If you read the code of ActiveRecord serialization code in Ruby, you will observ
 2.  Build a new array of hashes where each hash is an `User` with the attributes we selected.
 3.  The JSON serializer, takes this array of hashes and loop them, and converts it to a JSON string.
 
-This entire process is expensive in terms of Memory & CPU, and this where the combination of Panko and Oj::StringWriter really shines. 
+This entire process is expensive in terms of Memory & CPU, and this where the combination of Panko and Oj::StringWriter really shines.
 
 In Panko, the serialization process of the above is:
 
@@ -88,7 +87,7 @@ In Panko, the serialization process of the above is:
 
 ### Figuring out the metadata, ahead of time.
 
-Another observation I noticed in the Ruby serializers is that they ask and do a lot in a serialization loop: 
+Another observation I noticed in the Ruby serializers is that they ask and do a lot in a serialization loop:
 
 -   Is this field a method? is it a property?
 -   Which fields and associations do I need for the serializer to consider the `only` and `except` options?
