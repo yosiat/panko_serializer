@@ -1,8 +1,11 @@
 ---
-id: performance
 title: Performance
-sidebar_label: Performance
+layout: default
+nav_order: 3
 ---
+
+# Performance
+
 The performance of Panko is measured using microbenchmarks and load testing.
 
 ## Microbenchmarks

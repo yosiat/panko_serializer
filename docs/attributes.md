@@ -1,8 +1,12 @@
 ---
-id: attributes
 title: Attributes
-sidebar_label: Attributes
+layout: default
+nav_order: 5
+parent: Reference
 ---
+
+# Attributes
+
 Attributes allow you to specify which record attributes you want to serialize.
 
 There are two types of attributes:
@@ -11,7 +15,6 @@ There are two types of attributes:
 -   Virtual/Method - this allows to include properties beyond simple fields.
 
 ```ruby
-
 class UserSerializer < Panko::Serializer
   attributes :full_name
 
@@ -19,14 +22,13 @@ class UserSerializer < Panko::Serializer
     "#{object.first_name} #{object.last_name}"
    end
 end
-
 ```
 
 ## Field Attributes
 
 Using field attributes you can control which columns of the given ActiveRecord object you want to serialize.
 
-Instead of relying on ActiveRecord to do it's type casting, Panko does on it's own for performance reasons (read more in [Design Choices](design-choices.md#type-casting)).
+Instead of relying on ActiveRecord to do it's type casting, Panko does on it's own for performance reasons (read more in [Design Choices]({% link design-choices.md %}#type-casting)).
 
 ## Method Attributes
 
@@ -35,7 +37,6 @@ Method attributes are used when your serialized values can be derived from the o
 The serializer's attribute methods can access the object being serialized as `object`:
 
 ```ruby
-
 class PostSerializer < Panko::Serializer
   attributes :author_name
 
@@ -43,7 +44,6 @@ class PostSerializer < Panko::Serializer
     "#{object.author.first_name} #{object.author.last_name}"
   end
 end
-
 ```
 
 Another useful thing you can pass your serializer is `context`, a `context` is a bag of data whom your serializer may need.
@@ -51,7 +51,6 @@ Another useful thing you can pass your serializer is `context`, a `context` is a
 For example, here we will pass feature flags:
 
 ```ruby
-
 class UserSerializer < Panko::Serializer
   attributes :id, :email
 
@@ -65,7 +64,6 @@ serializer = UserSerializer.new(context: {
 })
 
 serializer.serialize(User.first)
-
 ```
 
 ## Filters
@@ -80,7 +78,6 @@ There are two types of filters:
 Usage example:
 
 ```ruby
-
 class UserSerializer < Panko::Serializer
   attributes :id, :name, :email
 end
@@ -90,11 +87,10 @@ UserSerializer.new(only: [:name]).serialize(User.first)
 
 # this line will return { 'id': '..', 'email': ... }
 UserSerializer.new(except: [:name]).serialize(User.first)
-
 ```
 
-&gt; **Note** that if you want to user filter on an associations, the `:name` property is not taken into account.
-If you have a `has_many :state_transitions, name: :history` association defined, the key to use in filters is 
+> **Note** that if you want to user filter on an associations, the `:name` property is not taken into account.
+If you have a `has_many :state_transitions, name: :history` association defined, the key to use in filters is
 `:state_transitions` (e.g. `{ except: [:state_transitions] }`).
 
 ## Filters For
@@ -103,7 +99,6 @@ Sometimes you find yourself having the same filtering logic in actions. In order
 solve this duplication, Panko allows you to write the filters in the serializer.
 
 ```ruby
-
 class UserSerializer < Panko::Serializer
   attributes :id, :name, :email
 
@@ -116,17 +111,15 @@ end
 
 # this line will return { 'name': '..' }
 UserSerializer.serialize(User.first)
-
 ```
 
-&gt; See discussion in: [https:](https://github.com/yosiat/panko_serializer/issues/16)
+> See discussion in: [https://github.com/yosiat/panko_serializer/issues/16](https://github.com/yosiat/panko_serializer/issues/16)
 
 ## Aliases
 
 Let's say we have an attribute name that we want to expose to client as different name, the current way of doing so is using method attribute, for example:
 
 ```ruby
-
 class PostSerializer < Panko::Serializer
   attributes :published_at
 
@@ -134,7 +127,6 @@ class PostSerializer < Panko::Serializer
     object.created_at
   end
 end
-
 ```
 
 The downside of this approach is that `created_at` skips Panko's type casting, therefore we get a direct hit on performance.
@@ -142,9 +134,7 @@ The downside of this approach is that `created_at` skips Panko's type casting, t
 To fix this, we can use aliases:
 
 ```ruby
-
 class PostSerializer < Panko::Serializer
   aliases created_at: :published_at
 end
-
 ```
