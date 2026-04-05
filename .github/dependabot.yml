@@ -3,4 +3,22 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
+
+  - package-ecosystem: "bundler"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+    groups:
+      docs-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "bundler"
+    directory: "/gemfiles"
+    schedule:
+      interval: "weekly"
+    groups:
+      gemfiles-dependencies:
+        patterns:
+          - "*"
