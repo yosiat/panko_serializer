@@ -98,9 +98,10 @@ module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
     end
   end
 
-  @@writer = Writer.new
-
+  # Each thread gets its own Writer instance so the mutable
+  # DateTimeWriter buffer is never shared across Puma workers.
   def self.write(writer, attribute, value)
-    @@writer.write(writer, attribute, value)
+    w = Thread.current[:panko_values_writer] ||= Writer.new
+    w.write(writer, attribute, value)
   end
 end
