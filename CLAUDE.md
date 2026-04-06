@@ -14,41 +14,42 @@ These are equally critical. A commit with failing tests or rubocop offenses is n
 ## Commands
 
 ```bash
-# Run tests
-bundle exec rake
+# IMPORTANT: Always use appraisal to run tests and benchmarks.
+# The main Gemfile does not include database adapters — only Appraisal gemfiles do.
+# Running bare `bundle exec rake` or `bundle exec rspec` will fail with LoadError.
+
+# Test all versions of Rails (required before every commit)
+bundle exec appraisal rake
+
+# Test against a specific Rails version (see gemfiles/ for available versions)
+bundle exec appraisal <RAILS_VERSION> rake
 
 # Run a single spec file
-bundle exec rspec spec/panko/serializer_spec.rb
+bundle exec appraisal <RAILS_VERSION> rspec spec/panko/serializer_spec.rb
+
+# Regenerate gemfiles after editing Appraisals
+bundle exec appraisal install
 
 # Lint Ruby
-bundle exec rake rubocop
+bundle exec rubocop
 
 # Auto-correct Ruby lint issues
 bundle exec rubocop -a
 
 # Run all benchmarks
-bundle exec rake benchmarks:all
+bundle exec appraisal <RAILS_VERSION> rake benchmarks:all
 
 # Run a specific benchmark
-bundle exec rake benchmarks:run[panko_json]
+bundle exec appraisal <RAILS_VERSION> rake "benchmarks:run[panko_json]"
 
 # Run type_casts benchmarks (all or specific provider)
-bundle exec rake benchmarks:run[type_casts]
-bundle exec rake benchmarks:run[type_casts:postgresql]
+bundle exec appraisal <RAILS_VERSION> rake "benchmarks:run[type_casts]"
+bundle exec appraisal <RAILS_VERSION> rake "benchmarks:run[type_casts:postgresql]"
 
 # Env vars: BENCH=pattern SIZE=N PROFILE=cpu|memory IPS_TIME=N IPS_WARMUP=N
-BENCH=HasOne ruby benchmarks/panko_json.rb
-SIZE=2300 ruby benchmarks/panko_json.rb
-PROFILE=cpu ruby benchmarks/panko_json.rb
-
-# Test all versions of Rails (import for sanity checks)
-bundle exec appraisal rake
-
-# Test against a specific Rails version (uses Appraisal)
-bundle exec appraisal 8.0.0 rake
-
-# Regenerate gemfiles after editing Appraisals
-bundle exec appraisal install
+BENCH=HasOne bundle exec appraisal <RAILS_VERSION> ruby benchmarks/panko_json.rb
+SIZE=2300 bundle exec appraisal <RAILS_VERSION> ruby benchmarks/panko_json.rb
+PROFILE=cpu bundle exec appraisal <RAILS_VERSION> ruby benchmarks/panko_json.rb
 ```
 
 ## Documentation Conventions
@@ -144,5 +145,3 @@ Benchmarks use `benchmark-ips` comparing against a baseline. Key strategies:
 - Use `object.equal?(other)` identity checks (not `==`) to detect same query batch
 - Access association targets directly via `association().target` to bypass Rails proxy
 - Use positional args in tight loops to avoid keyword-argument overhead
-
-Benchmark results are tracked in `benchmarks/BENCHMARKS.md`.
