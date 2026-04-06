@@ -99,8 +99,7 @@ module Panko::Engine
 
     def write_fields(object, writer)
       aw = @attributes_writer
-      if aw
-      else
+      unless aw
         aw = Panko::Engine::AttributesWriter.create(object)
         @attributes_writer = aw
         @descriptor.attributes_writer = aw
