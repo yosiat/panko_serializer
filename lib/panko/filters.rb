@@ -54,6 +54,10 @@ module Panko
       filters = options.fetch(filter, EMPTY)
       return filters, EMPTY if filters.is_a?(Array)
 
+      unless filters.is_a?(Hash)
+        raise ArgumentError, "#{filter} must be an Array or Hash, got #{filters.class}"
+      end
+
       return [], EMPTY if filters.empty?
 
       attributes_filters = filters.fetch(:instance, [])
