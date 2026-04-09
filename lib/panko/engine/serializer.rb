@@ -109,13 +109,20 @@ module Panko::Engine
 
     def serialize_has_one_assocs(object, writer)
       @has_one_assocs.each do |assoc|
-        # For ActiveRecord objects, bypass the association proxy by calling
-        # association().target directly. This skips the stale_target? check
-        # and reader method overhead on the hot path.
-        # For plain Ruby objects (PORO), fall back to public_send.
+        # For ActiveRecord objects with a real AR association, bypass the
+        # association proxy by calling association().target directly. This
+        # skips the stale_target? check and reader method overhead.
+        # Skipping stale_target? is safe because serialization is read-only —
+        # no one mutates foreign keys between loading and serializing.
+        # Falls back to public_send for POROs or when the serializer's
+        # has_one points to a plain method rather than an AR association.
         value = if object.respond_to?(:association)
-          ar_assoc = object.association(assoc.name_sym)
-          ar_assoc.loaded? ? ar_assoc.target : object.public_send(assoc.name_sym)
+          begin
+            ar_assoc = object.association(assoc.name_sym)
+            ar_assoc.loaded? ? ar_assoc.target : object.public_send(assoc.name_sym)
+          rescue ActiveRecord::AssociationNotFoundError
+            object.public_send(assoc.name_sym)
+          end
         else
           object.public_send(assoc.name_sym)
         end
