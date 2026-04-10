@@ -5,11 +5,6 @@ require "benchmark/ips"
 require "memory_profiler"
 require "active_support/all"
 
-# Hack to fix errors in C extension complaining about `uninitialized constant ActiveRecord::ConnectionAdapters::PostgreSQL`
-require "active_record"
-require "pg"
-require "active_record/connection_adapters/postgresql_adapter"
-
 # Enable YJIT if available (Ruby 3.1+)
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT.enable)
 
