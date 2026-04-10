@@ -34,21 +34,22 @@ static int initiailized = 0;
 VALUE cache_postgres_type_lookup(VALUE ar) {
   VALUE ar_connection_adapters, ar_postgresql, ar_oid;
 
-  ar_connection_adapters = rb_const_get_at(ar, rb_intern("ConnectionAdapters"));
-  if (ar_connection_adapters == Qundef) {
+  if (rb_const_defined_at(ar, rb_intern("ConnectionAdapters")) != (int)Qtrue) {
     return Qfalse;
   }
+  ar_connection_adapters = rb_const_get_at(ar, rb_intern("ConnectionAdapters"));
 
+  if (rb_const_defined_at(ar_connection_adapters, rb_intern("PostgreSQL")) !=
+      (int)Qtrue) {
+    return Qfalse;
+  }
   ar_postgresql =
       rb_const_get_at(ar_connection_adapters, rb_intern("PostgreSQL"));
-  if (ar_postgresql == Qundef) {
-    return Qfalse;
-  }
 
-  ar_oid = rb_const_get_at(ar_postgresql, rb_intern("OID"));
-  if (ar_oid == Qundef) {
+  if (rb_const_defined_at(ar_postgresql, rb_intern("OID")) != (int)Qtrue) {
     return Qfalse;
   }
+  ar_oid = rb_const_get_at(ar_postgresql, rb_intern("OID"));
 
   if (rb_const_defined_at(ar_oid, rb_intern("Float")) == (int)Qtrue) {
     ar_pg_float_type = rb_const_get_at(ar_oid, rb_intern("Float"));
@@ -85,18 +86,23 @@ VALUE cache_time_zone_type_lookup(VALUE ar) {
   VALUE ar_attr_methods, ar_time_zone_conversion;
 
   // ActiveRecord::AttributeMethods
-  ar_attr_methods = rb_const_get_at(ar, rb_intern("AttributeMethods"));
-  if (ar_attr_methods == Qundef) {
+  if (rb_const_defined_at(ar, rb_intern("AttributeMethods")) != (int)Qtrue) {
     return Qfalse;
   }
+  ar_attr_methods = rb_const_get_at(ar, rb_intern("AttributeMethods"));
 
   // ActiveRecord::AttributeMethods::TimeZoneConversion
-  ar_time_zone_conversion =
-      rb_const_get_at(ar_attr_methods, rb_intern("TimeZoneConversion"));
-  if (ar_time_zone_conversion == Qundef) {
+  if (rb_const_defined_at(ar_attr_methods, rb_intern("TimeZoneConversion")) !=
+      (int)Qtrue) {
     return Qfalse;
   }
+  ar_time_zone_conversion =
+      rb_const_get_at(ar_attr_methods, rb_intern("TimeZoneConversion"));
 
+  if (rb_const_defined_at(ar_time_zone_conversion,
+                          rb_intern("TimeZoneConverter")) != (int)Qtrue) {
+    return Qfalse;
+  }
   ar_time_zone_converter =
       rb_const_get_at(ar_time_zone_conversion, rb_intern("TimeZoneConverter"));
 
@@ -136,11 +142,16 @@ void cache_type_lookup() {
     ar_json_type = rb_const_get_at(ar_type, rb_intern("Json"));
   }
 
-  // TODO: if we get error or not, add this to some debug log
   int isErrored;
   rb_protect(cache_postgres_type_lookup, ar, &isErrored);
+  if (isErrored) {
+    rb_set_errinfo(Qnil);
+  }
 
   rb_protect(cache_time_zone_type_lookup, ar, &isErrored);
+  if (isErrored) {
+    rb_set_errinfo(Qnil);
+  }
 }
 
 bool is_string_or_text_type(VALUE type_klass) {
