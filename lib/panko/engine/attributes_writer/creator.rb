@@ -6,16 +6,28 @@ require_relative "active_record/writer"
 
 module Panko::Engine
   module AttributesWriter
-    def self.create(object)
+    # Returns the writer class appropriate for +object+ without instantiating.
+    #
+    # @param object [Object] the object to inspect
+    # @return [Class] the writer class
+    def self.writer_for(object)
       if defined?(::ActiveRecord::Base) && object.is_a?(::ActiveRecord::Base)
-        return ActiveRecord::Writer.new
+        return ActiveRecord::Writer
       end
 
       if object.is_a?(Hash)
-        return HashWriter.new
+        return HashWriter
       end
 
-      PlainWriter.new
+      PlainWriter
+    end
+
+    # Creates a new writer instance appropriate for +object+.
+    #
+    # @param object [Object] the object to inspect
+    # @return [ActiveRecord::Writer, HashWriter, PlainWriter]
+    def self.create(object)
+      writer_for(object).new
     end
   end
 end

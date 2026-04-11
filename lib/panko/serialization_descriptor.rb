@@ -82,6 +82,15 @@ module Panko
       end
     end
 
+    # Returns a cached Engine::Serializer for this descriptor.
+    # Safe to reuse on the same thread — Engine::Serializer's mutable state
+    # (attributes_writer) handles class changes internally.
+    #
+    # @return [Panko::Engine::Serializer]
+    def engine_serializer
+      @engine_serializer ||= Panko::Engine::Serializer.new(self)
+    end
+
     #
     # Applies attributes and association filters
     #

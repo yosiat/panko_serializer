@@ -26,7 +26,19 @@ module Panko::Engine
       mf_empty = @method_fields_empty
       ho_empty = @has_one_empty
       hm_empty = @has_many_empty
+
       aw = @attributes_writer
+
+      # Invalidate the cached writer if the object type no longer matches.
+      # This guards against a cached engine_serializer being reused across
+      # different object types (e.g. AR → Hash in tests).
+      if aw && !objects.empty?
+        expected_class = Panko::Engine::AttributesWriter.writer_for(objects[0])
+        unless aw.is_a?(expected_class)
+          @attributes_writer = nil
+          aw = nil
+        end
+      end
 
       if aw && mf_empty && hm_empty
         if ho_empty
@@ -99,11 +111,19 @@ module Panko::Engine
 
     def write_fields(object, writer)
       aw = @attributes_writer
-      unless aw
-        aw = Panko::Engine::AttributesWriter.create(object)
+
+      # Lazily create the attributes writer on first use, and recreate it if
+      # the object type changed (e.g. AR → Hash). This can happen when a
+      # cached Engine::Serializer (via descriptor.engine_serializer or
+      # thread-local descriptor reuse) is called with a different object type
+      # than the one that originally created the writer.
+      expected = Panko::Engine::AttributesWriter.writer_for(object)
+      if aw.nil? || !aw.is_a?(expected)
+        aw = expected.new
         @attributes_writer = aw
         @descriptor.attributes_writer = aw
       end
+
       aw.write_attributes(object, @descriptor, writer)
     end
 

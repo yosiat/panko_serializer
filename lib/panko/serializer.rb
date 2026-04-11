@@ -146,8 +146,7 @@ module Panko
 
     def serialize_with_writer(object, writer)
       raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
-      srz = Panko::Engine::Serializer.new(@descriptor)
-      srz.serialize_one(object: object, writer: writer)
+      @descriptor.engine_serializer.serialize_one(object: object, writer: writer)
       @used = true
       writer
     end
