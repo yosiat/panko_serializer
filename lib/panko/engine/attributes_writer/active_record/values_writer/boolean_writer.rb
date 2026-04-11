@@ -1,0 +1,41 @@
+# frozen_string_literal: true
+
+module Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
+  class BooleanWriter
+    def write(value, writer, key)
+      if value == true || value == false
+        writer.push_value(value, key)
+        return true
+      end
+
+      if value.nil?
+        writer.push_value(nil, key)
+        return true
+      end
+
+      if value.is_a?(String)
+        return nil if value.length == 0
+
+        is_false_value =
+          value == "0" || (value == "f" || value == "F") ||
+          (value.downcase == "false" || value.downcase == "off")
+
+        writer.push_value(is_false_value ? false : true, key)
+        return true
+      end
+
+      if value.is_a?(Integer)
+        writer.push_value(value == 1, key)
+      end
+
+      false
+    end
+
+    # Whether +push_value+ alone is sufficient for this writer's common types,
+    # allowing the caller to skip the nil check and writer dispatch entirely.
+    # @return [Boolean]
+    def nil_safe_push?
+      true
+    end
+  end
+end

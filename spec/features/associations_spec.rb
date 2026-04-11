@@ -183,6 +183,26 @@ describe "Associations Serialization" do
       expect(foo_holder).to serialized_as(FooHolderHasOneSerializer, "name" => foo_holder.name,
         "foo" => nil)
     end
+
+    it "serializes when association is not eager-loaded" do
+      class FooHolderHasOneNotEagerSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :foo, serializer: FooSerializer
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
+
+      not_eager = FooHolder.find(foo_holder.id)
+
+      expect(not_eager).to serialized_as(FooHolderHasOneNotEagerSerializer,
+        "name" => foo_holder.name,
+        "foo" => {
+          "name" => foo.name,
+          "address" => foo.address
+        })
+    end
   end
 
   context "has_one with different model types" do
@@ -758,6 +778,86 @@ describe "Associations Serialization" do
       expect(foos_holder).to serialized_as(FoosHolderEmptySerializer,
         "name" => foos_holder.name,
         "foos" => [])
+    end
+  end
+
+  context "method-based associations (no AR association)" do
+    before do
+      Temping.create(:post) do
+        with_columns do |t|
+          t.string :title
+          t.references :user
+        end
+
+        belongs_to :user, optional: true
+      end
+
+      Temping.create(:user) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        # No AR has_many :posts — just a plain method
+        define_method(:posts) { Post.where(user_id: id) }
+        define_method(:latest_post) { Post.where(user_id: id).order(id: :desc).first }
+      end
+    end
+
+    let(:post_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :title
+      end
+    end
+
+    before { stub_const("PostSerializer", post_serializer_class) }
+
+    it "serializes has_many backed by a plain method" do
+      class UserHasManyMethodSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :posts, serializer: PostSerializer
+      end
+
+      user = User.create(name: Faker::Lorem.word)
+      post1 = Post.create(title: Faker::Lorem.word, user: user)
+      post2 = Post.create(title: Faker::Lorem.word, user: user)
+
+      expect(user).to serialized_as(UserHasManyMethodSerializer,
+        "name" => user.name,
+        "posts" => [
+          {"title" => post1.title},
+          {"title" => post2.title}
+        ])
+    end
+
+    it "serializes has_one backed by a plain method" do
+      class UserHasOneMethodSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :latest_post, serializer: PostSerializer
+      end
+
+      user = User.create(name: Faker::Lorem.word)
+      Post.create(title: "older", user: user)
+      latest = Post.create(title: "newest", user: user)
+
+      expect(user).to serialized_as(UserHasOneMethodSerializer,
+        "name" => user.name,
+        "latest_post" => {"title" => latest.title})
+    end
+
+    it "serializes has_one method returning nil" do
+      class UserHasOneMethodNilSerializer < Panko::Serializer
+        attributes :name
+
+        has_one :latest_post, serializer: PostSerializer
+      end
+
+      user = User.create(name: Faker::Lorem.word)
+
+      expect(user).to serialized_as(UserHasOneMethodNilSerializer,
+        "name" => user.name,
+        "latest_post" => nil)
     end
   end
 

@@ -3,7 +3,6 @@
 require "bundler/setup"
 require "benchmark/ips"
 require "memory_profiler"
-require "active_support/all"
 
 # Enable YJIT if available (Ruby 3.1+)
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT.enable)
@@ -81,7 +80,6 @@ def print_header
   return if @header_printed
 
   @header_printed = true
-
   title = File.basename($PROGRAM_NAME, ".*")
   width = 78
   puts "=" * width

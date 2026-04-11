@@ -128,17 +128,20 @@ describe Panko::ArraySerializer do
     let(:mock_serializer) { Class.new(Panko::Serializer) }
     let(:subjects) { [double("obj1"), double("obj2")] }
     let(:array_serializer) { Panko::ArraySerializer.new(subjects, each_serializer: mock_serializer) }
+    let(:mock_impl_srz) { double("srz", _serialize_many: nil) }
+
+    before do
+      allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
+    end
 
     describe "#serialize" do
-      it "calls Panko.serialize_objects with correct parameters" do
+      it "creates Panko::Engine::Serializer with correct descriptor" do
         mock_writer = double("writer", output: [])
         allow(Panko::ObjectWriter).to receive(:new).and_return(mock_writer)
 
-        expect(Panko).to receive(:serialize_objects).with(
-          subjects,
-          mock_writer,
+        expect(Panko::Engine::Serializer).to receive(:new).with(
           array_serializer.instance_variable_get(:@descriptor)
-        )
+        ).and_return(mock_impl_srz)
 
         array_serializer.serialize(subjects)
       end
@@ -149,11 +152,7 @@ describe Panko::ArraySerializer do
         mock_writer = double("writer", output: [])
         allow(Panko::ObjectWriter).to receive(:new).and_return(mock_writer)
 
-        expect(Panko).to receive(:serialize_objects).with(
-          subjects,
-          mock_writer,
-          anything
-        )
+        expect(mock_impl_srz).to receive(:_serialize_many).with(subjects, mock_writer)
 
         array_serializer.to_a
       end
@@ -163,7 +162,6 @@ describe Panko::ArraySerializer do
       it "uses Oj::StringWriter for JSON output" do
         mock_writer = double("writer", to_s: "[]")
         allow(Oj::StringWriter).to receive(:new).with(mode: :rails).and_return(mock_writer)
-        allow(Panko).to receive(:serialize_objects)
 
         result = array_serializer.serialize_to_json(subjects)
         expect(result).to eq("[]")

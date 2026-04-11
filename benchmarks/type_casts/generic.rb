@@ -6,15 +6,30 @@ require "panko_serializer"
 
 Time.zone = "UTC"
 
+VW = Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
+
+class TypeAttribute
+  attr_reader :name_for_serialization, :type
+  attr_accessor :cached_writer
+
+  def initialize(name:, type:)
+    @name_for_serialization = name
+    @type = type
+    @cached_writer = nil
+  end
+end
+
 def bench_type(type_klass, from, to, label: type_klass.name)
   converter = type_klass.new
+  writer = NoopWriter.new
+  attribute = TypeAttribute.new(name: "key", type: converter)
 
   benchmark("#{label} TypeCast") do
-    Panko._type_cast(converter, from)
+    VW.write(writer, attribute, from)
   end
 
   benchmark("#{label} NoTypeCast") do
-    Panko._type_cast(converter, to)
+    VW.write(writer, attribute, to)
   end
 end
 

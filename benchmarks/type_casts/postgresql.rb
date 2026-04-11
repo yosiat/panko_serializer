@@ -14,15 +14,30 @@ end
 
 Time.zone = "UTC"
 
+VW = Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter
+
+class TypeAttribute
+  attr_reader :name_for_serialization, :type
+  attr_accessor :cached_writer
+
+  def initialize(name:, type:)
+    @name_for_serialization = name
+    @type = type
+    @cached_writer = nil
+  end
+end
+
 def bench_type(type_klass, from, to, label: type_klass.name)
   converter = type_klass.new
+  writer = NoopWriter.new
+  attribute = TypeAttribute.new(name: "key", type: converter)
 
   benchmark("#{label} TypeCast") do
-    Panko._type_cast(converter, from)
+    VW.write(writer, attribute, from)
   end
 
   benchmark("#{label} NoTypeCast") do
-    Panko._type_cast(converter, to)
+    VW.write(writer, attribute, to)
   end
 end
 
@@ -77,8 +92,10 @@ end
 if defined?(PG_OID::DateTime)
   tz_type = PG_OID::DateTime.new
   tz_converter = ActiveRecord::AttributeMethods::TimeZoneConversion::TimeZoneConverter.new(tz_type)
+  writer = NoopWriter.new
+  attribute = TypeAttribute.new(name: "key", type: tz_converter)
 
   benchmark("PG DateTime+TZ TypeCast") do
-    Panko._type_cast(tz_converter, "2017-07-10 09:26:40.937392")
+    VW.write(writer, attribute, "2017-07-10 09:26:40.937392")
   end
 end

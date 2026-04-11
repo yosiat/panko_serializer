@@ -32,7 +32,7 @@ end
 
 module Panko
   class Serializer
-    SKIP = Object.new.freeze
+    SKIP = Panko::Engine::SKIP
 
     class << self
       def inherited(base)
@@ -40,8 +40,6 @@ module Panko
           base._descriptor = Panko::SerializationDescriptor.new
 
           base._descriptor.attributes = []
-          base._descriptor.aliases = {}
-
           base._descriptor.method_fields = []
 
           base._descriptor.has_many_associations = []
@@ -53,6 +51,16 @@ module Panko
       end
 
       attr_accessor :_descriptor
+
+      # Returns a thread-local duplicate of the class descriptor.
+      # Amortizes duplication cost: one duplicate per thread per serializer
+      # class, reused for all subsequent filterless calls on that thread.
+      #
+      # @return [Panko::SerializationDescriptor]
+      def _thread_local_descriptor
+        key = @_thread_local_key ||= :"_panko_desc_#{object_id}"
+        Thread.current[key] ||= Panko::SerializationDescriptor.duplicate(_descriptor)
+      end
 
       def attributes(*attrs)
         @_descriptor.attributes.push(*attrs.map { |attr| Attribute.create(attr) }).uniq!
@@ -123,7 +131,7 @@ module Panko
       @serialization_context.scope
     end
 
-    attr_writer :serialization_context
+    attr_accessor :serialization_context
     attr_reader :object
 
     def serialize(object)
@@ -138,7 +146,7 @@ module Panko
 
     def serialize_with_writer(object, writer)
       raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
-      Panko.serialize_object(object, writer, @descriptor)
+      @descriptor.engine_serializer.serialize_one(object: object, writer: writer)
       @used = true
       writer
     end

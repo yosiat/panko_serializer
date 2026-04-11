@@ -30,7 +30,6 @@ describe Panko::Serializer do
 
         descriptor = serializer_class._descriptor
         expect(descriptor.attributes).to eq([])
-        expect(descriptor.aliases).to eq({})
         expect(descriptor.method_fields).to eq([])
         expect(descriptor.has_many_associations).to eq([])
         expect(descriptor.has_one_associations).to eq([])
@@ -182,8 +181,9 @@ describe Panko::Serializer do
         serializer = serializer_class.new
         mock_object = double("object")
 
-        # Mock the Panko.serialize_object call to avoid dependencies
-        allow(Panko).to receive(:serialize_object)
+        # Stub Panko::Engine::Serializer to avoid dependencies on the object's attributes
+        mock_impl_srz = double("srz", serialize_one: nil)
+        allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
 
         # First call should work
         expect { serializer.serialize(mock_object) }.not_to raise_error

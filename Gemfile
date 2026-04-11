@@ -22,7 +22,6 @@ group :development do
   gem "byebug"
   gem "rake"
   gem "rspec", "~> 3.0"
-  gem "rake-compiler"
 end
 
 group :development, :test do

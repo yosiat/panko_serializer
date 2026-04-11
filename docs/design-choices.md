@@ -54,15 +54,20 @@ Serialization Descriptor's goal is to answer those questions:
 -   Which method fields do we have? In our case `:name`.
 -   Which associations do we have (and their serialization descriptors)?
 
-The serialization description is also responsible for filtering the attributes (`only` \\ `except`).
+The serialization descriptor is a plain data container — it does not contain filtering logic. All `:only`/`:except` filtering is handled by `Panko::Filters`, a stateless filter engine that resolves options against the descriptor's attributes, method fields, and associations.
 
-Now, that we have the serialization descriptor, we are finished with the Ruby part of Panko, and all we did here is done in _initialization time_ and now we move to C code.
+Now, that we have the serialization descriptor, the **Engine** (`Panko::Engine::Serializer`) takes over. It receives the `user` object and the serialization descriptor, and starts the serialization process which is separated to 3 parts:
 
-In C land, we take the `user` object and the serialization descriptor, and start the serialization process which is separated to 4 parts:
+-   Serializing Fields — looping through the descriptor's `fields`, reading them from the ActiveRecord object (see `Type Casting`), and writing them to the `Oj::StringWriter`.
+-   Serializing Method Fields — setting the serializer's `@object` and `@context`, calling all the method fields and writing their return values to the writer.
+-   Serializing Associations — repeating the process recursively for each `has_one`/`has_many` association.
 
--   Serializing Fields - looping through serialization descriptor's `fields` and read them from the ActiveRecord object (see `Type Casting`) and write them to the writer.
--   Serializing Method Fields - creating (a cached) serializer instance, setting its `@object` and `@context`, calling all the method fields and writing them to the writer.
--   Serializing associations — this is simple, once we have fields + method fields, we just repeat the process.
+The Engine contains multiple fast paths optimized for common cases:
+-   **Ultra-fast path** — attributes only, no methods or associations. Pre-computes column index and writer caches for pure array access in the inner loop.
+-   **Fast path** — attributes + a single `has_one` association. Inlines the association serialization to avoid method call overhead.
+-   **Full path** — attributes + methods + associations. The general case.
+
+For `serialize_many` (array serialization), the Engine inlines all work directly — it does not call `_serialize_one` per record — to maximize throughput.
 
 Once this is finished, we have a nice JSON string.
 Now let's dig deeper.
@@ -111,16 +116,20 @@ If we think about it, we don't need to duplicate strings or convert time strings
 What Panko does is that if we have ActiveRecord type string, we won't duplicate it.
 If we have an integer string value, we will convert it to an integer, and the same goes for other types.
 
-All of these conversions are done in C, which of course yields a big performance improvement.
+Panko includes specialized value writers for each type — `StringWriter`, `IntegerWriter`, `FloatWriter`, `BooleanWriter`, `DateTimeWriter`, `JsonWriter`, and `SubtypeWriter`. Each writer knows how to read the raw database value and push it directly to `Oj::StringWriter`, bypassing ActiveRecord's type casting entirely. The writer for each attribute is resolved once on the first record and cached for all subsequent records in the batch.
 
 #### Time type casting
 
-While you read Panko source code, you will encounter the time type casting and immediately you will have a "WTF?" moment.
-
-The idea behind the time type casting code relies on the end result of JSON type casting — what we need in order to serialize Time to JSON? UTC ISO8601 time format representation.
+The `DateTimeWriter` handles time type casting with a focus on zero allocations. The goal is to produce a UTC ISO8601 string for JSON output without creating intermediate `Time` objects.
 
 The time type casting works as follows:
 
--   If it's a string that ends with `Z`, and the strings matches the UTC ISO8601 regex, then we just return the string.
--   If it's a string and it doesn't follow the rules above, we check if it's a timestamp in database format and convert it via regex + string concat to UTC ISO8601 - Yes, there is huge assumption here, that the database returns UTC timestamps — this will be configurable (before Panko official release).
--   If it's none of the above, I will let ActiveRecord type casting do it's magic.
+-   If it's a string that ends with `Z`, and the string matches the UTC ISO8601 regex, then we just return the string.
+-   If it's a string in database timestamp format, we convert it to UTC ISO8601 using `bytesplice` directly on a reusable buffer — no intermediate string allocations.
+-   If it's none of the above, we let ActiveRecord type casting do its magic.
+
+### IndexedRow fast path
+
+On Rails 7.2+, ActiveRecord uses `ActiveRecord::Result::IndexedRow` to store query results as arrays with a shared column-index map, rather than individual attribute hashes per record. Panko detects this and takes a fast path: it reads attribute values directly from the raw row array using pre-computed column indexes, achieving O(1) field access and avoiding the overhead of ActiveRecord's attribute hash lookup.
+
+When serializing a batch of records from the same query, the column indexes are identical for every row. Panko uses object identity checks (`equal?`) to detect this and skips redundant setup work, making batch serialization especially fast.
