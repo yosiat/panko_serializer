@@ -193,7 +193,8 @@ describe Panko::Engine::AttributesWriter::ActiveRecord::RecordState do
         obj2 = make_indexed_record(klass, column_indexes: col_indexes, row: new_row, types: types)
         # Reuse the same col_indexes object identity to trigger fast path
         attrs_set2 = double("attrs_set2")
-        indexed_row2 = double("indexed_row2")
+        indexed_row2 = instance_double(ActiveRecord::Result::IndexedRow)
+        allow(indexed_row2).to receive(:is_a?).with(ActiveRecord::Result::IndexedRow).and_return(true)
         allow(indexed_row2).to receive(:_panko_column_indexes).and_return(col_indexes)
         allow(indexed_row2).to receive(:_panko_row).and_return(new_row)
         allow(attrs_set2).to receive(:_panko_values).and_return(indexed_row2)

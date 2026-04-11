@@ -52,6 +52,16 @@ module Panko
 
       attr_accessor :_descriptor
 
+      # Returns a thread-local duplicate of the class descriptor.
+      # Amortizes duplication cost: one duplicate per thread per serializer
+      # class, reused for all subsequent filterless calls on that thread.
+      #
+      # @return [Panko::SerializationDescriptor]
+      def _thread_local_descriptor
+        key = @_thread_local_key ||= :"_panko_desc_#{object_id}"
+        Thread.current[key] ||= Panko::SerializationDescriptor.duplicate(_descriptor)
+      end
+
       def attributes(*attrs)
         @_descriptor.attributes.push(*attrs.map { |attr| Attribute.create(attr) }).uniq!
       end

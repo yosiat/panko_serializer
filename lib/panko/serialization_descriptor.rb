@@ -25,15 +25,29 @@ module Panko
     # on the new descriptor
     #
     def self.build(serializer, options = {}, serialization_context = nil)
-      backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
+      has_filters = options.key?(:only) || options.key?(:except)
+      has_context = options.key?(:context) || options.key?(:scope)
 
-      options.merge! serializer.filters_for(options[:context], options[:scope]) if serializer.respond_to? :filters_for
+      if serializer.respond_to?(:filters_for)
+        extra = serializer.filters_for(options[:context], options[:scope])
+        has_filters ||= extra.key?(:only) || extra.key?(:except)
+        options.merge!(extra)
+      end
 
-      backend.apply_filters(options)
-
-      backend.set_serialization_context(serialization_context)
-
-      backend
+      if has_filters || has_context
+        backend = Panko::SerializationDescriptor.duplicate(serializer._descriptor)
+        backend.apply_filters(options)
+        backend.set_serialization_context(serialization_context)
+        backend
+      else
+        # Fast path: no filters, no context — reuse a thread-local copy.
+        # Each thread gets its own duplicated descriptor (with its own
+        # serializer instance and association caches), avoiding the cost
+        # of duplicating on every call while remaining thread-safe.
+        descriptor = serializer._thread_local_descriptor
+        descriptor.set_serialization_context(serialization_context)
+        descriptor
+      end
     end
 
     #

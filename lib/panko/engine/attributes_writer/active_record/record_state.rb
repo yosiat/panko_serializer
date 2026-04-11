@@ -83,7 +83,10 @@ module Panko::Engine::AttributesWriter::ActiveRecord
 
       # IndexedRow fast path: if column_indexes reference is identical, we are
       # in the same query batch and only the row data changed.
-      if @is_indexed_row && @column_indexes.equal?(values._panko_column_indexes)
+      # The is_a? guard handles the case where a reused RecordState (e.g. via
+      # thread-local descriptor caching) previously saw an IndexedRow but is
+      # now called with a non-indexed object.
+      if @is_indexed_row && values.is_a?(::ActiveRecord::Result::IndexedRow) && @column_indexes.equal?(values._panko_column_indexes)
         @row = values._panko_row
         return false
       end
