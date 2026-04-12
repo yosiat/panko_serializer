@@ -131,7 +131,12 @@ describe Panko::ArraySerializer do
     let(:mock_impl_srz) { double("srz", _serialize_many: nil) }
 
     before do
+      Panko::CodeGen.disable!
       allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
+    end
+
+    after do
+      Panko::CodeGen.enable!
     end
 
     describe "#serialize" do

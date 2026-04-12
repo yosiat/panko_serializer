@@ -12,7 +12,7 @@ module Panko
     end
 
     def serializer_writer
-      @serializer_writer ||= Engine::Serializer.new(@descriptor)
+      @serializer_writer ||= @descriptor.engine_serializer
     end
 
     def duplicate

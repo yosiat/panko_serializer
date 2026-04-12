@@ -82,13 +82,19 @@ module Panko
       end
     end
 
-    # Returns a cached Engine::Serializer for this descriptor.
-    # Safe to reuse on the same thread — Engine::Serializer's mutable state
-    # (attributes_writer) handles class changes internally.
+    # Returns a cached serializer for this descriptor.
+    # When CodeGen is enabled and the descriptor has plain attributes only
+    # (no method fields, no associations), returns a compiled generated class.
+    # Otherwise falls back to Engine::Serializer.
     #
-    # @return [Panko::Engine::Serializer]
+    # @return [Class, Panko::Engine::Serializer]
     def engine_serializer
-      @engine_serializer ||= Panko::Engine::Serializer.new(self)
+      @engine_serializer ||= if Panko::CodeGen.enabled? && method_fields.empty? &&
+          has_one_associations.empty? && has_many_associations.empty?
+        Panko::CodeGen::Compiler.new(self).compile
+      else
+        Panko::Engine::Serializer.new(self)
+      end
     end
 
     #

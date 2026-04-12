@@ -24,8 +24,8 @@ module Panko
       def compile
         klass = Class.new(GeneratedBase)
 
-        ar_writer = ActiveRecordAttributesWriter.new(attrs: @attrs, klass: klass)
-        klass.instance_variable_set(:@_ar_writer, ar_writer)
+        klass._ar_writer = ActiveRecordAttributesWriter.new(attrs: @attrs, klass: klass)
+        klass._attrs = @attrs
 
         define_on(klass, gen_write_indexed_cached, "_write_indexed_cached")
         define_on(klass, gen_write_indexed_cached_filtered, "_write_indexed_cached_filtered")
@@ -33,7 +33,10 @@ module Panko
         define_on(klass, gen_write_indexed_first_pass_filtered, "_write_indexed_first_pass_filtered")
         define_on(klass, gen_write_ar_fallback, "_write_ar_fallback")
         define_on(klass, gen_write_ar_fallback_filtered, "_write_ar_fallback_filtered")
+        define_on(klass, gen_write_hash, "_write_hash")
+        define_on(klass, gen_write_plain, "_write_plain")
         define_on(klass, gen_write_one, "_write_one")
+        define_on(klass, gen_serialize_many, "_serialize_many")
 
         klass
       end
@@ -132,17 +135,72 @@ module Panko
         e.to_source
       end
 
-      # Generates +_write_one+ — object-type dispatch.
-      # Handles AR objects only for now. Hash/PORO support added in later commits.
+      # Generates +_write_hash+ — unrolled Hash attribute reads.
+      def gen_write_hash
+        e = Emitter.new
+        e << "def self._write_hash(object, writer)"
+        e << "attrs = @_attrs"
+        @n.times { |i| e.emit_hash_attr(i) }
+        e << "end"
+        e.to_source
+      end
+
+      # Generates +_write_plain+ — unrolled PORO attribute reads.
+      def gen_write_plain
+        e = Emitter.new
+        e << "def self._write_plain(object, writer)"
+        e << "attrs = @_attrs"
+        @n.times { |i| e.emit_plain_attr(i) }
+        e << "end"
+        e.to_source
+      end
+
+      # Generates +_serialize_many+ — overrides GeneratedBase to resolve the
+      # object type once from the first element, then uses a tight per-type loop.
+      def gen_serialize_many
+        <<~RUBY
+          def self._serialize_many(objects, writer, key = nil, filter_mask: nil)
+            writer.push_array(key)
+            if objects.empty?
+              writer.pop
+              return
+            end
+
+            first = objects.is_a?(Array) ? objects[0] : objects.first
+            if first.is_a?(ActiveRecord::Base)
+              objects.each do |obj|
+                writer.push_object
+                @_ar_writer.write(obj, writer, filter_mask)
+                writer.pop
+              end
+            elsif first.is_a?(Hash)
+              objects.each do |obj|
+                writer.push_object
+                _write_hash(obj, writer)
+                writer.pop
+              end
+            else
+              objects.each do |obj|
+                writer.push_object
+                _write_plain(obj, writer)
+                writer.pop
+              end
+            end
+            writer.pop
+          end
+        RUBY
+      end
+
+      # Generates +_write_one+ — object-type dispatch for single objects.
       def gen_write_one
         <<~RUBY
           def self._write_one(object, writer, filter_mask)
             if object.is_a?(ActiveRecord::Base)
               @_ar_writer.write(object, writer, filter_mask)
             elsif object.is_a?(Hash)
-              raise NotImplementedError, "Hash serialization not yet implemented in CodeGen"
+              _write_hash(object, writer)
             else
-              raise NotImplementedError, "Plain object serialization not yet implemented in CodeGen"
+              _write_plain(object, writer)
             end
           end
         RUBY

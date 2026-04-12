@@ -178,6 +178,9 @@ describe Panko::Serializer do
 
     describe "single-use enforcement" do
       it "raises error on second use" do
+        # Disable code-gen so the Engine::Serializer mock takes effect
+        Panko::CodeGen.disable!
+
         serializer = serializer_class.new
         mock_object = double("object")
 
@@ -190,6 +193,8 @@ describe Panko::Serializer do
 
         # Second call should raise error
         expect { serializer.serialize(mock_object) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
+      ensure
+        Panko::CodeGen.enable!
       end
     end
   end

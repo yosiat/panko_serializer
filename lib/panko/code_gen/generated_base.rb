@@ -19,6 +19,10 @@ module Panko
     # - +@_ar_writer+ — {ARWriter}, owns parallel caches and AR cold paths
     class GeneratedBase
       class << self
+        # Set by the Compiler during class generation.
+        # @!attribute [w] _ar_writer
+        # @!attribute [w] _attrs
+        attr_writer :_ar_writer, :_attrs
         # Serializes a single object to the given writer.
         #
         # @param object [Object] the object to serialize

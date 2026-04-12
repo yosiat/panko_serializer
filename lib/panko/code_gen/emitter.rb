@@ -162,6 +162,26 @@ module Panko
         self << "  Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, attrs[#{i}], v)"
         self << "end"
       end
+
+      # --- Hash object ---
+
+      # Emits one unrolled attribute read from a Hash object.
+      #
+      # @param i [Integer] attribute index
+      # @return [void]
+      def emit_hash_attr(i)
+        self << "writer.push_value(object[attrs[#{i}].name], attrs[#{i}].name_for_serialization)"
+      end
+
+      # --- Plain (PORO) object ---
+
+      # Emits one unrolled attribute read from a plain Ruby object.
+      #
+      # @param i [Integer] attribute index
+      # @return [void]
+      def emit_plain_attr(i)
+        self << "writer.push_value(object.public_send(attrs[#{i}].name_sym), attrs[#{i}].name_for_serialization)"
+      end
     end
   end
 end

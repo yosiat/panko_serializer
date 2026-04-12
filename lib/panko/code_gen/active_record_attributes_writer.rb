@@ -56,7 +56,8 @@ module Panko
       # @return [void]
       def write(object, writer, filter_mask)
         rs = record_state
-        rs.setup(object)
+        class_changed = rs.setup(object)
+        handle_class_change(rs) if class_changed
 
         if rs.is_indexed_row && !rs.has_attributes_hash
           if @caches_ready
@@ -105,6 +106,30 @@ module Panko
       # @return [Boolean]
       def caches_ready?
         @caches_ready
+      end
+
+      # Invalidates cached types/writers and resolves AR column aliases
+      # when the record class changes between calls.
+      def handle_class_change(rs)
+        @caches_ready = false
+        @col = nil
+
+        record_class = rs.last_record_class
+        return unless record_class.respond_to?(:attribute_aliases)
+
+        aliases_hash = record_class.attribute_aliases
+        has_aliases = !aliases_hash.empty?
+
+        @attrs.each do |attr|
+          attr.invalidate!
+          next unless has_aliases
+
+          aliased_value = aliases_hash[attr.name]
+          if aliased_value.present?
+            attr.alias_name = attr.name
+            attr.name = aliased_value
+          end
+        end
       end
 
       # Returns the thread-local RecordState for this writer.

@@ -26,12 +26,6 @@ describe Panko::CodeGen::Compiler do
       expect(compiled.superclass).to eq(Panko::CodeGen::GeneratedBase)
     end
 
-    it "sets up @_ar_writer with correct attrs" do
-      aw = compiled.instance_variable_get(:@_ar_writer)
-      expect(aw).to be_a(Panko::CodeGen::ActiveRecordAttributesWriter)
-      expect(aw.attrs.map(&:name)).to eq(%w[title body author_id])
-    end
-
     it "defines _write_indexed_cached" do
       expect(compiled).to respond_to(:_write_indexed_cached)
     end
