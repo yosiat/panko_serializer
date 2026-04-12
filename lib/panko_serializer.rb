@@ -15,5 +15,6 @@ require "panko/array_serializer"
 require "panko/response"
 require "panko/serializer_resolver"
 require "panko/object_writer"
+require "panko/code_gen"
 
 require "oj"
