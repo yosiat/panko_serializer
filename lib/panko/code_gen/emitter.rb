@@ -163,6 +163,19 @@ module Panko
         self << "end"
       end
 
+      # --- Method fields ---
+
+      # Emits one unrolled method field call with literal method name and key.
+      # Assumes +ser+ (pooled serializer) is in scope with +@object+ already set.
+      #
+      # @param method_name [Symbol, String] the method to call on the serializer
+      # @param serialization_key [String] the JSON key for the output
+      # @return [void]
+      def emit_method_field(method_name, serialization_key)
+        self << "result = ser.#{method_name}"
+        self << "writer.push_value(result, #{serialization_key.inspect}) unless result.equal?(Panko::Engine::SKIP)"
+      end
+
       # --- Hash object ---
 
       # Emits one unrolled attribute read from a Hash object.

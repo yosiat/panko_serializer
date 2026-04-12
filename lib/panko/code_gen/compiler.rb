@@ -14,8 +14,12 @@ module Panko
     class Compiler
       # @param descriptor [Panko::SerializationDescriptor] the descriptor to compile
       def initialize(descriptor)
+        @descriptor = descriptor
         @attrs = descriptor.attributes
         @n = @attrs.length
+        @method_fields = descriptor.method_fields
+        @serializer_type = descriptor.type
+        @has_method_fields = !@method_fields.empty?
       end
 
       # Compiles the descriptor into a generated class with all methods defined.
@@ -35,6 +39,14 @@ module Panko
         define_on(klass, gen_write_ar_fallback_filtered, "_write_ar_fallback_filtered")
         define_on(klass, gen_write_hash, "_write_hash")
         define_on(klass, gen_write_plain, "_write_plain")
+
+        if @has_method_fields
+          ser = @serializer_type.new(_skip_init: true)
+          ser.serialization_context = @descriptor.serializer.serialization_context
+          klass._serializer = ser
+          define_on(klass, gen_write_method_fields, "_write_method_fields")
+        end
+
         define_on(klass, gen_write_one, "_write_one")
         define_on(klass, gen_serialize_many, "_serialize_many")
 
@@ -155,9 +167,22 @@ module Panko
         e.to_source
       end
 
+      # Generates +_write_method_fields+ — unrolled method field calls
+      # with literal method names and keys baked into the source.
+      def gen_write_method_fields
+        e = Emitter.new
+        e << "def self._write_method_fields(object, writer)"
+        e << "ser = @_serializer"
+        e << "ser.instance_variable_set(:@object, object)"
+        @method_fields.each { |mf| e.emit_method_field(mf.name_sym, mf.name_for_serialization) }
+        e << "end"
+        e.to_source
+      end
+
       # Generates +_serialize_many+ — overrides GeneratedBase to resolve the
       # object type once from the first element, then uses a tight per-type loop.
       def gen_serialize_many
+        mf_call = @has_method_fields ? "\n                _write_method_fields(obj, writer)" : ""
         <<~RUBY
           def self._serialize_many(objects, writer, key = nil, filter_mask: nil)
             writer.push_array(key)
@@ -170,19 +195,19 @@ module Panko
             if first.is_a?(ActiveRecord::Base)
               objects.each do |obj|
                 writer.push_object
-                @_ar_writer.write(obj, writer, filter_mask)
+                @_ar_writer.write(obj, writer, filter_mask)#{mf_call}
                 writer.pop
               end
             elsif first.is_a?(Hash)
               objects.each do |obj|
                 writer.push_object
-                _write_hash(obj, writer)
+                _write_hash(obj, writer)#{mf_call}
                 writer.pop
               end
             else
               objects.each do |obj|
                 writer.push_object
-                _write_plain(obj, writer)
+                _write_plain(obj, writer)#{mf_call}
                 writer.pop
               end
             end
@@ -193,6 +218,7 @@ module Panko
 
       # Generates +_write_one+ — object-type dispatch for single objects.
       def gen_write_one
+        mf_call = @has_method_fields ? "\n    _write_method_fields(object, writer)" : ""
         <<~RUBY
           def self._write_one(object, writer, filter_mask)
             if object.is_a?(ActiveRecord::Base)
@@ -201,7 +227,7 @@ module Panko
               _write_hash(object, writer)
             else
               _write_plain(object, writer)
-            end
+            end#{mf_call}
           end
         RUBY
       end

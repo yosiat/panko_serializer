@@ -20,9 +20,18 @@ module Panko
     class GeneratedBase
       class << self
         # Set by the Compiler during class generation.
+
+        # @return [ActiveRecordAttributesWriter]
         # @!attribute [w] _ar_writer
+        attr_writer :_ar_writer
+
+        # @return [Array<Panko::Attribute>]
         # @!attribute [w] _attrs
-        attr_writer :_ar_writer, :_attrs
+        attr_writer :_attrs
+
+        # @return [Panko::Serializer]
+        # @!attribute [w] _serializer
+        attr_writer :_serializer
         # Serializes a single object to the given writer.
         #
         # @param object [Object] the object to serialize

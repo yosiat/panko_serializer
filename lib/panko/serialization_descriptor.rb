@@ -83,13 +83,13 @@ module Panko
     end
 
     # Returns a cached serializer for this descriptor.
-    # When CodeGen is enabled and the descriptor has plain attributes only
-    # (no method fields, no associations), returns a compiled generated class.
-    # Otherwise falls back to Engine::Serializer.
+    # When CodeGen is enabled and the descriptor has no associations,
+    # returns a compiled generated class. Otherwise falls back to
+    # Engine::Serializer.
     #
     # @return [Class, Panko::Engine::Serializer]
     def engine_serializer
-      @engine_serializer ||= if Panko::CodeGen.enabled? && method_fields.empty? &&
+      @engine_serializer ||= if Panko::CodeGen.enabled? &&
           has_one_associations.empty? && has_many_associations.empty?
         Panko::CodeGen::Compiler.new(self).compile
       else
