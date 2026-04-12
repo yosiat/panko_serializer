@@ -66,7 +66,11 @@ module Panko
               @klass._write_indexed_cached(rs.row, writer)
             end
           else
-            @klass._write_indexed_first_pass(self, rs, writer)
+            if filter_mask
+              @klass._write_indexed_first_pass_filtered(self, rs, writer, filter_mask.attrs)
+            else
+              @klass._write_indexed_first_pass(self, rs, writer)
+            end
             build_caches!(rs)
           end
         elsif filter_mask

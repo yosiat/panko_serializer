@@ -3,6 +3,8 @@
 require_relative "code_gen/filter_mask"
 require_relative "code_gen/generated_base"
 require_relative "code_gen/active_record_attributes_writer"
+require_relative "code_gen/emitter"
+require_relative "code_gen/compiler"
 
 module Panko
   # Code generation module for Panko serializers.
