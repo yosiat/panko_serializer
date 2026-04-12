@@ -84,18 +84,29 @@ module Panko
 
     # Returns a cached serializer for this descriptor.
     # When CodeGen is enabled and the descriptor has no associations,
-    # returns a compiled generated class. Otherwise falls back to
-    # Engine::Serializer.
+    # returns the compiled generated class cached on the canonical
+    # (class-level) descriptor. Otherwise falls back to Engine::Serializer.
+    #
+    # The generated class is compiled once per serializer class and reused
+    # across all duplicated descriptors. Per-call filter differences are
+    # handled via FilterMask, not by recompiling.
     #
     # @return [Class, Panko::Engine::Serializer]
     def engine_serializer
       @engine_serializer ||= if Panko::CodeGen.enabled? &&
           has_one_associations.empty? && has_many_associations.empty?
-        Panko::CodeGen::Compiler.new(self).compile
+        canonical = type._descriptor
+        canonical._compiled_class ||= Panko::CodeGen::Compiler.new(canonical).compile
       else
         Panko::Engine::Serializer.new(self)
       end
     end
+
+    # The compiled CodeGen class for this descriptor. Only set on
+    # the canonical (class-level) descriptor.
+    #
+    # @return [Class, nil]
+    attr_accessor :_compiled_class
 
     #
     # Applies attributes and association filters
