@@ -10,7 +10,7 @@ describe Panko::CodeGen::GeneratedBase do
       writer = Oj::StringWriter.new(mode: :rails)
       written = []
 
-      klass.define_singleton_method(:_write_one) do |_object, w, _filter_mask|
+      klass.define_singleton_method(:_write_one) do |_object, w, _filter_mask, _context|
         w.push_value("bar", "foo")
         written << true
       end
@@ -25,7 +25,7 @@ describe Panko::CodeGen::GeneratedBase do
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
 
-      klass.define_singleton_method(:_write_one) { |_o, _w, _fm| }
+      klass.define_singleton_method(:_write_one) { |_o, _w, _fm, _ctx| }
 
       klass._serialize_one({}, writer, "nested")
       writer.pop
@@ -37,7 +37,7 @@ describe Panko::CodeGen::GeneratedBase do
       writer = Oj::StringWriter.new(mode: :rails)
       received_mask = nil
 
-      klass.define_singleton_method(:_write_one) do |_o, _w, fm|
+      klass.define_singleton_method(:_write_one) do |_o, _w, fm, _ctx|
         received_mask = fm
       end
 
@@ -53,7 +53,7 @@ describe Panko::CodeGen::GeneratedBase do
       writer = Oj::StringWriter.new(mode: :rails)
       objects_seen = []
 
-      klass.define_singleton_method(:_write_one) do |obj, w, _fm|
+      klass.define_singleton_method(:_write_one) do |obj, w, _fm, _ctx|
         w.push_value(obj[:v], "v")
         objects_seen << obj
       end
@@ -69,7 +69,7 @@ describe Panko::CodeGen::GeneratedBase do
       writer = Oj::StringWriter.new(mode: :rails)
       masks_seen = []
 
-      klass.define_singleton_method(:_write_one) do |_o, _w, fm|
+      klass.define_singleton_method(:_write_one) do |_o, _w, fm, _ctx|
         masks_seen << fm
       end
 
@@ -83,7 +83,7 @@ describe Panko::CodeGen::GeneratedBase do
       writer = Oj::StringWriter.new(mode: :rails)
       masks_seen = []
 
-      klass.define_singleton_method(:_write_one) do |_o, _w, fm|
+      klass.define_singleton_method(:_write_one) do |_o, _w, fm, _ctx|
         masks_seen << fm
       end
 

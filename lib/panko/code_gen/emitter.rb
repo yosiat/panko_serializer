@@ -186,6 +186,16 @@ module Panko
         self << "writer.push_value(object[attrs[#{i}].name], attrs[#{i}].name_for_serialization)"
       end
 
+      # Emits one guarded attribute read from a Hash object.
+      #
+      # @param i [Integer] attribute index
+      # @return [void]
+      def emit_hash_attr_filtered(i)
+        self << "if attr_mask[#{i}]"
+        self << "  writer.push_value(object[attrs[#{i}].name], attrs[#{i}].name_for_serialization)"
+        self << "end"
+      end
+
       # --- Plain (PORO) object ---
 
       # Emits one unrolled attribute read from a plain Ruby object.
@@ -194,6 +204,130 @@ module Panko
       # @return [void]
       def emit_plain_attr(i)
         self << "writer.push_value(object.public_send(attrs[#{i}].name_sym), attrs[#{i}].name_for_serialization)"
+      end
+
+      # Emits one guarded attribute read from a plain Ruby object.
+      #
+      # @param i [Integer] attribute index
+      # @return [void]
+      def emit_plain_attr_filtered(i)
+        self << "if attr_mask[#{i}]"
+        self << "  writer.push_value(object.public_send(attrs[#{i}].name_sym), attrs[#{i}].name_for_serialization)"
+        self << "end"
+      end
+
+      # --- Method fields (filtered) ---
+
+      # Emits one guarded method field call.
+      # +mf_mask+ may be nil — meaning include all method fields.
+      #
+      # @param i [Integer] method field index
+      # @param method_name [Symbol, String] the method to call on the serializer
+      # @param serialization_key [String] the JSON key for the output
+      # @return [void]
+      def emit_method_field_filtered(i, method_name, serialization_key)
+        self << "if mf_mask.nil? || mf_mask[#{i}]"
+        self << "  result = ser.#{method_name}"
+        self << "  writer.push_value(result, #{serialization_key.inspect}) unless result.equal?(Panko::Engine::SKIP)"
+        self << "end"
+      end
+
+      # --- has_one associations ---
+
+      # Emits one unrolled has_one association write with literal names.
+      # Inlines AR association target resolution with literal method calls.
+      # Passes the static sub-mask for sub-association filtering.
+      #
+      # @param i [Integer] association index
+      # @param name_sym [Symbol] the association name (for target resolution)
+      # @param name_str [String] the JSON key for the output
+      # @return [void]
+      def emit_has_one(i, name_sym, name_str)
+        emit_has_one_target_resolution(name_sym)
+        self << "if target.nil?"
+        self << "  writer.push_value(nil, #{name_str.inspect})"
+        self << "else"
+        self << "  @_has_one_assocs[#{i}].serializer_writer._serialize_one(target, writer, #{name_str.inspect}, filter_mask: @_ho_static_masks[#{i}], context: context)"
+        self << "end"
+      end
+
+      # Emits one guarded has_one association write.
+      # Uses runtime nested mask if available, else falls back to static.
+      #
+      # @param i [Integer] association index
+      # @param name_sym [Symbol] the association name
+      # @param name_str [String] the JSON key
+      # @return [void]
+      def emit_has_one_filtered(i, name_sym, name_str)
+        self << "if ho_mask.nil? || ho_mask[#{i}]"
+        emit_has_one_target_resolution(name_sym, indent: "  ")
+        self << "  if target.nil?"
+        self << "    writer.push_value(nil, #{name_str.inspect})"
+        self << "  else"
+        self << "    nested = ho_masks&.dig(#{i}) || @_ho_static_masks[#{i}]"
+        self << "    @_has_one_assocs[#{i}].serializer_writer._serialize_one(target, writer, #{name_str.inspect}, filter_mask: nested, context: context)"
+        self << "  end"
+        self << "end"
+      end
+
+      # --- has_many associations ---
+
+      # Emits one unrolled has_many association write with literal names.
+      # Passes the static sub-mask for sub-association filtering.
+      #
+      # @param i [Integer] association index
+      # @param name_sym [Symbol] the association name
+      # @param name_str [String] the JSON key for the output
+      # @return [void]
+      def emit_has_many(i, name_sym, name_str)
+        self << "collection = object.#{name_sym}"
+        self << "if collection.nil?"
+        self << "  writer.push_value(nil, #{name_str.inspect})"
+        self << "else"
+        self << "  @_has_many_assocs[#{i}].serializer_writer._serialize_many(collection.to_a, writer, #{name_str.inspect}, filter_mask: @_hm_static_masks[#{i}], context: context)"
+        self << "end"
+      end
+
+      # Emits one guarded has_many association write.
+      # Uses runtime nested mask if available, else falls back to static.
+      #
+      # @param i [Integer] association index
+      # @param name_sym [Symbol] the association name
+      # @param name_str [String] the JSON key
+      # @return [void]
+      def emit_has_many_filtered(i, name_sym, name_str)
+        self << "if hm_mask.nil? || hm_mask[#{i}]"
+        self << "  collection = object.#{name_sym}"
+        self << "  if collection.nil?"
+        self << "    writer.push_value(nil, #{name_str.inspect})"
+        self << "  else"
+        self << "    nested = hm_masks&.dig(#{i}) || @_hm_static_masks[#{i}]"
+        self << "    @_has_many_assocs[#{i}].serializer_writer._serialize_many(collection.to_a, writer, #{name_str.inspect}, filter_mask: nested, context: context)"
+        self << "  end"
+        self << "end"
+      end
+
+      private
+
+      # Emits inline AR has_one target resolution with literal method calls.
+      # Bypasses the association proxy via +association().target+ for loaded
+      # AR associations. Falls back to +object.name+ for POROs or
+      # method-based associations.
+      #
+      # @param name_sym [Symbol] the association name
+      # @param indent [String] prefix for indentation
+      # @return [void]
+      def emit_has_one_target_resolution(name_sym, indent: "")
+        self << "#{indent}if object.respond_to?(:association)"
+        self << "#{indent}  begin"
+        self << "#{indent}    _ar_assoc = object.association(:#{name_sym})"
+        self << "#{indent}    target = _ar_assoc.loaded? ? _ar_assoc.target : object.#{name_sym}"
+        self << "#{indent}  rescue ActiveRecord::AssociationNotFoundError"
+        self << "#{indent}    target = object.#{name_sym}"
+        self << "#{indent}  end"
+        self << "#{indent}else"
+        self << "#{indent}  target = object.#{name_sym}"
+        self << "#{indent}end"
       end
     end
   end

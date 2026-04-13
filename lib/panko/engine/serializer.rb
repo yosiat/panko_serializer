@@ -15,11 +15,11 @@ module Panko::Engine
       @attributes_writer = nil
     end
 
-    def serialize_many(objects:, writer:, key: nil)
+    def serialize_many(objects:, writer:, key: nil, filter_mask: nil)
       _serialize_many(objects, writer, key)
     end
 
-    def _serialize_many(objects, writer, key = nil)
+    def _serialize_many(objects, writer, key = nil, filter_mask: nil, context: nil)
       writer.push_array(key)
 
       desc = @descriptor
@@ -86,7 +86,7 @@ module Panko::Engine
     # @param object [Object] the object to serialize
     # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
     # @param key [String, nil] JSON key under which the object is nested in the output; nil for root
-    def serialize_one(object:, writer:, key: nil)
+    def serialize_one(object:, writer:, key: nil, filter_mask: nil, context: nil)
       _serialize_one(object, writer, key)
     end
 

@@ -136,6 +136,18 @@ These design decisions are intentional and must be preserved:
 - **Hot paths must not allocate.** The indexed-row fast path, the ultra-fast pre-computed cache path, and the first-pass type resolution path are performance-critical. Do not add method calls, object allocations, or conditionals to these paths without benchmarking.
 - **`_serialize_many` fast paths are untouchable.** They inline their work for maximum throughput. Do not extract helpers out of them.
 
+### Code Generation
+
+See [CODE_GEN_LEARNING.md](CODE_GEN_LEARNING.md) for a detailed write-up of
+lessons learned from writing the VW-HandWritten benchmark — the design decisions,
+optimization patterns, and open questions for implementing a real code-generation
+backend in Panko.
+
+**Code-gen invariants:**
+- **Never use `public_send` in generated code.** Method and association names are known at compile time — emit literal calls (`object.posts`, `ser.method_name`) not `object.public_send(:posts)`.
+- **Never assign constants inside generated methods.** Use the full constant path directly (e.g., `Panko::Engine::SKIP`).
+- **No loops over compile-time-known data.** Each attribute, method field, and association gets its own explicit line in the generated source.
+
 ### Performance Optimization Context
 
 Benchmarks use `benchmark-ips` comparing against a baseline. Key strategies:

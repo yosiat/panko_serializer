@@ -157,7 +157,7 @@ describe Panko::ArraySerializer do
         mock_writer = double("writer", output: [])
         allow(Panko::ObjectWriter).to receive(:new).and_return(mock_writer)
 
-        expect(mock_impl_srz).to receive(:_serialize_many).with(subjects, mock_writer)
+        expect(mock_impl_srz).to receive(:_serialize_many).with(subjects, mock_writer, filter_mask: nil, context: anything)
 
         array_serializer.to_a
       end

@@ -78,7 +78,10 @@ module Panko
         return if @_descriptor.nil?
 
         deleted_attr = @_descriptor.attributes.delete(method)
-        @_descriptor.method_fields << Attribute.create(deleted_attr.name, alias_name: deleted_attr.alias_name) unless deleted_attr.nil?
+        unless deleted_attr.nil?
+          @_descriptor.method_fields << Attribute.create(deleted_attr.name, alias_name: deleted_attr.alias_name)
+          @_descriptor.serializer ||= new(_skip_init: true)
+        end
       end
 
       def has_one(name, options = {})
@@ -146,7 +149,7 @@ module Panko
 
     def serialize_with_writer(object, writer)
       raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
-      @descriptor.engine_serializer.serialize_one(object: object, writer: writer)
+      @descriptor.engine_serializer.serialize_one(object: object, writer: writer, filter_mask: @descriptor._filter_mask, context: @serialization_context)
       @used = true
       writer
     end

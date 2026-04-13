@@ -83,18 +83,13 @@ module Panko
     end
 
     # Returns a cached serializer for this descriptor.
-    # When CodeGen is enabled and the descriptor has no associations,
-    # returns the compiled generated class cached on the canonical
-    # (class-level) descriptor. Otherwise falls back to Engine::Serializer.
-    #
-    # The generated class is compiled once per serializer class and reused
-    # across all duplicated descriptors. Per-call filter differences are
-    # handled via FilterMask, not by recompiling.
+    # When CodeGen is enabled, returns the compiled generated class
+    # cached on the canonical (class-level) descriptor.
+    # Otherwise falls back to Engine::Serializer.
     #
     # @return [Class, Panko::Engine::Serializer]
     def engine_serializer
-      @engine_serializer ||= if Panko::CodeGen.enabled? &&
-          has_one_associations.empty? && has_many_associations.empty?
+      @engine_serializer ||= if Panko::CodeGen.enabled?
         canonical = type._descriptor
         canonical._compiled_class ||= Panko::CodeGen::Compiler.new(canonical).compile
       else
@@ -107,6 +102,67 @@ module Panko
     #
     # @return [Class, nil]
     attr_accessor :_compiled_class
+
+    # Returns the FilterMask for this descriptor relative to the canonical
+    # (class-level) descriptor. Returns nil when no filtering is needed
+    # (unfiltered path).
+    #
+    # Computed once per descriptor and memoized.
+    #
+    # @return [Panko::CodeGen::FilterMask, nil]
+    def _filter_mask
+      return @_filter_mask if defined?(@_filter_mask)
+
+      @_filter_mask = self.class.compute_filter_mask(self, type._descriptor)
+    end
+
+    # Computes a FilterMask comparing +filtered+ against +canonical+.
+    # Returns nil when all fields match (no filtering needed).
+    #
+    # @param filtered [SerializationDescriptor] the possibly-filtered descriptor
+    # @param canonical [SerializationDescriptor] the canonical (full) descriptor
+    # @return [Panko::CodeGen::FilterMask, nil]
+    def self.compute_filter_mask(filtered, canonical)
+      return nil if filtered.equal?(canonical)
+
+      filtered_attr_names = filtered.attributes.map(&:name).to_set
+      attrs_mask = canonical.attributes.map { |a| filtered_attr_names.include?(a.name) }
+
+      filtered_mf_names = filtered.method_fields.map(&:name).to_set
+      mf_mask = canonical.method_fields.map { |mf| filtered_mf_names.include?(mf.name) }
+
+      filtered_ho_names = filtered.has_one_associations.map(&:name_sym).to_set
+      ho_mask = canonical.has_one_associations.map { |a| filtered_ho_names.include?(a.name_sym) }
+
+      filtered_hm_names = filtered.has_many_associations.map(&:name_sym).to_set
+      hm_mask = canonical.has_many_associations.map { |a| filtered_hm_names.include?(a.name_sym) }
+
+      # Recursively build nested masks for included associations
+      ho_sub_masks = canonical.has_one_associations.each_with_index.map do |assoc, i|
+        next nil unless ho_mask[i]
+        filtered_assoc = filtered.has_one_associations.find { |fa| fa.name_sym == assoc.name_sym }
+        compute_filter_mask(filtered_assoc.descriptor, assoc.descriptor.type._descriptor)
+      end
+
+      hm_sub_masks = canonical.has_many_associations.each_with_index.map do |assoc, i|
+        next nil unless hm_mask[i]
+        filtered_assoc = filtered.has_many_associations.find { |fa| fa.name_sym == assoc.name_sym }
+        compute_filter_mask(filtered_assoc.descriptor, assoc.descriptor.type._descriptor)
+      end
+
+      # All included? No mask needed.
+      return nil if attrs_mask.all? && mf_mask.all? && ho_mask.all? && hm_mask.all? &&
+        ho_sub_masks.all?(&:nil?) && hm_sub_masks.all?(&:nil?)
+
+      Panko::CodeGen::FilterMask.new(
+        attrs: attrs_mask,
+        method_fields: mf_mask.empty? ? nil : mf_mask,
+        has_one: ho_mask.empty? ? nil : ho_mask,
+        has_many: hm_mask.empty? ? nil : hm_mask,
+        has_one_masks: (ho_sub_masks.any? { |m| !m.nil? }) ? ho_sub_masks : nil,
+        has_many_masks: (hm_sub_masks.any? { |m| !m.nil? }) ? hm_sub_masks : nil
+      )
+    end
 
     #
     # Applies attributes and association filters

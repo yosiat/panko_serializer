@@ -45,7 +45,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
     private
 
     def serialize_with_writer(subjects, writer)
-      @descriptor.engine_serializer._serialize_many(subjects.to_a, writer)
+      @descriptor.engine_serializer._serialize_many(subjects.to_a, writer, filter_mask: @descriptor._filter_mask, context: @serialization_context)
       writer
     end
   end

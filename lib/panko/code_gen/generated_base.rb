@@ -32,6 +32,26 @@ module Panko
         # @return [Panko::Serializer]
         # @!attribute [w] _serializer
         attr_writer :_serializer
+
+        # @return [Array<Panko::Association>]
+        # @!attribute [w] _has_one_assocs
+        attr_writer :_has_one_assocs
+
+        # @return [Array<Panko::Association>]
+        # @!attribute [w] _has_many_assocs
+        attr_writer :_has_many_assocs
+
+        # Per-association static sub-masks for has_one. Each element is
+        # a FilterMask (when the association has a static filter like
+        # +has_one :foo, only: [:name]+) or nil (no static filtering).
+        # @return [Array<FilterMask?, nil>]
+        # @!attribute [w] _ho_static_masks
+        attr_writer :_ho_static_masks
+
+        # Per-association static sub-masks for has_many.
+        # @return [Array<FilterMask?, nil>]
+        # @!attribute [w] _hm_static_masks
+        attr_writer :_hm_static_masks
         # Serializes a single object to the given writer.
         #
         # @param object [Object] the object to serialize
@@ -39,8 +59,8 @@ module Panko
         # @param key [String, nil] JSON key for the object; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
         # @return [void]
-        def serialize_one(object:, writer:, key: nil, filter_mask: nil)
-          _serialize_one(object, writer, key, filter_mask: filter_mask)
+        def serialize_one(object:, writer:, key: nil, filter_mask: nil, context: nil)
+          _serialize_one(object, writer, key, filter_mask: filter_mask, context: context)
         end
 
         # Serializes an array of objects to the given writer.
@@ -49,9 +69,10 @@ module Panko
         # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
         # @param key [String, nil] JSON key for the array; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param context [SerializationContext, nil] context/scope for method fields
         # @return [void]
-        def serialize_many(objects:, writer:, key: nil, filter_mask: nil)
-          _serialize_many(objects, writer, key, filter_mask: filter_mask)
+        def serialize_many(objects:, writer:, key: nil, filter_mask: nil, context: nil)
+          _serialize_many(objects, writer, key, filter_mask: filter_mask, context: context)
         end
 
         # Serializes a single object, wrapping it in push_object/pop.
@@ -61,10 +82,11 @@ module Panko
         # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
         # @param key [String, nil] JSON key; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param context [SerializationContext, nil] context/scope for method fields
         # @return [void]
-        def _serialize_one(object, writer, key = nil, filter_mask: nil)
+        def _serialize_one(object, writer, key = nil, filter_mask: nil, context: nil)
           writer.push_object(key)
-          _write_one(object, writer, filter_mask)
+          _write_one(object, writer, filter_mask, context)
           writer.pop
         end
 
@@ -75,19 +97,20 @@ module Panko
         # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
         # @param key [String, nil] JSON key; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param context [SerializationContext, nil] context/scope for method fields
         # @return [void]
-        def _serialize_many(objects, writer, key = nil, filter_mask: nil)
+        def _serialize_many(objects, writer, key = nil, filter_mask: nil, context: nil)
           writer.push_array(key)
           if filter_mask
             objects.each do |obj|
               writer.push_object
-              _write_one(obj, writer, filter_mask)
+              _write_one(obj, writer, filter_mask, context)
               writer.pop
             end
           else
             objects.each do |obj|
               writer.push_object
-              _write_one(obj, writer, nil)
+              _write_one(obj, writer, nil, context)
               writer.pop
             end
           end
