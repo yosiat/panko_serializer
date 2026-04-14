@@ -137,7 +137,7 @@ describe Panko::ArraySerializer do
     describe "#serialize" do
       it "calls serialize_many_hash on the generated class" do
         expect(mock_gen).to receive(:serialize_many_hash).with(
-          objects: subjects.to_a, filter_mask: nil, context: anything
+          objects: subjects.to_a, filter_mask: Panko::CodeGen::FilterMask::EMPTY, context: anything
         ).and_return([])
 
         array_serializer.serialize(subjects)
@@ -147,7 +147,7 @@ describe Panko::ArraySerializer do
     describe "#to_a" do
       it "calls serialize_many_hash with stored subjects" do
         expect(mock_gen).to receive(:serialize_many_hash).with(
-          objects: subjects.to_a, filter_mask: nil, context: anything
+          objects: subjects.to_a, filter_mask: Panko::CodeGen::FilterMask::EMPTY, context: anything
         ).and_return([])
 
         array_serializer.to_a

@@ -30,20 +30,12 @@ describe Panko::CodeGen::Compiler do
       expect(compiled).to respond_to(:_write_indexed_cached)
     end
 
-    it "defines _write_indexed_cached_filtered" do
-      expect(compiled).to respond_to(:_write_indexed_cached_filtered)
-    end
-
     it "defines _write_indexed_first_pass" do
       expect(compiled).to respond_to(:_write_indexed_first_pass)
     end
 
     it "defines _write_ar_fallback" do
       expect(compiled).to respond_to(:_write_ar_fallback)
-    end
-
-    it "defines _write_ar_fallback_filtered" do
-      expect(compiled).to respond_to(:_write_ar_fallback_filtered)
     end
 
     it "defines _write_one" do

@@ -100,16 +100,16 @@ module Panko
     attr_accessor :_compiled_class
 
     # Returns the FilterMask for this descriptor relative to the canonical
-    # (class-level) descriptor. Returns nil when no filtering is needed
-    # (unfiltered path).
+    # (class-level) descriptor. Returns {FilterMask::EMPTY} when no
+    # filtering is needed (unfiltered path).
     #
     # Computed once per descriptor and memoized.
     #
-    # @return [Panko::CodeGen::FilterMask, nil]
+    # @return [Panko::CodeGen::FilterMask]
     def _filter_mask
       return @_filter_mask if defined?(@_filter_mask)
 
-      @_filter_mask = self.class.compute_filter_mask(self, type._descriptor)
+      @_filter_mask = self.class.compute_filter_mask(self, type._descriptor) || Panko::CodeGen::FilterMask::EMPTY
     end
 
     # Computes a FilterMask comparing +filtered+ against +canonical+.

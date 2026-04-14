@@ -123,12 +123,12 @@ describe Panko::CodeGen::ActiveRecordAttributesWriter do
         record = make_indexed_record(record_class, column_indexes: column_indexes, row: row, types: types)
 
         first_pass_called = false
-        klass.define_singleton_method(:_write_indexed_first_pass) do |aw, rs, writer|
+        klass.define_singleton_method(:_write_indexed_first_pass) do |aw, rs, writer, attr_mask|
           first_pass_called = true
         end
 
         writer = Oj::StringWriter.new(mode: :rails)
-        writer_instance.write(record, writer, nil)
+        writer_instance.write(record, writer, Panko::CodeGen::FilterMask::EMPTY)
 
         expect(first_pass_called).to be true
       end
@@ -148,35 +148,35 @@ describe Panko::CodeGen::ActiveRecordAttributesWriter do
         writer_instance.build_caches!(rs)
       end
 
-      it "delegates to klass._write_indexed_cached when unfiltered" do
+      it "delegates to klass._write_indexed_cached with INCLUDE_ALL when unfiltered" do
         row = ["foo", "bar"]
         record = make_indexed_record(record_class, column_indexes: column_indexes, row: row, types: types)
 
         cached_called_with = nil
-        klass.define_singleton_method(:_write_indexed_cached) do |r, w|
-          cached_called_with = r
+        klass.define_singleton_method(:_write_indexed_cached) do |r, w, mask|
+          cached_called_with = [r, mask]
         end
 
         writer = Oj::StringWriter.new(mode: :rails)
-        writer_instance.write(record, writer, nil)
+        writer_instance.write(record, writer, Panko::CodeGen::FilterMask::EMPTY)
 
-        expect(cached_called_with).to eq(row)
+        expect(cached_called_with).to eq([row, Panko::CodeGen::FilterMask::INCLUDE_ALL])
       end
 
-      it "delegates to klass._write_indexed_cached_filtered when filtered" do
+      it "delegates to klass._write_indexed_cached with real mask when filtered" do
         row = ["foo", "bar"]
         record = make_indexed_record(record_class, column_indexes: column_indexes, row: row, types: types)
 
-        filtered_args = nil
-        klass.define_singleton_method(:_write_indexed_cached_filtered) do |r, w, mask|
-          filtered_args = [r, mask]
+        cached_called_with = nil
+        klass.define_singleton_method(:_write_indexed_cached) do |r, w, mask|
+          cached_called_with = [r, mask]
         end
 
         mask = Panko::CodeGen::FilterMask.new(attrs: [true, false])
         writer = Oj::StringWriter.new(mode: :rails)
         writer_instance.write(record, writer, mask)
 
-        expect(filtered_args).to eq([row, [true, false]])
+        expect(cached_called_with).to eq([row, [true, false]])
       end
     end
   end

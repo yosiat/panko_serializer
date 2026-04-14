@@ -5,18 +5,13 @@ module Panko
     # Abstract base class for all generated serializer classes.
     #
     # Provides the public serialization API. The {Compiler} defines all
-    # write methods on each subclass via +module_eval+:
+    # write methods on each subclass via +module_eval+.
     #
-    # - +_write_one+ — object-type dispatch + method fields + associations
-    # - +_write_indexed_cached+ / +_write_indexed_cached_filtered+ — unrolled AR attrs
-    # - +_write_method_fields+ / +_write_method_fields_filtered+ — unrolled
-    # - +_write_has_one+ / +_write_has_one_filtered+ — unrolled
-    # - +_write_has_many+ / +_write_has_many_filtered+ — unrolled
-    # - +_write_hash+ / +_write_hash_filtered+ — unrolled Hash attrs
-    # - +_write_plain+ / +_write_plain_filtered+ — unrolled PORO attrs
+    # All methods receive a {FilterMask} (never nil — {FilterMask::EMPTY}
+    # for unfiltered calls) so each concern needs only one method.
     #
     # Runtime state is held by a single delegate:
-    # - +@_ar_writer+ — {ARWriter}, owns parallel caches and AR cold paths
+    # - +@_ar_writer+ — {ActiveRecordAttributesWriter}, owns parallel caches
     class GeneratedBase
       class << self
         # Set by the Compiler during class generation.
@@ -41,9 +36,7 @@ module Panko
         # @!attribute [w] _has_many_assocs
         attr_writer :_has_many_assocs
 
-        # Per-association static sub-masks for has_one. Each element is
-        # a FilterMask (when the association has a static filter like
-        # +has_one :foo, only: [:name]+) or nil (no static filtering).
+        # Per-association static sub-masks for has_one.
         # @return [Array<FilterMask?, nil>]
         # @!attribute [w] _ho_static_masks
         attr_writer :_ho_static_masks
@@ -52,15 +45,17 @@ module Panko
         # @return [Array<FilterMask?, nil>]
         # @!attribute [w] _hm_static_masks
         attr_writer :_hm_static_masks
+
         # Serializes a single object to the given writer.
         #
         # @param object [Object] the object to serialize
         # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key for the object; nil for root
-        # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param filter_mask [FilterMask, nil] nil converted to FilterMask::EMPTY
+        # @param context [SerializationContext, nil] context/scope for method fields
         # @return [void]
         def serialize_one(object:, writer:, key: nil, filter_mask: nil, context: nil)
-          _serialize_one(object, writer, key, filter_mask: filter_mask, context: context)
+          _serialize_one(object, writer, key, filter_mask || FilterMask::EMPTY, context)
         end
 
         # Serializes an array of objects to the given writer.
@@ -68,53 +63,46 @@ module Panko
         # @param objects [Array<Object>] the objects to serialize
         # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key for the array; nil for root
-        # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param filter_mask [FilterMask, nil] nil converted to FilterMask::EMPTY
         # @param context [SerializationContext, nil] context/scope for method fields
         # @return [void]
         def serialize_many(objects:, writer:, key: nil, filter_mask: nil, context: nil)
-          _serialize_many(objects, writer, key, filter_mask: filter_mask, context: context)
+          _serialize_many(objects, writer, key, filter_mask || FilterMask::EMPTY, context)
         end
 
-        # Serializes a single object, wrapping it in push_object/pop.
-        # Calls +_write_one+ which is generated per-class by the {Compiler}.
+        # Internal single-object serialization. Wraps in push_object/pop.
         #
         # @param object [Object] the object to serialize
         # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key; nil for root
-        # @param filter_mask [FilterMask, nil] nil for unfiltered
-        # @param context [SerializationContext, nil] context/scope for method fields
+        # @param filter_mask [FilterMask] never nil
+        # @param context [SerializationContext, nil] context/scope
         # @return [void]
-        def _serialize_one(object, writer, key = nil, filter_mask: nil, context: nil)
+        def _serialize_one(object, writer, key, filter_mask, context)
           writer.push_object(key)
           _write_one(object, writer, filter_mask, context)
           writer.pop
         end
 
-        # Serializes an array of objects, wrapping in push_array/pop.
-        # Calls +_write_one+ which is generated per-class by the {Compiler}.
+        # Serializes a single object to a Ruby Hash.
+        #
+        # @param object [Object] the object to serialize
+        # @param filter_mask [FilterMask, nil] nil converted to FilterMask::EMPTY
+        # @param context [SerializationContext, nil] context/scope
+        # @return [Hash]
+        def serialize_one_hash(object:, filter_mask: nil, context: nil)
+          _write_one_hash(object, filter_mask || FilterMask::EMPTY, context)
+        end
+
+        # Serializes an array of objects to an Array of Hashes.
         #
         # @param objects [Array<Object>] the objects to serialize
-        # @param writer [Oj::StringWriter] the output writer
-        # @param key [String, nil] JSON key; nil for root
-        # @param filter_mask [FilterMask, nil] nil for unfiltered
-        # @param context [SerializationContext, nil] context/scope for method fields
-        # @return [void]
-        def _serialize_many(objects, writer, key = nil, filter_mask: nil, context: nil)
-          writer.push_array(key)
-          if filter_mask
-            objects.each do |obj|
-              writer.push_object
-              _write_one(obj, writer, filter_mask, context)
-              writer.pop
-            end
-          else
-            objects.each do |obj|
-              writer.push_object
-              _write_one(obj, writer, nil, context)
-              writer.pop
-            end
-          end
-          writer.pop
+        # @param filter_mask [FilterMask, nil] nil converted to FilterMask::EMPTY
+        # @param context [SerializationContext, nil] context/scope
+        # @return [Array<Hash>]
+        def serialize_many_hash(objects:, filter_mask: nil, context: nil)
+          fm = filter_mask || FilterMask::EMPTY
+          objects.map { |obj| _write_one_hash(obj, fm, context) }
         end
 
         # Resolves the AR type for an attribute from the record state's type maps.
@@ -153,10 +141,9 @@ module Panko
           end
         end
 
-        # Hash-path variant of +_write_value+. Assigns directly to a Hash.
-        # Delegates to +ValuesWriter.write+ via a {ValueCapture} writer so
-        # the existing type-coercion pipeline is reused — no explicit
-        # +type.deserialize+ needed here.
+        # Hash-path variant of +_write_value+. Delegates to +ValuesWriter.write+
+        # via a {ValueCapture} writer so the existing type-coercion pipeline is
+        # reused.
         #
         # @param attribute [Panko::Attribute] the attribute being written
         # @param value [Object] the raw value
@@ -188,26 +175,6 @@ module Panko
             Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(capture, aw.attrs[i], value)
           end
           result[aw.key[i]] = capture.value
-        end
-
-        # Serializes a single object to a Ruby Hash (no writer).
-        #
-        # @param object [Object] the object to serialize
-        # @param filter_mask [FilterMask, nil] nil for unfiltered
-        # @param context [SerializationContext, nil] context/scope for method fields
-        # @return [Hash]
-        def serialize_one_hash(object:, filter_mask: nil, context: nil)
-          _write_one_hash(object, filter_mask, context)
-        end
-
-        # Serializes an array of objects to an Array of Hashes (no writer).
-        #
-        # @param objects [Array<Object>] the objects to serialize
-        # @param filter_mask [FilterMask, nil] nil for unfiltered
-        # @param context [SerializationContext, nil] context/scope for method fields
-        # @return [Array<Hash>]
-        def serialize_many_hash(objects:, filter_mask: nil, context: nil)
-          objects.map { |obj| _write_one_hash(obj, filter_mask, context) }
         end
       end
     end

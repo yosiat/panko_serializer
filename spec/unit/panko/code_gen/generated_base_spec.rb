@@ -4,6 +4,7 @@ require "spec_helper"
 
 describe Panko::CodeGen::GeneratedBase do
   let(:klass) { Class.new(described_class) }
+  let(:empty_mask) { Panko::CodeGen::FilterMask::EMPTY }
 
   describe "._serialize_one" do
     it "wraps _write_one in push_object/pop" do
@@ -15,7 +16,7 @@ describe Panko::CodeGen::GeneratedBase do
         written << true
       end
 
-      klass._serialize_one({}, writer)
+      klass._serialize_one({}, writer, nil, empty_mask, nil)
 
       expect(written).to eq([true])
       expect(Oj.load(writer.to_s)).to eq("foo" => "bar")
@@ -27,7 +28,7 @@ describe Panko::CodeGen::GeneratedBase do
 
       klass.define_singleton_method(:_write_one) { |_o, _w, _fm, _ctx| }
 
-      klass._serialize_one({}, writer, "nested")
+      klass._serialize_one({}, writer, "nested", empty_mask, nil)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("nested" => {})
@@ -42,54 +43,9 @@ describe Panko::CodeGen::GeneratedBase do
       end
 
       mask = Panko::CodeGen::FilterMask.new(attrs: [true])
-      klass._serialize_one({}, writer, nil, filter_mask: mask)
+      klass._serialize_one({}, writer, nil, mask, nil)
 
       expect(received_mask).to equal(mask)
-    end
-  end
-
-  describe "._serialize_many" do
-    it "wraps objects in push_array/pop with push_object per element" do
-      writer = Oj::StringWriter.new(mode: :rails)
-      objects_seen = []
-
-      klass.define_singleton_method(:_write_one) do |obj, w, _fm, _ctx|
-        w.push_value(obj[:v], "v")
-        objects_seen << obj
-      end
-
-      objects = [{v: 1}, {v: 2}]
-      klass._serialize_many(objects, writer)
-
-      expect(objects_seen).to eq(objects)
-      expect(Oj.load(writer.to_s)).to eq([{"v" => 1}, {"v" => 2}])
-    end
-
-    it "passes filter_mask to each _write_one call" do
-      writer = Oj::StringWriter.new(mode: :rails)
-      masks_seen = []
-
-      klass.define_singleton_method(:_write_one) do |_o, _w, fm, _ctx|
-        masks_seen << fm
-      end
-
-      mask = Panko::CodeGen::FilterMask.new(attrs: [true])
-      klass._serialize_many([1, 2], writer, nil, filter_mask: mask)
-
-      expect(masks_seen).to eq([mask, mask])
-    end
-
-    it "passes nil filter_mask when unfiltered" do
-      writer = Oj::StringWriter.new(mode: :rails)
-      masks_seen = []
-
-      klass.define_singleton_method(:_write_one) do |_o, _w, fm, _ctx|
-        masks_seen << fm
-      end
-
-      klass._serialize_many([1], writer)
-
-      expect(masks_seen).to eq([nil])
     end
   end
 

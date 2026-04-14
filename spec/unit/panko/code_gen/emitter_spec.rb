@@ -5,9 +5,10 @@ require "spec_helper"
 describe Panko::CodeGen::Emitter do
   # Helper: builds a method from emitter output, defines it on a fresh class,
   # and returns the class so we can call the method with test data.
+  # NOTE: module_eval on trusted test code only.
   def build_class_with_method(method_def)
     klass = Class.new(Panko::CodeGen::GeneratedBase)
-    klass.module_eval(method_def, "(emitter_spec)", 1) # rubocop:disable Security/Eval
+    klass.module_eval(method_def, "(emitter_spec)", 1)
     klass
   end
 
@@ -19,10 +20,12 @@ describe Panko::CodeGen::Emitter do
     Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter::DateTimeWriter.new
   end
 
+  let(:include_all) { Panko::CodeGen::FilterMask::INCLUDE_ALL }
+
   describe "#emit_cached_attr" do
     def build_cached_method(*indices)
       e = described_class.new
-      e << "def self.test(row, writer, aw)"
+      e << "def self.test(row, writer, aw, attr_mask)"
       indices.each { |i| e.emit_cached_attr(i) }
       e << "end"
       build_class_with_method(e.to_source)
@@ -34,7 +37,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(["hello"], writer, aw)
+      klass.test(["hello"], writer, aw, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "hello")
@@ -46,7 +49,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([nil], writer, aw)
+      klass.test([nil], writer, aw, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("created_at" => nil)
@@ -58,7 +61,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(["2024-01-15 10:30:00"], writer, aw)
+      klass.test(["2024-01-15 10:30:00"], writer, aw, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)["created_at"]).to include("2024-01-15")
@@ -73,39 +76,14 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(%w[Alice Engineer], writer, aw)
-      writer.pop
-
-      expect(Oj.load(writer.to_s)).to eq("name" => "Alice", "title" => "Engineer")
-    end
-  end
-
-  describe "#emit_cached_attr_filtered" do
-    def build_filtered_method(*indices)
-      e = described_class.new
-      e << "def self.test(row, writer, aw, attr_mask)"
-      indices.each { |i| e.emit_cached_attr_filtered(i) }
-      e << "end"
-      build_class_with_method(e.to_source)
-    end
-
-    it "includes attribute when mask is true" do
-      klass = build_filtered_method(0, 1)
-      aw = double(
-        col: [0, 1], key: %w[name title], dir: [true, true],
-        wtr: [string_writer_instance, string_writer_instance]
-      )
-
-      writer = Oj::StringWriter.new(mode: :rails)
-      writer.push_object
-      klass.test(%w[Alice Engineer], writer, aw, [true, true])
+      klass.test(%w[Alice Engineer], writer, aw, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "Alice", "title" => "Engineer")
     end
 
     it "excludes attribute when mask is false" do
-      klass = build_filtered_method(0, 1)
+      klass = build_cached_method(0, 1)
       aw = double(
         col: [0, 1], key: %w[name title], dir: [true, true],
         wtr: [string_writer_instance, string_writer_instance]
@@ -123,7 +101,7 @@ describe Panko::CodeGen::Emitter do
   describe "#emit_first_pass_attr" do
     def build_first_pass_method(*indices)
       e = described_class.new
-      e << "def self.test(attrs, ci, row, rs, writer)"
+      e << "def self.test(attrs, ci, row, rs, writer, attr_mask)"
       indices.each { |i| e.emit_first_pass_attr(i) }
       e << "end"
       build_class_with_method(e.to_source)
@@ -142,7 +120,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([attr], {"name" => 0}, ["hello"], rs, writer)
+      klass.test([attr], {"name" => 0}, ["hello"], rs, writer, include_all)
       writer.pop
 
       expect(attr.type).to eq(string_type)
@@ -156,7 +134,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([attr], {}, [], rs, writer)
+      klass.test([attr], {}, [], rs, writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("missing" => nil)
@@ -166,7 +144,7 @@ describe Panko::CodeGen::Emitter do
   describe "#emit_indexed_with_hash_attr" do
     def build_hash_fallback_method(*indices)
       e = described_class.new
-      e << "def self.test(attrs, ci, row, ah, rs, writer)"
+      e << "def self.test(attrs, ci, row, ah, rs, writer, attr_mask)"
       indices.each { |i| e.emit_indexed_with_hash_attr(i) }
       e << "end"
       build_class_with_method(e.to_source)
@@ -184,7 +162,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([attr], {"name" => 0}, ["row_val"], {"name" => am}, rs, writer)
+      klass.test([attr], {"name" => 0}, ["row_val"], {"name" => am}, rs, writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "dirty_val")
@@ -199,7 +177,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([attr], {"name" => 0}, ["row_val"], {}, rs, writer)
+      klass.test([attr], {"name" => 0}, ["row_val"], {}, rs, writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "row_val")
@@ -209,7 +187,7 @@ describe Panko::CodeGen::Emitter do
   describe "#emit_non_indexed_attr" do
     def build_non_indexed_method(*indices)
       e = described_class.new
-      e << "def self.test(attrs, rs, writer)"
+      e << "def self.test(attrs, rs, writer, attr_mask)"
       indices.each { |i| e.emit_non_indexed_attr(i) }
       e << "end"
       build_class_with_method(e.to_source)
@@ -226,7 +204,7 @@ describe Panko::CodeGen::Emitter do
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([attr], rs, writer)
+      klass.test([attr], rs, writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "from_rs")

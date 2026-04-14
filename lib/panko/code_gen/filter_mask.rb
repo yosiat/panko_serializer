@@ -66,6 +66,25 @@ module Panko
       def inspect
         "<Panko::CodeGen::FilterMask attrs=#{@attrs.inspect}>"
       end
+
+      # Singleton object whose +[]+ always returns +true+.
+      # Used by {EMPTY} so the generated +if attr_mask[i]+ checks
+      # pass without branching on nil.
+      INCLUDE_ALL = Class.new {
+        def [](*) = true
+        def freeze = self
+        def frozen? = true
+      }.new
+
+      # A FilterMask that includes every field. Passed in place of +nil+
+      # so generated code needs only one method (with mask checks) instead
+      # of separate filtered/unfiltered variants.
+      EMPTY = new(
+        attrs: INCLUDE_ALL,
+        method_fields: nil,
+        has_one: nil,
+        has_many: nil
+      )
     end
   end
 end

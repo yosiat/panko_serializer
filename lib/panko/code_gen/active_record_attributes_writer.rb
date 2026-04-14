@@ -52,32 +52,22 @@ module Panko
       #
       # @param object [ActiveRecord::Base] the AR record
       # @param writer [Oj::StringWriter] the output writer
-      # @param filter_mask [FilterMask, nil] nil for unfiltered
+      # @param filter_mask [FilterMask] never nil — use FilterMask::EMPTY for unfiltered
       # @return [void]
       def write(object, writer, filter_mask)
         rs = record_state
-        class_changed = rs.setup(object)
-        handle_class_change(rs) if class_changed
+        handle_class_change(rs) if rs.setup(object)
+        attr_mask = filter_mask.attrs
 
         if rs.is_indexed_row && !rs.has_attributes_hash
           if @caches_ready
-            if filter_mask
-              @klass._write_indexed_cached_filtered(rs.row, writer, filter_mask.attrs)
-            else
-              @klass._write_indexed_cached(rs.row, writer)
-            end
+            @klass._write_indexed_cached(rs.row, writer, attr_mask)
           else
-            if filter_mask
-              @klass._write_indexed_first_pass_filtered(self, rs, writer, filter_mask.attrs)
-            else
-              @klass._write_indexed_first_pass(self, rs, writer)
-            end
+            @klass._write_indexed_first_pass(self, rs, writer, attr_mask)
             build_caches!(rs)
           end
-        elsif filter_mask
-          @klass._write_ar_fallback_filtered(self, rs, writer, filter_mask.attrs)
         else
-          @klass._write_ar_fallback(self, rs, writer)
+          @klass._write_ar_fallback(self, rs, writer, attr_mask)
         end
       end
 
@@ -86,24 +76,25 @@ module Panko
       #
       # @param object [ActiveRecord::Base] the AR record
       # @param result [Hash] the output hash to populate
-      # @param filter_mask [FilterMask, nil] nil for unfiltered
+      # @param filter_mask [FilterMask] never nil — use FilterMask::EMPTY for unfiltered
       # @return [void]
       def write_hash(object, result, filter_mask)
         rs = record_state
         handle_class_change(rs) if rs.setup(object)
+        attr_mask = filter_mask.attrs
 
         unless rs.is_indexed_row && !rs.has_attributes_hash
-          filter_mask ? @klass._write_ar_fallback_hash_filtered(self, rs, result, filter_mask.attrs) : @klass._write_ar_fallback_hash(self, rs, result)
+          @klass._write_ar_fallback_hash(self, rs, result, attr_mask)
           return
         end
 
         unless @caches_ready
-          filter_mask ? @klass._write_indexed_first_pass_hash_filtered(self, rs, result, filter_mask.attrs) : @klass._write_indexed_first_pass_hash(self, rs, result)
+          @klass._write_indexed_first_pass_hash(self, rs, result, attr_mask)
           build_caches!(rs)
           return
         end
 
-        filter_mask ? @klass._write_indexed_cached_hash_filtered(rs.row, result, filter_mask.attrs) : @klass._write_indexed_cached_hash(rs.row, result)
+        @klass._write_indexed_cached_hash(rs.row, result, attr_mask)
       end
 
       # Builds the parallel cache arrays from the current RecordState.
