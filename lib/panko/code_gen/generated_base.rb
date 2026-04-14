@@ -4,8 +4,9 @@ module Panko
   module CodeGen
     # Abstract base class for all generated serializer classes.
     #
-    # Provides the public serialization API. The {Compiler} defines all
-    # write methods on each subclass via +module_eval+.
+    # Provides the public serialization API and static dispatch methods.
+    # The {Compiler} defines per-serializer write methods on each subclass
+    # via +module_eval+, overriding the no-op stubs defined here.
     #
     # All methods receive a {FilterMask} (never nil — {FilterMask::EMPTY}
     # for unfiltered calls) so each concern needs only one method.
@@ -46,6 +47,8 @@ module Panko
         # @!attribute [w] _hm_static_masks
         attr_writer :_hm_static_masks
 
+        # --- Public entry points ---
+
         # Serializes a single object to the given writer.
         #
         # @param object [Object] the object to serialize
@@ -70,20 +73,6 @@ module Panko
           _serialize_many(objects, writer, key, filter_mask || FilterMask::EMPTY, context)
         end
 
-        # Internal single-object serialization. Wraps in push_object/pop.
-        #
-        # @param object [Object] the object to serialize
-        # @param writer [Oj::StringWriter] the output writer
-        # @param key [String, nil] JSON key; nil for root
-        # @param filter_mask [FilterMask] never nil
-        # @param context [SerializationContext, nil] context/scope
-        # @return [void]
-        def _serialize_one(object, writer, key, filter_mask, context)
-          writer.push_object(key)
-          _write_one(object, writer, filter_mask, context)
-          writer.pop
-        end
-
         # Serializes a single object to a Ruby Hash.
         #
         # @param object [Object] the object to serialize
@@ -104,6 +93,242 @@ module Panko
           fm = filter_mask || FilterMask::EMPTY
           objects.map { |obj| _write_one_hash(obj, fm, context) }
         end
+
+        # --- Static dispatch methods ---
+
+        # Internal single-object serialization. Wraps in push_object/pop.
+        #
+        # @param object [Object] the object to serialize
+        # @param writer [Oj::StringWriter] the output writer
+        # @param key [String, nil] JSON key; nil for root
+        # @param filter_mask [FilterMask] never nil
+        # @param context [SerializationContext, nil] context/scope
+        # @return [void]
+        def _serialize_one(object, writer, key, filter_mask, context)
+          writer.push_object(key)
+          _write_one(object, writer, filter_mask, context)
+          writer.pop
+        end
+
+        # Writes a single object's attributes + extras to the writer.
+        # Dispatches by object type (AR, Hash, PORO), then calls
+        # method fields / has_one / has_many stubs (no-ops unless overridden).
+        #
+        # @param object [Object] the object to serialize
+        # @param writer [Oj::StringWriter] the output writer
+        # @param filter_mask [FilterMask] never nil
+        # @param context [SerializationContext, nil] context/scope
+        # @return [void]
+        def _write_one(object, writer, filter_mask, context)
+          if object.is_a?(ActiveRecord::Base)
+            @_ar_writer.write(object, writer, filter_mask)
+          elsif object.is_a?(Hash)
+            _write_hash(object, writer, filter_mask.attrs)
+          else
+            _write_plain(object, writer, filter_mask.attrs)
+          end
+          _write_method_fields(object, writer, filter_mask.method_fields, context)
+          _write_has_one(object, writer, filter_mask, context)
+          _write_has_many(object, writer, filter_mask, context)
+        end
+
+        # Builds a Ruby Hash for a single object.
+        # Same dispatch as {_write_one} but writes to a Hash.
+        #
+        # @param object [Object] the object to serialize
+        # @param filter_mask [FilterMask] never nil
+        # @param context [SerializationContext, nil] context/scope
+        # @return [Hash]
+        def _write_one_hash(object, filter_mask, context)
+          result = {}
+          if object.is_a?(ActiveRecord::Base)
+            @_ar_writer.write_hash(object, result, filter_mask)
+          elsif object.is_a?(Hash)
+            _write_hash_hash(object, result, filter_mask.attrs)
+          else
+            _write_plain_hash(object, result, filter_mask.attrs)
+          end
+          _write_method_fields_hash(object, result, filter_mask.method_fields, context)
+          _write_has_one_hash(object, result, filter_mask, context)
+          _write_has_many_hash(object, result, filter_mask, context)
+          result
+        end
+
+        # Serializes an array of objects to the writer as a JSON array.
+        #
+        # @param objects [Array<Object>] the objects to serialize
+        # @param writer [Oj::StringWriter] the output writer
+        # @param key [String, nil] JSON key for the array
+        # @param filter_mask [FilterMask] never nil
+        # @param context [SerializationContext, nil] context/scope
+        # @return [void]
+        def _serialize_many(objects, writer, key, filter_mask, context)
+          writer.push_array(key)
+          objects.each do |obj|
+            writer.push_object
+            _write_one(obj, writer, filter_mask, context)
+            writer.pop
+          end
+          writer.pop
+        end
+
+        # --- No-op stubs for optional concerns ---
+        # Overridden by the Compiler when the serializer declares
+        # method fields, has_one, or has_many associations.
+
+        def _write_method_fields(*)
+        end
+
+        def _write_method_fields_hash(*)
+        end
+
+        def _write_has_one(*)
+        end
+
+        def _write_has_one_hash(*)
+        end
+
+        def _write_has_many(*)
+        end
+
+        def _write_has_many_hash(*)
+        end
+
+        # --- Cold-path AR methods (loops, run once or rarely) ---
+
+        # First-pass: resolves types for all attributes, writes values for
+        # included ones. Runs once per record class, then {build_caches!}
+        # fills the parallel arrays for the cached hot path.
+        #
+        # @param aw [ActiveRecordAttributesWriter] the writer with attrs array
+        # @param rs [RecordState] record state with column_indexes and row
+        # @param writer [Oj::StringWriter] the output writer
+        # @param attr_mask [Array<Boolean>, INCLUDE_ALL] per-attribute mask
+        # @return [void]
+        def _write_indexed_first_pass(aw, rs, writer, attr_mask)
+          ci = rs.column_indexes
+          row = rs.row
+          aw.attrs.each_with_index do |attr, i|
+            ci_val = ci[attr.name]
+            v = ci_val ? row[ci_val] : nil
+            _resolve_type(attr, rs) if attr.type.nil? && v
+            _write_value(attr, v, writer) if attr_mask[i]
+          end
+        end
+
+        # Hash-path variant of {_write_indexed_first_pass}.
+        def _write_indexed_first_pass_hash(aw, rs, result, attr_mask)
+          ci = rs.column_indexes
+          row = rs.row
+          aw.attrs.each_with_index do |attr, i|
+            ci_val = ci[attr.name]
+            v = ci_val ? row[ci_val] : nil
+            _resolve_type(attr, rs) if attr.type.nil? && v
+            _write_value_hash(attr, v, result) if attr_mask[i]
+          end
+        end
+
+        # Fallback for dirty/non-indexed AR records. Checks the attributes
+        # hash first (dirty values), falls back to indexed row, then to
+        # RecordState read for non-indexed records.
+        #
+        # @param aw [ActiveRecordAttributesWriter] the writer with attrs array
+        # @param rs [RecordState] record state
+        # @param writer [Oj::StringWriter] the output writer
+        # @param attr_mask [Array<Boolean>, INCLUDE_ALL] per-attribute mask
+        # @return [void]
+        def _write_ar_fallback(aw, rs, writer, attr_mask)
+          attrs = aw.attrs
+          if rs.is_indexed_row
+            ci = rs.column_indexes
+            row = rs.row
+            ah = rs.attributes_hash
+            attrs.each_with_index do |attr, i|
+              next unless attr_mask[i]
+
+              v = nil
+              am = ah[attr.name]
+              if am
+                v = am.instance_variable_get(:@value_before_type_cast)
+                attr.type ||= am.instance_variable_get(:@type)
+              end
+              if v.nil?
+                ci_val = ci[attr.name]
+                v = row[ci_val] if ci_val
+              end
+              _resolve_type(attr, rs) if attr.type.nil? && v
+              _write_value(attr, v, writer)
+            end
+          else
+            attrs.each_with_index do |attr, i|
+              next unless attr_mask[i]
+
+              v = rs.read_attribute(attr)
+              Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, attr, v)
+            end
+          end
+        end
+
+        # Hash-path variant of {_write_ar_fallback}.
+        def _write_ar_fallback_hash(aw, rs, result, attr_mask)
+          attrs = aw.attrs
+          if rs.is_indexed_row
+            ci = rs.column_indexes
+            row = rs.row
+            ah = rs.attributes_hash
+            attrs.each_with_index do |attr, i|
+              next unless attr_mask[i]
+
+              v = nil
+              am = ah[attr.name]
+              if am
+                v = am.instance_variable_get(:@value_before_type_cast)
+                attr.type ||= am.instance_variable_get(:@type)
+              end
+              if v.nil?
+                ci_val = ci[attr.name]
+                v = row[ci_val] if ci_val
+              end
+              _resolve_type(attr, rs) if attr.type.nil? && v
+              _write_value_hash(attr, v, result)
+            end
+          else
+            attrs.each_with_index do |attr, i|
+              next unless attr_mask[i]
+
+              v = rs.read_attribute(attr)
+              _write_value_hash(attr, v, result)
+            end
+          end
+        end
+
+        # --- Hash object methods (uses object[key], no literal method calls) ---
+
+        # Writes Hash object attributes to the JSON writer.
+        # Uses +object[attr.name]+ — no method calls, so no code-gen needed.
+        #
+        # @param object [Hash] the hash to serialize
+        # @param writer [Oj::StringWriter] the output writer
+        # @param attr_mask [Array<Boolean>, INCLUDE_ALL] per-attribute mask
+        # @return [void]
+        def _write_hash(object, writer, attr_mask)
+          @_attrs.each_with_index do |attr, i|
+            next unless attr_mask[i]
+
+            writer.push_value(object[attr.name], attr.name_for_serialization)
+          end
+        end
+
+        # Hash-path variant of {_write_hash}.
+        def _write_hash_hash(object, result, attr_mask)
+          @_attrs.each_with_index do |attr, i|
+            next unless attr_mask[i]
+
+            result[attr.name_for_serialization] = object[attr.name].as_json
+          end
+        end
+
+        # --- Type resolution and value writing helpers ---
 
         # Resolves the AR type for an attribute from the record state's type maps.
         # Called by generated cold-path methods.
@@ -175,6 +400,28 @@ module Panko
             Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(capture, aw.attrs[i], value)
           end
           result[aw.key[i]] = capture.value
+        end
+
+        # --- Source dump API ---
+
+        # Records a generated source snippet for later retrieval via {#dump_source}.
+        #
+        # @param label [String] method label (e.g. "_write_indexed_cached")
+        # @param source [String] the generated Ruby source
+        # @return [void]
+        def _record_source(label, source)
+          @_generated_sources ||= {}
+          @_generated_sources[label] = source
+        end
+
+        # Returns all generated method sources as a formatted string.
+        # Each method is preceded by a comment with its label.
+        #
+        # @return [String]
+        def dump_source
+          return "" unless defined?(@_generated_sources) && @_generated_sources
+
+          @_generated_sources.map { |label, src| "# #{label}\n#{src}" }.join("\n\n")
         end
       end
     end

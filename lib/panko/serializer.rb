@@ -100,6 +100,18 @@ module Panko
         )
       end
 
+      # Returns the generated source code for this serializer's compiled class.
+      # Forces compilation if not already compiled.
+      #
+      # @param file [String, nil] optional file path to write the source to
+      # @return [String] the generated Ruby source
+      def dump_generated_source(file: nil)
+        compiled = _descriptor._compiled_class || _descriptor.engine_serializer
+        source = compiled.dump_source
+        File.write(file, source) if file
+        source
+      end
+
       def has_many(name, options = {})
         serializer_const = options[:serializer] || options[:each_serializer]
         if serializer_const.is_a?(String)

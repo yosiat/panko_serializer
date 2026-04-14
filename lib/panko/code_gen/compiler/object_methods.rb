@@ -3,21 +3,14 @@
 module Panko
   module CodeGen
     class Compiler
-      # Generates Hash and PORO attribute write methods.
-      # Both JSON (writer) and Hash (result) variants.
-      # All methods accept +attr_mask+ for unified filtered/unfiltered handling.
+      # Generates PORO attribute write methods (literal method calls).
+      #
+      # Hash-object methods (+_write_hash+, +_write_hash_hash+) use
+      # +object[key]+ and live as pre-written loops on {GeneratedBase}.
       module ObjectMethods
         private
 
         # --- JSON path ---
-
-        def gen_write_hash
-          e = Emitter.new
-          e << "def self._write_hash(object, writer, attr_mask)"
-          @attrs.each_with_index { |attr, i| e.emit_hash_attr(i, attr.name, attr.name_for_serialization) }
-          e << "end"
-          e.to_source
-        end
 
         def gen_write_plain
           e = Emitter.new
@@ -28,14 +21,6 @@ module Panko
         end
 
         # --- Hash path ---
-
-        def gen_write_hash_hash
-          e = Emitter.new
-          e << "def self._write_hash_hash(object, result, attr_mask)"
-          @attrs.each_with_index { |attr, i| e.emit_hash_attr_hash(i, attr.name, attr.name_for_serialization) }
-          e << "end"
-          e.to_source
-        end
 
         def gen_write_plain_hash
           e = Emitter.new

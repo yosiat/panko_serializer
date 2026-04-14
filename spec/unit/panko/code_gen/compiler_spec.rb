@@ -30,16 +30,22 @@ describe Panko::CodeGen::Compiler do
       expect(compiled).to respond_to(:_write_indexed_cached)
     end
 
-    it "defines _write_indexed_first_pass" do
+    it "inherits cold-path methods from GeneratedBase" do
       expect(compiled).to respond_to(:_write_indexed_first_pass)
-    end
-
-    it "defines _write_ar_fallback" do
       expect(compiled).to respond_to(:_write_ar_fallback)
+      expect(compiled).to respond_to(:_write_hash)
     end
 
-    it "defines _write_one" do
+    it "inherits dispatch methods from GeneratedBase" do
       expect(compiled).to respond_to(:_write_one)
+      expect(compiled).to respond_to(:_write_one_hash)
+      expect(compiled).to respond_to(:_serialize_many)
+    end
+
+    it "records generated sources for dump_source" do
+      source = compiled.dump_source
+      expect(source).to include("_write_indexed_cached")
+      expect(source).to include("_write_plain")
     end
   end
 
