@@ -107,6 +107,47 @@ module Panko
             end
           RUBY
         end
+
+        # Generates +_write_one_hash+ — builds a Ruby Hash directly.
+        # Returns the populated Hash.
+        def gen_write_one_hash
+          has_extras = @has_method_fields || @has_has_one || @has_has_many
+
+          extras = ""
+          if has_extras
+            extras = "\n    if filter_mask"
+            extras += "\n      _write_method_fields_hash_filtered(object, result, filter_mask.method_fields, context)" if @has_method_fields
+            extras += "\n      _write_has_one_hash_filtered(object, result, filter_mask, context)" if @has_has_one
+            extras += "\n      _write_has_many_hash_filtered(object, result, filter_mask, context)" if @has_has_many
+            extras += "\n    else"
+            extras += "\n      _write_method_fields_hash(object, result, context)" if @has_method_fields
+            extras += "\n      _write_has_one_hash(object, result, context)" if @has_has_one
+            extras += "\n      _write_has_many_hash(object, result, context)" if @has_has_many
+            extras += "\n    end"
+          end
+
+          <<~RUBY
+            def self._write_one_hash(object, filter_mask, context)
+              result = {}
+              if object.is_a?(ActiveRecord::Base)
+                @_ar_writer.write_hash(object, result, filter_mask)
+              elsif object.is_a?(Hash)
+                if filter_mask
+                  _write_hash_hash_filtered(object, result, filter_mask.attrs)
+                else
+                  _write_hash_hash(object, result)
+                end
+              else
+                if filter_mask
+                  _write_plain_hash_filtered(object, result, filter_mask.attrs)
+                else
+                  _write_plain_hash(object, result)
+                end
+              end#{extras}
+              result
+            end
+          RUBY
+        end
       end
     end
   end

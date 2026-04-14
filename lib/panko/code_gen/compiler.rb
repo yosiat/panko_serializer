@@ -54,7 +54,7 @@ module Panko
         klass._ar_writer = ActiveRecordAttributesWriter.new(attrs: @attrs, klass: klass)
         klass._attrs = @attrs
 
-        # AR attribute write methods
+        # AR attribute write methods (JSON path)
         define_on(klass, gen_write_indexed_cached, "_write_indexed_cached")
         define_on(klass, gen_write_indexed_cached_filtered, "_write_indexed_cached_filtered")
         define_on(klass, gen_write_indexed_first_pass, "_write_indexed_first_pass")
@@ -62,11 +62,23 @@ module Panko
         define_on(klass, gen_write_ar_fallback, "_write_ar_fallback")
         define_on(klass, gen_write_ar_fallback_filtered, "_write_ar_fallback_filtered")
 
-        # Non-AR attribute write methods
+        # AR attribute write methods (Hash path)
+        define_on(klass, gen_write_indexed_cached_hash, "_write_indexed_cached_hash")
+        define_on(klass, gen_write_indexed_cached_hash_filtered, "_write_indexed_cached_hash_filtered")
+        define_on(klass, gen_write_indexed_first_pass_hash, "_write_indexed_first_pass_hash")
+        define_on(klass, gen_write_indexed_first_pass_hash_filtered, "_write_indexed_first_pass_hash_filtered")
+        define_on(klass, gen_write_ar_fallback_hash, "_write_ar_fallback_hash")
+        define_on(klass, gen_write_ar_fallback_hash_filtered, "_write_ar_fallback_hash_filtered")
+
+        # Non-AR attribute write methods (JSON + Hash)
         define_on(klass, gen_write_hash, "_write_hash")
         define_on(klass, gen_write_hash_filtered, "_write_hash_filtered")
         define_on(klass, gen_write_plain, "_write_plain")
         define_on(klass, gen_write_plain_filtered, "_write_plain_filtered")
+        define_on(klass, gen_write_hash_hash, "_write_hash_hash")
+        define_on(klass, gen_write_hash_hash_filtered, "_write_hash_hash_filtered")
+        define_on(klass, gen_write_plain_hash, "_write_plain_hash")
+        define_on(klass, gen_write_plain_hash_filtered, "_write_plain_hash_filtered")
 
         # Method fields
         if @has_method_fields
@@ -75,6 +87,8 @@ module Panko
           klass._serializer = ser
           define_on(klass, gen_write_method_fields, "_write_method_fields")
           define_on(klass, gen_write_method_fields_filtered, "_write_method_fields_filtered")
+          define_on(klass, gen_write_method_fields_hash, "_write_method_fields_hash")
+          define_on(klass, gen_write_method_fields_hash_filtered, "_write_method_fields_hash_filtered")
         end
 
         # Associations
@@ -83,6 +97,8 @@ module Panko
           klass._ho_static_masks = compute_static_masks(@has_one_assocs)
           define_on(klass, gen_write_has_one, "_write_has_one")
           define_on(klass, gen_write_has_one_filtered, "_write_has_one_filtered")
+          define_on(klass, gen_write_has_one_hash, "_write_has_one_hash")
+          define_on(klass, gen_write_has_one_hash_filtered, "_write_has_one_hash_filtered")
         end
 
         if @has_has_many
@@ -90,10 +106,13 @@ module Panko
           klass._hm_static_masks = compute_static_masks(@has_many_assocs)
           define_on(klass, gen_write_has_many, "_write_has_many")
           define_on(klass, gen_write_has_many_filtered, "_write_has_many_filtered")
+          define_on(klass, gen_write_has_many_hash, "_write_has_many_hash")
+          define_on(klass, gen_write_has_many_hash_filtered, "_write_has_many_hash_filtered")
         end
 
-        # Top-level dispatch
+        # Top-level dispatch (JSON + Hash)
         define_on(klass, gen_write_one, "_write_one")
+        define_on(klass, gen_write_one_hash, "_write_one_hash")
         define_on(klass, gen_serialize_many, "_serialize_many")
 
         klass

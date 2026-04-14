@@ -152,6 +152,63 @@ module Panko
             Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, attribute, value)
           end
         end
+
+        # Hash-path variant of +_write_value+. Assigns directly to a Hash.
+        # Delegates to +ValuesWriter.write+ via a {ValueCapture} writer so
+        # the existing type-coercion pipeline is reused — no explicit
+        # +type.deserialize+ needed here.
+        #
+        # @param attribute [Panko::Attribute] the attribute being written
+        # @param value [Object] the raw value
+        # @param result [Hash] the output hash
+        # @return [void]
+        def _write_value_hash(attribute, value, result)
+          if value.nil?
+            result[attribute.name_for_serialization] = nil
+            return
+          end
+
+          capture = Panko::CodeGen::ValueCapture.instance
+          Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(capture, attribute, value)
+          result[attribute.name_for_serialization] = capture.value
+        end
+
+        # Hash-path helper for non-direct cached attributes.
+        # Passes a {ValueCapture} as the writer so the cached type writer
+        # coerces the value, then stores the captured result in the hash.
+        #
+        # @param aw [ActiveRecordAttributesWriter] the writer with caches
+        # @param i [Integer] attribute index
+        # @param value [Object] the raw non-nil value
+        # @param result [Hash] the output hash
+        # @return [void]
+        def _write_cached_value_hash(aw, i, value, result)
+          capture = Panko::CodeGen::ValueCapture.instance
+          unless aw.wtr[i].write(value, capture, aw.key[i])
+            Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(capture, aw.attrs[i], value)
+          end
+          result[aw.key[i]] = capture.value
+        end
+
+        # Serializes a single object to a Ruby Hash (no writer).
+        #
+        # @param object [Object] the object to serialize
+        # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param context [SerializationContext, nil] context/scope for method fields
+        # @return [Hash]
+        def serialize_one_hash(object:, filter_mask: nil, context: nil)
+          _write_one_hash(object, filter_mask, context)
+        end
+
+        # Serializes an array of objects to an Array of Hashes (no writer).
+        #
+        # @param objects [Array<Object>] the objects to serialize
+        # @param filter_mask [FilterMask, nil] nil for unfiltered
+        # @param context [SerializationContext, nil] context/scope for method fields
+        # @return [Array<Hash>]
+        def serialize_many_hash(objects:, filter_mask: nil, context: nil)
+          objects.map { |obj| _write_one_hash(obj, filter_mask, context) }
+        end
       end
     end
   end

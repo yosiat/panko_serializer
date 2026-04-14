@@ -185,7 +185,7 @@ describe Panko::Serializer do
         mock_object = double("object")
 
         # Stub Panko::Engine::Serializer to avoid dependencies on the object's attributes
-        mock_impl_srz = double("srz", serialize_one: nil)
+        mock_impl_srz = double("srz", serialize_one: nil, serialize_one_hash: {})
         allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
 
         # First call should work

@@ -81,6 +81,31 @@ module Panko
         end
       end
 
+      # Dispatches attribute writing to a Ruby Hash based on record state.
+      # Same dispatch as +write+ but calls +_hash+ method variants.
+      #
+      # @param object [ActiveRecord::Base] the AR record
+      # @param result [Hash] the output hash to populate
+      # @param filter_mask [FilterMask, nil] nil for unfiltered
+      # @return [void]
+      def write_hash(object, result, filter_mask)
+        rs = record_state
+        handle_class_change(rs) if rs.setup(object)
+
+        unless rs.is_indexed_row && !rs.has_attributes_hash
+          filter_mask ? @klass._write_ar_fallback_hash_filtered(self, rs, result, filter_mask.attrs) : @klass._write_ar_fallback_hash(self, rs, result)
+          return
+        end
+
+        unless @caches_ready
+          filter_mask ? @klass._write_indexed_first_pass_hash_filtered(self, rs, result, filter_mask.attrs) : @klass._write_indexed_first_pass_hash(self, rs, result)
+          build_caches!(rs)
+          return
+        end
+
+        filter_mask ? @klass._write_indexed_cached_hash_filtered(rs.row, result, filter_mask.attrs) : @klass._write_indexed_cached_hash(rs.row, result)
+      end
+
       # Builds the parallel cache arrays from the current RecordState.
       # Thread-safe via double-checked locking.
       #

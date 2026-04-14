@@ -31,11 +31,11 @@ Please pass valid each_serializer to ArraySerializer, for example:
     end
 
     def serialize(subjects)
-      serialize_with_writer(subjects, Panko::ObjectWriter.new).output
+      @descriptor.engine_serializer.serialize_many_hash(objects: subjects.to_a, filter_mask: @descriptor._filter_mask, context: @serialization_context)
     end
 
     def to_a
-      serialize_with_writer(@subjects, Panko::ObjectWriter.new).output
+      @descriptor.engine_serializer.serialize_many_hash(objects: @subjects.to_a, filter_mask: @descriptor._filter_mask, context: @serialization_context)
     end
 
     def serialize_to_json(subjects)

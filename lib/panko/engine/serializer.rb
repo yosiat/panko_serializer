@@ -90,6 +90,20 @@ module Panko::Engine
       _serialize_one(object, writer, key)
     end
 
+    # Returns a Ruby Hash for a single object (ObjectWriter fallback).
+    def serialize_one_hash(object:, filter_mask: nil, context: nil)
+      writer = Panko::ObjectWriter.new
+      _serialize_one(object, writer)
+      writer.output
+    end
+
+    # Returns an Array of Hashes (ObjectWriter fallback).
+    def serialize_many_hash(objects:, filter_mask: nil, context: nil)
+      writer = Panko::ObjectWriter.new
+      _serialize_many(objects, writer)
+      writer.output
+    end
+
     # Shared helper for single-object serialization called by serialize_one,
     # serialize_has_one_assocs, and (in the fallback path) _serialize_many.
     # Public by convention so association sub-serializers can call it directly

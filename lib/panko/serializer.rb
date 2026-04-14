@@ -138,7 +138,9 @@ module Panko
     attr_reader :object
 
     def serialize(object)
-      serialize_with_writer(object, Panko::ObjectWriter.new).output
+      raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
+      @used = true
+      @descriptor.engine_serializer.serialize_one_hash(object: object, filter_mask: @descriptor._filter_mask, context: @serialization_context)
     end
 
     def serialize_to_json(object)

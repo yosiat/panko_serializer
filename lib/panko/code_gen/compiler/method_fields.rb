@@ -28,6 +28,30 @@ module Panko
           e << "end"
           e.to_source
         end
+
+        # --- Hash path ---
+
+        def gen_write_method_fields_hash
+          e = Emitter.new
+          e << "def self._write_method_fields_hash(object, result, context)"
+          e << "ser = @_serializer"
+          e << "ser.serialization_context = context"
+          e << "ser.instance_variable_set(:@object, object)"
+          @method_fields.each { |mf| e.emit_method_field_hash(mf.name_sym, mf.name_for_serialization) }
+          e << "end"
+          e.to_source
+        end
+
+        def gen_write_method_fields_hash_filtered
+          e = Emitter.new
+          e << "def self._write_method_fields_hash_filtered(object, result, mf_mask, context)"
+          e << "ser = @_serializer"
+          e << "ser.serialization_context = context"
+          e << "ser.instance_variable_set(:@object, object)"
+          @method_fields.each_with_index { |mf, i| e.emit_method_field_hash_filtered(i, mf.name_sym, mf.name_for_serialization) }
+          e << "end"
+          e.to_source
+        end
       end
     end
   end
