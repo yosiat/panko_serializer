@@ -120,15 +120,13 @@ module Panko
 
         private
 
-        # Emits inline AR has_one target resolution with literal method calls.
+        # Emits inline has_one target resolution with literal method calls.
+        # Uses +reflect_on_association+ to detect real AR associations
+        # (avoids expensive +rescue AssociationNotFoundError+).
         def emit_has_one_target_resolution(name_sym, indent: "")
-          self << "#{indent}if object.respond_to?(:association)"
-          self << "#{indent}  begin"
-          self << "#{indent}    _ar_assoc = object.association(:#{name_sym})"
-          self << "#{indent}    target = _ar_assoc.loaded? ? _ar_assoc.target : object.#{name_sym}"
-          self << "#{indent}  rescue ActiveRecord::AssociationNotFoundError"
-          self << "#{indent}    target = object.#{name_sym}"
-          self << "#{indent}  end"
+          self << "#{indent}if object.is_a?(ActiveRecord::Base) && object.class.reflect_on_association(:#{name_sym})"
+          self << "#{indent}  _ar_assoc = object.association(:#{name_sym})"
+          self << "#{indent}  target = _ar_assoc.loaded? ? _ar_assoc.target : object.#{name_sym}"
           self << "#{indent}else"
           self << "#{indent}  target = object.#{name_sym}"
           self << "#{indent}end"
