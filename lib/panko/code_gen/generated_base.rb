@@ -389,17 +389,18 @@ module Panko
         # Passes a {ValueCapture} as the writer so the cached type writer
         # coerces the value, then stores the captured result in the hash.
         #
-        # @param aw [ActiveRecordAttributesWriter] the writer with caches
-        # @param i [Integer] attribute index
+        # @param wtr [Object] the cached ValuesWriter for this attribute
+        # @param attr [Panko::Attribute] the attribute (for fallback)
+        # @param key [String] the serialization key
         # @param value [Object] the raw non-nil value
         # @param result [Hash] the output hash
         # @return [void]
-        def _write_cached_value_hash(aw, i, value, result)
+        def _write_cached_value_hash(wtr, attr, key, value, result)
           capture = Panko::CodeGen::ValueCapture.instance
-          unless aw.wtr[i].write(value, capture, aw.key[i])
-            Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(capture, aw.attrs[i], value)
+          unless wtr.write(value, capture, key)
+            Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(capture, attr, value)
           end
-          result[aw.key[i]] = capture.value
+          result[key] = capture.value
         end
 
         # --- Source dump API ---

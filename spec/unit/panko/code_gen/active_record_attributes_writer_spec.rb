@@ -42,13 +42,6 @@ describe Panko::CodeGen::ActiveRecordAttributesWriter do
       expect(writer_instance.caches_ready?).to be false
     end
 
-    it "starts with nil cache arrays" do
-      expect(writer_instance.col).to be_nil
-      expect(writer_instance.key).to be_nil
-      expect(writer_instance.wtr).to be_nil
-      expect(writer_instance.dir).to be_nil
-    end
-
     it "exposes the attrs array" do
       expect(writer_instance.attrs).to eq(attrs)
     end
@@ -84,7 +77,7 @@ describe Panko::CodeGen::ActiveRecordAttributesWriter do
       attrs[1].cached_writer = Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter::StringWriter.new
     end
 
-    it "builds parallel cache arrays" do
+    it "sets per-attribute class ivars on klass" do
       rs = writer_instance.record_state
       record = make_indexed_record(record_class, column_indexes: column_indexes, row: row, types: types)
       rs.setup(record)
@@ -92,10 +85,13 @@ describe Panko::CodeGen::ActiveRecordAttributesWriter do
       writer_instance.build_caches!(rs)
 
       expect(writer_instance.caches_ready?).to be true
-      expect(writer_instance.col).to eq([0, 1])
-      expect(writer_instance.key).to eq(%w[name title])
-      expect(writer_instance.wtr.length).to eq(2)
-      expect(writer_instance.dir).to eq([true, true])
+      expect(klass.instance_variable_get(:@_col_0)).to eq(0)
+      expect(klass.instance_variable_get(:@_col_1)).to eq(1)
+      expect(klass.instance_variable_get(:@_dir_0)).to eq(true)
+      expect(klass.instance_variable_get(:@_dir_1)).to eq(true)
+      expect(klass.instance_variable_get(:@_wtr_0)).to be_a(
+        Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter::StringWriter
+      )
     end
 
     it "is idempotent" do
@@ -104,10 +100,10 @@ describe Panko::CodeGen::ActiveRecordAttributesWriter do
       rs.setup(record)
 
       writer_instance.build_caches!(rs)
-      first_col = writer_instance.col
+      first_col = klass.instance_variable_get(:@_col_0)
 
       writer_instance.build_caches!(rs)
-      expect(writer_instance.col).to equal(first_col)
+      expect(klass.instance_variable_get(:@_col_0)).to equal(first_col)
     end
   end
 

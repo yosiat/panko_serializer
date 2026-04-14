@@ -8,35 +8,45 @@ module Panko
       # All methods include +attr_mask[i]+ guards so a single generated method
       # handles both filtered and unfiltered calls (via {FilterMask::EMPTY}).
       #
+      # Generated code uses per-attribute class ivars (+@_col_0+, +@_dir_0+,
+      # +@_wtr_0+) populated by {ActiveRecordAttributesWriter#build_caches!},
+      # and literal serialization keys baked in at compile time.
+      #
       # Cold-path methods (first-pass, fallback) are pre-written loops on
       # {GeneratedBase} and do not need emitters.
       module ActiveRecordAttributes
         # --- Indexed cached hot path (post-warmup, JSON) ---
 
-        def emit_cached_attr(i)
+        # @param i [Integer] attribute index
+        # @param serialization_key [String] the JSON key (baked in as literal)
+        def emit_cached_attr(i, serialization_key)
+          key = serialization_key.inspect
           self << "if attr_mask[#{i}]"
-          self << "  v = row[aw.col[#{i}]]"
-          self << "  if aw.dir[#{i}]"
-          self << "    writer.push_value(v, aw.key[#{i}])"
+          self << "  v = row[@_col_#{i}]"
+          self << "  if @_dir_#{i}"
+          self << "    writer.push_value(v, #{key})"
           self << "  elsif v.nil?"
-          self << "    writer.push_value(nil, aw.key[#{i}])"
+          self << "    writer.push_value(nil, #{key})"
           self << "  else"
-          self << "    aw.wtr[#{i}].write(v, writer, aw.key[#{i}])"
+          self << "    @_wtr_#{i}.write(v, writer, #{key})"
           self << "  end"
           self << "end"
         end
 
         # --- Indexed cached hot path (post-warmup, Hash) ---
 
-        def emit_cached_attr_hash(i)
+        # @param i [Integer] attribute index
+        # @param serialization_key [String] the Hash key (baked in as literal)
+        def emit_cached_attr_hash(i, serialization_key)
+          key = serialization_key.inspect
           self << "if attr_mask[#{i}]"
-          self << "  v = row[aw.col[#{i}]]"
-          self << "  if aw.dir[#{i}]"
-          self << "    result[aw.key[#{i}]] = v"
+          self << "  v = row[@_col_#{i}]"
+          self << "  if @_dir_#{i}"
+          self << "    result[#{key}] = v"
           self << "  elsif v.nil?"
-          self << "    result[aw.key[#{i}]] = nil"
+          self << "    result[#{key}] = nil"
           self << "  else"
-          self << "    _write_cached_value_hash(aw, #{i}, v, result)"
+          self << "    _write_cached_value_hash(@_wtr_#{i}, @_attrs[#{i}], #{key}, v, result)"
           self << "  end"
           self << "end"
         end

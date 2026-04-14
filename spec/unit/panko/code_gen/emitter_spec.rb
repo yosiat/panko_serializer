@@ -23,75 +23,79 @@ describe Panko::CodeGen::Emitter do
   let(:include_all) { Panko::CodeGen::FilterMask::INCLUDE_ALL }
 
   describe "#emit_cached_attr" do
-    def build_cached_method(*indices)
+    def build_cached_method(attrs_with_keys)
       e = described_class.new
-      e << "def self.test(row, writer, aw, attr_mask)"
-      indices.each { |i| e.emit_cached_attr(i) }
+      e << "def self.test(row, writer, attr_mask)"
+      attrs_with_keys.each_with_index { |(_, key), i| e.emit_cached_attr(i, key) }
       e << "end"
       build_class_with_method(e.to_source)
     end
 
+    def setup_class_ivars(klass, col:, dir:, wtr:)
+      col.each_with_index { |v, i| klass.instance_variable_set(:"@_col_#{i}", v) }
+      dir.each_with_index { |v, i| klass.instance_variable_set(:"@_dir_#{i}", v) }
+      wtr.each_with_index { |v, i| klass.instance_variable_set(:"@_wtr_#{i}", v) }
+    end
+
     it "writes value directly when writer is nil_safe" do
-      klass = build_cached_method(0)
-      aw = double(col: [0], key: ["name"], dir: [true], wtr: [string_writer_instance])
+      klass = build_cached_method([[:name, "name"]])
+      setup_class_ivars(klass, col: [0], dir: [true], wtr: [string_writer_instance])
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(["hello"], writer, aw, include_all)
+      klass.test(["hello"], writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "hello")
     end
 
     it "writes nil when value is nil and writer is not nil_safe" do
-      klass = build_cached_method(0)
-      aw = double(col: [0], key: ["created_at"], dir: [false], wtr: [datetime_writer_instance])
+      klass = build_cached_method([[:created_at, "created_at"]])
+      setup_class_ivars(klass, col: [0], dir: [false], wtr: [datetime_writer_instance])
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test([nil], writer, aw, include_all)
+      klass.test([nil], writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("created_at" => nil)
     end
 
     it "delegates to cached writer when not nil_safe and value is present" do
-      klass = build_cached_method(0)
-      aw = double(col: [0], key: ["created_at"], dir: [false], wtr: [datetime_writer_instance])
+      klass = build_cached_method([[:created_at, "created_at"]])
+      setup_class_ivars(klass, col: [0], dir: [false], wtr: [datetime_writer_instance])
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(["2024-01-15 10:30:00"], writer, aw, include_all)
+      klass.test(["2024-01-15 10:30:00"], writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)["created_at"]).to include("2024-01-15")
     end
 
     it "unrolls multiple attributes in order" do
-      klass = build_cached_method(0, 1)
-      aw = double(
-        col: [0, 1], key: %w[name title], dir: [true, true],
-        wtr: [string_writer_instance, string_writer_instance]
-      )
+      klass = build_cached_method([[:name, "name"], [:title, "title"]])
+      setup_class_ivars(klass,
+        col: [0, 1], dir: [true, true],
+        wtr: [string_writer_instance, string_writer_instance])
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(%w[Alice Engineer], writer, aw, include_all)
+      klass.test(%w[Alice Engineer], writer, include_all)
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "Alice", "title" => "Engineer")
     end
 
     it "excludes attribute when mask is false" do
-      klass = build_cached_method(0, 1)
-      aw = double(
-        col: [0, 1], key: %w[name title], dir: [true, true],
-        wtr: [string_writer_instance, string_writer_instance]
-      )
+      klass = build_cached_method([[:name, "name"], [:title, "title"]])
+      setup_class_ivars(klass,
+        col: [0, 1], dir: [true, true],
+        wtr: [string_writer_instance, string_writer_instance])
 
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
-      klass.test(%w[Alice Engineer], writer, aw, [true, false])
+      klass.test(%w[Alice Engineer], writer, [true, false])
       writer.pop
 
       expect(Oj.load(writer.to_s)).to eq("name" => "Alice")
