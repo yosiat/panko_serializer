@@ -128,22 +128,17 @@ describe Panko::ArraySerializer do
     let(:mock_serializer) { Class.new(Panko::Serializer) }
     let(:subjects) { [double("obj1"), double("obj2")] }
     let(:array_serializer) { Panko::ArraySerializer.new(subjects, each_serializer: mock_serializer) }
-    let(:mock_impl_srz) { double("srz", _serialize_many: nil, serialize_many_hash: []) }
+    let(:mock_gen) { double("gen", _serialize_many: nil, serialize_many: nil, serialize_many_hash: []) }
 
     before do
-      Panko::CodeGen.disable!
-      allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
-    end
-
-    after do
-      Panko::CodeGen.enable!
+      allow(array_serializer.instance_variable_get(:@descriptor)).to receive(:engine_serializer).and_return(mock_gen)
     end
 
     describe "#serialize" do
-      it "creates Panko::Engine::Serializer with correct descriptor" do
-        expect(Panko::Engine::Serializer).to receive(:new).with(
-          array_serializer.instance_variable_get(:@descriptor)
-        ).and_return(mock_impl_srz)
+      it "calls serialize_many_hash on the generated class" do
+        expect(mock_gen).to receive(:serialize_many_hash).with(
+          objects: subjects.to_a, filter_mask: nil, context: anything
+        ).and_return([])
 
         array_serializer.serialize(subjects)
       end
@@ -151,7 +146,7 @@ describe Panko::ArraySerializer do
 
     describe "#to_a" do
       it "calls serialize_many_hash with stored subjects" do
-        expect(mock_impl_srz).to receive(:serialize_many_hash).with(
+        expect(mock_gen).to receive(:serialize_many_hash).with(
           objects: subjects.to_a, filter_mask: nil, context: anything
         ).and_return([])
 

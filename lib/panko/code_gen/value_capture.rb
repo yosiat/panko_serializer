@@ -5,7 +5,7 @@ module Panko
     # Minimal writer-like object that captures the last value from a
     # +push_value+ call. Used by hash-path helpers to reuse the existing
     # cached writer / ValuesWriter pipeline without allocating an
-    # ObjectWriter.
+    # a full writer.
     #
     # Thread-safe: each thread gets its own instance via +.instance+.
     class ValueCapture

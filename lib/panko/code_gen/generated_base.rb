@@ -55,7 +55,7 @@ module Panko
         # Serializes a single object to the given writer.
         #
         # @param object [Object] the object to serialize
-        # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+        # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key for the object; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
         # @return [void]
@@ -66,7 +66,7 @@ module Panko
         # Serializes an array of objects to the given writer.
         #
         # @param objects [Array<Object>] the objects to serialize
-        # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+        # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key for the array; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
         # @param context [SerializationContext, nil] context/scope for method fields
@@ -79,7 +79,7 @@ module Panko
         # Calls +_write_one+ which is generated per-class by the {Compiler}.
         #
         # @param object [Object] the object to serialize
-        # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+        # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
         # @param context [SerializationContext, nil] context/scope for method fields
@@ -94,7 +94,7 @@ module Panko
         # Calls +_write_one+ which is generated per-class by the {Compiler}.
         #
         # @param objects [Array<Object>] the objects to serialize
-        # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+        # @param writer [Oj::StringWriter] the output writer
         # @param key [String, nil] JSON key; nil for root
         # @param filter_mask [FilterMask, nil] nil for unfiltered
         # @param context [SerializationContext, nil] context/scope for method fields
@@ -133,7 +133,7 @@ module Panko
         #
         # @param attribute [Panko::Attribute] the attribute being written
         # @param value [Object] the raw value
-        # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+        # @param writer [Oj::StringWriter] the output writer
         # @return [void]
         def _write_value(attribute, value, writer)
           key = attribute.name_for_serialization

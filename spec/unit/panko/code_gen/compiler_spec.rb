@@ -118,22 +118,20 @@ describe Panko::CodeGen::Compiler do
       end
     end
 
-    describe "correctness vs existing engine" do
-      it "produces identical output to Engine::Serializer" do
+    describe "correctness" do
+      it "produces correct JSON and hash output" do
         records = CompilerTestPost.where(id: record.id)
 
-        # Existing engine
-        engine_writer = Oj::StringWriter.new(mode: :rails)
-        engine_serializer = Panko::Engine::Serializer.new(descriptor)
-        engine_serializer.serialize_many(objects: records, writer: engine_writer)
-        engine_result = Oj.load(engine_writer.to_s)
+        # JSON path
+        json_writer = Oj::StringWriter.new(mode: :rails)
+        compiled.serialize_many(objects: records, writer: json_writer)
+        json_result = Oj.load(json_writer.to_s)
 
-        # Code-gen
-        codegen_writer = Oj::StringWriter.new(mode: :rails)
-        compiled.serialize_many(objects: records, writer: codegen_writer)
-        codegen_result = Oj.load(codegen_writer.to_s)
+        # Hash path
+        hash_result = compiled.serialize_many_hash(objects: records)
 
-        expect(codegen_result).to eq(engine_result)
+        expect(json_result).to eq(hash_result)
+        expect(json_result.first).to include("body" => record.body)
       end
     end
   end

@@ -178,23 +178,19 @@ describe Panko::Serializer do
 
     describe "single-use enforcement" do
       it "raises error on second use" do
-        # Disable code-gen so the Engine::Serializer mock takes effect
-        Panko::CodeGen.disable!
-
         serializer = serializer_class.new
-        mock_object = double("object")
+        mock_object = double("object", name: "test")
 
-        # Stub Panko::Engine::Serializer to avoid dependencies on the object's attributes
-        mock_impl_srz = double("srz", serialize_one: nil, serialize_one_hash: {})
-        allow(Panko::Engine::Serializer).to receive(:new).and_return(mock_impl_srz)
+        # Stub the generated class to avoid AR dependencies
+        mock_gen = class_double(Panko::CodeGen::GeneratedBase).as_stubbed_const
+        allow(serializer.instance_variable_get(:@descriptor)).to receive(:engine_serializer).and_return(mock_gen)
+        allow(mock_gen).to receive(:serialize_one_hash).and_return({})
 
         # First call should work
         expect { serializer.serialize(mock_object) }.not_to raise_error
 
         # Second call should raise error
         expect { serializer.serialize(mock_object) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
-      ensure
-        Panko::CodeGen.enable!
       end
     end
   end

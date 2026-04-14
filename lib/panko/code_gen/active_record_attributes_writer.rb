@@ -51,7 +51,7 @@ module Panko
       # Calls the appropriate generated method on +klass+.
       #
       # @param object [ActiveRecord::Base] the AR record
-      # @param writer [Oj::StringWriter, Panko::ObjectWriter] the output writer
+      # @param writer [Oj::StringWriter] the output writer
       # @param filter_mask [FilterMask, nil] nil for unfiltered
       # @return [void]
       def write(object, writer, filter_mask)

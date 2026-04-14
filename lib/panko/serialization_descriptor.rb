@@ -82,18 +82,14 @@ module Panko
       end
     end
 
-    # Returns a cached serializer for this descriptor.
-    # When CodeGen is enabled, returns the compiled generated class
+    # Returns the compiled generated class for this descriptor,
     # cached on the canonical (class-level) descriptor.
-    # Otherwise falls back to Engine::Serializer.
     #
-    # @return [Class, Panko::Engine::Serializer]
+    # @return [Class<Panko::CodeGen::GeneratedBase>]
     def engine_serializer
-      @engine_serializer ||= if Panko::CodeGen.enabled?
+      @engine_serializer ||= begin
         canonical = type._descriptor
         canonical._compiled_class ||= Panko::CodeGen::Compiler.new(canonical).compile
-      else
-        Panko::Engine::Serializer.new(self)
       end
     end
 
