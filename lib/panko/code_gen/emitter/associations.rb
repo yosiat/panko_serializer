@@ -9,12 +9,12 @@ module Panko
         # --- has_one (JSON path) ---
 
         def emit_has_one(i, name_sym, name_str)
-          self << "if ho_mask.nil? || ho_mask[#{i}]"
+          self << "if ho_mask[#{i}]"
           emit_has_one_target_resolution(name_sym, indent: "  ")
           self << "  if target.nil?"
           self << "    writer.push_value(nil, #{name_str.inspect})"
           self << "  else"
-          self << "    nested = ho_masks&.dig(#{i}) || @_ho_static_masks[#{i}] || Panko::CodeGen::FilterMask::EMPTY"
+          self << "    nested = ho_masks[#{i}] || @_ho_static_masks[#{i}]"
           self << "    writer.push_object(#{name_str.inspect})"
           self << "    @_has_one_assocs[#{i}].serializer_writer._write_one(target, writer, nested, context)"
           self << "    writer.pop"
@@ -25,13 +25,13 @@ module Panko
         # --- has_many (JSON path) ---
 
         def emit_has_many(i, name_sym, name_str)
-          self << "if hm_mask.nil? || hm_mask[#{i}]"
+          self << "if hm_mask[#{i}]"
           self << "  collection = object.#{name_sym}"
           self << "  if collection.nil?"
           self << "    writer.push_value(nil, #{name_str.inspect})"
           self << "  else"
           self << "    _sub = @_has_many_assocs[#{i}].serializer_writer"
-          self << "    _mask = hm_masks&.dig(#{i}) || @_hm_static_masks[#{i}] || Panko::CodeGen::FilterMask::EMPTY"
+          self << "    _mask = hm_masks[#{i}] || @_hm_static_masks[#{i}]"
           self << "    writer.push_array(#{name_str.inspect})"
           self << "    collection.each do |_el|"
           self << "      writer.push_object"
@@ -46,12 +46,12 @@ module Panko
         # --- has_one (Hash path) ---
 
         def emit_has_one_hash(i, name_sym, name_str)
-          self << "if ho_mask.nil? || ho_mask[#{i}]"
+          self << "if ho_mask[#{i}]"
           emit_has_one_target_resolution(name_sym, indent: "  ")
           self << "  if target.nil?"
           self << "    result[#{name_str.inspect}] = nil"
           self << "  else"
-          self << "    nested = ho_masks&.dig(#{i}) || @_ho_static_masks[#{i}] || Panko::CodeGen::FilterMask::EMPTY"
+          self << "    nested = ho_masks[#{i}] || @_ho_static_masks[#{i}]"
           self << "    result[#{name_str.inspect}] = @_has_one_assocs[#{i}].serializer_writer._write_one_hash(target, nested, context)"
           self << "  end"
           self << "end"
@@ -60,13 +60,13 @@ module Panko
         # --- has_many (Hash path) ---
 
         def emit_has_many_hash(i, name_sym, name_str)
-          self << "if hm_mask.nil? || hm_mask[#{i}]"
+          self << "if hm_mask[#{i}]"
           self << "  collection = object.#{name_sym}"
           self << "  if collection.nil?"
           self << "    result[#{name_str.inspect}] = nil"
           self << "  else"
           self << "    _sub = @_has_many_assocs[#{i}].serializer_writer"
-          self << "    _mask = hm_masks&.dig(#{i}) || @_hm_static_masks[#{i}] || Panko::CodeGen::FilterMask::EMPTY"
+          self << "    _mask = hm_masks[#{i}] || @_hm_static_masks[#{i}]"
           self << "    result[#{name_str.inspect}] = collection.map { |_el| _sub._write_one_hash(_el, _mask, context) }"
           self << "  end"
           self << "end"

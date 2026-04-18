@@ -152,11 +152,11 @@ module Panko
 
       Panko::CodeGen::FilterMask.new(
         attrs: attrs_mask,
-        method_fields: mf_mask.empty? ? nil : mf_mask,
-        has_one: ho_mask.empty? ? nil : ho_mask,
-        has_many: hm_mask.empty? ? nil : hm_mask,
-        has_one_masks: (ho_sub_masks.any? { |m| !m.nil? }) ? ho_sub_masks : nil,
-        has_many_masks: (hm_sub_masks.any? { |m| !m.nil? }) ? hm_sub_masks : nil
+        method_fields: mf_mask.empty? ? Panko::CodeGen::FilterMask::INCLUDE_ALL : mf_mask,
+        has_one: ho_mask.empty? ? Panko::CodeGen::FilterMask::INCLUDE_ALL : ho_mask,
+        has_many: hm_mask.empty? ? Panko::CodeGen::FilterMask::INCLUDE_ALL : hm_mask,
+        has_one_masks: (ho_sub_masks.any? { |m| !m.nil? }) ? ho_sub_masks : Panko::CodeGen::FilterMask::NIL_SLOTS,
+        has_many_masks: (hm_sub_masks.any? { |m| !m.nil? }) ? hm_sub_masks : Panko::CodeGen::FilterMask::NIL_SLOTS
       )
     end
 

@@ -22,14 +22,14 @@ describe Panko::CodeGen::FilterMask do
       expect(mask.has_many).to be_frozen
     end
 
-    it "allows nil for optional arrays" do
+    it "defaults optional masks to sentinels" do
       mask = described_class.new(attrs: [true])
 
-      expect(mask.method_fields).to be_nil
-      expect(mask.has_one).to be_nil
-      expect(mask.has_many).to be_nil
-      expect(mask.has_one_masks).to be_nil
-      expect(mask.has_many_masks).to be_nil
+      expect(mask.method_fields).to be Panko::CodeGen::FilterMask::INCLUDE_ALL
+      expect(mask.has_one).to be Panko::CodeGen::FilterMask::INCLUDE_ALL
+      expect(mask.has_many).to be Panko::CodeGen::FilterMask::INCLUDE_ALL
+      expect(mask.has_one_masks).to be Panko::CodeGen::FilterMask::NIL_SLOTS
+      expect(mask.has_many_masks).to be Panko::CodeGen::FilterMask::NIL_SLOTS
     end
 
     it "freezes the mask itself" do

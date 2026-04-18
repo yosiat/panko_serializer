@@ -105,13 +105,17 @@ module Panko
       end
 
       # Computes static sub-masks for associations that have built-in filters.
+      # Always returns a {FilterMask} per slot — {FilterMask::EMPTY} when the
+      # association has no static filter — so generated code never sees +nil+
+      # in this array.
       #
       # @param assocs [Array<Panko::Association>] the associations
-      # @return [Array<FilterMask, nil>]
+      # @return [Array<FilterMask>]
       def compute_static_masks(assocs)
         assocs.map do |assoc|
           sub_canonical = assoc.descriptor.type._descriptor
-          Panko::SerializationDescriptor.compute_filter_mask(assoc.descriptor, sub_canonical)
+          Panko::SerializationDescriptor.compute_filter_mask(assoc.descriptor, sub_canonical) ||
+            Panko::CodeGen::FilterMask::EMPTY
         end
       end
     end

@@ -38,12 +38,16 @@ module Panko
         attr_writer :_has_many_assocs
 
         # Per-association static sub-masks for has_one.
-        # @return [Array<FilterMask?, nil>]
+        # Always a FilterMask per slot ({FilterMask::EMPTY} when the
+        # association has no static filter) — never nil.
+        # @return [Array<FilterMask>]
         # @!attribute [w] _ho_static_masks
         attr_writer :_ho_static_masks
 
         # Per-association static sub-masks for has_many.
-        # @return [Array<FilterMask?, nil>]
+        # Always a FilterMask per slot ({FilterMask::EMPTY} when the
+        # association has no static filter) — never nil.
+        # @return [Array<FilterMask>]
         # @!attribute [w] _hm_static_masks
         attr_writer :_hm_static_masks
 
