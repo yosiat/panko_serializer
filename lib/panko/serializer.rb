@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "serialization_descriptor"
+require_relative "code_gen/standalone_dumper"
 require "oj"
 
 class SerializationContext
@@ -100,15 +101,25 @@ module Panko
         )
       end
 
-      # Returns the generated source code for this serializer's compiled class.
-      # Forces compilation if not already compiled.
+      # Dumps a self-contained standalone serializer class to +file+.
       #
-      # @param file [String, nil] optional file path to write the source to
-      # @return [String] the generated Ruby source
-      def dump_generated_source(file: nil)
-        compiled = _descriptor._compiled_class || _descriptor.engine_serializer
-        source = compiled.dump_source
-        File.write(file, source) if file
+      # The generated file defines +<ClassName>Generated+ — a class with its own
+      # dispatch, cold paths, and helpers. Loading the file does not mutate this
+      # serializer's runtime engine_serializer. Intended for experimentation and
+      # to regenerate the benchmarks/playground fixtures.
+      #
+      # Sub-serializer dispatch emits literal sibling-class calls (e.g.
+      # +ScoresPankoGenerated._write_one+), so every sub-serializer referenced
+      # via has_one / has_many must also be dumped for the file to load.
+      #
+      # @param file [String] output file path (required)
+      # @param modes [Array<Symbol>] subset of [:json, :hash]; default both
+      # @return [String] the written source
+      def dump_generated_source(file:, modes: Panko::CodeGen::StandaloneDumper::MODES)
+        raise ArgumentError, "cannot dump anonymous serializer" if name.nil?
+
+        source = Panko::CodeGen::StandaloneDumper.new(_descriptor, modes: modes).to_source
+        File.write(file, source)
         source
       end
 
