@@ -4,7 +4,13 @@ module Panko
   module CodeGen
     class Emitter
       # Emit methods for has_one and has_many association writes.
-      # All methods include mask guards for unified filtered/unfiltered handling.
+      #
+      # These emitters are inlined into the per-serializer +_write_one+ /
+      # +_write_one_hash+ bodies. They rely on three locals being in scope:
+      #
+      # - +is_ar+ — boolean, true when +object.is_a?(ActiveRecord::Base)+
+      # - +ho_mask+ / +hm_mask+ — inclusion mask for this level
+      # - +ho_masks+ / +hm_masks+ — nested override masks (may be +NIL_SLOTS+)
       module Associations
         # --- has_one (JSON path) ---
 
@@ -15,9 +21,7 @@ module Panko
           self << "    writer.push_value(nil, #{name_str.inspect})"
           self << "  else"
           self << "    nested = ho_masks[#{i}] || @_ho_static_masks[#{i}]"
-          self << "    writer.push_object(#{name_str.inspect})"
-          self << "    @_has_one_assocs[#{i}].serializer_writer._write_one(target, writer, nested, context)"
-          self << "    writer.pop"
+          self << "    @_has_one_assocs[#{i}].serializer_writer._write_one(target, writer, #{name_str.inspect}, nested, context)"
           self << "  end"
           self << "end"
         end
@@ -33,11 +37,7 @@ module Panko
           self << "    _sub = @_has_many_assocs[#{i}].serializer_writer"
           self << "    _mask = hm_masks[#{i}] || @_hm_static_masks[#{i}]"
           self << "    writer.push_array(#{name_str.inspect})"
-          self << "    collection.each do |_el|"
-          self << "      writer.push_object"
-          self << "      _sub._write_one(_el, writer, _mask, context)"
-          self << "      writer.pop"
-          self << "    end"
+          self << "    collection.each { |_el| _sub._write_one(_el, writer, nil, _mask, context) }"
           self << "    writer.pop"
           self << "  end"
           self << "end"
@@ -75,10 +75,10 @@ module Panko
         private
 
         # Emits inline has_one target resolution with literal method calls.
-        # Uses +reflect_on_association+ to detect real AR associations
-        # (avoids expensive +rescue AssociationNotFoundError+).
+        # Uses the caller-provided +is_ar+ local so the +is_a?(ActiveRecord::Base)+
+        # check is done once per object, not per association.
         def emit_has_one_target_resolution(name_sym, indent: "")
-          self << "#{indent}if object.is_a?(ActiveRecord::Base) && object.class.reflect_on_association(:#{name_sym})"
+          self << "#{indent}if is_ar && object.class.reflect_on_association(:#{name_sym})"
           self << "#{indent}  _ar_assoc = object.association(:#{name_sym})"
           self << "#{indent}  target = _ar_assoc.loaded? ? _ar_assoc.target : object.#{name_sym}"
           self << "#{indent}else"

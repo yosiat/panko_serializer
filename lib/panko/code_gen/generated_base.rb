@@ -4,9 +4,10 @@ module Panko
   module CodeGen
     # Abstract base class for all generated serializer classes.
     #
-    # Provides the public serialization API and static dispatch methods.
-    # The {Compiler} defines per-serializer write methods on each subclass
-    # via +module_eval+, overriding the no-op stubs defined here.
+    # The {Compiler} defines per-serializer +_write_one+, +_write_one_hash+
+    # and attribute writers on each subclass via +module_eval+. This base
+    # class hosts only the public entry points, the generic +_serialize_many+
+    # batch loop, and the cold-path / value-helper methods.
     #
     # All methods receive a {FilterMask} (never nil — {FilterMask::EMPTY}
     # for unfiltered calls) so each concern needs only one method.
@@ -62,7 +63,7 @@ module Panko
         # @param context [SerializationContext, nil] context/scope for method fields
         # @return [void]
         def serialize_one(object:, writer:, key: nil, filter_mask: nil, context: nil)
-          _serialize_one(object, writer, key, filter_mask || FilterMask::EMPTY, context)
+          _write_one(object, writer, key, filter_mask || FilterMask::EMPTY, context)
         end
 
         # Serializes an array of objects to the given writer.
@@ -98,67 +99,11 @@ module Panko
           objects.map { |obj| _write_one_hash(obj, fm, context) }
         end
 
-        # --- Static dispatch methods ---
-
-        # Internal single-object serialization. Wraps in push_object/pop.
-        #
-        # @param object [Object] the object to serialize
-        # @param writer [Oj::StringWriter] the output writer
-        # @param key [String, nil] JSON key; nil for root
-        # @param filter_mask [FilterMask] never nil
-        # @param context [SerializationContext, nil] context/scope
-        # @return [void]
-        def _serialize_one(object, writer, key, filter_mask, context)
-          writer.push_object(key)
-          _write_one(object, writer, filter_mask, context)
-          writer.pop
-        end
-
-        # Writes a single object's attributes + extras to the writer.
-        # Dispatches by object type (AR, Hash, PORO), then calls
-        # method fields / has_one / has_many stubs (no-ops unless overridden).
-        #
-        # @param object [Object] the object to serialize
-        # @param writer [Oj::StringWriter] the output writer
-        # @param filter_mask [FilterMask] never nil
-        # @param context [SerializationContext, nil] context/scope
-        # @return [void]
-        def _write_one(object, writer, filter_mask, context)
-          if object.is_a?(ActiveRecord::Base)
-            @_ar_writer.write(object, writer, filter_mask)
-          elsif object.is_a?(Hash)
-            _write_hash(object, writer, filter_mask.attrs)
-          else
-            _write_plain(object, writer, filter_mask.attrs)
-          end
-          _write_method_fields(object, writer, filter_mask.method_fields, context)
-          _write_has_one(object, writer, filter_mask, context)
-          _write_has_many(object, writer, filter_mask, context)
-        end
-
-        # Builds a Ruby Hash for a single object.
-        # Same dispatch as {_write_one} but writes to a Hash.
-        #
-        # @param object [Object] the object to serialize
-        # @param filter_mask [FilterMask] never nil
-        # @param context [SerializationContext, nil] context/scope
-        # @return [Hash]
-        def _write_one_hash(object, filter_mask, context)
-          result = {}
-          if object.is_a?(ActiveRecord::Base)
-            @_ar_writer.write_hash(object, result, filter_mask)
-          elsif object.is_a?(Hash)
-            _write_hash_hash(object, result, filter_mask.attrs)
-          else
-            _write_plain_hash(object, result, filter_mask.attrs)
-          end
-          _write_method_fields_hash(object, result, filter_mask.method_fields, context)
-          _write_has_one_hash(object, result, filter_mask, context)
-          _write_has_many_hash(object, result, filter_mask, context)
-          result
-        end
+        # --- Generic batch dispatch ---
 
         # Serializes an array of objects to the writer as a JSON array.
+        # Each element is delegated to the per-serializer +_write_one+, which
+        # owns its own push_object / pop.
         #
         # @param objects [Array<Object>] the objects to serialize
         # @param writer [Oj::StringWriter] the output writer
@@ -168,34 +113,8 @@ module Panko
         # @return [void]
         def _serialize_many(objects, writer, key, filter_mask, context)
           writer.push_array(key)
-          objects.each do |obj|
-            writer.push_object
-            _write_one(obj, writer, filter_mask, context)
-            writer.pop
-          end
+          objects.each { |obj| _write_one(obj, writer, nil, filter_mask, context) }
           writer.pop
-        end
-
-        # --- No-op stubs for optional concerns ---
-        # Overridden by the Compiler when the serializer declares
-        # method fields, has_one, or has_many associations.
-
-        def _write_method_fields(*)
-        end
-
-        def _write_method_fields_hash(*)
-        end
-
-        def _write_has_one(*)
-        end
-
-        def _write_has_one_hash(*)
-        end
-
-        def _write_has_many(*)
-        end
-
-        def _write_has_many_hash(*)
         end
 
         # --- Cold-path AR methods (loops, run once or rarely) ---
@@ -303,32 +222,6 @@ module Panko
               v = rs.read_attribute(attr)
               _write_value_hash(attr, v, result)
             end
-          end
-        end
-
-        # --- Hash object methods (uses object[key], no literal method calls) ---
-
-        # Writes Hash object attributes to the JSON writer.
-        # Uses +object[attr.name]+ — no method calls, so no code-gen needed.
-        #
-        # @param object [Hash] the hash to serialize
-        # @param writer [Oj::StringWriter] the output writer
-        # @param attr_mask [Array<Boolean>, INCLUDE_ALL] per-attribute mask
-        # @return [void]
-        def _write_hash(object, writer, attr_mask)
-          @_attrs.each_with_index do |attr, i|
-            next unless attr_mask[i]
-
-            writer.push_value(object[attr.name], attr.name_for_serialization)
-          end
-        end
-
-        # Hash-path variant of {_write_hash}.
-        def _write_hash_hash(object, result, attr_mask)
-          @_attrs.each_with_index do |attr, i|
-            next unless attr_mask[i]
-
-            result[attr.name_for_serialization] = object[attr.name].as_json
           end
         end
 

@@ -2,8 +2,7 @@
 
 require_relative "compiler/active_record_methods"
 require_relative "compiler/object_methods"
-require_relative "compiler/method_fields"
-require_relative "compiler/associations"
+require_relative "compiler/dispatch"
 
 module Panko
   module CodeGen
@@ -23,8 +22,7 @@ module Panko
     class Compiler
       include ActiveRecordMethods
       include ObjectMethods
-      include MethodFields
-      include Associations
+      include Dispatch
 
       # @param descriptor [Panko::SerializationDescriptor] the descriptor to compile
       def initialize(descriptor)
@@ -42,8 +40,15 @@ module Panko
 
       # Compiles the descriptor into a generated class with all methods defined.
       #
-      # Only generates methods that require per-serializer unrolling or literal
-      # method names. Cold-path and generic methods live on {GeneratedBase}.
+      # Generates, per serializer:
+      #
+      # - attribute writers (AR cached, PORO plain, Hash input) — unrolled
+      # - +_write_one+ / +_write_one_hash+ — top-level dispatch with the
+      #   AR/Hash/PORO branch, inlined method fields, and inlined has_one /
+      #   has_many blocks. Absent concerns emit nothing.
+      #
+      # Cold paths (+_write_indexed_first_pass+, +_write_ar_fallback+) and
+      # value helpers live as pre-written methods on {GeneratedBase}.
       #
       # @return [Class] a GeneratedBase subclass with generated methods
       def compile
@@ -58,36 +63,35 @@ module Panko
         define_on(klass, gen_write_indexed_cached, "#{sname}::_write_indexed_cached (#{attr_info})")
         define_on(klass, gen_write_indexed_cached_hash, "#{sname}::_write_indexed_cached_hash (#{attr_info})")
 
-        # PORO attribute writes (literal method calls, JSON + Hash)
+        # Non-AR attribute writes (PORO + Hash input), unrolled.
         define_on(klass, gen_write_plain, "#{sname}::_write_plain (#{attr_info})")
         define_on(klass, gen_write_plain_hash, "#{sname}::_write_plain_hash (#{attr_info})")
+        define_on(klass, gen_write_hash, "#{sname}::_write_hash (#{attr_info})")
+        define_on(klass, gen_write_hash_hash, "#{sname}::_write_hash_hash (#{attr_info})")
 
-        # Method fields (literal method calls on serializer instance)
+        # Method fields: attach the serializer instance used to invoke them.
+        # Actual calls are inlined into +_write_one+ / +_write_one_hash+.
         if @has_method_fields
           ser = @serializer_type.new(_skip_init: true)
           ser.serialization_context = @descriptor.serializer.serialization_context
           klass._serializer = ser
-          mf_info = @method_fields.map(&:name).join(", ")
-          define_on(klass, gen_write_method_fields, "#{sname}::_write_method_fields (#{mf_info})")
-          define_on(klass, gen_write_method_fields_hash, "#{sname}::_write_method_fields_hash (#{mf_info})")
         end
 
-        # Associations (literal method calls for target resolution)
+        # Associations: attach metadata + static sub-masks. Calls are inlined
+        # into +_write_one+ / +_write_one_hash+.
         if @has_has_one
           klass._has_one_assocs = @has_one_assocs
           klass._ho_static_masks = compute_static_masks(@has_one_assocs)
-          ho_info = @has_one_assocs.map(&:name_str).join(", ")
-          define_on(klass, gen_write_has_one, "#{sname}::_write_has_one (#{ho_info})")
-          define_on(klass, gen_write_has_one_hash, "#{sname}::_write_has_one_hash (#{ho_info})")
         end
 
         if @has_has_many
           klass._has_many_assocs = @has_many_assocs
           klass._hm_static_masks = compute_static_masks(@has_many_assocs)
-          hm_info = @has_many_assocs.map(&:name_str).join(", ")
-          define_on(klass, gen_write_has_many, "#{sname}::_write_has_many (#{hm_info})")
-          define_on(klass, gen_write_has_many_hash, "#{sname}::_write_has_many_hash (#{hm_info})")
         end
+
+        # Top-level dispatch: generated per serializer, inlines everything above.
+        define_on(klass, gen_write_one, "#{sname}::_write_one")
+        define_on(klass, gen_write_one_hash, "#{sname}::_write_one_hash")
 
         klass
       end

@@ -6,46 +6,53 @@ describe Panko::CodeGen::GeneratedBase do
   let(:klass) { Class.new(described_class) }
   let(:empty_mask) { Panko::CodeGen::FilterMask::EMPTY }
 
-  describe "._serialize_one" do
-    it "wraps _write_one in push_object/pop" do
+  describe "._serialize_many" do
+    it "wraps objects in push_array/pop and delegates each to _write_one" do
       writer = Oj::StringWriter.new(mode: :rails)
-      written = []
+      calls = []
 
-      klass.define_singleton_method(:_write_one) do |_object, w, _filter_mask, _context|
-        w.push_value("bar", "foo")
-        written << true
+      klass.define_singleton_method(:_write_one) do |obj, w, key, _fm, _ctx|
+        calls << [obj, key]
+        w.push_object(key)
+        w.push_value(obj, "v")
+        w.pop
       end
 
-      klass._serialize_one({}, writer, nil, empty_mask, nil)
+      klass._serialize_many([1, 2], writer, nil, empty_mask, nil)
 
-      expect(written).to eq([true])
-      expect(Oj.load(writer.to_s)).to eq("foo" => "bar")
+      expect(calls).to eq([[1, nil], [2, nil]])
+      expect(Oj.load(writer.to_s)).to eq([{"v" => 1}, {"v" => 2}])
     end
 
-    it "passes key to push_object" do
+    it "passes key to push_array" do
       writer = Oj::StringWriter.new(mode: :rails)
       writer.push_object
 
-      klass.define_singleton_method(:_write_one) { |_o, _w, _fm, _ctx| }
+      klass.define_singleton_method(:_write_one) do |_o, w, key, _fm, _ctx|
+        w.push_object(key)
+        w.pop
+      end
 
-      klass._serialize_one({}, writer, "nested", empty_mask, nil)
+      klass._serialize_many([1], writer, "items", empty_mask, nil)
       writer.pop
 
-      expect(Oj.load(writer.to_s)).to eq("nested" => {})
+      expect(Oj.load(writer.to_s)).to eq("items" => [{}])
     end
 
     it "passes filter_mask to _write_one" do
       writer = Oj::StringWriter.new(mode: :rails)
-      received_mask = nil
+      received_masks = []
 
-      klass.define_singleton_method(:_write_one) do |_o, _w, fm, _ctx|
-        received_mask = fm
+      klass.define_singleton_method(:_write_one) do |_o, w, key, fm, _ctx|
+        received_masks << fm
+        w.push_object(key)
+        w.pop
       end
 
       mask = Panko::CodeGen::FilterMask.new(attrs: [true])
-      klass._serialize_one({}, writer, nil, mask, nil)
+      klass._serialize_many([1, 2], writer, nil, mask, nil)
 
-      expect(received_mask).to equal(mask)
+      expect(received_masks).to all(equal(mask))
     end
   end
 
