@@ -5,6 +5,12 @@ module Panko
     # Dumps a serializer's descriptor to a self-contained Ruby file that defines
     # `<Name>Generated` — a class with its own dispatch, cold paths, and helpers.
     #
+    # The generated source mirrors what the runtime +Compiler+ produces for the
+    # same descriptor: a per-serializer +_write_one+ / +_write_one_hash+ that
+    # owns +push_object/pop+ on the JSON path, checks +object.is_a?(AR::Base)+
+    # once into +is_ar+, and inlines method-field / has_one / has_many blocks
+    # (emitting nothing when those concerns are absent).
+    #
     # Playground / experimentation only. Not used by the runtime compile path.
     class StandaloneDumper
       MODES = %i[json hash].freeze
@@ -33,10 +39,6 @@ module Panko
           emit_entry_points,
           emit_dispatch,
           emit_attribute_writes,
-          emit_method_fields,
-          emit_has_one,
-          emit_has_many,
-          emit_stubs,
           emit_hash_object_writes,
           emit_cold_paths,
           emit_helpers,
@@ -102,8 +104,6 @@ module Panko
       end
 
       # Indents every non-blank line with 4 spaces (inside `class << self`).
-      # @param block [String]
-      # @return [String]
       def indent4(block)
         block.each_line.map { |l| l.strip.empty? ? "" : "    #{l.rstrip}" }.join("\n")
       end
@@ -113,7 +113,7 @@ module Panko
         if json_mode?
           parts << indent4(<<~RUBY)
             def serialize_one(object:, writer:, key: nil, filter_mask: nil, context: nil)
-              _serialize_one(object, writer, key, filter_mask || Panko::CodeGen::FilterMask::EMPTY, context)
+              _write_one(object, writer, key, filter_mask || Panko::CodeGen::FilterMask::EMPTY, context)
             end
 
             def serialize_many(objects:, writer:, key: nil, filter_mask: nil, context: nil)
@@ -140,59 +140,134 @@ module Panko
 
       def emit_dispatch
         parts = []
+        parts << indent4(build_write_one) if json_mode?
+
         if json_mode?
           parts << indent4(<<~RUBY)
-            def _serialize_one(object, writer, key, filter_mask, context)
-              writer.push_object(key)
-              _write_one(object, writer, filter_mask, context)
-              writer.pop
-            end
-
             def _serialize_many(objects, writer, key, filter_mask, context)
               writer.push_array(key)
-              objects.each do |obj|
-                writer.push_object
-                _write_one(obj, writer, filter_mask, context)
-                writer.pop
-              end
+              objects.each { |obj| _write_one(obj, writer, nil, filter_mask, context) }
               writer.pop
             end
-
-            def _write_one(object, writer, filter_mask, context)
-              if object.is_a?(ActiveRecord::Base)
-                @_ar_writer.write(object, writer, filter_mask)
-              elsif object.is_a?(Hash)
-                _write_hash(object, writer, filter_mask.attrs)
-              else
-                _write_plain(object, writer, filter_mask.attrs)
-              end
-              _write_method_fields(object, writer, filter_mask.method_fields, context)
-              _write_has_one(object, writer, filter_mask, context)
-              _write_has_many(object, writer, filter_mask, context)
-            end
           RUBY
         end
 
-        if hash_mode?
-          parts << indent4(<<~RUBY)
-            def _write_one_hash(object, filter_mask, context)
-              result = {}
-              if object.is_a?(ActiveRecord::Base)
-                @_ar_writer.write_hash(object, result, filter_mask)
-              elsif object.is_a?(Hash)
-                _write_hash_hash(object, result, filter_mask.attrs)
-              else
-                _write_plain_hash(object, result, filter_mask.attrs)
-              end
-              _write_method_fields_hash(object, result, filter_mask.method_fields, context)
-              _write_has_one_hash(object, result, filter_mask, context)
-              _write_has_many_hash(object, result, filter_mask, context)
-              result
-            end
-          RUBY
-        end
+        parts << indent4(build_write_one_hash) if hash_mode?
 
         parts.join("\n\n")
+      end
+
+      # Inlined _write_one for the JSON path.
+      def build_write_one
+        lines = []
+        lines << "def _write_one(object, writer, key, filter_mask, context)"
+        lines << "  writer.push_object(key)"
+        lines << "  is_ar = object.is_a?(ActiveRecord::Base)"
+        lines << "  if is_ar"
+        lines << "    @_ar_writer.write(object, writer, filter_mask)"
+        lines << "  elsif object.is_a?(Hash)"
+        lines << "    _write_hash(object, writer, filter_mask.attrs)"
+        lines << "  else"
+        lines << "    _write_plain(object, writer, filter_mask.attrs)"
+        lines << "  end"
+        append_method_fields_block(lines, hash: false) unless @method_fields.empty?
+        append_has_one_block(lines, hash: false) unless @has_one_assocs.empty?
+        append_has_many_block(lines, hash: false) unless @has_many_assocs.empty?
+        lines << "  writer.pop"
+        lines << "end"
+        lines.join("\n")
+      end
+
+      # Inlined _write_one_hash for the Hash path.
+      def build_write_one_hash
+        lines = []
+        lines << "def _write_one_hash(object, filter_mask, context)"
+        lines << "  result = {}"
+        lines << "  is_ar = object.is_a?(ActiveRecord::Base)"
+        lines << "  if is_ar"
+        lines << "    @_ar_writer.write_hash(object, result, filter_mask)"
+        lines << "  elsif object.is_a?(Hash)"
+        lines << "    _write_hash_hash(object, result, filter_mask.attrs)"
+        lines << "  else"
+        lines << "    _write_plain_hash(object, result, filter_mask.attrs)"
+        lines << "  end"
+        append_method_fields_block(lines, hash: true) unless @method_fields.empty?
+        append_has_one_block(lines, hash: true) unless @has_one_assocs.empty?
+        append_has_many_block(lines, hash: true) unless @has_many_assocs.empty?
+        lines << "  result"
+        lines << "end"
+        lines.join("\n")
+      end
+
+      def append_method_fields_block(lines, hash:)
+        lines << "  mf_mask = filter_mask.method_fields"
+        lines << "  ser = @_serializer"
+        lines << "  ser.serialization_context = context"
+        lines << "  ser.instance_variable_set(:@object, object)"
+        @method_fields.each_with_index do |mf, i|
+          lines << "  if mf_mask[#{i}]"
+          if hash
+            lines << "    v = ser.#{mf.name_sym}"
+            lines << "    result[#{mf.name_for_serialization.inspect}] = v.as_json unless v.equal?(Panko::Engine::SKIP)"
+          else
+            lines << "    mf_result = ser.#{mf.name_sym}"
+            lines << "    writer.push_value(mf_result, #{mf.name_for_serialization.inspect}) unless mf_result.equal?(Panko::Engine::SKIP)"
+          end
+          lines << "  end"
+        end
+      end
+
+      def append_has_one_block(lines, hash:)
+        lines << "  ho_mask = filter_mask.has_one"
+        lines << "  ho_masks = filter_mask.has_one_masks"
+        @has_one_assocs.each_with_index do |assoc, i|
+          sub_name = generated_name(assoc.descriptor.type)
+          key_str = assoc.name_str.inspect
+          lines << "  if ho_mask[#{i}]"
+          emit_has_one_target_resolution(lines, assoc.name_sym, indent: "    ")
+          lines << "    if target.nil?"
+          lines << (hash ? "      result[#{key_str}] = nil" : "      writer.push_value(nil, #{key_str})")
+          lines << "    else"
+          lines << "      nested = ho_masks[#{i}] || @_ho_static_masks[#{i}]"
+          lines << (hash ? "      result[#{key_str}] = #{sub_name}._write_one_hash(target, nested, context)" : "      #{sub_name}._write_one(target, writer, #{key_str}, nested, context)")
+          lines << "    end"
+          lines << "  end"
+        end
+      end
+
+      def append_has_many_block(lines, hash:)
+        lines << "  hm_mask = filter_mask.has_many"
+        lines << "  hm_masks = filter_mask.has_many_masks"
+        @has_many_assocs.each_with_index do |assoc, i|
+          sub_name = generated_name(assoc.descriptor.type)
+          key_str = assoc.name_str.inspect
+          lines << "  if hm_mask[#{i}]"
+          lines << "    collection = object.#{assoc.name_sym}"
+          lines << "    if collection.nil?"
+          lines << (hash ? "      result[#{key_str}] = nil" : "      writer.push_value(nil, #{key_str})")
+          lines << "    else"
+          lines << "      _mask = hm_masks[#{i}] || @_hm_static_masks[#{i}]"
+          if hash
+            lines << "      result[#{key_str}] = collection.map { |_el| #{sub_name}._write_one_hash(_el, _mask, context) }"
+          else
+            lines << "      writer.push_array(#{key_str})"
+            lines << "      collection.each { |_el| #{sub_name}._write_one(_el, writer, nil, _mask, context) }"
+            lines << "      writer.pop"
+          end
+          lines << "    end"
+          lines << "  end"
+        end
+      end
+
+      # Has_one target resolution. Reuses the +is_ar+ local set up at the top
+      # of +_write_one+ so +is_a?(ActiveRecord::Base)+ is not re-checked.
+      def emit_has_one_target_resolution(lines, name_sym, indent:)
+        lines << "#{indent}if is_ar && object.class.reflect_on_association(:#{name_sym})"
+        lines << "#{indent}  _ar_assoc = object.association(:#{name_sym})"
+        lines << "#{indent}  target = _ar_assoc.loaded? ? _ar_assoc.target : object.#{name_sym}"
+        lines << "#{indent}else"
+        lines << "#{indent}  target = object.#{name_sym}"
+        lines << "#{indent}end"
       end
 
       def emit_attribute_writes
@@ -229,177 +304,23 @@ module Panko
         parts.join("\n\n")
       end
 
-      def emit_method_fields
-        return "" if @method_fields.empty?
-
-        parts = []
-        if json_mode?
-          e = Emitter.new
-          e << "def _write_method_fields(object, writer, mf_mask, context)"
-          e << "ser = @_serializer"
-          e << "ser.serialization_context = context"
-          e << "ser.instance_variable_set(:@object, object)"
-          @method_fields.each_with_index { |mf, i| e.emit_method_field(i, mf.name_sym, mf.name_for_serialization) }
-          e << "end"
-          parts << indent4(e.to_source)
-        end
-
-        if hash_mode?
-          e = Emitter.new
-          e << "def _write_method_fields_hash(object, result, mf_mask, context)"
-          e << "ser = @_serializer"
-          e << "ser.serialization_context = context"
-          e << "ser.instance_variable_set(:@object, object)"
-          @method_fields.each_with_index { |mf, i| e.emit_method_field_hash(i, mf.name_sym, mf.name_for_serialization) }
-          e << "end"
-          parts << indent4(e.to_source)
-        end
-
-        parts.join("\n\n")
-      end
-
-      def emit_has_one_target_resolution(lines, name_sym, indent:)
-        lines << "#{indent}if object.is_a?(ActiveRecord::Base) && object.class.reflect_on_association(:#{name_sym})"
-        lines << "#{indent}  _ar_assoc = object.association(:#{name_sym})"
-        lines << "#{indent}  target = _ar_assoc.loaded? ? _ar_assoc.target : object.#{name_sym}"
-        lines << "#{indent}else"
-        lines << "#{indent}  target = object.#{name_sym}"
-        lines << "#{indent}end"
-      end
-
-      def emit_has_one
-        return "" if @has_one_assocs.empty?
-
-        parts = []
-
-        if json_mode?
-          lines = []
-          lines << "def _write_has_one(object, writer, filter_mask, context)"
-          lines << "  ho_mask = filter_mask.has_one"
-          lines << "  ho_masks = filter_mask.has_one_masks"
-          @has_one_assocs.each_with_index do |assoc, i|
-            sub_name = generated_name(assoc.descriptor.type)
-            lines << "  if ho_mask[#{i}]"
-            emit_has_one_target_resolution(lines, assoc.name_sym, indent: "    ")
-            lines << "    if target.nil?"
-            lines << "      writer.push_value(nil, #{assoc.name_str.inspect})"
-            lines << "    else"
-            lines << "      nested = ho_masks[#{i}] || @_ho_static_masks[#{i}]"
-            lines << "      writer.push_object(#{assoc.name_str.inspect})"
-            lines << "      #{sub_name}._write_one(target, writer, nested, context)"
-            lines << "      writer.pop"
-            lines << "    end"
-            lines << "  end"
-          end
-          lines << "end"
-          parts << indent4(lines.join("\n"))
-        end
-
-        if hash_mode?
-          lines = []
-          lines << "def _write_has_one_hash(object, result, filter_mask, context)"
-          lines << "  ho_mask = filter_mask.has_one"
-          lines << "  ho_masks = filter_mask.has_one_masks"
-          @has_one_assocs.each_with_index do |assoc, i|
-            sub_name = generated_name(assoc.descriptor.type)
-            lines << "  if ho_mask[#{i}]"
-            emit_has_one_target_resolution(lines, assoc.name_sym, indent: "    ")
-            lines << "    if target.nil?"
-            lines << "      result[#{assoc.name_str.inspect}] = nil"
-            lines << "    else"
-            lines << "      nested = ho_masks[#{i}] || @_ho_static_masks[#{i}]"
-            lines << "      result[#{assoc.name_str.inspect}] = #{sub_name}._write_one_hash(target, nested, context)"
-            lines << "    end"
-            lines << "  end"
-          end
-          lines << "end"
-          parts << indent4(lines.join("\n"))
-        end
-
-        parts.join("\n\n")
-      end
-
-      def emit_has_many
-        return "" if @has_many_assocs.empty?
-
-        parts = []
-
-        if json_mode?
-          lines = []
-          lines << "def _write_has_many(object, writer, filter_mask, context)"
-          lines << "  hm_mask = filter_mask.has_many"
-          lines << "  hm_masks = filter_mask.has_many_masks"
-          @has_many_assocs.each_with_index do |assoc, i|
-            sub_name = generated_name(assoc.descriptor.type)
-            lines << "  if hm_mask[#{i}]"
-            lines << "    collection = object.#{assoc.name_sym}"
-            lines << "    if collection.nil?"
-            lines << "      writer.push_value(nil, #{assoc.name_str.inspect})"
-            lines << "    else"
-            lines << "      _mask = hm_masks[#{i}] || @_hm_static_masks[#{i}]"
-            lines << "      writer.push_array(#{assoc.name_str.inspect})"
-            lines << "      collection.each do |_el|"
-            lines << "        writer.push_object"
-            lines << "        #{sub_name}._write_one(_el, writer, _mask, context)"
-            lines << "        writer.pop"
-            lines << "      end"
-            lines << "      writer.pop"
-            lines << "    end"
-            lines << "  end"
-          end
-          lines << "end"
-          parts << indent4(lines.join("\n"))
-        end
-
-        if hash_mode?
-          lines = []
-          lines << "def _write_has_many_hash(object, result, filter_mask, context)"
-          lines << "  hm_mask = filter_mask.has_many"
-          lines << "  hm_masks = filter_mask.has_many_masks"
-          @has_many_assocs.each_with_index do |assoc, i|
-            sub_name = generated_name(assoc.descriptor.type)
-            lines << "  if hm_mask[#{i}]"
-            lines << "    collection = object.#{assoc.name_sym}"
-            lines << "    if collection.nil?"
-            lines << "      result[#{assoc.name_str.inspect}] = nil"
-            lines << "    else"
-            lines << "      _mask = hm_masks[#{i}] || @_hm_static_masks[#{i}]"
-            lines << "      result[#{assoc.name_str.inspect}] = collection.map { |_el| #{sub_name}._write_one_hash(_el, _mask, context) }"
-            lines << "    end"
-            lines << "  end"
-          end
-          lines << "end"
-          parts << indent4(lines.join("\n"))
-        end
-
-        parts.join("\n\n")
-      end
-
       def emit_hash_object_writes
         parts = []
 
         if json_mode?
-          parts << indent4(<<~RUBY)
-            def _write_hash(object, writer, attr_mask)
-              @_attrs.each_with_index do |attr, i|
-                next unless attr_mask[i]
-
-                writer.push_value(object[attr.name], attr.name_for_serialization)
-              end
-            end
-          RUBY
+          e = Emitter.new
+          e << "def _write_hash(object, writer, attr_mask)"
+          @attrs.each_with_index { |attr, i| e.emit_hash_attr(i, attr.name, attr.name_for_serialization) }
+          e << "end"
+          parts << indent4(e.to_source)
         end
 
         if hash_mode?
-          parts << indent4(<<~RUBY)
-            def _write_hash_hash(object, result, attr_mask)
-              @_attrs.each_with_index do |attr, i|
-                next unless attr_mask[i]
-
-                result[attr.name_for_serialization] = object[attr.name].as_json
-              end
-            end
-          RUBY
+          e = Emitter.new
+          e << "def _write_hash_hash(object, result, attr_mask)"
+          @attrs.each_with_index { |attr, i| e.emit_hash_attr_hash(i, attr.name, attr.name_for_serialization) }
+          e << "end"
+          parts << indent4(e.to_source)
         end
 
         parts.join("\n\n")
@@ -561,27 +482,6 @@ module Panko
         end
 
         parts.join("\n\n")
-      end
-
-      def emit_stubs
-        stubs = []
-
-        if @method_fields.empty?
-          stubs << "def _write_method_fields(*); end" if json_mode?
-          stubs << "def _write_method_fields_hash(*); end" if hash_mode?
-        end
-
-        if @has_one_assocs.empty?
-          stubs << "def _write_has_one(*); end" if json_mode?
-          stubs << "def _write_has_one_hash(*); end" if hash_mode?
-        end
-
-        if @has_many_assocs.empty?
-          stubs << "def _write_has_many(*); end" if json_mode?
-          stubs << "def _write_has_many_hash(*); end" if hash_mode?
-        end
-
-        stubs.empty? ? "" : indent4(stubs.join("\n"))
       end
 
       def validate_modes!(modes)
