@@ -22,7 +22,10 @@ module Panko
         def emit_cached_attr(i, serialization_key)
           key = serialization_key.inspect
           self << "if attr_mask[#{i}]"
-          self << "  v = row[@_col_#{i}]"
+          # +@_col_#{i}+ is nil when the underlying column was omitted from the
+          # query (e.g. +select(:a_subset)+); treat a missing column as a nil
+          # value instead of indexing +row+ with nil and raising TypeError.
+          self << "  v = (c = @_col_#{i}) ? row[c] : nil"
           self << "  if @_dir_#{i}"
           self << "    writer.push_value(v, #{key})"
           self << "  elsif v.nil?"
@@ -40,7 +43,9 @@ module Panko
         def emit_cached_attr_hash(i, serialization_key)
           key = serialization_key.inspect
           self << "if attr_mask[#{i}]"
-          self << "  v = row[@_col_#{i}]"
+          # See +emit_cached_attr+: +@_col_#{i}+ is nil when the column was
+          # omitted from the query; guard against +row[nil]+.
+          self << "  v = (c = @_col_#{i}) ? row[c] : nil"
           self << "  if @_dir_#{i}"
           self << "    result[#{key}] = v"
           self << "  elsif v.nil?"
