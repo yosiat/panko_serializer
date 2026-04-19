@@ -69,12 +69,19 @@ module Panko
         define_on(klass, gen_write_hash, "#{sname}::_write_hash (#{attr_info})")
         define_on(klass, gen_write_hash_hash, "#{sname}::_write_hash_hash (#{attr_info})")
 
-        # Method fields: attach the serializer instance used to invoke them.
-        # Actual calls are inlined into +_write_one+ / +_write_one_hash+.
+        # Method fields: attach an anonymous subclass of the user's serializer
+        # whose +initialize+ sets +@serialization_context+ and +@object+
+        # directly. The generated +_write_one+ allocates one instance per
+        # record via +@_serializer_class.new(context, object)+, so method
+        # fields read their state from freshly-set ivars without a per-call
+        # +instance_variable_set+ or cross-call state contamination.
         if @has_method_fields
-          ser = @serializer_type.new(_skip_init: true)
-          ser.serialization_context = @descriptor.serializer.serialization_context
-          klass._serializer = ser
+          klass._serializer_class = Class.new(@serializer_type) do
+            def initialize(serialization_context, object)
+              @serialization_context = serialization_context
+              @object = object
+            end
+          end
         end
 
         # Associations: attach metadata + static sub-masks. Calls are inlined

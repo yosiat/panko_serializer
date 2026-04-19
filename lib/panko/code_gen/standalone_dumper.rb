@@ -68,7 +68,7 @@ module Panko
         <<~RUBY
           class #{generated_name}
             class << self
-              attr_accessor :_attrs, :_ar_writer, :_serializer,
+              attr_accessor :_attrs, :_ar_writer, :_serializer_class,
                             :_has_one_assocs, :_has_many_assocs,
                             :_ho_static_masks, :_hm_static_masks
         RUBY
@@ -83,9 +83,12 @@ module Panko
         parts << "  @_ar_writer = Panko::CodeGen::ActiveRecordAttributesWriter.new(attrs: @_attrs, klass: self)"
 
         unless @method_fields.empty?
-          parts << "  ser = #{@type.name}.new(_skip_init: true)"
-          parts << "  ser.serialization_context = desc.serializer&.serialization_context"
-          parts << "  @_serializer = ser"
+          parts << "  @_serializer_class = Class.new(#{@type.name}) do"
+          parts << "    def initialize(serialization_context, object)"
+          parts << "      @serialization_context = serialization_context"
+          parts << "      @object = object"
+          parts << "    end"
+          parts << "  end"
         end
 
         parts << "  @_has_one_assocs = desc.has_one_associations"
@@ -201,9 +204,7 @@ module Panko
 
       def append_method_fields_block(lines, hash:)
         lines << "  mf_mask = filter_mask.method_fields"
-        lines << "  ser = @_serializer"
-        lines << "  ser.serialization_context = context"
-        lines << "  ser.instance_variable_set(:@object, object)"
+        lines << "  ser = @_serializer_class.new(context, object)"
         @method_fields.each_with_index do |mf, i|
           lines << "  if mf_mask[#{i}]"
           if hash

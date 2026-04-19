@@ -66,17 +66,13 @@ module Panko
 
         def emit_inline_method_fields(e)
           e << "mf_mask = filter_mask.method_fields"
-          e << "ser = @_serializer"
-          e << "ser.serialization_context = context"
-          e << "ser.instance_variable_set(:@object, object)"
+          e << "ser = @_serializer_class.new(context, object)"
           @method_fields.each_with_index { |mf, i| e.emit_method_field(i, mf.name_sym, mf.name_for_serialization) }
         end
 
         def emit_inline_method_fields_hash(e)
           e << "mf_mask = filter_mask.method_fields"
-          e << "ser = @_serializer"
-          e << "ser.serialization_context = context"
-          e << "ser.instance_variable_set(:@object, object)"
+          e << "ser = @_serializer_class.new(context, object)"
           @method_fields.each_with_index { |mf, i| e.emit_method_field_hash(i, mf.name_sym, mf.name_for_serialization) }
         end
 

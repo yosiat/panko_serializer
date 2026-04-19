@@ -26,9 +26,14 @@ module Panko
         # @!attribute [w] _attrs
         attr_writer :_attrs
 
-        # @return [Panko::Serializer]
-        # @!attribute [w] _serializer
-        attr_writer :_serializer
+        # Anonymous subclass of the user's serializer class. Its initializer
+        # sets +@serialization_context+ and +@object+ directly, so each
+        # +_write_one+ call constructs a fresh instance for method-field
+        # dispatch. Set by the Compiler only when the serializer declares
+        # method fields.
+        # @return [Class<Panko::Serializer>]
+        # @!attribute [w] _serializer_class
+        attr_writer :_serializer_class
 
         # @return [Array<Panko::Association>]
         # @!attribute [w] _has_one_assocs
