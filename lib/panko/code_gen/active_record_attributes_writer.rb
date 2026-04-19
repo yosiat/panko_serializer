@@ -26,6 +26,7 @@ module Panko
         @tl_rs_key = :"_panko_rs_#{object_id}"
         @caches_ready = false
         @mutex = Mutex.new
+        stamp_attr_ivars!
       end
 
       # Dispatches attribute writing based on runtime record state.
@@ -76,6 +77,28 @@ module Panko
         end
 
         @klass._write_indexed_cached_hash(rs.row, result, attr_mask)
+      end
+
+      # Stamps +@_attr_#{i}+ on the generated class, one per attribute, so
+      # the unrolled +_write_ar_fallback+ else branch can read the
+      # {Panko::Attribute} by direct ivar instead of +aw.attrs[i]+.
+      #
+      # Runs once at class build time — these ivars never change (the
+      # {Panko::Attribute} object is reused; its +name+ may be rewritten by
+      # {#handle_class_change}, which is why the generated code reads
+      # +@_attr_#{i}.name+ at call time via +rs.read_attribute+).
+      #
+      # Order matters for object shape stability: this stamping, the lazy
+      # +@_col_#{i}+ / +@_wtr_#{i}+ / +@_dir_#{i}+ in {#build_caches!}, and
+      # any per-class ivars set by the Compiler must land in a consistent
+      # order across every generated class so they share a single shape
+      # tree in the Ruby VM.
+      #
+      # @return [void]
+      def stamp_attr_ivars!
+        @attrs.each_with_index do |attr, i|
+          @klass.instance_variable_set(:"@_attr_#{i}", attr)
+        end
       end
 
       # Sets per-attribute class ivars (+@_col_i+, +@_dir_i+, +@_wtr_i+) on

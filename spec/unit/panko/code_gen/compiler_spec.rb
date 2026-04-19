@@ -30,9 +30,15 @@ describe Panko::CodeGen::Compiler do
       expect(compiled).to respond_to(:_write_indexed_cached)
     end
 
+    it "defines _write_ar_fallback per-class (not inherited)" do
+      # E5 — fallback is emitted per serializer so the non-indexed branch can
+      # be unrolled. The indexed branch inside it stays a loop.
+      expect(compiled.singleton_class.instance_methods(false)).to include(:_write_ar_fallback)
+      expect(compiled.singleton_class.instance_methods(false)).to include(:_write_ar_fallback_hash)
+    end
+
     it "inherits cold-path methods from GeneratedBase" do
       expect(compiled).to respond_to(:_write_indexed_first_pass)
-      expect(compiled).to respond_to(:_write_ar_fallback)
       expect(compiled).to respond_to(:_write_hash)
     end
 
@@ -46,6 +52,7 @@ describe Panko::CodeGen::Compiler do
       source = compiled.dump_source
       expect(source).to include("_write_indexed_cached")
       expect(source).to include("_write_plain")
+      expect(source).to include("_write_ar_fallback")
     end
   end
 

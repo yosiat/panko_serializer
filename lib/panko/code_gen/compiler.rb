@@ -63,6 +63,13 @@ module Panko
         define_on(klass, gen_write_indexed_cached, "#{sname}::_write_indexed_cached (#{attr_info})")
         define_on(klass, gen_write_indexed_cached_hash, "#{sname}::_write_indexed_cached_hash (#{attr_info})")
 
+        # AR fallback: indexed branch stays a loop; non-indexed branch is
+        # unrolled per-attribute. Shifting this from GeneratedBase to the
+        # generated class removes the +each_with_index+ frame that showed up
+        # as the #1 self-time cost (~10%) for unpersisted records.
+        define_on(klass, gen_write_ar_fallback, "#{sname}::_write_ar_fallback (#{attr_info})")
+        define_on(klass, gen_write_ar_fallback_hash, "#{sname}::_write_ar_fallback_hash (#{attr_info})")
+
         # Non-AR attribute writes (PORO + Hash input), unrolled.
         define_on(klass, gen_write_plain, "#{sname}::_write_plain (#{attr_info})")
         define_on(klass, gen_write_plain_hash, "#{sname}::_write_plain_hash (#{attr_info})")
