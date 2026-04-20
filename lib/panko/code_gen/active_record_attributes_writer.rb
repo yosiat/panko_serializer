@@ -79,25 +79,42 @@ module Panko
         @klass._write_indexed_cached_hash(rs.row, result, attr_mask)
       end
 
-      # Stamps +@_attr_#{i}+ on the generated class, one per attribute, so
-      # the unrolled +_write_ar_fallback+ else branch can read the
-      # {Panko::Attribute} by direct ivar instead of +aw.attrs[i]+.
+      # Stamps +@_attr_#{i}+ and +@_attr_#{i}_key+ on the generated class,
+      # one pair per attribute, so the unrolled +_write_ar_fallback+ else
+      # branch can read the {Panko::Attribute} and its serialization key by
+      # direct ivar instead of via +aw.attrs[i]+ and
+      # +attr.name_for_serialization+.
       #
-      # Runs once at class build time — these ivars never change (the
-      # {Panko::Attribute} object is reused; its +name+ may be rewritten by
-      # {#handle_class_change}, which is why the generated code reads
-      # +@_attr_#{i}.name+ at call time via +rs.read_attribute+).
+      # Runs once at class build time. The +@_attr_#{i}+ reference is stable
+      # for the life of the class: the same {Panko::Attribute} instance is
+      # reused across calls; +#handle_class_change+ may rewrite the
+      # attribute's +name+ (for AR +alias_attribute+), but that is read at
+      # call time via +rs.read_attribute(@_attr_#{i})+, so generated code
+      # picks up the rewrite without a rebuild.
       #
-      # Order matters for object shape stability: this stamping, the lazy
-      # +@_col_#{i}+ / +@_wtr_#{i}+ / +@_dir_#{i}+ in {#build_caches!}, and
-      # any per-class ivars set by the Compiler must land in a consistent
-      # order across every generated class so they share a single shape
-      # tree in the Ruby VM.
+      # The +@_attr_#{i}_key+ ivar caches +name_for_serialization+ — the
+      # JSON output key. That value is also effectively stable:
+      # +name_for_serialization+ is baked in as a string literal elsewhere
+      # in the generated code (see +emit_cached_attr+, +emit_plain_attr+,
+      # +emit_method_field+, etc.), so caching it on the fallback path
+      # maintains the same invariant. In the rare edge case where a
+      # serializer DSL alias collides with an AR +alias_attribute+,
+      # +handle_class_change+ would mutate +alias_name+ — but that edge
+      # case is already incorrect on the indexed path (where the key is a
+      # literal), so caching here does not introduce new incorrectness.
+      #
+      # Order matters for object shape stability: per-attribute ivars are
+      # set in a fixed order ( +@_attr_i+, +@_attr_i_key+ ) and grouped
+      # per-attribute so every generated class and the lazy
+      # +@_col_#{i}+ / +@_wtr_#{i}+ / +@_dir_#{i}+ in {#build_caches!}
+      # land in a consistent order, letting the VM share a single shape
+      # tree across all generated classes.
       #
       # @return [void]
       def stamp_attr_ivars!
         @attrs.each_with_index do |attr, i|
           @klass.instance_variable_set(:"@_attr_#{i}", attr)
+          @klass.instance_variable_set(:"@_attr_#{i}_key", attr.name_for_serialization)
         end
       end
 

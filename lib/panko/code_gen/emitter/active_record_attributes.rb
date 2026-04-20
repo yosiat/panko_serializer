@@ -13,10 +13,11 @@ module Panko
       # - +@_col_#{i}+, +@_wtr_#{i}+, +@_dir_#{i}+ — populated lazily by
       #   {ActiveRecordAttributesWriter#build_caches!} on the first indexed
       #   call. Used by +emit_cached_attr+.
-      # - +@_attr_#{i}+ — stamped eagerly by
+      # - +@_attr_#{i}+, +@_attr_#{i}_key+ — stamped eagerly by
       #   {ActiveRecordAttributesWriter#initialize}. Used by
       #   +emit_fallback_attr+ so the unrolled non-indexed fallback can read
-      #   the {Panko::Attribute} by ivar instead of +aw.attrs[i]+.
+      #   the {Panko::Attribute} and its JSON key by ivar instead of via
+      #   +aw.attrs[i]+ / +attribute.name_for_serialization+.
       #
       # Serialization keys are baked in as string literals at compile time.
       # The indexed branch of +_write_ar_fallback+ and +_write_indexed_first_pass+
@@ -71,30 +72,72 @@ module Panko
         # +each_with_index+ loop previously used on {GeneratedBase} so YJIT
         # can inline the read-and-dispatch for each attribute.
         #
-        # This keeps the existing +ValuesWriter.write+ dispatch semantics
-        # (first-call type resolution + +cached_writer+ caching) — the only
-        # change is eliminating the loop frame. Direct +cached_writer+
-        # dispatch is an E6 concern and lives in a separate commit.
+        # This is the E6 form: when +cached_writer+ is already populated we
+        # call the type-specific writer directly, bypassing the
+        # +ValuesWriter.write+ wrapper (which does a thread-local lookup and
+        # a +name_for_serialization+ resolution on every call). The cold path
+        # (first call per class, +cached_writer+ still nil) still goes through
+        # +ValuesWriter.write+ so the writer and type get materialized and
+        # cached for subsequent calls.
         #
         # Reads +@_attr_#{i}+ at call time so that +handle_class_change+'s
         # rewrite of +attr.name+ (for AR column aliases) is respected
-        # without having to rebuild the generated method.
+        # without having to rebuild the generated method. The JSON key is
+        # stamped as +@_attr_#{i}_key+ at class build time — see
+        # {ActiveRecordAttributesWriter#stamp_attr_ivars!} and the comment
+        # there for why caching +name_for_serialization+ is safe.
         #
         # @param i [Integer] attribute index
         def emit_fallback_attr(i)
           self << "if attr_mask[#{i}]"
           self << "  v = rs.read_attribute(@_attr_#{i})"
-          self << "  Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, @_attr_#{i}, v)"
+          # We still use +ValuesWriter+ — just not the dispatch wrapper.
+          # After warmup, +attribute.cached_writer+ holds a type-specific
+          # writer (+StringWriter+, +IntegerWriter+, ...) that was
+          # materialized inside +ValuesWriter::Writer#write+. We call it
+          # directly. The +else+ branch below is the cold path for the first
+          # call, where +cached_writer+ is still nil and we delegate to
+          # +ValuesWriter.write+ to resolve and cache the writer.
+          self << "  cw = @_attr_#{i}.cached_writer"
+          self << "  if cw"
+          self << "    if v.nil?"
+          self << "      writer.push_value(nil, @_attr_#{i}_key)"
+          self << "    else"
+          # +cw.write+ mirrors +Writer#write+'s per-type fast path: it
+          # returns falsy if the cached writer cannot serialize +v+ as-is,
+          # and we fall back to +type.deserialize(v)+. This matches the
+          # +unless cached.write(...)+ branch in +ValuesWriter::Writer#write+.
+          self << "      cw.write(v, writer, @_attr_#{i}_key) || writer.push_value(@_attr_#{i}.type.deserialize(v), @_attr_#{i}_key)"
+          self << "    end"
+          self << "  else"
+          self << "    Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, @_attr_#{i}, v)"
+          self << "  end"
           self << "end"
         end
 
-        # Hash-path variant of +emit_fallback_attr+.
+        # Hash-path variant of +emit_fallback_attr+. Mirrors the E6 shape
+        # but targets a {Panko::CodeGen::ValueCapture} for the hot path so
+        # the captured value can be stored in +result+.
         #
         # @param i [Integer] attribute index
         def emit_fallback_attr_hash(i)
           self << "if attr_mask[#{i}]"
           self << "  v = rs.read_attribute(@_attr_#{i})"
-          self << "  _write_value_hash(@_attr_#{i}, v, result)"
+          # See +emit_fallback_attr+ for the rationale. The hash variant
+          # routes the cached writer's output through a shared
+          # {ValueCapture} so we can materialize the coerced Ruby value into
+          # the +result+ hash (the cached writer API only writes through an
+          # Oj-like writer).
+          self << "  cw = @_attr_#{i}.cached_writer"
+          self << "  if cw"
+          self << "    if v.nil?"
+          self << "      result[@_attr_#{i}_key] = nil"
+          self << "    else"
+          self << "      _write_cached_value_hash(cw, @_attr_#{i}, @_attr_#{i}_key, v, result)"
+          self << "    end"
+          self << "  else"
+          self << "    _write_value_hash(@_attr_#{i}, v, result)"
+          self << "  end"
           self << "end"
         end
       end

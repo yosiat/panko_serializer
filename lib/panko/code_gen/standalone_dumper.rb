@@ -80,6 +80,12 @@ module Panko
         parts << ""
         parts << "  desc = #{@type.name}._descriptor"
         parts << "  @_attrs = desc.attributes"
+        # Stamp per-attribute ivars in a stable order — +@_attr_i+ first,
+        # then +@_attr_i_key+ for the E6 unrolled fallback direct-dispatch
+        # path. Mirrors +ActiveRecordAttributesWriter#stamp_attr_ivars!+ for
+        # the runtime compile.
+        @attrs.each_with_index { |_attr, i| parts << "  @_attr_#{i} = @_attrs[#{i}]" }
+        @attrs.each_with_index { |_attr, i| parts << "  @_attr_#{i}_key = @_attr_#{i}.name_for_serialization" }
         parts << "  @_ar_writer = Panko::CodeGen::ActiveRecordAttributesWriter.new(attrs: @_attrs, klass: self)"
 
         unless @method_fields.empty?
@@ -342,39 +348,8 @@ module Panko
                 _write_value(attr, v, writer) if attr_mask[i]
               end
             end
-
-            def _write_ar_fallback(aw, rs, writer, attr_mask)
-              attrs = aw.attrs
-              if rs.is_indexed_row
-                ci = rs.column_indexes
-                row = rs.row
-                ah = rs.attributes_hash
-                attrs.each_with_index do |attr, i|
-                  next unless attr_mask[i]
-
-                  v = nil
-                  am = ah[attr.name]
-                  if am
-                    v = am.instance_variable_get(:@value_before_type_cast)
-                    attr.type ||= am.instance_variable_get(:@type)
-                  end
-                  if v.nil?
-                    ci_val = ci[attr.name]
-                    v = row[ci_val] if ci_val
-                  end
-                  _resolve_type(attr, rs) if attr.type.nil? && v
-                  _write_value(attr, v, writer)
-                end
-              else
-                attrs.each_with_index do |attr, i|
-                  next unless attr_mask[i]
-
-                  v = rs.read_attribute(attr)
-                  Panko::Engine::AttributesWriter::ActiveRecord::ValuesWriter.write(writer, attr, v)
-                end
-              end
-            end
           RUBY
+          parts << indent4(build_write_ar_fallback)
         end
 
         if hash_mode?
@@ -389,42 +364,78 @@ module Panko
                 _write_value_hash(attr, v, result) if attr_mask[i]
               end
             end
-
-            def _write_ar_fallback_hash(aw, rs, result, attr_mask)
-              attrs = aw.attrs
-              if rs.is_indexed_row
-                ci = rs.column_indexes
-                row = rs.row
-                ah = rs.attributes_hash
-                attrs.each_with_index do |attr, i|
-                  next unless attr_mask[i]
-
-                  v = nil
-                  am = ah[attr.name]
-                  if am
-                    v = am.instance_variable_get(:@value_before_type_cast)
-                    attr.type ||= am.instance_variable_get(:@type)
-                  end
-                  if v.nil?
-                    ci_val = ci[attr.name]
-                    v = row[ci_val] if ci_val
-                  end
-                  _resolve_type(attr, rs) if attr.type.nil? && v
-                  _write_value_hash(attr, v, result)
-                end
-              else
-                attrs.each_with_index do |attr, i|
-                  next unless attr_mask[i]
-
-                  v = rs.read_attribute(attr)
-                  _write_value_hash(attr, v, result)
-                end
-              end
-            end
           RUBY
+          parts << indent4(build_write_ar_fallback_hash)
         end
 
         parts.join("\n\n")
+      end
+
+      # Builds +_write_ar_fallback+ using the same emitter the runtime
+      # Compiler uses so the dumped source matches what gets compiled.
+      # The non-indexed +else+ branch is the E5/E6 unrolled direct-dispatch
+      # variant (see +Emitter::ActiveRecordAttributes#emit_fallback_attr+).
+      def build_write_ar_fallback
+        e = Emitter.new
+        e << "def _write_ar_fallback(aw, rs, writer, attr_mask)"
+        e << "  attrs = aw.attrs"
+        e << "  if rs.is_indexed_row"
+        e << "    ci = rs.column_indexes"
+        e << "    row = rs.row"
+        e << "    ah = rs.attributes_hash"
+        e << "    attrs.each_with_index do |attr, i|"
+        e << "      next unless attr_mask[i]"
+        e << ""
+        e << "      v = nil"
+        e << "      am = ah[attr.name]"
+        e << "      if am"
+        e << "        v = am.instance_variable_get(:@value_before_type_cast)"
+        e << "        attr.type ||= am.instance_variable_get(:@type)"
+        e << "      end"
+        e << "      if v.nil?"
+        e << "        ci_val = ci[attr.name]"
+        e << "        v = row[ci_val] if ci_val"
+        e << "      end"
+        e << "      _resolve_type(attr, rs) if attr.type.nil? && v"
+        e << "      _write_value(attr, v, writer)"
+        e << "    end"
+        e << "  else"
+        @attrs.each_with_index { |_attr, i| e.emit_fallback_attr(i) }
+        e << "  end"
+        e << "end"
+        e.to_source
+      end
+
+      # Hash-path twin of +build_write_ar_fallback+.
+      def build_write_ar_fallback_hash
+        e = Emitter.new
+        e << "def _write_ar_fallback_hash(aw, rs, result, attr_mask)"
+        e << "  attrs = aw.attrs"
+        e << "  if rs.is_indexed_row"
+        e << "    ci = rs.column_indexes"
+        e << "    row = rs.row"
+        e << "    ah = rs.attributes_hash"
+        e << "    attrs.each_with_index do |attr, i|"
+        e << "      next unless attr_mask[i]"
+        e << ""
+        e << "      v = nil"
+        e << "      am = ah[attr.name]"
+        e << "      if am"
+        e << "        v = am.instance_variable_get(:@value_before_type_cast)"
+        e << "        attr.type ||= am.instance_variable_get(:@type)"
+        e << "      end"
+        e << "      if v.nil?"
+        e << "        ci_val = ci[attr.name]"
+        e << "        v = row[ci_val] if ci_val"
+        e << "      end"
+        e << "      _resolve_type(attr, rs) if attr.type.nil? && v"
+        e << "      _write_value_hash(attr, v, result)"
+        e << "    end"
+        e << "  else"
+        @attrs.each_with_index { |_attr, i| e.emit_fallback_attr_hash(i) }
+        e << "  end"
+        e << "end"
+        e.to_source
       end
 
       def emit_helpers
