@@ -1,23 +1,13 @@
 # Open questions
 
-Design threads not yet resolved. Each one has a rough shape proposed but awaits confirmation.
+Design threads not yet resolved. Each one has a rough shape proposed but awaits
+confirmation. Record-access strategy is no longer in this list — it's fully resolved
+across [compilation.md](compilation.md), [config.md](config.md), and the research notes
+in [research/](research/). The only remaining sub-thread from that area:
 
-## Record-access details (generic path / specialized path)
-
-[compilation.md](compilation.md) proposes a two-path strategy: the **generic path** (no
-**Models** set, Hash-vs-method branch at runtime) or the **specialized path** (**Models** set,
-compile-time specialization). Outstanding sub-questions:
-
-- Specialized path: is `_read_attribute` the right access form for column-backed attributes
-  without overrides, or should we go to `record.attributes["title"]` for raw speed (losing
-  AR type casting)? Probably `_read_attribute` — correctness and speed both.
-- Specialized path: the **Compile** step needs the **Models** classes loaded. In Rails, autoloading
-  typically handles this, but the library should fail loudly if a class isn't loadable
-  rather than silently falling back to generic dispatch.
-- Hash-key format when **Models** is nil: default `:string`, but what's the config flag name
-  and semantics? `hash_key_type: :string | :symbol` on **Config** is the current sketch.
-- What if a **Record** is neither a Hash nor has the expected method — runtime `NoMethodError`,
-  or something friendlier?
+- **Generic-path fallback when a Record is neither a Hash nor responds to the Source
+  method.** Current lean: let it raise `NoMethodError` naturally; the backtrace points at
+  the emitted line. Confirm or design a friendlier error.
 
 ## Filters
 

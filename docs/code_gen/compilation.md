@@ -104,22 +104,51 @@ end
 ### Specialized path — `models: [...]` set (all ActiveRecord)
 
 When **Models** is set and all entries are ActiveRecord classes, **Compile** introspects
-each class at compile time and classifies each **Attribute**:
+each class at compile time and classifies every **Attribute** via a three-step rule:
 
-| Classification                       | Emitted code                                  |
-| ------------------------------------ | --------------------------------------------- |
-| Column-backed, no reader override    | `record._read_attribute("title")`             |
-| Column-backed, reader override       | `record.title`                                |
-| Not column-backed (virtual, method)  | `record.title`                                |
+1. **Column-backed** (name appears in `Model.columns_hash`) → emit
+   `record._read_attribute("title")`. This is the fastest access form on Ruby 4 + YJIT +
+   AR 8.1 by a wide margin (see [research/ar_access_results.md](research/ar_access_results.md)):
+   4.43M ips persisted / 4.13M non-persisted, 1 alloc/call, and the `_read_attribute` call
+   dispatches through AR's type-cast path so enum columns correctly return mapped labels.
+2. **Else, instance method exists** (name appears in `Model.instance_methods`) → emit
+   `record.title` method dispatch.
+3. **Else** → raise at **Compile** time with a message naming the missing attribute and
+   the class.
 
-- `_read_attribute` bypasses method dispatch but preserves AR type-casting — correct for
-  columns without user overrides.
-- STI: intersect the column sets across all **Models**; fall back to `record.title` for any
-  attribute that isn't uniformly column-backed across the set.
-- No Hash-access branch on the specialized path — **Models** implies the **Records** are instances of
-  those classes.
+#### Overrides are bypassed for column-backed attributes
+
+If a user defines `def title; super.upcase; end` on a model whose `title` is a column,
+the specialized path emits the column-access form and the user's override is NOT invoked.
+Users who need a custom reader should declare the field as a **Method Attribute** instead.
+This mirrors Panko's existing semantics and keeps the generated code straight-line.
+
+Document this loudly in user-facing docs (Panko's DSL layer) so the trade is explicit.
+
+#### STI and mixed class sets
+
+When `models:` contains multiple classes (STI or otherwise), classify each **Attribute**
+against **every** class in the set and take the intersection:
+
+- Column-backed in every class → emit the column-access form.
+- Instance method in every class (but not uniformly column-backed) → emit method dispatch.
+- Neither in at least one class → raise at **Compile** time.
+
+The classification is computed once during **Compile** and baked directly into the emitted
+source; there is no runtime classification cache. For STI specifically, this means a
+subclass that overrides a column reader downgrades that attribute across the whole
+**Generated Class** — method dispatch wins whenever any class in the set lacks uniform
+column-backing.
+
+#### Other specialized-path invariants
+
+- No Hash-access branch — **Models** implies the **Records** are instances of those classes.
 - Constraint: the **Models** classes must be loaded at **Compile** time (usually true in
-  Rails boot order; flag this clearly).
+  Rails boot order; flag loudly if a class isn't loadable).
+- AR attribute methods are generated lazily. **Compile** calls `Model.define_attribute_methods`
+  defensively before introspecting so steps 1–3 see a fully-populated method table. The call
+  is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1; see
+  [research/define_attribute_methods_safety.md](research/define_attribute_methods_safety.md)).
 
 ### Non-AR class in `models`
 

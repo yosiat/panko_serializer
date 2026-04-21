@@ -20,6 +20,7 @@ Read that first; every term in bold elsewhere is defined there.
 | [dumping.md](dumping.md)                          | **Dump** to file, **Environment** contract, console inspection               |
 | [open-questions.md](open-questions.md)            | Design threads not yet resolved                                              |
 | [deferred.md](deferred.md)                        | Explicitly punted items and the version they're deferred to                  |
+| [research/](research/)                            | Benchmarks and spikes that informed specific decisions                       |
 
 ## Stage
 
