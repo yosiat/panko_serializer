@@ -11,6 +11,7 @@ module SerializersCodeGen
     :null_for_missing_has_one,   # Boolean; default: true
     :supports_root_key,          # Boolean; default: false
     :hash_record_key_type,       # :string | :symbol; default: :string — generic path only
+    :hash_output_key_type,       # :string | :symbol; default: :string — Hash mode output
     # Additional knobs to be added as design proceeds
   )
 end
@@ -56,6 +57,25 @@ The choice is baked into the helper at **Compile** time — one monomorphic look
 class. Mixed-key Hashes (both `"id"` and `:id`) are not supported; callers normalize upstream
 if needed.
 
+### `hash_output_key_type` (default: `:string`)
+
+Controls the key type emitted in the **Hash Output Mode** output. Applies uniformly to
+every **Field** — **Attributes**, **Method Attributes**, and **Associations** — at every
+nesting depth.
+
+- `:string`: emits `result["id"] = ...`. Matches Panko, JSON round-tripping, and
+  `as_json`. Keys are frozen string literals under `frozen_string_literal: true`.
+- `:symbol`: emits `result[:id] = ...`. Symbols in Ruby are always interned; symbol
+  literals from emitted source are always frozen.
+
+Uniformity across the tree is a consequence of **Compile** propagating the same **Config**
+to every nested **Descriptor** it compiles. Do not mix `hash_output_key_type` values across
+a parent and its nested **Generated Classes** by manually re-compiling with a different
+**Config** — the output will have inconsistent key types and round-trip behavior will
+break. (The library does not enforce this at runtime; it's a caller contract.)
+
+No effect on **JSON Output Mode** — JSON keys are always strings per the spec.
+
 ## What belongs in Config vs elsewhere
 
 - **Compile-time toggles that change emitted code** → Config.
@@ -74,6 +94,5 @@ This avoids the class of bug where a global mutable config change invalidates ca
 
 Candidates under discussion — see [open-questions.md](open-questions.md):
 
-- `hash_key_type: :string | :symbol` for Hash-mode *output* key format (distinct from
-  `hash_record_key_type`, which is about reading Hash Records on the generic path).
-- Filter-related toggles.
+- Filter-related toggles are explicitly **not** planned — filters are a default feature,
+  unconditional. See [filters.md](filters.md).

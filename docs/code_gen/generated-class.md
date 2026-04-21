@@ -30,7 +30,8 @@ serializer.serialize_one(@post, context: current_user, filters: nil)
 
 - Returns a **String** in JSON mode, a **Hash** (with string keys by default) in Hash mode.
 - `context:` is arbitrary user data threaded through to every **Callable**. May be `nil`.
-- `filters:` prunes the output tree. Shape TBD — see [open-questions.md](open-questions.md).
+  See [Context contract](#context-contract) below.
+- `filters:` prunes the output tree. See [filters.md](filters.md) for shape and semantics.
 - `record` must be compatible with **Record** access for the **Descriptor** (see
   [compilation.md](compilation.md)).
 
@@ -62,6 +63,21 @@ serializer.serialize_many(@posts, context: current_user)
 - No auto-detection of "is this a single **Record** or a collection?" — the caller picks
   the method. Two explicit entry points avoid runtime type introspection and keep call sites
   monomorphic.
+
+## Context contract
+
+**Context** is the arbitrary caller-supplied value threaded unchanged through every
+**Callable** invocation. The library reads it zero times and imposes zero structure on it.
+
+- **Type**: unconstrained. May be any Ruby value — Hash, struct, request object, nil, a
+  class instance, a Proc — the library never inspects it.
+- **Default**: `nil`. Any **Callable** that requires a non-nil **Context** is enforcing a
+  caller-side contract; the library passes whatever was supplied.
+- **Independence from Filter**: **Context** and **Filter** are separate channels.
+  The library does not extract filtering information from **Context**. Callers who want
+  filters derived from context compute the filter Hash themselves and pass it via
+  `filters:`. This keeps the **Generator**'s contract crisp: filters participate in code
+  generation; context does not.
 
 ## Internal methods
 

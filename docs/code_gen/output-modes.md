@@ -77,12 +77,13 @@ end
 
 ### Key format
 
-- Default: **string keys** (`{"id" => 1, "title" => "..."}`).
-- Rationale: matches JSON round-trip semantics, avoids symbol-GC concerns on user-controlled
-  input, and matches Panko's current Hash-mode convention.
-- Optional: symbol keys via a config flag (not yet confirmed — see [open-questions.md](open-questions.md)).
-- Keys are frozen string literals in the **Generated** source (`frozen_string_literal: true`
-  pragma), so there's no per-call allocation.
+- Default: **string keys** (`{"id" => 1, "title" => "..."}`). Matches JSON round-trip
+  semantics, matches Panko's current Hash-mode convention, matches `as_json`.
+- Controlled by `Config#hash_output_key_type` — `:string` (default) or `:symbol`. See
+  [config.md](config.md). Applies uniformly to every **Field** (**Attributes**, **Method
+  Attributes**, and **Associations**) at every nesting depth.
+- String keys are frozen literals under the `frozen_string_literal: true` pragma — no
+  per-call allocation. Symbol keys are always interned.
 
 ### Output shape
 

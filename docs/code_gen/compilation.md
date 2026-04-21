@@ -17,6 +17,18 @@ SerializersCodeGen.compile(
 produces two independent, functionally-identical **Generated Classes**. No memoization is
 done inside the library. Callers (Panko) cache at their discretion.
 
+The module-level method is a thin facade around the **Compiler** class:
+
+```ruby
+def self.compile(descriptor, output:, config: Config.new)
+  Compiler.new(descriptor, output:, config:).compile
+end
+```
+
+**Compiler** drives the **Generator** (which uses the **Code Builder**) to produce source,
+then materializes the source into a class via `module_eval`. See
+[structure.md](structure.md) for the layered architecture and the same pattern for **Dump**.
+
 ## Output per call
 
 One **Generated Class** is returned. A consumer that wants both JSON and Hash output for the
@@ -56,6 +68,42 @@ Rationale:
 
 Inlining is explicitly rejected for v1. Opt-in inlining as a micro-optimization may revisit
 in a future version once benchmarks identify dispatch as a real cost.
+
+## Recursive Descriptors
+
+Self-recursion (`Comment has_many :replies` → `Comment`) and mutual recursion
+(A → B → A) are both supported. See "Recursive Descriptors" in [descriptor.md](descriptor.md)
+for the data-shape contract.
+
+**Compile**-time handling:
+
+- **Compile** maintains an identity-keyed cache during recursive descent:
+  `{descriptor.__id__ => generated_class}`. When the **Generator** walks an **Association**
+  whose `descriptor` is already in the cache (including the currently-building one), it
+  reuses the existing **Generated Class** reference instead of recursing further. One
+  **Generated Class** per unique **Descriptor** in the tree, regardless of reference
+  count.
+- For **self-recursion**, the emitted constructor assigns `self` to the nested-Association
+  ivar:
+
+  ```ruby
+  class CommentSerializer_JSON
+    def initialize(descriptor:)
+      @replies_serializer = self   # self-recursion detected at Compile
+    end
+  end
+  ```
+
+- For **mutual recursion**, the emitted constructors use the same build-time identity
+  cache threaded through the recursive `.new` calls, so each unique **Descriptor** in
+  the cycle produces exactly one **Generated Class** instance.
+
+**Runtime** has no cycle detection on the **Record** graph. If the data itself is a
+cycle (e.g., a comment whose replies include itself via bad data), serialization
+recurses until the stack blows. Adding runtime depth-tracking would cost on the hot
+path; keeping the record graph acyclic is the caller's contract.
+
+Compile-time cycle handling (via the identity cache) is unrelated and always on.
 
 ## Record-access strategy
 

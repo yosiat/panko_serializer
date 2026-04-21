@@ -89,25 +89,23 @@ class PostSerializer_JSON
 end
 ```
 
-### Dumping API (shape TBD)
+### Dumping API
 
-Candidates:
+Module-level facade, mirroring `compile`:
 
 ```ruby
-# On the compile result:
-klass = SerializersCodeGen.compile(descriptor, output: :json)
-klass.dump_to("app/generated/post_serializer_json.rb")
-
-# Or as a standalone utility:
-SerializersCodeGen.dump(descriptor, output: :json, to: "app/generated/...")
-
-# Or a CLI (later phase):
-# $ serializers-code-gen dump PostDescriptor --output=json --to=app/generated/
+SerializersCodeGen.dump(descriptor, output: :json, config: Config.new, path: "app/generated/post_serializer_json.rb")
 ```
 
-Exact API to be decided. The core requirement is that the function produces a file whose
-contents are identical to what `module_eval` runs for the in-memory compile — same line
-numbers, same characters.
+A thin wrapper around `Dump.new(...).dump`. See [structure.md](structure.md).
+
+**Shared generator contract**: `Dump` and `Compiler` use the same **Generator** (and
+therefore the same **Code Builder**) — the emitted source is **byte-identical** to what
+`module_eval` runs for the in-memory compile. Same line numbers, same characters. The
+only difference is the materialization step (`Compiler` evals, `Dump` writes to `path`).
+
+A CLI (`$ serializers-code-gen dump ...`) is out of scope for v1 — callers drive the
+facade from Ruby.
 
 ### Nested Descriptor dumps
 

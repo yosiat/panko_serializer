@@ -3,11 +3,16 @@
 This document covers *how* the **Compile** step turns a **Descriptor** into Ruby source
 and then into a class.
 
+The orchestration layer (**Compiler**) drives the **Generator**; **Generator** uses the
+**Code Builder** to accumulate source; **Compiler** then materializes the source into a
+class via `module_eval`. See [structure.md](structure.md) for the full layering and how
+**Dump** shares the same generator path.
+
 ## Strategy: string templates via an internal Code Builder
 
-The **Generator** builds up a Ruby source string via an internal **Code Builder** DSL and
-installs it into a fresh class using Ruby's standard class-level source-injection API
-(`Module#module_eval` / `Module#class_eval` with source-string, filename, and starting-line
+The **Generator** builds up a Ruby source string via an internal **Code Builder** DSL.
+**Compiler** installs it into a fresh class using Ruby's standard class-level source-injection
+API (`Module#module_eval` / `Module#class_eval` with source-string, filename, and starting-line
 arguments — the idiomatic Ruby codegen path, same as used by `ActiveModel::AttributeMethods`).
 
 Not ERB. Not Liquid. Not an AST library.
@@ -99,7 +104,7 @@ Every emitted source string begins with:
 
 ## Injecting source into a class
 
-The **Compile** step creates a fresh anonymous class (via `Class.new`) and installs the
+**Compiler** creates a fresh anonymous class (via `Class.new`) and installs the
 generated source into it using the standard class-level source-injection call. Three
 arguments are passed:
 

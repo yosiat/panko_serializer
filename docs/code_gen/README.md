@@ -16,8 +16,11 @@ Read that first; every term in bold elsewhere is defined there.
 | [generated-class.md](generated-class.md)          | Runtime API of the **Generated Class** — public entry points, constructor   |
 | [output-modes.md](output-modes.md)                | JSON vs Hash **Output Modes** — structural differences, **Writer** lifecycle |
 | [config.md](config.md)                            | The **Config** struct — compile-time settings                                |
+| [filters.md](filters.md)                          | **Filter** public shape, threading through **Composition**, JSON/Hash parity |
+| [errors.md](errors.md)                            | Error hierarchy — `DescriptorError`, `CompileError` + subclasses             |
 | [code-generation.md](code-generation.md)          | Internal **Code Builder**, backtrace strategy, source injection              |
 | [dumping.md](dumping.md)                          | **Dump** to file, **Environment** contract, console inspection               |
+| [structure.md](structure.md)                      | Public API surface, gem layout, **Compiler** / **Generator** / **Code Builder** layering |
 | [open-questions.md](open-questions.md)            | Design threads not yet resolved                                              |
 | [deferred.md](deferred.md)                        | Explicitly punted items and the version they're deferred to                  |
 | [research/](research/)                            | Benchmarks and spikes that informed specific decisions                       |
