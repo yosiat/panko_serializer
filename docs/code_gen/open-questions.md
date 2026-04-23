@@ -9,6 +9,9 @@ in `descriptor.md` — kept simple, no knobs. Public API surface, gem layout, an
 **Compiler** / **Generator** / **Code Builder** layering are locked in
 [structure.md](structure.md). No per-Rails-version adapter code — the supported Rails
 versions share a stable API; CI matrix still exercises all combinations (see CI below).
+Testing strategy (framework, snapshot mechanism, canonical fixture corpus, feature-test
+environment) is captured in [testing.md](testing.md); the cross-cutting feature-test
+coverage matrix is the one testing thread still open.
 
 ## Filters
 
@@ -27,14 +30,13 @@ Public shape locked — nested Hash matching Panko's current format. Full spec i
 
 ## Testing strategy
 
-- RSpec confirmed.
-- **Feature tests (end-to-end)**: exercise a **Compile** + `serialize_one` / `serialize_many`
-  against fixture data. Fixture **Records** should cover AR models and Hashes.
-- **Unit tests via snapshots**: snapshot the generated source for fixture **Descriptors**.
-  Library to use? `rspec-snapshot`, `rspec-json_expectations`, or hand-rolled against files.
-  Decision pending.
-- **Snapshot scope**: per-emitter-method output snapshots vs per-full-class output snapshots.
-  Probably both — emitter-level for quick unit tests, full-class for integration.
+Locked — see [testing.md](testing.md). Remaining sub-thread:
+
+- **Feature-test coverage matrix for cross-cutting concerns** — filter shapes
+  (`only:` / `except:` / nested / empty), `SKIP`, `if:` short-circuit behavior,
+  `root_key:` wrapping, error-path specs. The fixture set, snapshot mechanism, and AR
+  environment are all locked in `testing.md`; what remains is the per-feature test
+  volume and organization (shared examples vs per-fixture specs).
 
 ## Benchmarks
 
