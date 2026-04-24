@@ -1,48 +1,48 @@
 # Open questions
 
-Design threads not yet resolved. Each one has a rough shape proposed but awaits
-confirmation. Record-access strategy is fully resolved across
-[compilation.md](compilation.md), [config.md](config.md), [descriptor.md](descriptor.md),
-and the research notes in [research/](research/). Missing-value behavior for the generic
-path (raise `NoMethodError` naturally, return `nil` for missing Hash keys) is documented
-in `descriptor.md` — kept simple, no knobs. Public API surface, gem layout, and the
-**Compiler** / **Generator** / **Code Builder** layering are locked in
-[structure.md](structure.md). No per-Rails-version adapter code — the supported Rails
-versions share a stable API; the CI matrix exercises all combinations (see
-[ci.md](ci.md)). Testing strategy is fully captured in [testing.md](testing.md). CI
-matrix, Appraisal wiring, lint choice, benchmark-in-CI policy, and lefthook hooks are
-fully resolved in [ci.md](ci.md).
+Design threads not yet resolved. Everything else — descriptor, compilation, composition,
+record-access, testing strategy, CI, benchmarks harness — is locked in the corresponding
+doc under [`docs/`](README.md). Before adding anything here, check [`deferred.md`](deferred.md)
+to be sure a topic isn't deliberately punted.
 
-## Filters
+## Filter experiments — benchmark-gated at implementation time
 
-Public shape locked — nested Hash matching Panko's current format. Full spec in
-[filters.md](filters.md). Remaining sub-threads:
+Public **Filter** shape is locked in [filters.md](filters.md) — nested Hash matching
+Panko's current format, `:only` / `:except` / child-key semantics, threading rules,
+filter-before-`if:` short-circuit. What remains are two implementation choices that
+interact and will be resolved together via a benchmark run following the
+[`docs/research/`](research/) template:
 
-- **Dual-path emit — experiment-driven.** Emit `_write_one_unfiltered` +
-  `_write_one_filtered` per **Generated Class** and dispatch once at `_write_one` entry,
-  vs a single filter-aware path that always consults the Null-Object Filter. Chosen by
-  benchmark. See the "Dual-path emit" section of [filters.md](filters.md).
-- **Internal representation — experiment-driven.** Thin Hash wrapper vs pre-normalized
-  per-call index (e.g., `Set`s). Chosen by benchmark. See the "Internal representation"
-  section of [filters.md](filters.md).
-- **JSON vs Hash parity**: semantics identical, emit paths differ. Documented; confirm at
-  implementation time.
+- **Dual-path emit** — single filter-aware path vs. `_write_one_unfiltered` +
+  `_write_one_filtered` per **Generated Class** with a one-branch dispatcher at
+  `_write_one`. Trade: optimal unfiltered body vs. ~2× method bodies per class.
+  See [filters.md § Dual-path emit](filters.md#dual-path-emit--experiment-driven).
+- **Internal representation of the Filter object** — thin Hash wrapper
+  (`Array#include?` per check) vs. pre-normalized per-level index (`Set` per level +
+  cached child Filter objects). Trade: allocation cost up front vs. O(n) lookup per
+  check. See [filters.md § Internal representation](filters.md#internal-representation--experiment-driven).
 
-## Testing strategy
+The two interact — Set-index makes the filter-aware path cheap, which shrinks
+dual-path's benefit; Hash-wrapper makes it expensive, which grows dual-path's benefit.
+Evaluating either in isolation assumes the other is fixed, which we don't have grounds
+to do.
 
-Locked — see [testing.md](testing.md). No remaining sub-threads; the feature-test
-coverage matrix for cross-cutting concerns is fully captured in
-[testing.md § Feature-test organization](testing.md#feature-test-organization).
+### JSON/Hash parity
 
-## Benchmarks
+Semantics identical across **Output Modes**; emit paths differ. Documented in
+[filters.md § JSON vs Hash output parity](filters.md#json-vs-hash-output-parity).
+Confirm at implementation time — no open decision, just a test-tier claim.
 
-- `benchmark-ips` for micro; `memory_profiler` for allocation tracking.
-- Benchmark targets:
-  - vs. Panko (current implementation)
-  - vs. ActiveModel::Serializers
-  - vs. plain `to_json` / `as_json`
-- Benchmark fixtures: a shallow model (id + few cols), a model with **Method Attributes**,
-  a model with nested **Associations**, a deep-nested model.
-- Regression guard: CI is **not** the gate (see [ci.md § Benchmarks in CI](ci.md#benchmarks-in-ci))
-  — benchmarks run on dev hardware pre-release against a committed baseline. Baseline
-  file format and comparison-tool choice are the remaining sub-threads.
+## Locked threads (pointer only)
+
+| Thread                                  | Status | Primary doc                                                      |
+| --------------------------------------- | ------ | ---------------------------------------------------------------- |
+| Descriptor, Field, Callable contract    | Locked | [descriptor.md](descriptor.md), [errors.md](errors.md)           |
+| Compile, Composition, record-access     | Locked | [compilation.md](compilation.md), [config.md](config.md)         |
+| Output Modes, Writer lifecycle          | Locked | [output-modes.md](output-modes.md), [generated-class.md](generated-class.md) |
+| Public API, gem layout, internal layers | Locked | [structure.md](structure.md)                                     |
+| Dump, Environment contract              | Locked | [dumping.md](dumping.md)                                         |
+| Code Builder, backtrace strategy        | Locked | [code-generation.md](code-generation.md)                         |
+| Testing strategy + feature-test matrix  | Locked | [testing.md](testing.md)                                         |
+| CI matrix, Appraisal, lint, lefthook    | Locked | [ci.md](ci.md)                                                   |
+| Benchmark harness + scenario layout     | Locked | [benchmarks.md](benchmarks.md)                                   |
