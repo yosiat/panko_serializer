@@ -24,6 +24,25 @@ for this code to be absorbed into Panko as its code-gen core.
 3. **Flexibility where it costs nothing.** Design choices that cost nothing at runtime should
    favor consumer flexibility (e.g., **Callables** over method-name conventions).
 
+## Phasing
+
+The initial release is structured in three phases, executed in order. Each phase
+ends on a documented criterion before the next begins; phases do not interleave.
+
+1. **Pre-filter core** — all features locked in the design docs except **Filters**
+   and **Dump**. `serialize_*` accepts the `filters:` keyword but raises
+   `NotImplementedError` on non-nil values until phase 2 lands. Phase ends when
+   [`phase-1-bar.md`](phase-1-bar.md) is satisfied.
+2. **Filters** — filter support implemented on top of phase-1 code. Implementation
+   is gated by a benchmark experiment run against real codegen output from phase
+   1 (see [`filters.md` § Experiment design](filters.md#experiment-design)).
+3. **Dump** — `.rb`-file **Dump** and the **Environment** contract (see
+   [`dumping.md`](dumping.md)).
+
+Phases 1 and 2 together constitute **core** — all runtime features. Phase 3 is
+developer ergonomics, not core runtime. The initial release ships after all
+three phases complete.
+
 ## Non-goals
 
 - **No user-facing DSL.** That is Panko's job. The **Descriptor** is the public input; any

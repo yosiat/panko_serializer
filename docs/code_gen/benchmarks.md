@@ -85,7 +85,7 @@ Never both, never N-way.
 
 ## Comparison targets
 
-Three families for v1, six rows per sanity scenario:
+Four families for the initial release, seven rows per sanity scenario:
 
 | Row label                           | Implementation                                       |
 | ----------------------------------- | ---------------------------------------------------- |
@@ -93,15 +93,17 @@ Three families for v1, six rows per sanity scenario:
 | `serializers_code_gen/hash`         | This library, `:hash` **Output Mode**.               |
 | `panko/json`                        | Current Panko, `.to_json`.                           |
 | `panko/object`                      | Current Panko, object-mode.                          |
+| `oj_serializers/json`               | Oj-Serializers gem, JSON output.                     |
 | `plain/json`                        | `records.map(&:as_json).to_json`.                    |
 | `plain/hash`                        | `records.map(&:as_json)`.                            |
+
+Panko rows form the **hard bar** in [`phase-1-bar.md`](phase-1-bar.md); the
+Oj-Serializers row forms the **soft bar** (measured and recorded, does not block).
+Plain rows are context, not competitive targets.
 
 **No ActiveModel::Serializers.** AMS is absent from Panko's current benchmark suite,
 not a target this library competes against, and its shape differs enough from the
 others that fair comparison is hard.
-
-**Oj-Serializers is future work.** When added, it's a single entry in
-`support/targets.rb` plus one row per scenario file — no structural change.
 
 ### Fresh serializer definitions, not shared with Panko's existing benchmarks
 

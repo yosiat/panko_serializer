@@ -1,37 +1,29 @@
 # Open questions
 
-Design threads not yet resolved. Everything else — descriptor, compilation, composition,
-record-access, testing strategy, CI, benchmarks harness — is locked in the corresponding
-doc under [`docs/`](README.md). Before adding anything here, check [`deferred.md`](deferred.md)
-to be sure a topic isn't deliberately punted.
+Design threads not yet resolved. Everything in `docs/` is otherwise locked.
+Before adding anything here, check [`deferred.md`](deferred.md) to be sure a
+topic isn't deliberately punted.
 
-## Filter experiments — benchmark-gated at implementation time
+## No design questions remain
 
-Public **Filter** shape is locked in [filters.md](filters.md) — nested Hash matching
-Panko's current format, `:only` / `:except` / child-key semantics, threading rules,
-filter-before-`if:` short-circuit. What remains are two implementation choices that
-interact and will be resolved together via a benchmark run following the
-[`docs/research/`](research/) template:
+All design threads for the initial release are locked in the corresponding doc
+under [`docs/`](README.md). The only thing still to happen is **execution** — in
+particular, the filter-implementation experiment, which is pre-designed but not
+yet run.
 
-- **Dual-path emit** — single filter-aware path vs. `_write_one_unfiltered` +
-  `_write_one_filtered` per **Generated Class** with a one-branch dispatcher at
-  `_write_one`. Trade: optimal unfiltered body vs. ~2× method bodies per class.
-  See [filters.md § Dual-path emit](filters.md#dual-path-emit--experiment-driven).
-- **Internal representation of the Filter object** — thin Hash wrapper
-  (`Array#include?` per check) vs. pre-normalized per-level index (`Set` per level +
-  cached child Filter objects). Trade: allocation cost up front vs. O(n) lookup per
-  check. See [filters.md § Internal representation](filters.md#internal-representation--experiment-driven).
+## Execution pending: filter experiment
 
-The two interact — Set-index makes the filter-aware path cheap, which shrinks
-dual-path's benefit; Hash-wrapper makes it expensive, which grows dual-path's benefit.
-Evaluating either in isolation assumes the other is fixed, which we don't have grounds
-to do.
+Scheduled for **phase 2** of the initial release. Phase 1 (pre-filter core) is
+tracked against [`phase-1-bar.md`](phase-1-bar.md); when that bar is met, phase 2
+begins and the experiment runs.
 
-### JSON/Hash parity
+The experiment's shape — 2×2 matrix, fixture set, decision rule, pre-registration
+discipline, output artifacts — is committed in
+[`filters.md` § Experiment design](filters.md#experiment-design). The *outcome*
+(which cell wins) is unknown by construction. The *design* is not an open question.
 
-Semantics identical across **Output Modes**; emit paths differ. Documented in
-[filters.md § JSON vs Hash output parity](filters.md#json-vs-hash-output-parity).
-Confirm at implementation time — no open decision, just a test-tier claim.
+Phase-1 behavior for the `filters:` parameter (accept, raise `NotImplementedError` on
+non-nil) is documented in [`filters.md` § Phase-1 behavior](filters.md#phase-1-behavior).
 
 ## Locked threads (pointer only)
 
@@ -46,3 +38,5 @@ Confirm at implementation time — no open decision, just a test-tier claim.
 | Testing strategy + feature-test matrix  | Locked | [testing.md](testing.md)                                         |
 | CI matrix, Appraisal, lint, lefthook    | Locked | [ci.md](ci.md)                                                   |
 | Benchmark harness + scenario layout     | Locked | [benchmarks.md](benchmarks.md)                                   |
+| Filter public shape + experiment design | Locked | [filters.md](filters.md)                                         |
+| Phasing + phase-1 bar                   | Locked | [goals.md § Phasing](goals.md#phasing), [phase-1-bar.md](phase-1-bar.md) |
