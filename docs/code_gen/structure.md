@@ -147,8 +147,8 @@ switch inside the affected `active_record/*.rb` helper — not a new file tree.
 
 The absence of a per-version adapter folder is a **code-structure** decision — it does
 not weaken test coverage. CI still runs a matrix (Ruby 3.4.x × 4.0.x × Rails 7.2 / 8.0 /
-8.1) to prove the single-path code works on every supported combination. See the CI
-section in [open-questions.md](open-questions.md).
+8.1, minus the incompatible Ruby 4.0 × Rails 7.2 cell) to prove the single-path code
+works on every supported combination. See [ci.md](ci.md).
 
 ## Mapping docs to files
 

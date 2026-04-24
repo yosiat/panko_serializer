@@ -8,10 +8,10 @@ path (raise `NoMethodError` naturally, return `nil` for missing Hash keys) is do
 in `descriptor.md` — kept simple, no knobs. Public API surface, gem layout, and the
 **Compiler** / **Generator** / **Code Builder** layering are locked in
 [structure.md](structure.md). No per-Rails-version adapter code — the supported Rails
-versions share a stable API; CI matrix still exercises all combinations (see CI below).
-Testing strategy (framework, snapshot mechanism, canonical fixture corpus, feature-test
-environment) is captured in [testing.md](testing.md); the cross-cutting feature-test
-coverage matrix is the one testing thread still open.
+versions share a stable API; the CI matrix exercises all combinations (see
+[ci.md](ci.md)). Testing strategy is fully captured in [testing.md](testing.md). CI
+matrix, Appraisal wiring, lint choice, benchmark-in-CI policy, and lefthook hooks are
+fully resolved in [ci.md](ci.md).
 
 ## Filters
 
@@ -43,13 +43,6 @@ coverage matrix for cross-cutting concerns is fully captured in
   - vs. plain `to_json` / `as_json`
 - Benchmark fixtures: a shallow model (id + few cols), a model with **Method Attributes**,
   a model with nested **Associations**, a deep-nested model.
-- Regression guard: a CI job that runs benchmarks and fails if median drops > N%.
-  How to structure the baseline?
-
-## CI
-
-- GitHub Actions matrix: Ruby 3.4.x × 4.0.x × Rails 7.2 × 8.0 × 8.1. The matrix is the
-  verification mechanism for the single-path `active_record/` code (there are no
-  per-version adapters — see [structure.md](structure.md)).
-- Steps: lint (rubocop?), type check (sorbet/steep? — probably not), tests, benchmarks.
-- Decision: should benchmark failures block merge, or just report?
+- Regression guard: CI is **not** the gate (see [ci.md § Benchmarks in CI](ci.md#benchmarks-in-ci))
+  — benchmarks run on dev hardware pre-release against a committed baseline. Baseline
+  file format and comparison-tool choice are the remaining sub-threads.

@@ -22,6 +22,7 @@ Read that first; every term in bold elsewhere is defined there.
 | [dumping.md](dumping.md)                          | **Dump** to file, **Environment** contract, console inspection               |
 | [structure.md](structure.md)                      | Public API surface, gem layout, **Compiler** / **Generator** / **Code Builder** layering |
 | [testing.md](testing.md)                          | Testing strategy — tiers, snapshot corpus, feature-test environment         |
+| [ci.md](ci.md)                                    | CI matrix, Appraisal wiring, lint/benchmark policy, lefthook hooks          |
 | [open-questions.md](open-questions.md)            | Design threads not yet resolved                                              |
 | [deferred.md](deferred.md)                        | Explicitly punted items and the version they're deferred to                  |
 | [research/](research/)                            | Benchmarks and spikes that informed specific decisions                       |
