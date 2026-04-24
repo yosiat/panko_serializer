@@ -47,6 +47,11 @@ Passing `root_key: nil` (the default) skips wrapping. The generated method liter
 not have this kwarg when `supports_root_key: false` — callers who try to pass it get an
 `ArgumentError`.
 
+**Accepted values**: a non-empty String or `nil`. Anything else — an empty String, a
+Symbol, or any non-String/non-nil value — raises `ArgumentError` at call time. The check
+matches filters.md's convention for caller-error shapes (`:only` + `:except` at the same
+level also raises `ArgumentError`).
+
 ### `serialize_many(records, context: nil, filters: nil)`
 
 Serializes a collection.

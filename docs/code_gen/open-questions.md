@@ -30,13 +30,9 @@ Public shape locked — nested Hash matching Panko's current format. Full spec i
 
 ## Testing strategy
 
-Locked — see [testing.md](testing.md). Remaining sub-thread:
-
-- **Feature-test coverage matrix for cross-cutting concerns** — filter shapes
-  (`only:` / `except:` / nested / empty), `SKIP`, `if:` short-circuit behavior,
-  `root_key:` wrapping, error-path specs. The fixture set, snapshot mechanism, and AR
-  environment are all locked in `testing.md`; what remains is the per-feature test
-  volume and organization (shared examples vs per-fixture specs).
+Locked — see [testing.md](testing.md). No remaining sub-threads; the feature-test
+coverage matrix for cross-cutting concerns is fully captured in
+[testing.md § Feature-test organization](testing.md#feature-test-organization).
 
 ## Benchmarks
 

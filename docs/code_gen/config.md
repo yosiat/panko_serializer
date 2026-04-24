@@ -42,7 +42,9 @@ Controls whether the **Generated Class** supports per-call **Root Key** wrapping
 
 The caller supplies the wrapping key at call time, not at **Compile** time — so one
 **Generated Class** can serve multiple endpoints with different wrappers (e.g., `"post"` vs
-`"latest_post"`).
+`"latest_post"`). The key must be a non-empty String or `nil`; empty String, Symbol, or
+any other value raises `ArgumentError` at call time. See
+[generated-class.md](generated-class.md) for the full kwarg contract.
 
 ### `hash_record_key_type` (default: `:string`)
 

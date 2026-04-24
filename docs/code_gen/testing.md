@@ -60,25 +60,53 @@ expect(actual_source).to match_snapshot("shallow_generic_json.rb")
 
 ```
 spec/
+  spec_helper.rb
+  code_builder_spec.rb                         # tier: CodeBuilder
+  compile_errors_spec.rb                       # tier: compile-time errors
+
+  validators/                                  # tier: validators
+    name_uniqueness_spec.rb
+    source_resolution_spec.rb
+    callable_arity_spec.rb
+
+  generators/                                  # tier: snapshot
+    snapshot_spec.rb                           # iterates FIXTURES × MODES
+
+  features/                                    # tier: feature (end-to-end)
+    descriptors/                               # one file per canonical Descriptor (record-shape coverage)
+      shallow_generic_spec.rb                  # compiles fresh, never loads snapshots
+      shallow_specialized_spec.rb
+      nested_composition_spec.rb
+      recursive_self_spec.rb
+      recursive_mutual_spec.rb
+      sti_specialized_spec.rb
+      config/                                  # config-isolation Descriptors sub-family
+        root_key_on_spec.rb
+        null_for_has_one_off_spec.rb
+        hash_record_key_symbol_spec.rb
+        hash_output_key_symbol_spec.rb
+    concerns/                                  # cross-cutting behavioral specs
+      filter_spec.rb                           # Filter
+      skip_spec.rb                             # SKIP
+      association_if_spec.rb                   # Association if: Callable short-circuit
+      root_key_spec.rb                         # Root Key wrapping
+
   fixtures/
-    descriptors/              # Ruby modules — each exports DESCRIPTOR, CONFIG, MODES,
-      shallow_generic.rb      # sanity_record, expected_output(mode)
+    descriptors/                               # Ruby modules — each exports DESCRIPTOR, CONFIG, MODES,
+      shallow_generic.rb                       # sanity_record, expected_output(mode)
       shallow_specialized.rb
       ...
-      all.rb                  # aggregates → FIXTURES array
-    generated/                # snapshot files — each is a runnable Generated Class
+      all.rb                                   # aggregates → FIXTURES array
+    generated/                                 # committed snapshot files — each is a runnable Generated Class
       shallow_generic_json.rb
       shallow_generic_hash.rb
       ...
-  generators/
-    snapshot_spec.rb          # iterates FIXTURES × MODES
-  features/
-    shallow_generic_spec.rb   # compiles fresh, never loads snapshots
-    ...
+
   support/
     snapshot_matcher.rb
     schema.rb
     models.rb
+    fixture_builders.rb                        # reserved — add only if arrange blocks start dominating
 ```
 
 `spec/spec_helper.rb` unshifts `spec/fixtures/generated` and `spec/fixtures/descriptors`
@@ -255,6 +283,272 @@ assumes **Records** are AR instances of declared classes.
 PORO coverage uses `Struct.new(...).new(...)` — the minimum-viable record that responds
 only to the named methods. Proves no hidden AR-ness dependency on the generic path.
 
+## Feature-test organization
+
+Feature specs live under `spec/features/` in two parallel subtrees:
+
+- **`spec/features/descriptors/`** — one file per canonical **Descriptor** (see
+  [Canonical snapshot corpus](#canonical-snapshot-corpus) above). Each file's job is
+  **record-shape coverage**: compile the fixture fresh (never load the snapshot file) and
+  exercise it against the shapes listed in the [Record-shape coverage](#record-shape-coverage)
+  table. Config-isolation fixtures are grouped under `config/`.
+- **`spec/features/concerns/`** — one file per cross-cutting behavior:
+  `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`, `root_key_spec.rb`. Each
+  file tests its contract end-to-end across both **Output Modes**.
+
+The axes are orthogonal: a reader asking "how do filters behave?" finds one file; a
+reader asking "what's proven for `shallow_generic`?" finds another. Neither file grows
+into the other's job. **Compile-time error specs** live at the top level in
+`spec/compile_errors_spec.rb` — a separate tier per the [Test tiers](#test-tiers) table,
+not under `features/`.
+
+### UL-aligned naming
+
+All test-surface names use the vocabulary from
+[../UBIQUITOUS_LANGUAGE.md](../UBIQUITOUS_LANGUAGE.md):
+
+- Directory names: `descriptors/` (per-**Descriptor** specs), not "fixtures" or "corpus."
+- Concern file names: `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`,
+  `root_key_spec.rb` — each maps 1:1 to a UL term.
+- `describe` subjects use the UL concept under test — `describe Filter`, `describe SKIP`,
+  `describe "Generated Class for a Descriptor with Associations"`.
+- `context` / `it` wording uses UL nouns — `"when the Method Attribute returns SKIP"`,
+  `"drops the Association via except: without invoking the if: Callable"`.
+- Local and ivar names follow UL — `descriptor`, `record`, `filter`, `context`, `writer`,
+  `generated_class`. Never `ser`, `klass`, `object`, or banned aliases.
+
+### JSON/Hash parity — iterated at the describe block
+
+Every concern spec's behavior claim must hold in **both Output Modes**. Parity is
+enforced by iterating modes at the top of each `describe` block that needs it:
+
+```ruby
+describe "omits the Field when returned from a Method Attribute" do
+  %i[json hash].each do |mode|
+    context "in #{mode} Output Mode" do
+      it "omits the Field"
+    end
+  end
+end
+```
+
+- Iteration lives **per describe that needs parity**, not at the file top level.
+  File-level wrapping would treat mode as a describe-tree axis (`"JSON mode > Filter > only:"`)
+  when it's really an invariant axis.
+- Mode-agnostic describe blocks (e.g., `SKIP` singleton identity checks that test the
+  constant itself, not serialization) skip the iteration.
+- A custom parity matcher (`expect(descriptor).to serialize(record).as(expected)` running
+  both modes internally) was considered and deferred: its JSON-parse → Hash equality loses
+  byte-order fidelity and masks mode-specific regressions, and the snapshot tier's
+  byte-level pinning is a separate line of defense worth preserving here. Revisit if
+  parity iteration starts dominating line count.
+
+### Per-concern coverage
+
+Each concern spec enumerates the behavioral contract from the corresponding design doc
+and uses the minimum fixture (canonical or inline) needed per test.
+
+#### `filter_spec.rb`
+
+From [filters.md](filters.md):
+
+1. `only:` at a level — only listed **Field** names emit, across **Attribute** /
+   **Method Attribute** / **Association**.
+2. `except:` at a level — listed names omitted, across all three **Field** kinds.
+3. `only:` and `except:` at the same level → `ArgumentError` at `_write_one` /
+   `_to_hash` entry.
+4. Empty Hash `{}` ≡ `nil` — no filtering.
+5. Unknown key at any level — silently ignored (forward-compat).
+6. No inheritance — parent-level filter does **not** propagate into child **Association**
+   sub-filters.
+7. Child-filter key — looked up by the **Association**'s **Source**, not its **name**
+   (when they differ).
+8. Filter-before-`if:` — an **Association** in `except:` (or omitted from `only:`) is
+   dropped **without invoking** its `if:` **Callable** (verified with a spy).
+9. `filters: nil` ≡ kwarg omitted.
+10. JSON/Hash parity on all of the above.
+
+Fixture strategy: `shallow_generic` for Attributes-only cases; `shallow_specialized` for
+**Method Attribute** cases; `nested_composition` for threading-through-**Composition**
+and filter-before-`if:` (the fixture's `has_one :author` already carries an `if:`);
+inline **Descriptor** for the "**Association** `source` ≠ `name`" case when the corpus
+doesn't provide one.
+
+#### `skip_spec.rb`
+
+From [descriptor.md](descriptor.md):
+
+1. Returning `SKIP` from a **Method Attribute** omits the **Field** entirely — no key,
+   no value.
+2. **Identity, not equality** — a non-SKIP frozen `Object.new` is **not** omitted; the
+   **Field** emits.
+3. Works across **Method Attribute** arities 0, 1, 2.
+4. Adjacent **Fields** (before and after a SKIPped one) emit correctly.
+5. Multiple SKIPping **Method Attributes** — all elide.
+6. Singleton identity — `SerializersCodeGen::SKIP` is frozen; `SKIP.equal?(SKIP)` stable.
+7. JSON/Hash parity on (1)–(5).
+
+Fixture strategy: mostly inline minimal **Descriptors** (1–3 **Method Attributes** each).
+`shallow_specialized` already pins SKIP emit at the snapshot tier; the concern spec adds
+the focused semantic claims that aren't naturally on a fixture's critical path.
+
+Not tested here: "SKIP doesn't apply to Attributes" (no runtime path — Attributes don't
+go through a **Callable**); "SKIP doesn't apply to Association `if:`" (`if:` is
+truthy/falsy per descriptor.md, and SKIP-as-`if:` is a contract-misuse case, not a
+library contract).
+
+#### `association_if_spec.rb`
+
+From [descriptor.md](descriptor.md) (the `if:` **Callable** contract on **Association**):
+
+1. **Truthy return → Association included**; non-boolean truthy values (`0`, `""`, `[]`,
+   `{}`) also count as inclusion (Ruby truthiness).
+2. **Falsy return (`nil`, `false`) → key omitted entirely** — not `null`, not `{}`,
+   not `[]`.
+3. **`has_one` + `if:` falsy → omitted regardless of `null_for_missing_has_one`** — the
+   `if:` guard and the nil-Source config are orthogonal omission paths. Pinned at both
+   config values to guard against a codegen that accidentally conflates them (e.g., by
+   routing the `if:`-falsy path through the same nil-Source branch).
+4. **`has_many` + `if:` falsy → omitted** (not `[]`).
+5. **`if: nil` (no guard) → Association always emits** (subject only to Source + Filter).
+6. **Arity 0 — invoked with no arguments** (`.call`).
+7. **Arity 1 — invoked with the Record** (`.call(record)`).
+8. **Arity 2 — invoked with `(record, context)`** and threads **Context** unchanged.
+9. **Invocation cardinality — once per (Association, Record)** per serialize call. 1 call
+   for `serialize_one` with 1 **Record**; N calls for `serialize_many` with N **Records**.
+10. JSON/Hash parity on (1)–(9).
+
+Precedence ladder (documented here so the test descriptions stay short):
+
+```
+1. Filter.drops?(:assoc) → omit; if: not invoked, Source not called.
+2. if: present and returns falsy → omit; Source not called.
+3. if: truthy (or absent) → call Source.
+   3a. Source returns an object → serialize (the normal case).
+   3b. Source returns nil:
+        - null_for_missing_has_one: true  → emit "assoc": null
+        - null_for_missing_has_one: false → omit the key
+```
+
+Fixture strategy: `nested_composition` for `has_one` + `if:` positive and falsy cases
+(the fixture's `has_one :author` already carries an `if:`) and the
+`null_for_missing_has_one` orthogonality test; inline minimal **Descriptors** for
+`has_many` + `if:`, arity variants, and the counting-spy cardinality tests.
+
+**Not tested here (belongs elsewhere):**
+
+- `ArityError` on rejected arities (3+, variadic) → `spec/compile_errors_spec.rb`
+  (compile-time tier).
+- Filter drops **Association** without invoking `if:` → already covered in
+  `filter_spec.rb` (filter-side perspective).
+- Purity contract ("must be pure") — documented, not testable as a library contract.
+- No ordering guarantee across **Associations** — "no guarantee" pins nothing.
+
+#### `root_key_spec.rb`
+
+From [config.md](config.md), [generated-class.md](generated-class.md), and
+[output-modes.md](output-modes.md):
+
+**With `supports_root_key: true`:**
+
+1. `serialize_one` + `root_key: "post"` → wrapped: `{"post":{...}}` in JSON,
+   `{"post"=>{...}}` in Hash.
+2. `serialize_many` + `root_key: "posts"` → wrapped: `{"posts":[...]}` in JSON,
+   `{"posts"=>[...]}` in Hash.
+3. `root_key: nil` (explicit) → unwrapped output.
+4. `root_key:` kwarg omitted → unwrapped (default is `nil`). Pinned separately from (3)
+   to guard against a default drift.
+5. **Per-call stability** — same **Generated Class** instance handles successive calls
+   with different `root_key` values.
+6. **`serialize_many` with empty collection + `root_key:`** → `{"posts":[]}` (wrapped
+   empty array, not `{"posts":null}`, not omitted).
+
+**Invalid `root_key` values (with `supports_root_key: true`):**
+
+7. `root_key: ""` (empty String) → `ArgumentError` at call time. Same on
+   `serialize_one` and `serialize_many`.
+8. `root_key: :post` (Symbol) → `ArgumentError` at call time.
+9. `root_key: 42` (non-String, non-nil) → `ArgumentError` at call time.
+
+**With `supports_root_key: false`:**
+
+10. `serialize_one(record, root_key: "post")` → raises Ruby's own `ArgumentError` (the
+    kwarg literally does not exist on the generated method). Not library-raised.
+11. `serialize_many(records, root_key: "posts")` → same `ArgumentError`.
+12. Normal serialization without `root_key:` — unwrapped output.
+
+JSON/Hash parity on (1)–(12) — iterated via `%i[json hash].each`.
+
+Accepted-values contract lives in [generated-class.md](generated-class.md) and
+[config.md](config.md): non-empty String or `nil` only.
+
+Fixture strategy: reuse `config_root_key_on` (#7) **DESCRIPTOR** + **CONFIG** for the
+`supports_root_key: true` cases; its snapshot `MODES = [:json]` pins only the committed
+bytes, but the feature tier can compile the same Descriptor + Config in both modes (they
+are mode-orthogonal). For `supports_root_key: false`, `shallow_generic` (#1) with
+default **Config** is the smallest.
+
+**Not tested here (no regression surface beyond the direct tests above):**
+
+- Root-key × Filter / `if:` interactions — wrapping is structurally a post-step around
+  whatever the serializer produces; no separate regression surface beyond (1)–(2).
+
+#### `spec/compile_errors_spec.rb`
+
+Top-level file per the [Test tiers](#test-tiers) table, not under `features/`. Covers
+the full error hierarchy from [errors.md](errors.md).
+
+**Error hierarchy** (3 its): `Error < StandardError`; `DescriptorError` and
+`CompileError` direct children; `NameCollisionError`, `UnknownSourceError`, `ArityError`
+under `CompileError`.
+
+**`DescriptorError` — structural, at `Data.new`** (grouped by Data type):
+
+- **Descriptor**: name nil / empty String; models contains non-Class; attributes /
+  method_attributes / associations contain wrong element types.
+- **Attribute**: name or source not a Symbol.
+- **MethodAttribute**: body doesn't respond to `.call`.
+- **Association**: kind not in `{:has_one, :has_many}`; descriptor isn't a **Descriptor**;
+  `if:` present but not a **Callable**.
+
+**`CompileError` subclasses — semantic, at `Compile`:**
+
+- **`NameCollisionError`** — two **Fields** sharing a name, covering all four Field-kind
+  pairings; collision inside a nested **Descriptor** (message names the nested Descriptor);
+  same name across different levels does **not** raise.
+- **`UnknownSourceError`** — `Models: [AR]` with source neither column nor instance
+  method; `Models: [Class1, Class2]` mixed with non-uniform backing; `Models: nil` does
+  **not** raise at Compile (defers to runtime `NoMethodError`).
+- **`ArityError`** — MethodAttribute body or Association `if:` with arity 3 / -1 / -2
+  raises; arity 0 / 1 / 2 compiles successfully (positive cases pin the allowed set,
+  guarding against false-positive validation).
+
+**Message convention** — a dedicated `describe` block pins the format from errors.md
+("Message convention") on one representative error per subclass: message includes
+**Descriptor** `name`, **Field** name + kind, the specific rule violated, and the
+observed value. Example to match: `"PostDescriptor#likes_count: MethodAttribute#body has
+arity 3; must be 0, 1, or 2."`
+
+**Mode independence** — 6 its: `[NameCollisionError, UnknownSourceError, ArityError]` ×
+`%i[json hash]`. Pins that semantic validation is pre-Generator and mode-independent.
+`DescriptorError` doesn't need mode iteration — it raises at `Data.new`, before
+`Compile` is called.
+
+~35 `it` blocks total, proportional to the error surface. One consolidated file per the
+tier table — the `describe` tree mirrors the hierarchy, so the file stays scannable.
+
+**Fixture strategy:** mostly inline invalid **Descriptors** (corpus fixtures are the
+valid cases). `UnknownSourceError` tests use AR classes from `spec/support/models.rb`
+(loaded globally via `spec_helper`) with a deliberately-missing source.
+
+**Not tested here (out of contract):**
+
+- Runtime errors (missing method on **Record**, misbehaving **Callable** body) — per
+  errors.md, not wrapped; surface as Ruby's own exceptions.
+- `ArgumentError` on unknown kwargs (`root_key:` when `supports_root_key: false`) —
+  Ruby-raised, covered in `root_key_spec.rb`.
+- Synthetic-path backtrace format drift — pinned at the snapshot tier if anywhere.
+
 ## Recursion tests
 
 Finite data, hand-built. The library contract (see [compilation.md](compilation.md)) is
@@ -298,12 +592,8 @@ Item.create!(folder: root, subfolder: inner)
 
 ## Open testing threads
 
-Not decided yet — queued for later in the design session:
-
-- **Feature-test coverage matrix for cross-cutting concerns.** Filter shapes
-  (`only:` / `except:` / nested / empty), `SKIP`, `if:` short-circuit behavior,
-  `root_key:` wrapping, error-path specs. The fixture set is locked above; what remains
-  is the per-feature test volume and organization (shared examples vs per-fixture
-  specs).
 - **Benchmark harness.** See [open-questions.md](open-questions.md) — benchmark-ips +
   memory_profiler, target comparisons, regression guard.
+
+The feature-test coverage matrix for cross-cutting concerns is fully resolved — see
+[Feature-test organization](#feature-test-organization) above.
