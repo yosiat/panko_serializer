@@ -29,6 +29,30 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
     end
   end
 
+  describe "#serialize_many" do
+    let(:generated) { generated_class.new(descriptor: descriptor) }
+
+    it "serializes an Array of Hash records to a JSON array" do
+      records = [
+        {"id" => 1, "title" => "hi"},
+        {"id" => 2, "title" => "yo"}
+      ]
+      expect(generated.serialize_many(records)).to eq('[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]')
+    end
+
+    it "serializes an empty Array to an empty JSON array" do
+      expect(generated.serialize_many([])).to eq("[]")
+    end
+
+    it "serializes a mixed Array of Hash + PORO records via the per-element dispatcher" do
+      records = [
+        {"id" => 1, "title" => "hi"},
+        Struct.new(:id, :title).new(2, "yo")
+      ]
+      expect(generated.serialize_many(records)).to eq('[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]')
+    end
+  end
+
   describe ".compile" do
     it "returns a fresh, independent class on each call" do
       first = SerializersCodeGen.compile(descriptor, output: :json, config: config)

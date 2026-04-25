@@ -10,6 +10,14 @@ class ShallowGenericSerializer_JSON
     writer.to_s.chomp
   end
 
+  def serialize_many(records, context: nil, filters: nil)
+    writer = Oj::StringWriter.new(mode: :rails)
+    writer.push_array
+    records.each { |r| _write_one(r, writer, context, filters) }
+    writer.pop
+    writer.to_s.chomp
+  end
+
   def _write_one(record, writer, context, filters)
     if record.is_a?(Hash)
       _write_one_hash(record, writer, context, filters)
