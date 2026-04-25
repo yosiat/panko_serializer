@@ -1,6 +1,17 @@
 # frozen_string_literal: true
 
+require "active_record"
+require "sqlite3"
+
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift File.expand_path("fixtures/generated", __dir__)
+$LOAD_PATH.unshift File.expand_path("fixtures/descriptors", __dir__)
+
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
+
+require_relative "support/schema"
+require_relative "support/models"
+require_relative "support/snapshot_matcher"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
@@ -18,4 +29,11 @@ RSpec.configure do |config|
   config.default_formatter = "doc" if config.files_to_run.one?
   config.order = :random
   Kernel.srand config.seed
+
+  config.around(:each) do |example|
+    ActiveRecord::Base.transaction do
+      example.run
+      raise ActiveRecord::Rollback
+    end
+  end
 end
