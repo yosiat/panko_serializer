@@ -31,12 +31,58 @@ RSpec.describe "Compile-time errors" do
     end
 
     describe "Attribute (S1.3)" do
-      pending "raises when name is not a Symbol"
-      pending "raises when source is not a Symbol"
+      it "constructs a frozen instance with both fields populated" do
+        attr = SerializersCodeGen::Attribute.new(name: :title, source: :raw_title)
+        expect(attr).to be_frozen
+        expect(attr.name).to eq(:title)
+        expect(attr.source).to eq(:raw_title)
+      end
+
+      it "defaults source to name when omitted" do
+        attr = SerializersCodeGen::Attribute.new(name: :title)
+        expect(attr).to be_frozen
+        expect(attr.source).to eq(:title)
+      end
+
+      it "raises when name is not a Symbol" do
+        expect {
+          SerializersCodeGen::Attribute.new(name: "title")
+        }.to raise_error(SerializersCodeGen::DescriptorError)
+      end
+
+      it "raises when source is not a Symbol" do
+        expect {
+          SerializersCodeGen::Attribute.new(name: :title, source: "raw")
+        }.to raise_error(SerializersCodeGen::DescriptorError)
+      end
     end
 
     describe "MethodAttribute (S1.3)" do
-      pending "raises when body does not respond to #call"
+      it "constructs a frozen instance with a Callable body" do
+        ma = SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(r) { r.likes.count })
+        expect(ma).to be_frozen
+        expect(ma.name).to eq(:likes_count)
+        expect(ma.body).to respond_to(:call)
+      end
+
+      it "raises when name is not a Symbol" do
+        expect {
+          SerializersCodeGen::MethodAttribute.new(name: "x", body: -> {})
+        }.to raise_error(SerializersCodeGen::DescriptorError)
+      end
+
+      it "raises when body does not respond to #call" do
+        expect {
+          SerializersCodeGen::MethodAttribute.new(name: :x, body: 42)
+        }.to raise_error(SerializersCodeGen::DescriptorError)
+      end
+
+      it "raises when body is an UnboundMethod (must be bound before inclusion)" do
+        unbound = String.instance_method(:length)
+        expect {
+          SerializersCodeGen::MethodAttribute.new(name: :x, body: unbound)
+        }.to raise_error(SerializersCodeGen::DescriptorError)
+      end
     end
 
     describe "Association (S1.4)" do
@@ -74,10 +120,29 @@ RSpec.describe "Compile-time errors" do
   end
 
   describe "Message convention" do
-    pending "DescriptorError names the Descriptor, Field, kind, rule, and observed value (S1.3 / S1.4)"
+    it "DescriptorError names the Field, kind, rule, and observed value (S1.3 / S1.4)" do
+      expect {
+        SerializersCodeGen::Attribute.new(name: "title")
+      }.to raise_error(SerializersCodeGen::DescriptorError) { |err|
+        expect(err.message).to include("Attribute#name")
+        expect(err.message).to include("Symbol")
+        expect(err.message).to include('"title"')
+      }
+    end
+
     pending "NameCollisionError names the Descriptor, Field name, and rule (S9)"
     pending "UnknownSourceError names the Descriptor, Field name, rule, and observed Source (S6)"
     pending "ArityError matches the docs/errors.md § Message convention example (S4)"
+  end
+
+  describe "SKIP singleton (S1.3)" do
+    it "is identity-stable via #equal?" do
+      expect(SerializersCodeGen::SKIP.equal?(SerializersCodeGen::SKIP)).to be(true)
+    end
+
+    it "is frozen" do
+      expect(SerializersCodeGen::SKIP).to be_frozen
+    end
   end
 
   describe "Mode independence — semantic validation runs pre-Generator" do
