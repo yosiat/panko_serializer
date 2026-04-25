@@ -102,8 +102,10 @@ fixture lands.
 
 ### Committed gemfiles
 
-`gemfiles/rails_7_2.gemfile`, `gemfiles/rails_8_0.gemfile`, `gemfiles/rails_8_1.gemfile`
-**and their `.lock` files** are committed to the repo. Two reasons:
+`gemfiles/rails_7.2.gemfile`, `gemfiles/rails_8.0.gemfile`, `gemfiles/rails_8.1.gemfile`
+**and their `.lock` files** are committed to the repo. Filenames preserve the dot
+because Appraisal derives them via `name.gsub(/[^\w\.]/, '_')` — only non-word,
+non-dot characters get replaced. Two reasons to commit:
 
 1. **Dependabot** can update transitive deps per gemfile when locks are committed.
 2. **AR version bumps are reviewable** in PR diffs, rather than invisible CI-time
