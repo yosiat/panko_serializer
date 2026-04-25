@@ -22,12 +22,129 @@ RSpec.describe "Compile-time errors" do
 
   describe "DescriptorError — structural, at Data.new" do
     describe "Descriptor (S1.4)" do
-      pending "raises when name is nil"
-      pending "raises when name is an empty String"
-      pending "raises when models contains a non-Class element"
-      pending "raises when attributes contains a non-Attribute element"
-      pending "raises when method_attributes contains a non-MethodAttribute element"
-      pending "raises when associations contains a non-Association element"
+      let(:inner) {
+        SerializersCodeGen::Descriptor.new(
+          name: "InnerSerializer",
+          models: nil,
+          attributes: [],
+          method_attributes: [],
+          associations: []
+        )
+      }
+
+      it "constructs a frozen instance with all fields populated" do
+        attr = SerializersCodeGen::Attribute.new(name: :id)
+        ma = SerializersCodeGen::MethodAttribute.new(name: :computed, body: -> { 1 })
+        assoc = SerializersCodeGen::Association.new(
+          name: :inner, kind: :has_one, descriptor: inner
+        )
+        desc = SerializersCodeGen::Descriptor.new(
+          name: "PostSerializer",
+          models: [String, Integer],
+          attributes: [attr],
+          method_attributes: [ma],
+          associations: [assoc]
+        )
+        expect(desc).to be_frozen
+        expect(desc.name).to eq("PostSerializer")
+        expect(desc.models).to eq([String, Integer])
+        expect(desc.attributes).to eq([attr])
+        expect(desc.method_attributes).to eq([ma])
+        expect(desc.associations).to eq([assoc])
+      end
+
+      it "constructs with models: nil and empty Field arrays" do
+        desc = SerializersCodeGen::Descriptor.new(
+          name: "PostSerializer",
+          models: nil,
+          attributes: [],
+          method_attributes: [],
+          associations: []
+        )
+        expect(desc).to be_frozen
+        expect(desc.models).to be_nil
+      end
+
+      it "permits an Association whose descriptor is the parent (self-referential shape)" do
+        parent = SerializersCodeGen::Descriptor.new(
+          name: "CommentSerializer",
+          models: nil,
+          attributes: [],
+          method_attributes: [],
+          associations: []
+        )
+        assoc = SerializersCodeGen::Association.new(
+          name: :replies, kind: :has_many, descriptor: parent
+        )
+        expect(assoc.descriptor).to equal(parent)
+      end
+
+      it "raises when name is nil" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: nil, models: nil, attributes: [], method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#name/)
+      end
+
+      it "raises when name is an empty String" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "", models: nil, attributes: [], method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#name/)
+      end
+
+      it "raises when models contains a non-Class element" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: ["NotAClass"], attributes: [], method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#models/)
+      end
+
+      it "raises when models is not nil and not an Array" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: String, attributes: [], method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#models/)
+      end
+
+      it "raises when attributes contains a non-Attribute element" do
+        ma = SerializersCodeGen::MethodAttribute.new(name: :x, body: -> {})
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [ma], method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#attributes/)
+      end
+
+      it "raises when method_attributes contains a non-MethodAttribute element" do
+        attr = SerializersCodeGen::Attribute.new(name: :x)
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [], method_attributes: [attr], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#method_attributes/)
+      end
+
+      it "raises when associations contains a non-Association element" do
+        attr = SerializersCodeGen::Attribute.new(name: :x)
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [], method_attributes: [], associations: [attr]
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#associations/)
+      end
+
+      it "raises when attributes is not an Array" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: nil, method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#attributes/)
+      end
     end
 
     describe "Attribute (S1.3)" do
@@ -86,9 +203,113 @@ RSpec.describe "Compile-time errors" do
     end
 
     describe "Association (S1.4)" do
-      pending "raises when kind is not :has_one or :has_many"
-      pending "raises when descriptor is not a Descriptor"
-      pending "raises when if: is present but not a Callable"
+      let(:inner) {
+        SerializersCodeGen::Descriptor.new(
+          name: "InnerSerializer",
+          models: nil,
+          attributes: [],
+          method_attributes: [],
+          associations: []
+        )
+      }
+
+      it "constructs a frozen instance with explicit fields" do
+        assoc = SerializersCodeGen::Association.new(
+          name: :author, kind: :has_one, descriptor: inner, source: :writer, if: nil
+        )
+        expect(assoc).to be_frozen
+        expect(assoc.name).to eq(:author)
+        expect(assoc.kind).to eq(:has_one)
+        expect(assoc.descriptor).to equal(inner)
+        expect(assoc.source).to eq(:writer)
+        expect(assoc.if).to be_nil
+      end
+
+      it "defaults source to name when source kwarg is omitted" do
+        assoc = SerializersCodeGen::Association.new(
+          name: :author, kind: :has_one, descriptor: inner
+        )
+        expect(assoc.source).to eq(:author)
+      end
+
+      it "defaults source to name when source: nil is passed explicitly" do
+        assoc = SerializersCodeGen::Association.new(
+          name: :author, kind: :has_one, descriptor: inner, source: nil
+        )
+        expect(assoc.source).to eq(:author)
+      end
+
+      it "accepts kind: :has_many" do
+        assoc = SerializersCodeGen::Association.new(
+          name: :comments, kind: :has_many, descriptor: inner
+        )
+        expect(assoc.kind).to eq(:has_many)
+      end
+
+      it "accepts if: as a Lambda" do
+        guard = ->(r, c) { true }
+        assoc = SerializersCodeGen::Association.new(
+          name: :author, kind: :has_one, descriptor: inner, if: guard
+        )
+        expect(assoc.if).to equal(guard)
+      end
+
+      it "raises when name is not a Symbol" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: "author", kind: :has_one, descriptor: inner
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#name/)
+      end
+
+      it "raises when source is not a Symbol" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: :has_one, descriptor: inner, source: "writer"
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#source/)
+      end
+
+      it "raises when kind is not :has_one or :has_many" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: :has_any, descriptor: inner
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#kind/)
+      end
+
+      it "raises when kind is not a Symbol at all" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: "has_one", descriptor: inner
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#kind/)
+      end
+
+      it "raises when descriptor is not a Descriptor" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: :has_one, descriptor: "not a descriptor"
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#descriptor/)
+      end
+
+      it "raises when if: is present but not a Callable" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: :has_one, descriptor: inner, if: 42
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#if/)
+      end
+
+      it "raises when if: is an UnboundMethod (must be bound before inclusion)" do
+        unbound = String.instance_method(:length)
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: :has_one, descriptor: inner, if: unbound
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Association#if/)
+      end
     end
   end
 
