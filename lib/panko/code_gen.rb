@@ -3,6 +3,7 @@
 require_relative "serializers_code_gen/version"
 require_relative "serializers_code_gen/errors"
 require_relative "serializers_code_gen/config"
+require_relative "serializers_code_gen/descriptor"
 require_relative "serializers_code_gen/code_builder"
 
 # Internal Panko-ecosystem code generator. Turns an immutable Descriptor
