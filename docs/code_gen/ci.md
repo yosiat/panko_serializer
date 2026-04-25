@@ -229,9 +229,18 @@ Standard GHA practices applied without separate discussion:
   `${{ github.ref }}`, so force-pushes cancel stale runs.
 - **Permissions**: `contents: read` as the default workflow permission. No write tokens
   unless a specific job needs them.
-- **Dependabot**: enabled for `bundler` (targets `Gemfile` *and* each
-  `gemfiles/*.gemfile`) and `github-actions` (targets `.github/workflows/`). Weekly
-  schedule.
+- **Dependabot**: enabled for `bundler` (targets the root `Gemfile` only — see
+  next bullet) and `github-actions` (targets `.github/workflows/`). Weekly schedule.
+- **Dependabot does *not* scan `gemfiles/*.gemfile`**. The bundler ecosystem hard-codes
+  detection to literal `Gemfile` / `gems.rb` / `*.gemspec` filenames
+  ([source](https://github.com/dependabot/dependabot-core/blob/main/bundler/lib/dependabot/bundler/file_fetcher.rb)),
+  and a flat `gemfiles/*.gemfile` layout is silently skipped (the only working
+  workaround is one subdirectory per appraisal containing a literal `Gemfile`,
+  which fights Appraisal's filename derivation). Appraisal lockfiles update
+  transitively when `bundle exec appraisal install` is rerun after a root-Gemfile
+  bump — i.e. dependabot opens a PR against root, an implementer pulls it locally
+  and reruns `appraisal install` to refresh `gemfiles/*.gemfile.lock` before
+  merging.
 - **`mise.toml` ignored**: a local-dev convenience, not referenced by any workflow step.
 
 ## Local development — lefthook
