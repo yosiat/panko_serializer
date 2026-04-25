@@ -27,6 +27,17 @@ module SerializersCodeGen
       @lines << (INDENT_UNIT * @indent) + str
     end
 
+    # Appends a truly empty line to the buffer, ignoring the current
+    # indent level. Use this for blank separator lines between
+    # logically-distinct emitted blocks (e.g. between consecutive +def+s)
+    # so the emitted source survives a +standardrb+ pass without
+    # +Layout/TrailingWhitespace+ warnings.
+    #
+    # @return [void]
+    def blank
+      @lines << ""
+    end
+
     # Raises the indent level by one for the duration of the block and
     # restores it on exit, including when the block raises.
     #

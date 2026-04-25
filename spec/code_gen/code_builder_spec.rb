@@ -72,4 +72,24 @@ RSpec.describe SerializersCodeGen::CodeBuilder do
       expect(builder.to_s).to eq("  ")
     end
   end
+
+  describe "#blank" do
+    it "emits a truly empty line at the top level" do
+      builder.line "before"
+      builder.blank
+      builder.line "after"
+
+      expect(builder.to_s).to eq("before\n\nafter")
+    end
+
+    it "emits a truly empty line inside an indent block, ignoring indent" do
+      builder.indent do
+        builder.line "inner"
+        builder.blank
+        builder.line "still inner"
+      end
+
+      expect(builder.to_s).to eq("  inner\n\n  still inner")
+    end
+  end
 end
