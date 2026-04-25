@@ -97,9 +97,10 @@ module SerializersCodeGen
       unless value.is_a?(Array)
         raise DescriptorError, "#{field}: must be an Array of #{kind_label}; got #{value.inspect}:#{value.class}"
       end
-      bad = value.find { |el| !el.is_a?(element_class) }
-      return if bad.nil?
-      raise DescriptorError, "#{field}: must contain only #{kind_label} elements; got #{bad.inspect}:#{bad.class}"
+      value.each do |el|
+        next if el.is_a?(element_class)
+        raise DescriptorError, "#{field}: must contain only #{kind_label} elements; got #{el.inspect}:#{el.class}"
+      end
     end
 
     # Raises +DescriptorError+ when +value+ is not a +Descriptor+ instance.
@@ -200,9 +201,13 @@ module SerializersCodeGen
     #   +if.call(record, context)+; nil disables the guard
     # @return [void]
     # @raise [DescriptorError] on any structural rule violation
-    def initialize(name:, kind:, descriptor:, source: nil, **rest)
+    def initialize(name:, kind:, descriptor:, source: nil, if: nil)
+      # Ruby's parser treats the local binding +if+ as the conditional, so the
+      # kwarg value is unrefereable directly inside the body. +binding.local_variable_get+
+      # is the standard idiom for reserved-word kwargs and lets us keep the
+      # natural signature — unknown kwargs raise +ArgumentError+ as usual.
+      if_callable = binding.local_variable_get(:if)
       source = name if source.nil?
-      if_callable = rest[:if]
       StructuralValidation.validate_symbol!("Association#name", name)
       StructuralValidation.validate_kind!("Association#kind", kind)
       StructuralValidation.validate_descriptor!("Association#descriptor", descriptor)

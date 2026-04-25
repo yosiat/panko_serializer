@@ -145,6 +145,30 @@ RSpec.describe "Compile-time errors" do
           )
         }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#attributes/)
       end
+
+      it "raises when attributes contains a nil element" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [nil], method_attributes: [], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#attributes/)
+      end
+
+      it "raises when method_attributes contains a nil element" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [], method_attributes: [nil], associations: []
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#method_attributes/)
+      end
+
+      it "raises when associations contains a nil element" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [], method_attributes: [], associations: [nil]
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#associations/)
+      end
     end
 
     describe "Attribute (S1.3)" do
@@ -309,6 +333,14 @@ RSpec.describe "Compile-time errors" do
             name: :author, kind: :has_one, descriptor: inner, if: unbound
           )
         }.to raise_error(SerializersCodeGen::DescriptorError, /Association#if/)
+      end
+
+      it "rejects unknown keyword arguments (e.g. typo'd source) instead of silently dropping them" do
+        expect {
+          SerializersCodeGen::Association.new(
+            name: :author, kind: :has_one, descriptor: inner, sourrce: :writer
+          )
+        }.to raise_error(ArgumentError, /sourrce/)
       end
     end
   end
