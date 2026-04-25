@@ -21,12 +21,17 @@ RSpec.describe "Generator snapshot corpus" do
   fixtures = [Fixtures::ShallowGeneric]
 
   fixtures.each do |fixture|
+    # Snake-case slug derived from the fixture's last namespace segment —
+    # +Fixtures::ShallowGeneric+ → +"shallow_generic"+. Joined with the
+    # mode suffix to form the snapshot filename.
+    basename = fixture.name.split("::").last.gsub(/(?<=.)([A-Z])/, '_\1').downcase
+
     describe fixture.name do
       fixture::MODES.each do |mode|
         context "in #{mode} Output Mode" do
           let(:descriptor) { fixture::DESCRIPTOR }
           let(:config) { fixture::CONFIG }
-          let(:snapshot_filename) { "#{snapshot_basename(fixture)}_#{mode}.rb" }
+          let(:snapshot_filename) { "#{basename}_#{mode}.rb" }
 
           it "Generator#emit bytes equal the committed snapshot" do
             source = SerializersCodeGen::Generator.new.emit(descriptor, output: mode, config: config)
@@ -43,10 +48,6 @@ RSpec.describe "Generator snapshot corpus" do
             generated_class = Object.const_get(constant_name)
             instance = generated_class.new(descriptor: descriptor)
             expect(instance.serialize_one(fixture.sanity_record)).to eq(fixture.expected_output(mode))
-          end
-
-          def snapshot_basename(fixture)
-            fixture.name.split("::").last.gsub(/(?<=.)([A-Z])/, '_\1').downcase
           end
         end
       end
