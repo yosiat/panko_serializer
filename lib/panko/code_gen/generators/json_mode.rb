@@ -58,14 +58,16 @@ module SerializersCodeGen
       # +docs/output-modes.md § Writer lifecycle+), threads it through
       # +_write_one+, and returns +writer.to_s+. The +filters+ kwarg is
       # accepted from day 1 to keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); the phase-1
-      # +NotImplementedError+ on non-nil ships in S2.3.
+      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
+      # raises +NotImplementedError+ until the phase-2 implementation
+      # lands in S14.
       #
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_serialize_one(builder)
         builder.line "def serialize_one(record, context: nil, filters: nil)"
         builder.indent do
+          builder.line "raise NotImplementedError if filters"
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
           builder.line "_write_one(record, writer, context, filters)"
           builder.line "writer.to_s.chomp"
@@ -78,14 +80,16 @@ module SerializersCodeGen
       # element through +_write_one+, then closes the array
       # (per +docs/output-modes.md § :json+). The +filters+ kwarg is
       # accepted from day 1 to keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); the phase-1
-      # +NotImplementedError+ on non-nil ships in S2.3.
+      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
+      # raises +NotImplementedError+ until the phase-2 implementation
+      # lands in S14.
       #
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_serialize_many(builder)
         builder.line "def serialize_many(records, context: nil, filters: nil)"
         builder.indent do
+          builder.line "raise NotImplementedError if filters"
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
           builder.line "writer.push_array"
           builder.line "records.each { |r| _write_one(r, writer, context, filters) }"

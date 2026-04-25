@@ -398,6 +398,44 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
+  describe "NotImplementedError — phase-1 filters contract (S2.3)" do
+    let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
+    let(:config) { Fixtures::ShallowGeneric::CONFIG }
+    let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :json, config: config) }
+    let(:instance) { generated_class.new(descriptor: descriptor) }
+    let(:record) { {"id" => 1, "title" => "hi"} }
+
+    before do
+      require "shallow_generic"
+    end
+
+    it "raises NotImplementedError on serialize_one with filters: {only: [:id]}" do
+      expect {
+        instance.serialize_one(record, filters: {only: [:id]})
+      }.to raise_error(NotImplementedError)
+    end
+
+    it "raises NotImplementedError on serialize_one with filters: {}" do
+      expect {
+        instance.serialize_one(record, filters: {})
+      }.to raise_error(NotImplementedError)
+    end
+
+    it "does not raise on serialize_one with default filters: nil" do
+      expect(instance.serialize_one(record)).to be_a(String)
+    end
+
+    it "raises NotImplementedError on serialize_many with filters: {only: [:id]}" do
+      expect {
+        instance.serialize_many([record], filters: {only: [:id]})
+      }.to raise_error(NotImplementedError)
+    end
+
+    it "does not raise on serialize_many with default filters: nil" do
+      expect(instance.serialize_many([record])).to be_a(String)
+    end
+  end
+
   describe "Mode independence — semantic validation runs pre-Generator" do
     %i[json hash].each do |mode|
       context "in #{mode} Output Mode" do

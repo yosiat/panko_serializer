@@ -27,6 +27,28 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
       record = {"id" => 1, "title" => "hi"}
       expect(generated.serialize_one(record, context: nil)).to eq('{"id":1,"title":"hi"}')
     end
+
+    it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
+      generated = generated_class.new(descriptor: descriptor)
+      record = {"id" => 1, "title" => "hi"}
+      expect(generated.serialize_one(record, filters: nil)).to eq('{"id":1,"title":"hi"}')
+    end
+
+    it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+      generated = generated_class.new(descriptor: descriptor)
+      record = {"id" => 1, "title" => "hi"}
+      expect {
+        generated.serialize_one(record, filters: {only: [:id]})
+      }.to raise_error(NotImplementedError)
+    end
+
+    it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+      generated = generated_class.new(descriptor: descriptor)
+      record = {"id" => 1, "title" => "hi"}
+      expect {
+        generated.serialize_one(record, filters: {})
+      }.to raise_error(NotImplementedError)
+    end
   end
 
   describe "#serialize_many" do
@@ -50,6 +72,25 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
         Struct.new(:id, :title).new(2, "yo")
       ]
       expect(generated.serialize_many(records)).to eq('[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]')
+    end
+
+    it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
+      records = [{"id" => 1, "title" => "hi"}]
+      expect(generated.serialize_many(records, filters: nil)).to eq('[{"id":1,"title":"hi"}]')
+    end
+
+    it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+      records = [{"id" => 1, "title" => "hi"}]
+      expect {
+        generated.serialize_many(records, filters: {only: [:id]})
+      }.to raise_error(NotImplementedError)
+    end
+
+    it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+      records = [{"id" => 1, "title" => "hi"}]
+      expect {
+        generated.serialize_many(records, filters: {})
+      }.to raise_error(NotImplementedError)
     end
   end
 
