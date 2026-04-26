@@ -2,29 +2,58 @@
 
 module SerializersCodeGen
   module Generators
-    # Top-level JSON-mode emitter. Walks one Descriptor and produces the
-    # source string for one +<Name>_JSON+ Generated Class per
-    # +docs/output-modes.md § :json+. The HashMode counterpart lands in S3.
+    # Top-level JSON-mode emitter. Walks the Descriptor tree and produces a
+    # source string containing one +<Name>_JSON+ class per unique Descriptor
+    # in the tree, with children appearing before parents so each parent
+    # constructor's reference to its nested +<Inner>_JSON+ class resolves
+    # at module_eval time. Mirror of S3.1's +HashMode+ for +:json+ mode
+    # per +docs/output-modes.md § :json+.
     #
     # Per +docs/code-generation.md § Generator shape+, the emitter is a
-    # tree-of-emitters: this class emits the class shell, the public entry
-    # methods, and delegates +_write_one+ family emit to the chosen
-    # +RecordAccess+ strategy (Generic here; Specialized in S6) which in
-    # turn delegates per-Field emit to the +FieldEmitters+ family.
+    # tree-of-emitters: this class emits the per-Descriptor class shells,
+    # delegates +_write_one+-family emit to the chosen +RecordAccess+
+    # strategy (Generic here; Specialized in S6) which in turn delegates
+    # per-Field emit to the +FieldEmitters+ family
+    # (+Attribute+, +Association+).
+    #
+    # Composition wiring lands in S5.1: each Association gets an
+    # +@<name>_serializer+ ivar hoisted in the constructor pointing at
+    # one nested Generated Class instance — the call site in
+    # +_write_one_*+ stays monomorphic per
+    # +docs/compilation.md § Composition of nested Associations+.
     class JsonMode
-      # Builds and returns the source string for the Generated Class. The
-      # string starts with +# frozen_string_literal: true+
-      # (per +docs/code-generation.md § Source pragmas+) and is the byte
-      # payload that both +Compiler+ (+module_eval+) and +Dump+
-      # (+File.write+) consume.
+      # Builds and returns the source string for the Generated Class tree
+      # rooted at +descriptor+. The string starts with
+      # +# frozen_string_literal: true+ (per
+      # +docs/code-generation.md § Source pragmas+), then emits one class
+      # per unique Descriptor reachable from +descriptor+, children
+      # before parents (post-order). The byte payload feeds both
+      # +Compiler+ (+module_eval+) and +Dump+ (+File.write+).
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] the input
+      # @param descriptor [SerializersCodeGen::Descriptor] the root input
       # @param config [SerializersCodeGen::Config] resolved settings
       # @return [String] the emitted Ruby source
       def emit(descriptor, config)
         builder = CodeBuilder.new
         builder.line "# frozen_string_literal: true"
         builder.blank
+        DescriptorWalk.in_emit_order(descriptor).each_with_index do |desc, i|
+          builder.blank if i > 0
+          emit_class(desc, config, builder)
+        end
+        builder.to_s + "\n"
+      end
+
+      private
+
+      # Emits one +<Name>_JSON+ class shell with constructor + public
+      # entries + +RecordAccess::Generic+ helpers.
+      #
+      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param config [SerializersCodeGen::Config]
+      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @return [void]
+      def emit_class(descriptor, config, builder)
         builder.line "class #{descriptor.name}_JSON"
         builder.indent do
           emit_initialize(descriptor, builder)
@@ -36,19 +65,19 @@ module SerializersCodeGen
           RecordAccess::Generic.emit_json(descriptor, config, builder)
         end
         builder.line "end"
-        builder.to_s + "\n"
       end
-
-      private
 
       # Emits the +initialize(descriptor:)+ constructor. Hoists each
       # Method Attribute's Callable body into a per-Field +@cb_<name>+
       # ivar in declaration order per
-      # +docs/code-generation.md § Callable hoisting+ — same shape Compile
-      # and Dump, no class-constant divergence. Body is empty when the
-      # Descriptor has no Method Attributes (the +shallow_generic+ case).
+      # +docs/code-generation.md § Callable hoisting+, then per Association
+      # assigns +@<name>_serializer = <Inner>_JSON.new(descriptor:
+      # descriptor.associations[<i>].descriptor)+ — the Composition wiring
+      # from +docs/compilation.md § Composition of nested Associations+.
+      # Body is empty when the Descriptor has neither Method Attributes
+      # nor Associations (the +shallow_generic+ case).
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] the input
+      # @param descriptor [SerializersCodeGen::Descriptor]
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_initialize(descriptor, builder)
@@ -57,6 +86,9 @@ module SerializersCodeGen
           descriptor.method_attributes.each_with_index do |method_attribute, index|
             ivar = FieldEmitters::MethodAttribute.ivar_name(method_attribute)
             builder.line "#{ivar} = descriptor.method_attributes[#{index}].body"
+          end
+          descriptor.associations.each_with_index do |assoc, i|
+            builder.line "@#{assoc.name}_serializer = #{assoc.descriptor.name}_JSON.new(descriptor: descriptor.associations[#{i}].descriptor)"
           end
         end
         builder.line "end"

@@ -1,0 +1,86 @@
+# frozen_string_literal: true
+
+class AuthorSerializer_Hash
+  def initialize(descriptor:)
+  end
+
+  def serialize_one(record, context: nil, filters: nil)
+    raise NotImplementedError if filters
+    _to_hash(record, context, filters)
+  end
+
+  def serialize_many(records, context: nil, filters: nil)
+    raise NotImplementedError if filters
+    records.map { |r| _to_hash(r, context, filters) }
+  end
+
+  def _to_hash(record, context, filters)
+    if record.is_a?(Hash)
+      _to_hash_hash(record, context, filters)
+    else
+      _to_hash_object(record, context, filters)
+    end
+  end
+
+  def _to_hash_hash(record, context, filters)
+    result = {}
+    result["id"] = record["id"]
+    result["name"] = record["name"]
+    result
+  end
+
+  def _to_hash_object(record, context, filters)
+    result = {}
+    result["id"] = record.id
+    result["name"] = record.name
+    result
+  end
+end
+
+class PostSerializer_Hash
+  def initialize(descriptor:)
+    @author_serializer = AuthorSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor)
+  end
+
+  def serialize_one(record, context: nil, filters: nil)
+    raise NotImplementedError if filters
+    _to_hash(record, context, filters)
+  end
+
+  def serialize_many(records, context: nil, filters: nil)
+    raise NotImplementedError if filters
+    records.map { |r| _to_hash(r, context, filters) }
+  end
+
+  def _to_hash(record, context, filters)
+    if record.is_a?(Hash)
+      _to_hash_hash(record, context, filters)
+    else
+      _to_hash_object(record, context, filters)
+    end
+  end
+
+  def _to_hash_hash(record, context, filters)
+    result = {}
+    result["id"] = record["id"]
+    value = record["author"]
+    result["author"] = if value.nil?
+      nil
+    else
+      @author_serializer._to_hash(value, context, filters)
+    end
+    result
+  end
+
+  def _to_hash_object(record, context, filters)
+    result = {}
+    result["id"] = record.id
+    value = record.author
+    result["author"] = if value.nil?
+      nil
+    else
+      @author_serializer._to_hash(value, context, filters)
+    end
+    result
+  end
+end
