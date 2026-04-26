@@ -13,6 +13,17 @@ module Fixtures
       associations: []
     )
 
+    COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+      name: "CommentSerializer",
+      models: nil,
+      attributes: [
+        SerializersCodeGen::Attribute.new(name: :id, source: :id),
+        SerializersCodeGen::Attribute.new(name: :body, source: :body)
+      ],
+      method_attributes: [],
+      associations: []
+    )
+
     CONFIG = SerializersCodeGen::Config.new
     DESCRIPTOR = SerializersCodeGen::Descriptor.new(
       name: "PostSerializer",
@@ -26,19 +37,41 @@ module Fixtures
           name: :author,
           kind: :has_one,
           descriptor: AUTHOR_DESCRIPTOR
+        ),
+        SerializersCodeGen::Association.new(
+          name: :comments,
+          kind: :has_many,
+          descriptor: COMMENT_DESCRIPTOR
         )
       ]
     )
     MODES = %i[json hash]
 
     def self.sanity_record
-      {"id" => 1, "author" => {"id" => 7, "name" => "alice"}}
+      {
+        "id" => 1,
+        "author" => {"id" => 7, "name" => "alice"},
+        "comments" => [
+          {"id" => 11, "body" => "first"},
+          {"id" => 12, "body" => "second"}
+        ]
+      }
     end
 
     def self.expected_output(mode)
       case mode
-      when :json then '{"id":1,"author":{"id":7,"name":"alice"}}'
-      when :hash then {"id" => 1, "author" => {"id" => 7, "name" => "alice"}}
+      when :json
+        '{"id":1,"author":{"id":7,"name":"alice"},' \
+          '"comments":[{"id":11,"body":"first"},{"id":12,"body":"second"}]}'
+      when :hash
+        {
+          "id" => 1,
+          "author" => {"id" => 7, "name" => "alice"},
+          "comments" => [
+            {"id" => 11, "body" => "first"},
+            {"id" => 12, "body" => "second"}
+          ]
+        }
       end
     end
   end

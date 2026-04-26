@@ -47,9 +47,57 @@ class AuthorSerializer_JSON
   end
 end
 
+class CommentSerializer_JSON
+  def initialize(descriptor:)
+  end
+
+  def serialize_one(record, context: nil, filters: nil)
+    raise NotImplementedError if filters
+    writer = Oj::StringWriter.new(mode: :rails)
+    _write_one(record, writer, context, filters)
+    writer.to_s.chomp
+  end
+
+  def serialize_many(records, context: nil, filters: nil)
+    raise NotImplementedError if filters
+    writer = Oj::StringWriter.new(mode: :rails)
+    writer.push_array
+    records.each { |r| _write_one(r, writer, context, filters) }
+    writer.pop
+    writer.to_s.chomp
+  end
+
+  def _write_one(record, writer, context, filters)
+    if record.is_a?(Hash)
+      _write_one_hash(record, writer, context, filters)
+    else
+      _write_one_object(record, writer, context, filters)
+    end
+  end
+
+  def _write_one_hash(record, writer, context, filters)
+    writer.push_object
+    writer.push_key("id")
+    writer.push_value(record["id"])
+    writer.push_key("body")
+    writer.push_value(record["body"])
+    writer.pop
+  end
+
+  def _write_one_object(record, writer, context, filters)
+    writer.push_object
+    writer.push_key("id")
+    writer.push_value(record.id)
+    writer.push_key("body")
+    writer.push_value(record.body)
+    writer.pop
+  end
+end
+
 class PostSerializer_JSON
   def initialize(descriptor:)
     @author_serializer = AuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
+    @comments_serializer = CommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
   end
 
   def serialize_one(record, context: nil, filters: nil)
@@ -87,6 +135,12 @@ class PostSerializer_JSON
     else
       @author_serializer._write_one(value, writer, context, filters)
     end
+    writer.push_key("comments")
+    writer.push_array
+    record["comments"].each do |element|
+      @comments_serializer._write_one(element, writer, context, filters)
+    end
+    writer.pop
     writer.pop
   end
 
@@ -101,6 +155,12 @@ class PostSerializer_JSON
     else
       @author_serializer._write_one(value, writer, context, filters)
     end
+    writer.push_key("comments")
+    writer.push_array
+    record.comments.each do |element|
+      @comments_serializer._write_one(element, writer, context, filters)
+    end
+    writer.pop
     writer.pop
   end
 end
