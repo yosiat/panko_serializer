@@ -356,9 +356,68 @@ RSpec.describe "Compile-time errors" do
     end
 
     describe "UnknownSourceError (S6)" do
-      pending "raises when source is neither a column nor an instance method on the single Model"
+      def fake_ar_class(name:, columns: [], methods: [])
+        columns_arr = columns
+        methods_arr = methods
+        Class.new do
+          define_singleton_method(:name) { name }
+          define_singleton_method(:columns_hash) { columns_arr.to_h { |c| [c, :stub] } }
+          define_singleton_method(:method_defined?) { |sym| methods_arr.include?(sym.to_sym) }
+          define_singleton_method(:attribute_methods_generated?) { true }
+          define_singleton_method(:define_attribute_methods) { nil }
+        end
+      end
+
+      def descriptor_with_attribute(name:, source:, models:)
+        SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor",
+          models: models,
+          attributes: [SerializersCodeGen::Attribute.new(name: name, source: source)],
+          method_attributes: [],
+          associations: []
+        )
+      end
+
+      it "does not raise when source is a column-backed Attribute on the single Model" do
+        klass = fake_ar_class(name: "Post", columns: ["title"])
+        descriptor = descriptor_with_attribute(name: :title, source: :title, models: [klass])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
+      it "does not raise when source is an instance method on the single Model" do
+        klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
+        descriptor = descriptor_with_attribute(name: :full_title, source: :full_title, models: [klass])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
+      it "raises when source is neither a column nor an instance method on the single Model" do
+        klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
+        descriptor = descriptor_with_attribute(name: :missing, source: :missing, models: [klass])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(SerializersCodeGen::UnknownSourceError, /not a column or instance method on Post/)
+      end
+
+      it "does not raise at Compile when Models is nil (defers to runtime NoMethodError)" do
+        descriptor = descriptor_with_attribute(name: :title, source: :title, models: nil)
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
+      it "does not raise when models contains a non-AR class (falls through to method dispatch)" do
+        non_ar = Class.new { def self.name = "PlainClass" }
+        descriptor = descriptor_with_attribute(name: :anything, source: :anything, models: [non_ar])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
       pending "raises when source has non-uniform backing across Models: [Class1, Class2]"
-      pending "does not raise at Compile when Models is nil (defers to runtime NoMethodError)"
     end
 
     describe "ArityError (S4)" do
@@ -414,7 +473,33 @@ RSpec.describe "Compile-time errors" do
     end
 
     pending "NameCollisionError names the Descriptor, Field name, and rule (S9)"
-    pending "UnknownSourceError names the Descriptor, Field name, rule, and observed Source (S6)"
+
+    it "UnknownSourceError names the Descriptor, Field name, rule, and observed Source (S6)" do
+      klass = Class.new do
+        def self.name = "Post"
+
+        def self.columns_hash = {"id" => :stub}
+
+        def self.method_defined?(_sym) = false
+
+        def self.attribute_methods_generated? = true
+
+        def self.define_attribute_methods = nil
+      end
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: [klass],
+        attributes: [SerializersCodeGen::Attribute.new(name: :title, source: :raw_title)],
+        method_attributes: [],
+        associations: []
+      )
+      expect {
+        SerializersCodeGen.compile(descriptor, output: :json)
+      }.to raise_error(
+        SerializersCodeGen::UnknownSourceError,
+        "PostDescriptor#title: Attribute#source :raw_title is not a column or instance method on Post."
+      )
+    end
 
     it "ArityError matches the docs/errors.md § Message convention example (S4)" do
       descriptor = SerializersCodeGen::Descriptor.new(
@@ -489,10 +574,36 @@ RSpec.describe "Compile-time errors" do
   end
 
   describe "Mode independence — semantic validation runs pre-Generator" do
+    def unknown_source_descriptor
+      klass = Class.new do
+        def self.name = "Post"
+
+        def self.columns_hash = {"id" => :stub}
+
+        def self.method_defined?(_sym) = false
+
+        def self.attribute_methods_generated? = true
+
+        def self.define_attribute_methods = nil
+      end
+      SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: [klass],
+        attributes: [SerializersCodeGen::Attribute.new(name: :missing, source: :missing)],
+        method_attributes: [],
+        associations: []
+      )
+    end
+
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         pending "NameCollisionError raises before Generator emit (S9)"
-        pending "UnknownSourceError raises before Generator emit (S6)"
+
+        it "UnknownSourceError raises before Generator emit (S6)" do
+          expect {
+            SerializersCodeGen.compile(unknown_source_descriptor, output: mode)
+          }.to raise_error(SerializersCodeGen::UnknownSourceError, /not a column or instance method on Post/)
+        end
 
         it "ArityError raises before Generator emit (S4)" do
           descriptor = SerializersCodeGen::Descriptor.new(
