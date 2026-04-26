@@ -347,12 +347,111 @@ RSpec.describe "Compile-time errors" do
 
   describe "CompileError subclasses" do
     describe "NameCollisionError (S9)" do
-      pending "raises when two Attributes share a name"
-      pending "raises when an Attribute and a MethodAttribute share a name"
-      pending "raises when an Attribute and an Association share a name"
-      pending "raises when a MethodAttribute and an Association share a name"
-      pending "names the nested Descriptor when collision is inside a nested Descriptor"
-      pending "does not raise when the same name appears at different levels"
+      let(:inner) {
+        SerializersCodeGen::Descriptor.new(
+          name: "InnerDescriptor", models: nil,
+          attributes: [], method_attributes: [], associations: []
+        )
+      }
+
+      it "raises when two Attributes share a name" do
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [
+            SerializersCodeGen::Attribute.new(name: :id),
+            SerializersCodeGen::Attribute.new(name: :id)
+          ],
+          method_attributes: [], associations: []
+        )
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::NameCollisionError,
+          "PostDescriptor#id: Attribute and Attribute share name; every Field at the same level must have a unique name."
+        )
+      end
+
+      it "raises when an Attribute and a MethodAttribute share a name" do
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :id, body: -> { "computed" })],
+          associations: []
+        )
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::NameCollisionError,
+          "PostDescriptor#id: Attribute and MethodAttribute share name; every Field at the same level must have a unique name."
+        )
+      end
+
+      it "raises when an Attribute and an Association share a name" do
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [SerializersCodeGen::Attribute.new(name: :author)],
+          method_attributes: [],
+          associations: [SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)]
+        )
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::NameCollisionError,
+          "PostDescriptor#author: Attribute and Association share name; every Field at the same level must have a unique name."
+        )
+      end
+
+      it "raises when a MethodAttribute and an Association share a name" do
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :author, body: -> { :ok })],
+          associations: [SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)]
+        )
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::NameCollisionError,
+          "PostDescriptor#author: MethodAttribute and Association share name; every Field at the same level must have a unique name."
+        )
+      end
+
+      it "names the nested Descriptor when collision is inside a nested Descriptor" do
+        nested = SerializersCodeGen::Descriptor.new(
+          name: "AuthorDescriptor", models: nil,
+          attributes: [SerializersCodeGen::Attribute.new(name: :name)],
+          method_attributes: [],
+          associations: [SerializersCodeGen::Association.new(name: :name, kind: :has_one, descriptor: inner)]
+        )
+        outer = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [], method_attributes: [],
+          associations: [SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: nested)]
+        )
+        expect {
+          SerializersCodeGen.compile(outer, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::NameCollisionError,
+          "AuthorDescriptor#name: Attribute and Association share name; every Field at the same level must have a unique name."
+        )
+      end
+
+      it "does not raise when the same name appears at different levels" do
+        nested = SerializersCodeGen::Descriptor.new(
+          name: "AuthorDescriptor", models: nil,
+          attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+          method_attributes: [], associations: []
+        )
+        outer = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+          method_attributes: [],
+          associations: [SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: nested)]
+        )
+        expect {
+          SerializersCodeGen.compile(outer, output: :json)
+        }.not_to raise_error
+      end
     end
 
     describe "UnknownSourceError (S6)" do
@@ -555,7 +654,20 @@ RSpec.describe "Compile-time errors" do
       }
     end
 
-    pending "NameCollisionError names the Descriptor, Field name, and rule (S9)"
+    it "NameCollisionError names the Descriptor, Field name, and rule (S9)" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor", models: nil,
+        attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+        method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :id, body: -> { "computed" })],
+        associations: []
+      )
+      expect {
+        SerializersCodeGen.compile(descriptor, output: :json)
+      }.to raise_error(
+        SerializersCodeGen::NameCollisionError,
+        "PostDescriptor#id: Attribute and MethodAttribute share name; every Field at the same level must have a unique name."
+      )
+    end
 
     it "UnknownSourceError names the Descriptor, Field name, rule, and observed Source (S6)" do
       klass = Class.new do
@@ -680,7 +792,19 @@ RSpec.describe "Compile-time errors" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        pending "NameCollisionError raises before Generator emit (S9)"
+        it "NameCollisionError raises before Generator emit (S9)" do
+          descriptor = SerializersCodeGen::Descriptor.new(
+            name: "PostDescriptor", models: nil,
+            attributes: [
+              SerializersCodeGen::Attribute.new(name: :id),
+              SerializersCodeGen::Attribute.new(name: :id)
+            ],
+            method_attributes: [], associations: []
+          )
+          expect {
+            SerializersCodeGen.compile(descriptor, output: mode)
+          }.to raise_error(SerializersCodeGen::NameCollisionError, /Attribute and Attribute share name/)
+        end
 
         it "UnknownSourceError raises before Generator emit (S6)" do
           expect {
