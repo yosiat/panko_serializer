@@ -19,6 +19,17 @@ module SerializersCodeGen
     # kwarg + Hash allocation onto every self-recursive constructor with
     # no behavioral benefit — the += self+ shortcut already breaks the
     # otherwise-infinite +.new+ chain.
+    #
+    # Implementation is Tarjan's strongly-connected-components algorithm.
+    # A Descriptor is cyclic iff it belongs to an SCC of size ≥ 2; size-1
+    # SCCs are acyclic (the only length-1-cycle case is a self-loop, and
+    # self-edges are filtered out before the SCC analysis). Tarjan's
+    # correctly handles graphs where multiple paths reach the same
+    # back-edge — a simpler DFS that short-circuits already-finished
+    # nodes would miss "shortcut" cycles like A → X → A *and*
+    # A → Y → X → A (Y is on the larger cycle but is reached only after
+    # X is finished, so the back-edge through X is no longer on the
+    # ancestor stack).
     module CycleMembership
       module_function
 
@@ -28,57 +39,71 @@ module SerializersCodeGen
       # ≥ 2). Acyclic Descriptors and Descriptors that participate only
       # in length-1 self-loops are absent from the returned Hash.
       #
-      # The walk uses the standard "white/grey/black" cycle-detection
-      # shape: each Descriptor is +in_stack+ while its DFS subtree is
-      # being processed; a back-edge to a +in_stack+ ancestor marks
-      # every Descriptor on the cycle path as cyclic. Self-edges
-      # (+a.descriptor.equal?(d)+) are skipped before the recursive
-      # call so they can't trigger the back-edge branch.
-      #
       # @param root [SerializersCodeGen::Descriptor] the tree root
       # @return [Hash{Integer => true}] identity-keyed set of cyclic
       #   Descriptor +__id__+s; empty Hash when the tree is acyclic
       def cyclic_descriptor_ids(root)
         cyclic = {}
-        in_stack = {}
-        stack = []
-        visited = {}
-        walk(root, cyclic, in_stack, stack, visited)
+        index = {}
+        lowlink = {}
+        on_stack = {}
+        scc_stack = []
+        next_index = [0]
+        strongconnect(root, cyclic, index, lowlink, on_stack, scc_stack, next_index)
         cyclic
       end
 
-      # Recursive worker for {.cyclic_descriptor_ids}. Pushes +d+ onto
-      # the +in_stack+ before iterating its Associations + recursing,
-      # pops on the way out. Self-loop edges are skipped so a
-      # length-1 self-cycle is not flagged. A non-self back-edge to an
-      # +in_stack+ ancestor marks every Descriptor between that
-      # ancestor (inclusive) and +d+ (inclusive) as cyclic.
+      # Recursive worker for {.cyclic_descriptor_ids} — one node-visit
+      # of Tarjan's SCC algorithm. Assigns +v+ a discovery index +
+      # initial lowlink, pushes onto the SCC stack, then iterates
+      # outgoing Associations: for unvisited targets, recurses + folds
+      # the child's lowlink into +v+'s; for stack-resident targets,
+      # folds the target's discovery index into +v+'s lowlink (the
+      # back-edge case). Self-edges are skipped before this dispatch
+      # so a length-1 self-loop is not flagged. When +v+'s lowlink
+      # equals its index, +v+ is the root of an SCC — pop the SCC off
+      # the stack; if its size is ≥ 2 (mutual cycle), mark every
+      # member as cyclic.
       #
-      # @param d [SerializersCodeGen::Descriptor] the current node
+      # @param v [SerializersCodeGen::Descriptor] the current node
       # @param cyclic [Hash{Integer => true}] accumulator output
-      # @param in_stack [Hash{Integer => Integer}] +__id__+ → stack
-      #   index for ancestors of the current DFS path
-      # @param stack [Array<SerializersCodeGen::Descriptor>] ordered
-      #   ancestors on the current DFS path
-      # @param visited [Hash{Integer => true}] fully-processed
-      #   Descriptor +__id__+s — short-circuits re-walks of acyclic
-      #   subtrees + acyclic-children-of-cyclic subtrees
+      # @param index [Hash{Integer => Integer}] per-node discovery index
+      # @param lowlink [Hash{Integer => Integer}] per-node lowlink
+      # @param on_stack [Hash{Integer => true}] currently-on-SCC-stack flag
+      # @param scc_stack [Array<SerializersCodeGen::Descriptor>] SCC stack
+      # @param next_index [Array<Integer>] single-element box holding the
+      #   monotonically-increasing discovery counter (boxed so recursive
+      #   frames share state)
       # @return [void]
-      def walk(d, cyclic, in_stack, stack, visited)
-        return if visited[d.__id__]
-        if (idx = in_stack[d.__id__])
-          stack[idx..].each { |c| cyclic[c.__id__] = true }
-          return
+      def strongconnect(v, cyclic, index, lowlink, on_stack, scc_stack, next_index)
+        vid = v.__id__
+        index[vid] = next_index[0]
+        lowlink[vid] = next_index[0]
+        next_index[0] += 1
+        scc_stack.push(v)
+        on_stack[vid] = true
+
+        v.associations.each do |a|
+          w = a.descriptor
+          next if w.equal?(v)
+          wid = w.__id__
+          if !index.key?(wid)
+            strongconnect(w, cyclic, index, lowlink, on_stack, scc_stack, next_index)
+            lowlink[vid] = lowlink[wid] if lowlink[wid] < lowlink[vid]
+          elsif on_stack[wid]
+            lowlink[vid] = index[wid] if index[wid] < lowlink[vid]
+          end
         end
-        in_stack[d.__id__] = stack.length
-        stack.push(d)
-        d.associations.each do |a|
-          next if a.descriptor.equal?(d)
-          walk(a.descriptor, cyclic, in_stack, stack, visited)
+
+        return unless lowlink[vid] == index[vid]
+        scc = []
+        loop do
+          w = scc_stack.pop
+          on_stack.delete(w.__id__)
+          scc << w
+          break if w.equal?(v)
         end
-        stack.pop
-        in_stack.delete(d.__id__)
-        visited[d.__id__] = true
+        scc.each { |w| cyclic[w.__id__] = true } if scc.size > 1
       end
     end
   end

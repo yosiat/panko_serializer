@@ -93,5 +93,29 @@ RSpec.describe SerializersCodeGen::Generators::CycleMembership do
       expect(ids).to have_key(b1.__id__)
       expect(ids).not_to have_key(b2.__id__)
     end
+
+    it "marks every node on a cycle even when one back-edge is reached via a shorter path first " \
+       "(A → X → A short cycle visited before A → Y → X → A longer cycle through Y)" do
+      a = descriptor("A")
+      x = descriptor("X")
+      y = descriptor("Y")
+      a.associations << has_many(x, name: :xs)
+      a.associations << has_many(y, name: :ys)
+      y.associations << has_many(x, name: :back)
+      x.associations << has_many(a, name: :back)
+      ids = described_class.cyclic_descriptor_ids(a)
+      expect(ids).to include(a.__id__ => true, x.__id__ => true, y.__id__ => true)
+    end
+
+    it "marks a Descriptor with both a self-loop and a mutual cycle as cyclic " \
+       "(A → A self-loop AND A → B → A mutual cycle — mutual edge wins)" do
+      a = descriptor("A")
+      b = descriptor("B")
+      a.associations << has_many(a, name: :selves)
+      a.associations << has_many(b, name: :bs)
+      b.associations << has_many(a, name: :as)
+      ids = described_class.cyclic_descriptor_ids(a)
+      expect(ids).to include(a.__id__ => true, b.__id__ => true)
+    end
   end
 end
