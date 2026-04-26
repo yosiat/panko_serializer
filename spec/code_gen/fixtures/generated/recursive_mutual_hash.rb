@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-class ItemSerializer_Hash
+class RecursiveMutualItemSerializer_Hash
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= FolderSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, filters: nil)
@@ -51,10 +51,10 @@ class ItemSerializer_Hash
   end
 end
 
-class FolderSerializer_Hash
+class RecursiveMutualFolderSerializer_Hash
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @items_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= ItemSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @items_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualItemSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, filters: nil)

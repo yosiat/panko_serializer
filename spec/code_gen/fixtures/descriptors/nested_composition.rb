@@ -3,7 +3,7 @@
 module Fixtures
   module NestedComposition
     AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
-      name: "AuthorSerializer",
+      name: "NestedCompositionAuthorSerializer",
       models: nil,
       attributes: [
         SerializersCodeGen::Attribute.new(name: :id, source: :id),
@@ -14,7 +14,7 @@ module Fixtures
     )
 
     COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
-      name: "CommentSerializer",
+      name: "NestedCompositionCommentSerializer",
       models: nil,
       attributes: [
         SerializersCodeGen::Attribute.new(name: :id, source: :id),
@@ -26,7 +26,7 @@ module Fixtures
 
     CONFIG = SerializersCodeGen::Config.new
     DESCRIPTOR = SerializersCodeGen::Descriptor.new(
-      name: "PostSerializer",
+      name: "NestedCompositionPostSerializer",
       models: nil,
       attributes: [
         SerializersCodeGen::Attribute.new(name: :id, source: :id)

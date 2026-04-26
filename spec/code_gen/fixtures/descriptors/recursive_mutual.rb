@@ -20,7 +20,7 @@ module Fixtures
   module RecursiveMutual
     CONFIG = SerializersCodeGen::Config.new
     FOLDER_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
-      name: "FolderSerializer",
+      name: "RecursiveMutualFolderSerializer",
       models: nil,
       attributes: [
         SerializersCodeGen::Attribute.new(name: :id, source: :id),
@@ -30,7 +30,7 @@ module Fixtures
       associations: []
     )
     ITEM_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
-      name: "ItemSerializer",
+      name: "RecursiveMutualItemSerializer",
       models: nil,
       attributes: [
         SerializersCodeGen::Attribute.new(name: :id, source: :id),

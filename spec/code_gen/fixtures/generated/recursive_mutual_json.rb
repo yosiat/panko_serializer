@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-class ItemSerializer_JSON
+class RecursiveMutualItemSerializer_JSON
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= FolderSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, filters: nil)
@@ -63,10 +63,10 @@ class ItemSerializer_JSON
   end
 end
 
-class FolderSerializer_JSON
+class RecursiveMutualFolderSerializer_JSON
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @items_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= ItemSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @items_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualItemSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, filters: nil)

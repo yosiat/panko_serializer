@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class AuthorSerializer_JSON
+class NestedCompositionAuthorSerializer_JSON
   def initialize(descriptor:)
   end
 
@@ -47,7 +47,7 @@ class AuthorSerializer_JSON
   end
 end
 
-class CommentSerializer_JSON
+class NestedCompositionCommentSerializer_JSON
   def initialize(descriptor:)
   end
 
@@ -94,11 +94,11 @@ class CommentSerializer_JSON
   end
 end
 
-class PostSerializer_JSON
+class NestedCompositionPostSerializer_JSON
   def initialize(descriptor:)
     @cb_if_author = descriptor.associations[0].if
-    @author_serializer = AuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
-    @comments_serializer = CommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
+    @author_serializer = NestedCompositionAuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
+    @comments_serializer = NestedCompositionCommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
   end
 
   def serialize_one(record, context: nil, filters: nil)

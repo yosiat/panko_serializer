@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CommentSerializer_Hash
+class RecursiveSelfCommentSerializer_Hash
   def initialize(descriptor:)
     @replies_serializer = self
   end

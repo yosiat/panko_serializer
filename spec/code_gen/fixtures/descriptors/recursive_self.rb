@@ -17,7 +17,7 @@ module Fixtures
   module RecursiveSelf
     CONFIG = SerializersCodeGen::Config.new
     DESCRIPTOR = SerializersCodeGen::Descriptor.new(
-      name: "CommentSerializer",
+      name: "RecursiveSelfCommentSerializer",
       models: nil,
       attributes: [
         SerializersCodeGen::Attribute.new(name: :id, source: :id),
