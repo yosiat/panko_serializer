@@ -17,6 +17,7 @@ require_relative "serializers_code_gen/generators/field_emitters/method_attribut
 require_relative "serializers_code_gen/generators/field_emitters/association"
 require_relative "serializers_code_gen/generators/record_access/generic"
 require_relative "serializers_code_gen/generators/record_access/specialized"
+require_relative "serializers_code_gen/generators/cycle_membership"
 require_relative "serializers_code_gen/generators/descriptor_walk"
 require_relative "serializers_code_gen/generators/json_mode"
 require_relative "serializers_code_gen/generators/hash_mode"

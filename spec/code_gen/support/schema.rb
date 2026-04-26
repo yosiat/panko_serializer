@@ -23,4 +23,15 @@ ActiveRecord::Schema.define do
     t.string :vin
     t.string :make
   end
+
+  create_table :folders, force: true do |t|
+    t.string :name
+    t.references :parent_folder, foreign_key: {to_table: :folders}
+  end
+
+  create_table :items, force: true do |t|
+    t.string :name
+    t.references :folder, foreign_key: true
+    t.references :subfolder, foreign_key: {to_table: :folders}
+  end
 end

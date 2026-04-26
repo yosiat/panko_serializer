@@ -31,3 +31,12 @@ class Car < Vehicle
     super.titleize
   end
 end
+
+class Folder < ActiveRecord::Base
+  has_many :items
+end
+
+class Item < ActiveRecord::Base
+  belongs_to :folder, optional: true
+  belongs_to :subfolder, class_name: "Folder", optional: true
+end

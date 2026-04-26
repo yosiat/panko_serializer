@@ -7,6 +7,7 @@ require "nested_composition"
 require "shallow_specialized"
 require "sti_specialized"
 require "recursive_self"
+require "recursive_mutual"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -22,7 +23,7 @@ require "recursive_self"
 # +shallow_generic+ × one +:json+ row. S3 onwards extend +MODES+ and the
 # fixture set.
 RSpec.describe "Generator snapshot corpus" do
-  fixtures = [Fixtures::ShallowGeneric, Fixtures::NestedComposition, Fixtures::ShallowSpecialized, Fixtures::StiSpecialized, Fixtures::RecursiveSelf]
+  fixtures = [Fixtures::ShallowGeneric, Fixtures::NestedComposition, Fixtures::ShallowSpecialized, Fixtures::StiSpecialized, Fixtures::RecursiveSelf, Fixtures::RecursiveMutual]
 
   fixtures.each do |fixture|
     # Snake-case slug derived from the fixture's last namespace segment —
