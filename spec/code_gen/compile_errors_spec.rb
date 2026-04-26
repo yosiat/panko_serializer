@@ -417,7 +417,45 @@ RSpec.describe "Compile-time errors" do
         }.not_to raise_error
       end
 
-      pending "raises when source has non-uniform backing across Models: [Class1, Class2]"
+      def descriptor_with_two_models(name:, source:, models:)
+        SerializersCodeGen::Descriptor.new(
+          name: "VehicleDescriptor",
+          models: models,
+          attributes: [SerializersCodeGen::Attribute.new(name: name, source: source)],
+          method_attributes: [],
+          associations: []
+        )
+      end
+
+      it "S7.1 multi-class: does not raise when source is column-backed on every class in a multi-class set" do
+        v = fake_ar_class(name: "Vehicle", columns: ["vin", "make"])
+        c = fake_ar_class(name: "Car", columns: ["vin", "make"])
+        descriptor = descriptor_with_two_models(name: :vin, source: :vin, models: [v, c])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
+      it "S7.1 multi-class: does not raise when source downgrades to method dispatch (column-backed on one, method-only on the other)" do
+        v = fake_ar_class(name: "Vehicle", columns: ["make"], methods: %i[make])
+        c = fake_ar_class(name: "Car", columns: [], methods: %i[make])
+        descriptor = descriptor_with_two_models(name: :make, source: :make, models: [v, c])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
+      it "S7.1 multi-class: raises UnknownSourceError when source is missing on at least one class in the set; message names the class" do
+        v = fake_ar_class(name: "Vehicle", columns: ["vin"], methods: %i[wheels])
+        c = fake_ar_class(name: "Car", columns: ["vin"])
+        descriptor = descriptor_with_two_models(name: :wheels, source: :wheels, models: [v, c])
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::UnknownSourceError,
+          "VehicleDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Car."
+        )
+      end
     end
 
     describe "ArityError (S4)" do

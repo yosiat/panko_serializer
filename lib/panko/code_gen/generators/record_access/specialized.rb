@@ -117,29 +117,26 @@ module SerializersCodeGen
         end
 
         # Returns the read expression for one Attribute in the Specialized
-        # path. Picks the first AR class in +descriptor.models+ and runs
-        # +AccessClassifier.classify+ against it; column-backed Sources
-        # emit +record._read_attribute("name")+, instance methods emit
-        # +record.<name>+. When +descriptor.models+ contains no AR class
-        # (every entry fails the duck-type test), falls back to method
-        # dispatch for every Attribute — the "non-AR class in +models:+"
-        # case from +docs/compilation.md § Non-AR class in `models`+.
-        #
-        # Multi-class +Models+ (STI / mixed sets) is +out of scope+ for
-        # S6.2 — the +SourceResolution+ validator (S6.1) iterates per-
-        # class independently, and S7.1 extends +AccessClassifier+ with
-        # the strict intersection rule. This emit picks the first AR
-        # class so the single-class case (S6.2's scope) compiles correctly;
-        # multi-class shapes get a uniform answer once S7 lands.
+        # path. Filters +descriptor.models+ to the AR-class subset and
+        # runs +AccessClassifier.classify+ against it as a whole; the
+        # classifier applies the intersection rule per +docs/compilation.md
+        # § STI and mixed class sets+ (column-in-all → +:column+;
+        # method-in-all → +:method+; else raise). Column-backed verdicts
+        # emit +record._read_attribute("name")+; method verdicts emit
+        # +record.<name>+. When the AR subset is empty (every class
+        # in +descriptor.models+ fails the duck-type test), falls back
+        # to method dispatch for every Attribute — the "non-AR class in
+        # +models:+" case from +docs/compilation.md § Non-AR class in
+        # `models`+.
         #
         # @param attribute [SerializersCodeGen::Attribute]
         # @param descriptor [SerializersCodeGen::Descriptor]
         # @return [String] Ruby source like +'record._read_attribute("title")'+
         #   or +"record.headline"+
         def self.attribute_read_expr(attribute, descriptor)
-          klass = descriptor.models.find { |m| ar_class?(m) }
-          return "record.#{attribute.source}" if klass.nil?
-          case ActiveRecord::AccessClassifier.classify(klass, attribute.source)
+          ar_classes = descriptor.models.select { |m| ar_class?(m) }
+          return "record.#{attribute.source}" if ar_classes.empty?
+          case ActiveRecord::AccessClassifier.classify(ar_classes, attribute.source)
           when :column then %(record._read_attribute("#{attribute.source}"))
           else "record.#{attribute.source}"
           end

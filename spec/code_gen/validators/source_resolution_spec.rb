@@ -118,6 +118,100 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
     end
   end
 
+  describe ".validate — multi-class intersection (S7.1)" do
+    it "passes when source is column-backed on every class in models:" do
+      v = fake_ar_class(name: "Vehicle", columns: ["vin", "make"])
+      c = fake_ar_class(name: "Car", columns: ["vin", "make"])
+      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:vin)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
+
+    it "passes when source is uniformly an instance method on every class (uniform method)" do
+      v = fake_ar_class(name: "Vehicle", columns: ["id"], methods: %i[label])
+      c = fake_ar_class(name: "Car", columns: ["id"], methods: %i[label])
+      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:label)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
+
+    it "passes when one class lacks the column (downgrade — column-backed on one, method-only on the other)" do
+      v = fake_ar_class(name: "Vehicle", columns: ["make"], methods: %i[make])
+      c = fake_ar_class(name: "Car", columns: [], methods: %i[make])
+      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:make)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
+
+    it "raises UnknownSourceError when source is missing on at least one class; message names the class" do
+      v = fake_ar_class(name: "Vehicle", columns: ["vin"], methods: %i[wheels])
+      c = fake_ar_class(name: "Car", columns: ["vin"])
+      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:wheels)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.to raise_error(
+        SerializersCodeGen::UnknownSourceError,
+        "PostDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Car."
+      )
+    end
+
+    it "names every missing class when the source is absent from multiple classes" do
+      v = fake_ar_class(name: "Vehicle", columns: ["vin"])
+      c = fake_ar_class(name: "Car", columns: ["vin"])
+      t = fake_ar_class(name: "Truck", columns: ["vin"])
+      descriptor = descriptor_with(models: [v, c, t], attributes: [attribute(:wheels)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.to raise_error(
+        SerializersCodeGen::UnknownSourceError,
+        "PostDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Vehicle, Car, Truck."
+      )
+    end
+
+    it "calls DefineAttributeMethods.ensure! once per AR class in models: before any classification" do
+      define_calls = Hash.new(0)
+      generated = Hash.new(false)
+      build = ->(name) {
+        Class.new do
+          define_singleton_method(:name) { name }
+          define_singleton_method(:columns_hash) { {"vin" => :stub} }
+          define_singleton_method(:method_defined?) { |_| false }
+          define_singleton_method(:attribute_methods_generated?) { generated[name] }
+          define_singleton_method(:define_attribute_methods) do
+            define_calls[name] += 1
+            generated[name] = true
+          end
+        end
+      }
+      v = build.call("Vehicle")
+      c = build.call("Car")
+      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:vin)])
+      described_class.validate(descriptor, output: :json, config: config)
+      expect(define_calls).to eq({"Vehicle" => 1, "Car" => 1})
+    end
+
+    it "skips classification when models: contains only non-AR classes" do
+      non_ar1 = Class.new { def self.name = "PlainOne" }
+      non_ar2 = Class.new { def self.name = "PlainTwo" }
+      descriptor = descriptor_with(models: [non_ar1, non_ar2], attributes: [attribute(:anything)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
+
+    it "filters non-AR classes from models: and classifies against the AR-class subset only" do
+      non_ar = Class.new { def self.name = "PlainClass" }
+      ar = fake_ar_class(name: "Post", columns: ["title"])
+      descriptor = descriptor_with(models: [non_ar, ar], attributes: [attribute(:title)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
+  end
+
   describe ".validate — DefineAttributeMethods.ensure! is invoked per AR class" do
     it "calls #define_attribute_methods on the model when its readers haven't been generated yet" do
       define_calls = 0
