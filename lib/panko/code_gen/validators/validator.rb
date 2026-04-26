@@ -7,17 +7,17 @@ module SerializersCodeGen
     # Config) triple at the top of every +Compile+ call, raising on the
     # first violation per +docs/errors.md § Validator orchestrator+.
     #
-    # The rule list is empty in this slice — the load-bearing scaffold
-    # exists so S4 (+callable_arity+), S6 (+source_resolution+), and S9
-    # (+name_uniqueness+) plug their rules in without adding a new
-    # top-level class. Each rule module is expected to expose a single
+    # The rule list grows one entry per validator slice — S4.1 plugs in
+    # +callable_arity+; S6 will add +source_resolution+; S9 will add
+    # +name_uniqueness+. Each rule module exposes a single
     # +.validate(descriptor, output:, config:)+ entry point that raises
     # the appropriate +CompileError+ subclass on violation.
     class Validator
-      # Library-default rule list. Empty in S2.1; populated by later
-      # slices via composition (each rule slice adds its own require + an
-      # entry to this constant).
-      DEFAULT_RULES = [].freeze
+      # Library-default rule list. Iterated in declaration order; the
+      # first rule that raises short-circuits the rest. Each rule slice
+      # adds its own require in +lib/serializers_code_gen.rb+ + an entry
+      # to this constant.
+      DEFAULT_RULES = [CallableArity].freeze
 
       # @param rules [Array<#validate>] override the rule list at
       #   construction time — primarily a test-affordance escape hatch.
