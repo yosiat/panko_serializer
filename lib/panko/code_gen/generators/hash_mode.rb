@@ -11,9 +11,9 @@ module SerializersCodeGen
     # field-level emit lives in +FieldEmitters::Attribute+; shared
     # record-access shape lives in +RecordAccess::Generic+.
     #
-    # S3.1 ships +serialize_one+ only. +serialize_many+ lands in S3.2;
-    # the +raise NotImplementedError if filters+ phase-1 contract lands
-    # in S3.3 — mirror of the JSON-mode S2.1/S2.2/S2.3 split.
+    # S3.2 ships +serialize_many+ alongside +serialize_one+. The
+    # +raise NotImplementedError if filters+ phase-1 contract lands in
+    # S3.3 — mirror of the JSON-mode S2.1/S2.2/S2.3 split.
     class HashMode
       # Builds and returns the source string for the Generated Class. The
       # string starts with +# frozen_string_literal: true+
@@ -33,6 +33,8 @@ module SerializersCodeGen
           emit_initialize(builder)
           builder.blank
           emit_serialize_one(builder)
+          builder.blank
+          emit_serialize_many(builder)
           builder.blank
           RecordAccess::Generic.emit_hash(descriptor, config, builder)
         end
@@ -69,6 +71,25 @@ module SerializersCodeGen
         builder.line "def serialize_one(record, context: nil, filters: nil)"
         builder.indent do
           builder.line "_to_hash(record, context, filters)"
+        end
+        builder.line "end"
+      end
+
+      # Emits the public +serialize_many+ method. Hash mode allocates no
+      # Writer (per +docs/output-modes.md § :hash+) — the body walks the
+      # input enumerable with +.map+, calling +_to_hash+ per element, and
+      # returns the resulting +Array<Hash>+. The +filters+ kwarg is
+      # accepted from day 1 to keep the public signature locked
+      # (per +docs/filters.md § Phase-1 behavior+); the
+      # +raise NotImplementedError if filters+ guard lands in S3.3 —
+      # mirror of the JSON-mode S2.1 → S2.3 split.
+      #
+      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @return [void]
+      def emit_serialize_many(builder)
+        builder.line "def serialize_many(records, context: nil, filters: nil)"
+        builder.indent do
+          builder.line "records.map { |r| _to_hash(r, context, filters) }"
         end
         builder.line "end"
       end

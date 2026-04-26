@@ -8,6 +8,10 @@ class ShallowGenericSerializer_Hash
     _to_hash(record, context, filters)
   end
 
+  def serialize_many(records, context: nil, filters: nil)
+    records.map { |r| _to_hash(r, context, filters) }
+  end
+
   def _to_hash(record, context, filters)
     if record.is_a?(Hash)
       _to_hash_hash(record, context, filters)

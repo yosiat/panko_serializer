@@ -65,45 +65,70 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   end
 
   describe "#serialize_many" do
-    let(:generated) { generated_class.new(descriptor: descriptor) }
+    # Expected Array<Hash>/JSON-array output for the two-record corpus
+    # used in the parity its below. Keyed by Output Mode so the iteration
+    # picks the right shape inline without bloating per-context +let+
+    # blocks (the +RSpec/MultipleMemoizedHelpers+ cap allows 5 cumulative;
+    # the parity iteration already spends 2 on +generated_class+ +
+    # +generated+).
+    expected_pair = {
+      json: '[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]',
+      hash: [{"id" => 1, "title" => "hi"}, {"id" => 2, "title" => "yo"}].freeze
+    }.freeze
+    expected_empty = {json: "[]", hash: [].freeze}.freeze
 
-    it "serializes an Array of Hash records to a JSON array" do
-      records = [
-        {"id" => 1, "title" => "hi"},
-        {"id" => 2, "title" => "yo"}
-      ]
-      expect(generated.serialize_many(records)).to eq('[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]')
+    %i[json hash].each do |mode|
+      context "with #{mode} Output Mode" do
+        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated) { generated_class.new(descriptor: descriptor) }
+
+        it "serializes an Array of Hash records" do
+          records = [
+            {"id" => 1, "title" => "hi"},
+            {"id" => 2, "title" => "yo"}
+          ]
+          expect(generated.serialize_many(records)).to eq(expected_pair[mode])
+        end
+
+        it "serializes an empty Array to an empty collection" do
+          expect(generated.serialize_many([])).to eq(expected_empty[mode])
+        end
+
+        it "serializes a mixed Array of Hash + PORO records via the per-element dispatcher" do
+          records = [
+            {"id" => 1, "title" => "hi"},
+            Struct.new(:id, :title).new(2, "yo")
+          ]
+          expect(generated.serialize_many(records)).to eq(expected_pair[mode])
+        end
+      end
     end
 
-    it "serializes an empty Array to an empty JSON array" do
-      expect(generated.serialize_many([])).to eq("[]")
-    end
+    # Filter-related contract assertions stay JSON-only in this slice. The
+    # phase-1 +raise NotImplementedError if filters+ guard for Hash mode
+    # ships in S3.3 — the parity loop above grows to wrap these its when
+    # that slice lands.
+    context "with filters: kwarg in JSON Output Mode (Hash mode lands in S3.3)" do
+      let(:generated) { generated_class.new(descriptor: descriptor) }
 
-    it "serializes a mixed Array of Hash + PORO records via the per-element dispatcher" do
-      records = [
-        {"id" => 1, "title" => "hi"},
-        Struct.new(:id, :title).new(2, "yo")
-      ]
-      expect(generated.serialize_many(records)).to eq('[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]')
-    end
+      it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
+        records = [{"id" => 1, "title" => "hi"}]
+        expect(generated.serialize_many(records, filters: nil)).to eq('[{"id":1,"title":"hi"}]')
+      end
 
-    it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
-      records = [{"id" => 1, "title" => "hi"}]
-      expect(generated.serialize_many(records, filters: nil)).to eq('[{"id":1,"title":"hi"}]')
-    end
+      it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+        records = [{"id" => 1, "title" => "hi"}]
+        expect {
+          generated.serialize_many(records, filters: {only: [:id]})
+        }.to raise_error(NotImplementedError)
+      end
 
-    it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
-      records = [{"id" => 1, "title" => "hi"}]
-      expect {
-        generated.serialize_many(records, filters: {only: [:id]})
-      }.to raise_error(NotImplementedError)
-    end
-
-    it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
-      records = [{"id" => 1, "title" => "hi"}]
-      expect {
-        generated.serialize_many(records, filters: {})
-      }.to raise_error(NotImplementedError)
+      it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+        records = [{"id" => 1, "title" => "hi"}]
+        expect {
+          generated.serialize_many(records, filters: {})
+        }.to raise_error(NotImplementedError)
+      end
     end
   end
 
