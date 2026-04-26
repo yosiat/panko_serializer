@@ -30,7 +30,7 @@ paragraph will record:
   scenarios".
 - The decision: phase 1 closed, bar tuned (with a citation to the new
   clause in `docs/phase-1-bar.md`), or fixes landed and re-run (with a
-  pointer to the iteration recorded in § 7).
+  pointer to the iteration recorded in § 8).
 - Soft-bar gaps (`scg/json` vs `oj_serializers/json`) >10% recorded but
   not blocking, per
   [`docs/phase-1-bar.md` § Soft bar](../phase-1-bar.md#soft-bar--measured-recorded-does-not-block).
@@ -267,7 +267,7 @@ per-Field emit boundary?_
 ### 6.2 `graph`
 
 _Brief observation pending: how does scg handle the combined Composition
-shape (~5 Attributes + 2 has_one + 1 has_many) versus Panko's nested
+shape (~5 Attributes + 2 has_one + 2 has_many) versus Panko's nested
 serializer chain?_
 
 ## 7. scg-specific scenarios — observations
