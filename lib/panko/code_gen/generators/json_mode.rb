@@ -71,14 +71,18 @@ module SerializersCodeGen
         builder.indent do
           emit_initialize(descriptor, builder, cyclic_ids)
           builder.blank
-          emit_serialize_one(builder)
+          emit_serialize_one(config, builder)
           builder.blank
-          emit_serialize_many(builder)
+          emit_serialize_many(config, builder)
           builder.blank
           if descriptor.models.nil?
             RecordAccess::Generic.emit_json(descriptor, config, builder)
           else
             RecordAccess::Specialized.emit_json(descriptor, config, builder)
+          end
+          if config.supports_root_key
+            builder.blank
+            emit_validate_root_key(builder)
           end
         end
         builder.line "end"
@@ -198,14 +202,43 @@ module SerializersCodeGen
       # raises +NotImplementedError+ until the phase-2 implementation
       # lands in S14.
       #
+      # When +Config#supports_root_key+ is +true+, the signature gains
+      # an additional +root_key:+ kwarg (defaulting to +nil+) and the
+      # body wraps the emit in a +push_object+ / +push_key+ / ... /
+      # +pop+ frame when the kwarg is truthy. Per
+      # +docs/generated-class.md § serialize_one+, the value must be a
+      # non-empty String or +nil+; +validate_root_key!+ raises
+      # +ArgumentError+ on anything else. When +supports_root_key+ is
+      # +false+, the kwarg is omitted from the signature entirely so
+      # callers passing +root_key:+ get Ruby's own
+      # +ArgumentError: unknown keyword+ — zero runtime cost from the
+      # feature being absent per +docs/config.md+.
+      #
+      # @param config [SerializersCodeGen::Config] resolved settings;
+      #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
-      def emit_serialize_one(builder)
-        builder.line "def serialize_one(record, context: nil, filters: nil)"
+      def emit_serialize_one(config, builder)
+        signature = config.supports_root_key ?
+          "def serialize_one(record, context: nil, filters: nil, root_key: nil)" :
+          "def serialize_one(record, context: nil, filters: nil)"
+        builder.line signature
         builder.indent do
           builder.line "raise NotImplementedError if filters"
+          if config.supports_root_key
+            builder.line "validate_root_key!(root_key)"
+          end
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
+          if config.supports_root_key
+            builder.line "if root_key"
+            builder.indent do
+              builder.line "writer.push_object"
+              builder.line "writer.push_key(root_key)"
+            end
+            builder.line "end"
+          end
           builder.line "_write_one(record, writer, context, filters)"
+          builder.line "writer.pop if root_key" if config.supports_root_key
           builder.line "writer.to_s.chomp"
         end
         builder.line "end"
@@ -220,17 +253,62 @@ module SerializersCodeGen
       # raises +NotImplementedError+ until the phase-2 implementation
       # lands in S14.
       #
+      # When +Config#supports_root_key+ is +true+, the signature gains
+      # the same +root_key:+ kwarg as +serialize_one+ and the body wraps
+      # the array emit in a +push_object+ / +push_key+ frame so an empty
+      # collection still emits +{"<root>":[]}+ (wrapped empty array,
+      # never +null+, never omitted) per the contract in
+      # +docs/testing.md § root_key_spec.rb+ (case 6).
+      #
+      # @param config [SerializersCodeGen::Config] resolved settings;
+      #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
-      def emit_serialize_many(builder)
-        builder.line "def serialize_many(records, context: nil, filters: nil)"
+      def emit_serialize_many(config, builder)
+        signature = config.supports_root_key ?
+          "def serialize_many(records, context: nil, filters: nil, root_key: nil)" :
+          "def serialize_many(records, context: nil, filters: nil)"
+        builder.line signature
         builder.indent do
           builder.line "raise NotImplementedError if filters"
+          if config.supports_root_key
+            builder.line "validate_root_key!(root_key)"
+          end
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
+          if config.supports_root_key
+            builder.line "if root_key"
+            builder.indent do
+              builder.line "writer.push_object"
+              builder.line "writer.push_key(root_key)"
+            end
+            builder.line "end"
+          end
           builder.line "writer.push_array"
           builder.line "records.each { |r| _write_one(r, writer, context, filters) }"
           builder.line "writer.pop"
+          builder.line "writer.pop if root_key" if config.supports_root_key
           builder.line "writer.to_s.chomp"
+        end
+        builder.line "end"
+      end
+
+      # Emits the private +validate_root_key!+ helper used by the wrap
+      # branch of +serialize_one+ / +serialize_many+ when
+      # +Config#supports_root_key+ is +true+. Enforces the accepted-types
+      # contract from +docs/generated-class.md § serialize_one+: a
+      # non-empty +String+ or +nil+ only; empty +String+, +Symbol+, or
+      # any other non-+nil+ value raises +ArgumentError+ at call time.
+      # Emitted only when the wrap branch is also emitted, so the
+      # default-config emit pays zero source-bytes / zero method-table
+      # cost from this feature being absent.
+      #
+      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @return [void]
+      def emit_validate_root_key(builder)
+        builder.line "private def validate_root_key!(root_key)"
+        builder.indent do
+          builder.line "return if root_key.nil? || (root_key.is_a?(String) && !root_key.empty?)"
+          builder.line %(raise ArgumentError, "root_key: must be a non-empty String, got \#{root_key.inspect}")
         end
         builder.line "end"
       end
