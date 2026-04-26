@@ -48,10 +48,18 @@ module SerializersCodeGen
       source = @generator.emit(@descriptor, output: @output, config: @config)
       generated_class = Class.new
       generated_class.module_eval(source, synthetic_path, 1)
-      generated_class.const_get(:"#{@descriptor.name}_#{output_suffix}").tap do |klass|
+      generated_class.const_get(:"#{@descriptor.name}_#{OUTPUT_SUFFIXES.fetch(@output)}").tap do |klass|
         @cache.set(@descriptor, klass)
       end
     end
+
+    # Per-mode suffix appended to +Descriptor#name+ to form the inner
+    # Generated Class constant — +"JSON"+ for +:json+, +"Hash"+ for
+    # +:hash+ — per +docs/generated-class.md+ and the +<Name>_Hash+
+    # sketch in +docs/implementation-plan.md § S3+. An explicit table
+    # rather than +to_s.upcase+ so the +:hash+ → +"Hash"+ casing matches
+    # the docs verbatim.
+    OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
 
     private
 
@@ -63,15 +71,6 @@ module SerializersCodeGen
     # @return [String] e.g. +"(serializers-code-gen: PostSerializer/json)"+
     def synthetic_path
       "(serializers-code-gen: #{@descriptor.name}/#{@output})"
-    end
-
-    # Returns the per-mode suffix appended to +Descriptor#name+ to form
-    # the inner Generated Class constant — +"JSON"+ for +:json+,
-    # +"HASH"+ for +:hash+ (S3).
-    #
-    # @return [String]
-    def output_suffix
-      @output.to_s.upcase
     end
   end
 end

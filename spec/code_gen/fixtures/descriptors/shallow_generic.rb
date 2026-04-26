@@ -13,7 +13,7 @@ module Fixtures
       method_attributes: [],
       associations: []
     )
-    MODES = [:json]
+    MODES = %i[json hash]
 
     def self.sanity_record
       {"id" => 1, "title" => "hi"}
@@ -22,6 +22,7 @@ module Fixtures
     def self.expected_output(mode)
       case mode
       when :json then '{"id":1,"title":"hi"}'
+      when :hash then {"id" => 1, "title" => "hi"}
       end
     end
   end

@@ -44,7 +44,7 @@ RSpec.describe "Generator snapshot corpus" do
 
           it "snapshot file loads + runs + serializes sanity_record to expected_output" do
             require snapshot_filename.sub(/\.rb\z/, "")
-            constant_name = "#{descriptor.name}_#{mode.to_s.upcase}"
+            constant_name = "#{descriptor.name}_#{SerializersCodeGen::Compiler::OUTPUT_SUFFIXES.fetch(mode)}"
             generated_class = Object.const_get(constant_name)
             instance = generated_class.new(descriptor: descriptor)
             expect(instance.serialize_one(fixture.sanity_record)).to eq(fixture.expected_output(mode))

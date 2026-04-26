@@ -10,44 +10,57 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :json, config: config) }
 
   describe "#serialize_one" do
-    it "serializes a Hash record (string keys) to a JSON String" do
-      generated = generated_class.new(descriptor: descriptor)
-      record = {"id" => 1, "title" => "hi"}
-      expect(generated.serialize_one(record)).to eq('{"id":1,"title":"hi"}')
+    %i[json hash].each do |mode|
+      context "with #{mode} Output Mode" do
+        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:expected) { Fixtures::ShallowGeneric.expected_output(mode) }
+
+        it "serializes a Hash record (string keys)" do
+          generated = generated_class.new(descriptor: descriptor)
+          record = {"id" => 1, "title" => "hi"}
+          expect(generated.serialize_one(record)).to eq(expected)
+        end
+
+        it "serializes a PORO Record (Struct)" do
+          generated = generated_class.new(descriptor: descriptor)
+          record = Struct.new(:id, :title).new(1, "hi")
+          expect(generated.serialize_one(record)).to eq(expected)
+        end
+
+        it "serializes a Hash record passing context: nil explicitly" do
+          generated = generated_class.new(descriptor: descriptor)
+          record = {"id" => 1, "title" => "hi"}
+          expect(generated.serialize_one(record, context: nil)).to eq(expected)
+        end
+      end
     end
 
-    it "serializes a PORO Record (Struct) to a JSON String" do
-      generated = generated_class.new(descriptor: descriptor)
-      record = Struct.new(:id, :title).new(1, "hi")
-      expect(generated.serialize_one(record)).to eq('{"id":1,"title":"hi"}')
-    end
+    # Filter-related contract assertions stay JSON-only in this slice. The
+    # phase-1 +raise NotImplementedError if filters+ guard for Hash mode
+    # ships in S3.3 — the parity loop above grows to wrap these its when
+    # that slice lands.
+    context "with filters: kwarg in JSON Output Mode (Hash mode lands in S3.3)" do
+      it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
+        generated = generated_class.new(descriptor: descriptor)
+        record = {"id" => 1, "title" => "hi"}
+        expect(generated.serialize_one(record, filters: nil)).to eq('{"id":1,"title":"hi"}')
+      end
 
-    it "serializes a Hash record passing context: nil explicitly" do
-      generated = generated_class.new(descriptor: descriptor)
-      record = {"id" => 1, "title" => "hi"}
-      expect(generated.serialize_one(record, context: nil)).to eq('{"id":1,"title":"hi"}')
-    end
+      it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+        generated = generated_class.new(descriptor: descriptor)
+        record = {"id" => 1, "title" => "hi"}
+        expect {
+          generated.serialize_one(record, filters: {only: [:id]})
+        }.to raise_error(NotImplementedError)
+      end
 
-    it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
-      generated = generated_class.new(descriptor: descriptor)
-      record = {"id" => 1, "title" => "hi"}
-      expect(generated.serialize_one(record, filters: nil)).to eq('{"id":1,"title":"hi"}')
-    end
-
-    it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
-      generated = generated_class.new(descriptor: descriptor)
-      record = {"id" => 1, "title" => "hi"}
-      expect {
-        generated.serialize_one(record, filters: {only: [:id]})
-      }.to raise_error(NotImplementedError)
-    end
-
-    it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
-      generated = generated_class.new(descriptor: descriptor)
-      record = {"id" => 1, "title" => "hi"}
-      expect {
-        generated.serialize_one(record, filters: {})
-      }.to raise_error(NotImplementedError)
+      it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+        generated = generated_class.new(descriptor: descriptor)
+        record = {"id" => 1, "title" => "hi"}
+        expect {
+          generated.serialize_one(record, filters: {})
+        }.to raise_error(NotImplementedError)
+      end
     end
   end
 
@@ -104,6 +117,11 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
     it "returns a class whose instances respond to serialize_one" do
       expect(generated_class.new(descriptor: descriptor)).to respond_to(:serialize_one)
     end
+
+    it "returns a Hash-mode class whose instances respond to serialize_one" do
+      hash_class = SerializersCodeGen.compile(descriptor, output: :hash, config: config)
+      expect(hash_class.new(descriptor: descriptor)).to respond_to(:serialize_one)
+    end
   end
 
   describe "synthetic backtrace path" do
@@ -113,12 +131,22 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
       expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/json)")
       expect(line).to be_a(Integer).and(be_positive)
     end
+
+    it "stamps the Hash-mode synthetic path (.../hash) on a Hash-mode instance method" do
+      hash_class = SerializersCodeGen.compile(descriptor, output: :hash, config: config)
+      method = hash_class.instance_method(:_to_hash)
+      path, line = method.source_location
+      expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/hash)")
+      expect(line).to be_a(Integer).and(be_positive)
+    end
   end
 
   describe "frozen-string-literal pragma" do
-    it "is the first line of the Generator emit output" do
-      source = SerializersCodeGen::Generator.new.emit(descriptor, output: :json, config: config)
-      expect(source.lines.first.chomp).to eq("# frozen_string_literal: true")
+    %i[json hash].each do |mode|
+      it "is the first line of the Generator emit output in #{mode} Output Mode" do
+        source = SerializersCodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+        expect(source.lines.first.chomp).to eq("# frozen_string_literal: true")
+      end
     end
   end
 end

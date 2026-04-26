@@ -24,14 +24,12 @@ module SerializersCodeGen
     # @param config [SerializersCodeGen::Config] resolved settings
     # @return [String] the emitted Ruby source
     # @raise [ArgumentError] when +output+ is not in {OUTPUT_MODES}
-    # @raise [NotImplementedError] when +output+ is +:hash+ — Hash mode
-    #   ships in S3.
     def emit(descriptor, output:, config:)
       case output
       when :json
         Generators::JsonMode.new.emit(descriptor, config)
       when :hash
-        raise NotImplementedError, "Hash output mode lands in S3"
+        Generators::HashMode.new.emit(descriptor, config)
       else
         raise ArgumentError, "unknown output mode #{output.inspect}; must be one of #{OUTPUT_MODES.inspect}"
       end

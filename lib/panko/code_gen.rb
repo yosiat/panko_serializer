@@ -11,6 +11,7 @@ require_relative "serializers_code_gen/validators/validator"
 require_relative "serializers_code_gen/generators/field_emitters/attribute"
 require_relative "serializers_code_gen/generators/record_access/generic"
 require_relative "serializers_code_gen/generators/json_mode"
+require_relative "serializers_code_gen/generators/hash_mode"
 require_relative "serializers_code_gen/generator"
 require_relative "serializers_code_gen/compile_cache"
 require_relative "serializers_code_gen/compiler"
@@ -27,7 +28,7 @@ module SerializersCodeGen
   # internals.
   #
   # @param descriptor [SerializersCodeGen::Descriptor] the input
-  # @param output [Symbol] +:json+ (or +:hash+ once S3 lands)
+  # @param output [Symbol] +:json+ or +:hash+
   # @param config [SerializersCodeGen::Config] resolved settings;
   #   defaults to {Config.new} (library defaults)
   # @return [Class] a fresh Generated Class — two calls return two
