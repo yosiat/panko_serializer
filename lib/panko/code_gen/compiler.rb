@@ -15,6 +15,14 @@ module SerializersCodeGen
   # +Compile ≡ Dump byte-identical+ contract from
   # +docs/structure.md § Layered architecture+).
   class Compiler
+    # Per-mode suffix appended to +Descriptor#name+ to form the inner
+    # Generated Class constant — +"JSON"+ for +:json+, +"Hash"+ for
+    # +:hash+ — per +docs/generated-class.md+ and the +<Name>_Hash+
+    # sketch in +docs/implementation-plan.md § S3+. An explicit table
+    # rather than +to_s.upcase+ so the +:hash+ → +"Hash"+ casing matches
+    # the docs verbatim.
+    OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
+
     # @param descriptor [SerializersCodeGen::Descriptor] the input
     # @param output [Symbol] +:json+ or +:hash+
     # @param config [SerializersCodeGen::Config] resolved settings
@@ -52,14 +60,6 @@ module SerializersCodeGen
         @cache.set(@descriptor, klass)
       end
     end
-
-    # Per-mode suffix appended to +Descriptor#name+ to form the inner
-    # Generated Class constant — +"JSON"+ for +:json+, +"Hash"+ for
-    # +:hash+ — per +docs/generated-class.md+ and the +<Name>_Hash+
-    # sketch in +docs/implementation-plan.md § S3+. An explicit table
-    # rather than +to_s.upcase+ so the +:hash+ → +"Hash"+ casing matches
-    # the docs verbatim.
-    OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
 
     private
 
