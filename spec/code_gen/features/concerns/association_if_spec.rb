@@ -282,9 +282,12 @@ RSpec.describe "Association if: — Callable guard contract" do
 
         it "invokes a falsy-returning if: spy exactly once per Record (Source not called)" do
           # Pins precedence ladder step 2: if: present and returns falsy →
-          # omit; Source not called. The +child_calls+ counter doubles as
-          # a Source-invocation spy via a Hash that raises if accessed —
-          # the +if: false+ branch must skip the Source read entirely.
+          # omit; Source not called. With +null_for_missing_has_one: true+
+          # (default), if the Source had been invoked despite the falsy
+          # guard, +record["child"]+ would return +nil+ (Hash default) and
+          # the +has_one+ branch would emit +"child":null+. The exact-match
+          # assertion on +'{"id":1}'+ would then fail — so observing the
+          # bare +'{"id":1}'+ output proves the Source was skipped.
           count = 0
           guard = ->(_r, _c) {
             count += 1
@@ -292,10 +295,6 @@ RSpec.describe "Association if: — Callable guard contract" do
           }
           descriptor = descriptor_with(associations: [has_one(:child, if: guard)])
           generated = compile(descriptor, mode)
-          # No "child" key in the record; if the emitter were to call the
-          # Source despite the falsy guard, +nil+ would be returned (Hash
-          # default) — but the contract says Source isn't called. The
-          # observable proof here is "key omitted + count == 1".
           output = generated.serialize_one({"id" => 1})
           expect(count).to eq(1)
           if mode == :json
