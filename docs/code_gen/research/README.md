@@ -18,5 +18,5 @@ Each note is self-contained; the top-level docs cite results from here.
   to dig through numbers to find the conclusion.
 - Benchmarks target Ruby 4.0.2 + YJIT (the production target). No-JIT numbers are
   secondary; ZJIT is not yet production-ready and not benchmarked.
-- Gems install locally under `vendor/bundle/` — the `.bundle/` config is checked in.
-  `vendor/bundle/` itself is not meant to be committed.
+- `bundle install` from this directory uses the global gem store; `Gemfile.lock`
+  pins versions for reproducibility.
