@@ -226,7 +226,7 @@ module SerializersCodeGen
         builder.indent do
           builder.line "raise NotImplementedError if filters"
           if config.supports_root_key
-            builder.line "validate_root_key!(root_key) if root_key"
+            builder.line "validate_root_key!(root_key)"
           end
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
           if config.supports_root_key
@@ -272,7 +272,7 @@ module SerializersCodeGen
         builder.indent do
           builder.line "raise NotImplementedError if filters"
           if config.supports_root_key
-            builder.line "validate_root_key!(root_key) if root_key"
+            builder.line "validate_root_key!(root_key)"
           end
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
           if config.supports_root_key
@@ -307,7 +307,7 @@ module SerializersCodeGen
       def emit_validate_root_key(builder)
         builder.line "private def validate_root_key!(root_key)"
         builder.indent do
-          builder.line "return if root_key.is_a?(String) && !root_key.empty?"
+          builder.line "return if root_key.nil? || (root_key.is_a?(String) && !root_key.empty?)"
           builder.line %(raise ArgumentError, "root_key: must be a non-empty String, got \#{root_key.inspect}")
         end
         builder.line "end"

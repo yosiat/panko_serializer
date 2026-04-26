@@ -6,7 +6,7 @@ class ConfigRootKeyOnSerializer_JSON
 
   def serialize_one(record, context: nil, filters: nil, root_key: nil)
     raise NotImplementedError if filters
-    validate_root_key!(root_key) if root_key
+    validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
     if root_key
       writer.push_object
@@ -19,7 +19,7 @@ class ConfigRootKeyOnSerializer_JSON
 
   def serialize_many(records, context: nil, filters: nil, root_key: nil)
     raise NotImplementedError if filters
-    validate_root_key!(root_key) if root_key
+    validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
     if root_key
       writer.push_object
@@ -55,7 +55,7 @@ class ConfigRootKeyOnSerializer_JSON
   end
 
   private def validate_root_key!(root_key)
-    return if root_key.is_a?(String) && !root_key.empty?
+    return if root_key.nil? || (root_key.is_a?(String) && !root_key.empty?)
     raise ArgumentError, "root_key: must be a non-empty String, got #{root_key.inspect}"
   end
 end

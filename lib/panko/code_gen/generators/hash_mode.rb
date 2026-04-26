@@ -220,7 +220,7 @@ module SerializersCodeGen
         builder.indent do
           builder.line "raise NotImplementedError if filters"
           if config.supports_root_key
-            builder.line "validate_root_key!(root_key) if root_key"
+            builder.line "validate_root_key!(root_key)"
             builder.line "result = _to_hash(record, context, filters)"
             builder.line "root_key ? {root_key => result} : result"
           else
@@ -258,7 +258,7 @@ module SerializersCodeGen
         builder.indent do
           builder.line "raise NotImplementedError if filters"
           if config.supports_root_key
-            builder.line "validate_root_key!(root_key) if root_key"
+            builder.line "validate_root_key!(root_key)"
             builder.line "result = records.map { |r| _to_hash(r, context, filters) }"
             builder.line "root_key ? {root_key => result} : result"
           else
@@ -283,7 +283,7 @@ module SerializersCodeGen
       def emit_validate_root_key(builder)
         builder.line "private def validate_root_key!(root_key)"
         builder.indent do
-          builder.line "return if root_key.is_a?(String) && !root_key.empty?"
+          builder.line "return if root_key.nil? || (root_key.is_a?(String) && !root_key.empty?)"
           builder.line %(raise ArgumentError, "root_key: must be a non-empty String, got \#{root_key.inspect}")
         end
         builder.line "end"

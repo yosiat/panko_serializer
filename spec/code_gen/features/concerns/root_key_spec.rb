@@ -195,6 +195,32 @@ RSpec.describe "Root Key — supports_root_key + per-call kwarg contract" do
     end
   end
 
+  describe "(9b) root_key: false (non-String, non-nil) → library ArgumentError" do
+    # Regression: the original implementation gated validation on
+    # +if root_key+ rather than +unless root_key.nil?+, so +false+
+    # silently bypassed the check and was treated as "no wrap". Per
+    # +docs/generated-class.md § serialize_one+ ("any non-String/non-nil
+    # value raises +ArgumentError+"), +false+ must raise like any other
+    # non-nil non-String value.
+    %i[json hash].each do |mode|
+      context "with #{mode} Output Mode" do
+        it "raises ArgumentError on serialize_one" do
+          generated = compile_with(Fixtures::Config::ConfigRootKeyOn, mode)
+          expect {
+            generated.serialize_one({"id" => 1}, root_key: false)
+          }.to raise_error(ArgumentError, /root_key.*non-empty String/)
+        end
+
+        it "raises ArgumentError on serialize_many" do
+          generated = compile_with(Fixtures::Config::ConfigRootKeyOn, mode)
+          expect {
+            generated.serialize_many([{"id" => 1}], root_key: false)
+          }.to raise_error(ArgumentError, /root_key.*non-empty String/)
+        end
+      end
+    end
+  end
+
   describe "(10) supports_root_key: false + serialize_one(record, root_key:) → Ruby ArgumentError" do
     # The kwarg literally does not exist on the generated method. Ruby
     # itself raises +ArgumentError: unknown keyword: :root_key+ — not
