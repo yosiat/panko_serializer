@@ -18,6 +18,9 @@ ActiveRecord::Schema.define do
     t.string :body
     t.integer :views
     t.boolean :published
+    # Backs the json_column.rb scenario. Sqlite stores it as text; AR
+    # serializes / deserializes through the json column type.
+    t.json :metadata
   end
 
   create_table :bench_authors, force: true do |t|
@@ -62,24 +65,46 @@ Bench::Comment.define_attribute_methods
 # Fixture data) so scale numbers stay comparable with existing Panko runs.
 BENCHMARK_SIZES = [50, 2300].freeze
 
+# Each bench post receives this many comments — enough rows that the
+# has_many.rb scenario exercises a non-trivial inner loop, few enough that
+# size=2300 stays under a million inserts at seed time.
+COMMENTS_PER_POST = 5
+
 # Pre-seed the largest required size; benchmark_with_records / benchmark_scenario
-# slice to the specific size each iteration requested. For S11.1 only :posts is
-# required; :authors / :comments / :wide_post follow in S11.2 / S11.3 as the
-# scenarios that need them are added.
+# slice to the specific size each iteration requested.
 max_size = BENCHMARK_SIZES.max
 post_attrs = Array.new(max_size) do |i|
   {
     title: "Post ##{i}",
     body: "Body of post ##{i}, with some content to serialize across the wire.",
     views: i,
-    published: i.even?
+    published: i.even?,
+    metadata: {"category" => "tech", "tags" => %w[ruby json benchmark], "featured" => i % 7 == 0}
   }
 end
 Bench::Post.insert_all(post_attrs)
 
+post_ids = Bench::Post.pluck(:id)
+
+author_attrs = post_ids.each_with_index.map do |post_id, i|
+  {bench_post_id: post_id, name: "Author ##{i}"}
+end
+Bench::Author.insert_all(author_attrs)
+
+comment_attrs = post_ids.flat_map do |post_id|
+  Array.new(COMMENTS_PER_POST) do |j|
+    {bench_post_id: post_id, body: "Comment ##{j} on post #{post_id}"}
+  end
+end
+Bench::Comment.insert_all(comment_attrs)
+
 # Registry mapping `type:` symbols → pre-seeded record arrays. Scenario files
 # pass a `type:` to benchmark_with_records / benchmark_scenario; the harness
-# slices to the requested size.
+# slices to the requested size. Posts are eager-loaded with author + comments
+# so association-walking scenarios don't pay an N+1 query cost inside the
+# measured block.
 DATASETS = {
-  posts: Bench::Post.all.to_a
+  posts: Bench::Post.includes(:author, :comments).to_a,
+  authors: Bench::Author.includes(:post).to_a,
+  comments: Bench::Comment.includes(:post).to_a
 }.freeze
