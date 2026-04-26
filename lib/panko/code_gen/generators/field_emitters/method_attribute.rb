@@ -33,12 +33,10 @@ module SerializersCodeGen
         # +writer.push_value(value)+.
         #
         # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
-        # @param ivar_name [String] the +@cb_<name>+ ivar populated by the
-        #   constructor (per +docs/code-generation.md § Callable hoisting+)
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_json(method_attribute, ivar_name, builder)
-          builder.line "value = #{call_expression(ivar_name, method_attribute.body.arity)}"
+        def self.emit_json(method_attribute, builder)
+          builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
           builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
           builder.indent do
             builder.line %(writer.push_key("#{method_attribute.name}"))
@@ -54,18 +52,16 @@ module SerializersCodeGen
         # +:symbol+ emits +result[:<name>]+.
         #
         # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
-        # @param ivar_name [String] the +@cb_<name>+ ivar populated by the
-        #   constructor
         # @param output_key_type [Symbol] +:string+ or +:symbol+ — the
         #   pre-validated value of +Config#hash_output_key_type+
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_hash(method_attribute, ivar_name, output_key_type, builder)
+        def self.emit_hash(method_attribute, output_key_type, builder)
           key_lit = case output_key_type
           when :symbol then ":#{method_attribute.name}"
           else %("#{method_attribute.name}")
           end
-          builder.line "value = #{call_expression(ivar_name, method_attribute.body.arity)}"
+          builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
           builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
           builder.indent do
             builder.line "result[#{key_lit}] = value"

@@ -84,11 +84,7 @@ module SerializersCodeGen
               FieldEmitters::Attribute.emit_json(attribute, hash_read_expr(attribute, config), builder)
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_json(
-                method_attribute,
-                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
-                builder
-              )
+              FieldEmitters::MethodAttribute.emit_json(method_attribute, builder)
             end
             builder.line "writer.pop"
           end
@@ -110,11 +106,7 @@ module SerializersCodeGen
               FieldEmitters::Attribute.emit_json(attribute, "record.#{attribute.source}", builder)
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_json(
-                method_attribute,
-                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
-                builder
-              )
+              FieldEmitters::MethodAttribute.emit_json(method_attribute, builder)
             end
             builder.line "writer.pop"
           end
@@ -161,12 +153,7 @@ module SerializersCodeGen
               )
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_hash(
-                method_attribute,
-                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
-                config.hash_output_key_type,
-                builder
-              )
+              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, builder)
             end
             builder.line "result"
           end
@@ -194,12 +181,7 @@ module SerializersCodeGen
               )
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_hash(
-                method_attribute,
-                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
-                config.hash_output_key_type,
-                builder
-              )
+              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, builder)
             end
             builder.line "result"
           end
