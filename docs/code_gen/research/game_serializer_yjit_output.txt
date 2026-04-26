@@ -1,0 +1,33 @@
+JSON output parity verified: scg/json, panko, oj_serializers, oj_serializers as_hash
+Sample: {"id":1,"name":"Tetris","scores":{"high_score":1500,"score":3165},"best_player":{"id":1,"first_name":"Alexey","last_name":"Pajitnov","full_name":"Alexey Pajitnov"},"players":[{"id":1,"first_name":"Alexey","last_name":"Pajitnov","full_name":"Alexey Pajitnov"},{"id":2,"first_name":"Vadim","last_name":"Gerasimov","full_name":"Vadim Gerasimov"}]}
+
+Ruby:   ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+AR:     8.1.3
+YJIT:   on
+
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+oj_serializers as_hash
+                        18.738k i/100ms
+      oj_serializers    38.760k i/100ms
+               panko    20.398k i/100ms
+            scg/json    50.450k i/100ms
+  scg/hash + Oj.dump    24.456k i/100ms
+            scg/hash    73.074k i/100ms
+Calculating -------------------------------------
+oj_serializers as_hash
+                        186.718k (± 1.4%) i/s    (5.36 μs/i) -    936.900k in   5.018782s
+      oj_serializers    389.812k (± 1.6%) i/s    (2.57 μs/i) -      1.977M in   5.072367s
+               panko    205.552k (± 1.8%) i/s    (4.86 μs/i) -      1.040M in   5.062639s
+            scg/json    511.443k (± 1.9%) i/s    (1.96 μs/i) -      2.573M in   5.032707s
+  scg/hash + Oj.dump    242.415k (± 1.0%) i/s    (4.13 μs/i) -      1.223M in   5.044741s
+            scg/hash    727.553k (± 1.1%) i/s    (1.37 μs/i) -      3.654M in   5.022482s
+
+Comparison:
+            scg/hash:   727553.2 i/s
+            scg/json:   511443.1 i/s - 1.42x  slower
+      oj_serializers:   389812.0 i/s - 1.87x  slower
+  scg/hash + Oj.dump:   242415.0 i/s - 3.00x  slower
+               panko:   205552.4 i/s - 3.54x  slower
+oj_serializers as_hash:   186717.5 i/s - 3.90x  slower
+
