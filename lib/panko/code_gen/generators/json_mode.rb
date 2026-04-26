@@ -37,7 +37,7 @@ module SerializersCodeGen
         builder = CodeBuilder.new
         builder.line "# frozen_string_literal: true"
         builder.blank
-        descriptors_in_emit_order(descriptor).each_with_index do |desc, i|
+        DescriptorWalk.in_emit_order(descriptor).each_with_index do |desc, i|
           builder.blank if i > 0
           emit_class(desc, config, builder)
         end
@@ -45,28 +45,6 @@ module SerializersCodeGen
       end
 
       private
-
-      # Returns the unique Descriptors reachable from +root+ in
-      # post-order (children before parents) so each parent class
-      # definition references already-defined nested classes. The walk is
-      # identity-keyed (+__id__+) per
-      # +docs/descriptor.md § Recursive Descriptors+; a shared inner
-      # Descriptor (and, in S8, a recursive one) is emitted exactly once.
-      #
-      # @param root [SerializersCodeGen::Descriptor]
-      # @return [Array<SerializersCodeGen::Descriptor>] post-order list
-      def descriptors_in_emit_order(root)
-        order = []
-        seen = {}
-        walk = ->(desc) {
-          return if seen[desc.__id__]
-          seen[desc.__id__] = true
-          desc.associations.each { |assoc| walk.call(assoc.descriptor) }
-          order << desc
-        }
-        walk.call(root)
-        order
-      end
 
       # Emits one +<Name>_JSON+ class shell with constructor + public
       # entries + +RecordAccess::Generic+ helpers.
