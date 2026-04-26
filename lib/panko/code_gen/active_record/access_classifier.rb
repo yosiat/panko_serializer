@@ -130,13 +130,10 @@ module SerializersCodeGen
       # @param source [Symbol, String] the source name to probe
       # @return [Boolean] +true+ when the reader is user-overridden
       #   (either on the class or via a mixed-in module / parent class);
-      #   +false+ when the reader is AR-auto-generated, when no method
-      #   exists by that name, or when +klass+ does not respond to
-      #   +#instance_method+ (defensive fallback for fakes that don't
-      #   implement the method-introspection API)
+      #   +false+ when the reader is AR-auto-generated or when no method
+      #   exists by that name
       def self.user_override?(klass, source)
         return false unless klass.method_defined?(source)
-        return false unless klass.respond_to?(:instance_method)
         owner = klass.instance_method(source).owner
         !owner.name.to_s.end_with?("::GeneratedAttributeMethods")
       end
