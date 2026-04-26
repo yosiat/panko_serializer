@@ -35,8 +35,10 @@ module SerializersCodeGen
     # @param cache [CompileCache] identity-keyed Descriptor → class map
     #   threaded through the post-eval depth-first descent so each
     #   unique nested Descriptor in the tree gets cached exactly once.
-    #   Single-level recursion only in S5.1 (parent → distinct child);
-    #   full cycle handling lands in S8.
+    #   Self-recursive cycles (S8.1) short-circuit in
+    #   {#cache_descendants} via +CompileCache#lookup_or_compile+'s
+    #   entry-before-descend contract; mutual recursion (S8.2) layers
+    #   construction-time threading on top of the same cache shape.
     # @return [Compiler]
     def initialize(descriptor, output:, config:, validator: Validators::Validator.new,
       generator: Generator.new, cache: CompileCache.new)
@@ -83,22 +85,25 @@ module SerializersCodeGen
 
     # Depth-first walk of the Descriptor tree, populating +@cache+ with
     # each unique Descriptor's freshly-materialized Generated Class.
-    # +CompileCache#get+ short-circuits the walk when a Descriptor has
-    # already been visited — the hook S8 extends with full cycle
-    # handling. In S5.1 the recursion is single-level (parent → distinct
-    # child) so the short-circuit only matters for shared inner
-    # Descriptors referenced from two siblings.
+    # Uses +CompileCache#lookup_or_compile+ so the parent's class is
+    # registered *before* recursing into its Associations — a
+    # self-referential or back-edge +Association+ to a Descriptor
+    # that's still being walked finds the in-progress class and
+    # short-circuits, breaking what would otherwise be an infinite
+    # descent (S8.1 self-recursion; S8.2 mutual recursion uses the
+    # same shape at construction time).
     #
     # @param descriptor [SerializersCodeGen::Descriptor]
     # @param namespace [Class] the anonymous outer that received the
     #   tree's emitted source via +module_eval+
     # @return [void]
     def cache_descendants(descriptor, namespace)
-      return if @cache.get(descriptor)
-      klass = namespace.const_get(:"#{descriptor.name}_#{OUTPUT_SUFFIXES.fetch(@output)}")
-      @cache.set(descriptor, klass)
-      descriptor.associations.each do |assoc|
-        cache_descendants(assoc.descriptor, namespace)
+      @cache.lookup_or_compile(descriptor) do
+        klass = namespace.const_get(:"#{descriptor.name}_#{OUTPUT_SUFFIXES.fetch(@output)}")
+        @cache.set(descriptor, klass)
+        descriptor.associations.each do |assoc|
+          cache_descendants(assoc.descriptor, namespace)
+        end
       end
     end
   end

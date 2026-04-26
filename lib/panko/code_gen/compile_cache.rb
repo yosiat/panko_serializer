@@ -6,9 +6,14 @@ module SerializersCodeGen
   # produces exactly one Generated Class (per
   # +docs/compilation.md § Recursive Descriptors+).
   #
-  # Single-entry case only in this slice — the +Compiler+ inserts the
-  # top-level Descriptor's class so a future S5 nested-Association walk
-  # has a hit on self-recursion. Full cycle handling lands in S8.
+  # Two block forms are exposed: +#fetch+ for the common one-shot
+  # "compute-and-cache" pattern (block return value is what gets cached),
+  # and +#lookup_or_compile+ for the recursive pattern where the block
+  # must surface its in-progress class to a back-edge lookup *before*
+  # descending into children — see +#lookup_or_compile+ for the contract.
+  # The recursive form is what unblocks self-referential and mutually
+  # recursive Descriptor trees per +docs/compilation.md § Recursive
+  # Descriptors+.
   class CompileCache
     # Returns an empty cache. Backing store is a plain Hash keyed by
     # +descriptor.__id__+ — identity, never +#hash+ + +#eql?+, so
@@ -50,6 +55,44 @@ module SerializersCodeGen
       cached = @store[descriptor.__id__]
       return cached if cached
       @store[descriptor.__id__] = yield
+    end
+
+    # Recursive-descent variant of +#fetch+. Returns the cached Generated
+    # Class for +descriptor+ on hit; otherwise yields once and returns
+    # whatever the block populated under +descriptor.__id__+ via +#set+.
+    # The contract differs from +#fetch+ in *when* the cache entry
+    # becomes visible to recursive callers:
+    #
+    # - +#fetch+ caches the block's return value *after* the block has
+    #   finished. A recursive +#fetch(same_descriptor)+ inside the block
+    #   misses, re-enters, and infinite-loops on cycles.
+    # - +#lookup_or_compile+ requires the block itself to call
+    #   +#set(descriptor, klass)+ *before* descending into children. A
+    #   recursive +#lookup_or_compile(same_descriptor)+ then hits the
+    #   in-progress entry and returns the back-edge reference, breaking
+    #   the cycle without infinite descent.
+    #
+    # Used by +Compiler#cache_descendants+ to walk the post-eval
+    # Descriptor tree and populate the cache with one Generated Class
+    # per unique Descriptor — including self-references (Comment
+    # +has_many :replies+ → Comment) and mutual-recursion cycles
+    # (Folder → Item → Folder, S8.2). The post-eval class lookup happens
+    # before any recursive descent, so the cache is populated in
+    # parent-first order and back-edges find their target on the first
+    # +#get+.
+    #
+    # @param descriptor [SerializersCodeGen::Descriptor] the key
+    # @yield invoked on cache miss; expected to call
+    #   +#set(descriptor, klass)+ on +self+ before any recursive
+    #   +#lookup_or_compile+ on +descriptor+ identity
+    # @return [Class] the cached or freshly-built class — read out of
+    #   the cache after the block returns, so omitting the +#set+ inside
+    #   the block returns +nil+
+    def lookup_or_compile(descriptor)
+      cached = @store[descriptor.__id__]
+      return cached if cached
+      yield
+      @store[descriptor.__id__]
     end
   end
 end
