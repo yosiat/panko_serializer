@@ -398,41 +398,46 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "NotImplementedError — phase-1 filters contract (S2.3)" do
+  describe "NotImplementedError — phase-1 filters contract (S2.3 / S3.3)" do
     let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
     let(:config) { Fixtures::ShallowGeneric::CONFIG }
-    let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :json, config: config) }
-    let(:instance) { generated_class.new(descriptor: descriptor) }
     let(:record) { {"id" => 1, "title" => "hi"} }
 
     before do
       require "shallow_generic"
     end
 
-    it "raises NotImplementedError on serialize_one with filters: {only: [:id]}" do
-      expect {
-        instance.serialize_one(record, filters: {only: [:id]})
-      }.to raise_error(NotImplementedError)
-    end
+    %i[json hash].each do |mode|
+      context "with #{mode} Output Mode" do
+        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:instance) { generated_class.new(descriptor: descriptor) }
 
-    it "raises NotImplementedError on serialize_one with filters: {}" do
-      expect {
-        instance.serialize_one(record, filters: {})
-      }.to raise_error(NotImplementedError)
-    end
+        it "raises NotImplementedError on serialize_one with filters: {only: [:id]}" do
+          expect {
+            instance.serialize_one(record, filters: {only: [:id]})
+          }.to raise_error(NotImplementedError)
+        end
 
-    it "does not raise on serialize_one with default filters: nil" do
-      expect(instance.serialize_one(record)).to be_a(String)
-    end
+        it "raises NotImplementedError on serialize_one with filters: {}" do
+          expect {
+            instance.serialize_one(record, filters: {})
+          }.to raise_error(NotImplementedError)
+        end
 
-    it "raises NotImplementedError on serialize_many with filters: {only: [:id]}" do
-      expect {
-        instance.serialize_many([record], filters: {only: [:id]})
-      }.to raise_error(NotImplementedError)
-    end
+        it "does not raise on serialize_one with default filters: nil" do
+          expect(instance.serialize_one(record)).not_to be_nil
+        end
 
-    it "does not raise on serialize_many with default filters: nil" do
-      expect(instance.serialize_many([record])).to be_a(String)
+        it "raises NotImplementedError on serialize_many with filters: {only: [:id]}" do
+          expect {
+            instance.serialize_many([record], filters: {only: [:id]})
+          }.to raise_error(NotImplementedError)
+        end
+
+        it "does not raise on serialize_many with default filters: nil" do
+          expect(instance.serialize_many([record])).not_to be_nil
+        end
+      end
     end
   end
 

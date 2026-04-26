@@ -11,9 +11,10 @@ module SerializersCodeGen
     # field-level emit lives in +FieldEmitters::Attribute+; shared
     # record-access shape lives in +RecordAccess::Generic+.
     #
-    # S3.2 ships +serialize_many+ alongside +serialize_one+. The
-    # +raise NotImplementedError if filters+ phase-1 contract lands in
-    # S3.3 — mirror of the JSON-mode S2.1/S2.2/S2.3 split.
+    # S3.3 closes the phase-1 filter contract for Hash mode: the
+    # +raise NotImplementedError if filters+ guard at the top of
+    # +serialize_one+ and +serialize_many+ — mirror of the JSON-mode
+    # S2.1/S2.2/S2.3 split.
     class HashMode
       # Builds and returns the source string for the Generated Class. The
       # string starts with +# frozen_string_literal: true+
@@ -61,15 +62,16 @@ module SerializersCodeGen
       # straight delegate to +_to_hash+, whose return value is the
       # produced Hash. The +filters+ kwarg is accepted from day 1 to
       # keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); the
-      # +raise NotImplementedError if filters+ guard lands in S3.3 —
-      # mirror of the JSON-mode S2.1 → S2.3 split.
+      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
+      # raises +NotImplementedError+ until the phase-2 implementation
+      # lands in S14.
       #
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_serialize_one(builder)
         builder.line "def serialize_one(record, context: nil, filters: nil)"
         builder.indent do
+          builder.line "raise NotImplementedError if filters"
           builder.line "_to_hash(record, context, filters)"
         end
         builder.line "end"
@@ -80,15 +82,16 @@ module SerializersCodeGen
       # input enumerable with +.map+, calling +_to_hash+ per element, and
       # returns the resulting +Array<Hash>+. The +filters+ kwarg is
       # accepted from day 1 to keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); the
-      # +raise NotImplementedError if filters+ guard lands in S3.3 —
-      # mirror of the JSON-mode S2.1 → S2.3 split.
+      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
+      # raises +NotImplementedError+ until the phase-2 implementation
+      # lands in S14.
       #
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_serialize_many(builder)
         builder.line "def serialize_many(records, context: nil, filters: nil)"
         builder.indent do
+          builder.line "raise NotImplementedError if filters"
           builder.line "records.map { |r| _to_hash(r, context, filters) }"
         end
         builder.line "end"

@@ -32,34 +32,28 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           record = {"id" => 1, "title" => "hi"}
           expect(generated.serialize_one(record, context: nil)).to eq(expected)
         end
-      end
-    end
 
-    # Filter-related contract assertions stay JSON-only in this slice. The
-    # phase-1 +raise NotImplementedError if filters+ guard for Hash mode
-    # ships in S3.3 — the parity loop above grows to wrap these its when
-    # that slice lands.
-    context "with filters: kwarg in JSON Output Mode (Hash mode lands in S3.3)" do
-      it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
-        generated = generated_class.new(descriptor: descriptor)
-        record = {"id" => 1, "title" => "hi"}
-        expect(generated.serialize_one(record, filters: nil)).to eq('{"id":1,"title":"hi"}')
-      end
+        it "returns the expected output when filters: nil is passed explicitly (no-filter path stays usable)" do
+          generated = generated_class.new(descriptor: descriptor)
+          record = {"id" => 1, "title" => "hi"}
+          expect(generated.serialize_one(record, filters: nil)).to eq(expected)
+        end
 
-      it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
-        generated = generated_class.new(descriptor: descriptor)
-        record = {"id" => 1, "title" => "hi"}
-        expect {
-          generated.serialize_one(record, filters: {only: [:id]})
-        }.to raise_error(NotImplementedError)
-      end
+        it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+          generated = generated_class.new(descriptor: descriptor)
+          record = {"id" => 1, "title" => "hi"}
+          expect {
+            generated.serialize_one(record, filters: {only: [:id]})
+          }.to raise_error(NotImplementedError)
+        end
 
-      it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
-        generated = generated_class.new(descriptor: descriptor)
-        record = {"id" => 1, "title" => "hi"}
-        expect {
-          generated.serialize_one(record, filters: {})
-        }.to raise_error(NotImplementedError)
+        it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+          generated = generated_class.new(descriptor: descriptor)
+          record = {"id" => 1, "title" => "hi"}
+          expect {
+            generated.serialize_one(record, filters: {})
+          }.to raise_error(NotImplementedError)
+        end
       end
     end
   end
@@ -76,6 +70,15 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
       hash: [{"id" => 1, "title" => "hi"}, {"id" => 2, "title" => "yo"}].freeze
     }.freeze
     expected_empty = {json: "[]", hash: [].freeze}.freeze
+
+    # Single-record corpus for the filters: parity its below — kept
+    # alongside +expected_pair+/+expected_empty+ so the per-mode expected
+    # values stay close to the +it+s that read them. Frozen to avoid
+    # accidental mutation across iterations.
+    expected_single = {
+      json: '[{"id":1,"title":"hi"}]',
+      hash: [{"id" => 1, "title" => "hi"}].freeze
+    }.freeze
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
@@ -101,33 +104,25 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           ]
           expect(generated.serialize_many(records)).to eq(expected_pair[mode])
         end
-      end
-    end
 
-    # Filter-related contract assertions stay JSON-only in this slice. The
-    # phase-1 +raise NotImplementedError if filters+ guard for Hash mode
-    # ships in S3.3 — the parity loop above grows to wrap these its when
-    # that slice lands.
-    context "with filters: kwarg in JSON Output Mode (Hash mode lands in S3.3)" do
-      let(:generated) { generated_class.new(descriptor: descriptor) }
+        it "returns the expected output when filters: nil is passed explicitly (no-filter path stays usable)" do
+          records = [{"id" => 1, "title" => "hi"}]
+          expect(generated.serialize_many(records, filters: nil)).to eq(expected_single[mode])
+        end
 
-      it "returns a String when filters: nil is passed explicitly (no-filter path stays usable)" do
-        records = [{"id" => 1, "title" => "hi"}]
-        expect(generated.serialize_many(records, filters: nil)).to eq('[{"id":1,"title":"hi"}]')
-      end
+        it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+          records = [{"id" => 1, "title" => "hi"}]
+          expect {
+            generated.serialize_many(records, filters: {only: [:id]})
+          }.to raise_error(NotImplementedError)
+        end
 
-      it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
-        records = [{"id" => 1, "title" => "hi"}]
-        expect {
-          generated.serialize_many(records, filters: {only: [:id]})
-        }.to raise_error(NotImplementedError)
-      end
-
-      it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
-        records = [{"id" => 1, "title" => "hi"}]
-        expect {
-          generated.serialize_many(records, filters: {})
-        }.to raise_error(NotImplementedError)
+        it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+          records = [{"id" => 1, "title" => "hi"}]
+          expect {
+            generated.serialize_many(records, filters: {})
+          }.to raise_error(NotImplementedError)
+        end
       end
     end
   end

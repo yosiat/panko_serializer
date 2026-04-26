@@ -5,10 +5,12 @@ class ShallowGenericSerializer_Hash
   end
 
   def serialize_one(record, context: nil, filters: nil)
+    raise NotImplementedError if filters
     _to_hash(record, context, filters)
   end
 
   def serialize_many(records, context: nil, filters: nil)
+    raise NotImplementedError if filters
     records.map { |r| _to_hash(r, context, filters) }
   end
 
