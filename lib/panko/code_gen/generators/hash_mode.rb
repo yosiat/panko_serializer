@@ -67,14 +67,18 @@ module SerializersCodeGen
         builder.indent do
           emit_initialize(descriptor, builder, cyclic_ids)
           builder.blank
-          emit_serialize_one(builder)
+          emit_serialize_one(config, builder)
           builder.blank
-          emit_serialize_many(builder)
+          emit_serialize_many(config, builder)
           builder.blank
           if descriptor.models.nil?
             RecordAccess::Generic.emit_hash(descriptor, config, builder)
           else
             RecordAccess::Specialized.emit_hash(descriptor, config, builder)
+          end
+          if config.supports_root_key
+            builder.blank
+            emit_validate_root_key(builder)
           end
         end
         builder.line "end"
@@ -194,13 +198,34 @@ module SerializersCodeGen
       # raises +NotImplementedError+ until the phase-2 implementation
       # lands in S14.
       #
+      # When +Config#supports_root_key+ is +true+, the signature gains
+      # an additional +root_key:+ kwarg (defaulting to +nil+); when
+      # truthy, the body wraps the produced Hash in a single-entry
+      # +{root_key => result}+ (per
+      # +docs/generated-class.md § serialize_one+). The kwarg value
+      # must be a non-empty String or +nil+ —
+      # +validate_root_key!+ raises +ArgumentError+ on anything else.
+      # When +supports_root_key+ is +false+, the kwarg is omitted from
+      # the signature entirely.
+      #
+      # @param config [SerializersCodeGen::Config] resolved settings;
+      #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
-      def emit_serialize_one(builder)
-        builder.line "def serialize_one(record, context: nil, filters: nil)"
+      def emit_serialize_one(config, builder)
+        signature = config.supports_root_key ?
+          "def serialize_one(record, context: nil, filters: nil, root_key: nil)" :
+          "def serialize_one(record, context: nil, filters: nil)"
+        builder.line signature
         builder.indent do
           builder.line "raise NotImplementedError if filters"
-          builder.line "_to_hash(record, context, filters)"
+          if config.supports_root_key
+            builder.line "validate_root_key!(root_key) if root_key"
+            builder.line "result = _to_hash(record, context, filters)"
+            builder.line "root_key ? {root_key => result} : result"
+          else
+            builder.line "_to_hash(record, context, filters)"
+          end
         end
         builder.line "end"
       end
@@ -214,13 +239,52 @@ module SerializersCodeGen
       # raises +NotImplementedError+ until the phase-2 implementation
       # lands in S14.
       #
+      # When +Config#supports_root_key+ is +true+, the signature gains
+      # the same +root_key:+ kwarg as +serialize_one+; a truthy value
+      # wraps the +Array<Hash>+ in a single-entry +{root_key => result}+,
+      # so an empty input still emits +{root_key => []}+ (wrapped empty
+      # array, never +nil+, never omitted) per
+      # +docs/testing.md § root_key_spec.rb+ (case 6).
+      #
+      # @param config [SerializersCodeGen::Config] resolved settings;
+      #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
-      def emit_serialize_many(builder)
-        builder.line "def serialize_many(records, context: nil, filters: nil)"
+      def emit_serialize_many(config, builder)
+        signature = config.supports_root_key ?
+          "def serialize_many(records, context: nil, filters: nil, root_key: nil)" :
+          "def serialize_many(records, context: nil, filters: nil)"
+        builder.line signature
         builder.indent do
           builder.line "raise NotImplementedError if filters"
-          builder.line "records.map { |r| _to_hash(r, context, filters) }"
+          if config.supports_root_key
+            builder.line "validate_root_key!(root_key) if root_key"
+            builder.line "result = records.map { |r| _to_hash(r, context, filters) }"
+            builder.line "root_key ? {root_key => result} : result"
+          else
+            builder.line "records.map { |r| _to_hash(r, context, filters) }"
+          end
+        end
+        builder.line "end"
+      end
+
+      # Emits the private +validate_root_key!+ helper used by the wrap
+      # branch of +serialize_one+ / +serialize_many+ when
+      # +Config#supports_root_key+ is +true+. Enforces the accepted-types
+      # contract from +docs/generated-class.md § serialize_one+: a
+      # non-empty +String+ or +nil+ only; empty +String+, +Symbol+, or
+      # any other non-+nil+ value raises +ArgumentError+ at call time.
+      # Emitted only when the wrap branch is also emitted, so the
+      # default-config emit pays zero source-bytes / zero method-table
+      # cost from this feature being absent.
+      #
+      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @return [void]
+      def emit_validate_root_key(builder)
+        builder.line "private def validate_root_key!(root_key)"
+        builder.indent do
+          builder.line "return if root_key.is_a?(String) && !root_key.empty?"
+          builder.line %(raise ArgumentError, "root_key: must be a non-empty String, got \#{root_key.inspect}")
         end
         builder.line "end"
       end
