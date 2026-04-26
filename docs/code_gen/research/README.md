@@ -11,6 +11,7 @@ Each note is self-contained; the top-level docs cite results from here.
 | [`ar_access_yjit_output.txt`](ar_access_yjit_output.txt)                   | Raw stdout from the benchmark run.                                                            |
 | [`ar_access_results.md`](ar_access_results.md)                             | AR attribute access comparison on Ruby 4 + YJIT. Picks `_read_attribute` as the emit form for column-backed attrs. |
 | [`define_attribute_methods_safety.md`](define_attribute_methods_safety.md) | Safety of calling `Model.define_attribute_methods` defensively across Rails 7.2/8.0/8.1.     |
+| [`phase_1_report.md`](phase_1_report.md)                                   | Phase-1 benchmark verdict — pre-registered skeleton (S12.1); numbers land in S12.2, verdict in S12.3, closeout in S12.4. Canonical baseline for filter-overhead comparisons in S13/S14. |
 
 ## Conventions
 
