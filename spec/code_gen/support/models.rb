@@ -20,3 +20,12 @@ end
 class Comment < ActiveRecord::Base
   belongs_to :post, optional: true
 end
+
+class Vehicle < ActiveRecord::Base
+end
+
+class Car < Vehicle
+  def make
+    super.titleize
+  end
+end

@@ -142,5 +142,100 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
         )
       end
     end
+
+    describe "multi-class STI override-detection (S7.2)" do
+      # Per +docs/compilation.md § STI and mixed class sets+: "a subclass
+      # that overrides a column reader downgrades that attribute across
+      # the whole Generated Class — method dispatch wins whenever any
+      # class in the set lacks uniform column-backing."
+      #
+      # Real AR signals overrides via +klass.instance_method(name).owner+:
+      # AR-auto-generated readers live in modules named
+      # +<Class>::GeneratedAttributeMethods+; user overrides have a
+      # different owner (the class itself). The fakes below model this
+      # by exposing an +instance_method+ method that returns a stub
+      # method object whose +#owner+ is either the AR-generated module
+      # or the user class.
+      def fake_ar_class_with_owners(name:, columns: [], method_owners: {})
+        Class.new do
+          ar_gen_module = Module.new do
+            singleton_class.define_method(:name) { "#{name}::GeneratedAttributeMethods" }
+            singleton_class.define_method(:to_s) { "#{name}::GeneratedAttributeMethods" }
+          end
+          define_singleton_method(:name) { name }
+          define_singleton_method(:to_s) { name }
+          define_singleton_method(:columns_hash) { columns.to_h { |c| [c, :stub] } }
+          define_singleton_method(:method_defined?) { |sym| method_owners.key?(sym.to_sym) }
+          define_singleton_method(:instance_method) { |sym|
+            owner_kind = method_owners.fetch(sym.to_sym)
+            actual_owner = (owner_kind == :ar_generated) ? ar_gen_module : self
+            stub = Object.new
+            stub.define_singleton_method(:owner) { actual_owner }
+            stub
+          }
+        end
+      end
+
+      it "downgrades a uniformly column-backed Attribute to :method when a subclass user-overrides the reader" do
+        # Vehicle: +make+ in columns_hash, AR-auto-generated reader (no override).
+        # Car: +make+ in columns_hash, user-overridden reader. Per the STI rule
+        # the override on Car downgrades +make+ across the whole Generated Class.
+        vehicle = fake_ar_class_with_owners(
+          name: "Vehicle",
+          columns: ["make"],
+          method_owners: {make: :ar_generated}
+        )
+        car = fake_ar_class_with_owners(
+          name: "Car",
+          columns: ["make"],
+          method_owners: {make: :user_class}
+        )
+        expect(described_class.classify([vehicle, car], :make)).to eq(:method)
+      end
+
+      it "downgrades when the override is on the parent class instead of the subclass" do
+        # Symmetric case: parent overrides, subclass inherits the override.
+        # The rule still says "any non-uniformity downgrades" — parent's
+        # override must be honored on every instance.
+        vehicle = fake_ar_class_with_owners(
+          name: "Vehicle",
+          columns: ["make"],
+          method_owners: {make: :user_class}
+        )
+        car = fake_ar_class_with_owners(
+          name: "Car",
+          columns: ["make"],
+          method_owners: {make: :ar_generated}
+        )
+        expect(described_class.classify([vehicle, car], :make)).to eq(:method)
+      end
+
+      it "stays :column when no class overrides the reader (uniform AR-generated readers)" do
+        vehicle = fake_ar_class_with_owners(
+          name: "Vehicle",
+          columns: ["vin"],
+          method_owners: {vin: :ar_generated}
+        )
+        car = fake_ar_class_with_owners(
+          name: "Car",
+          columns: ["vin"],
+          method_owners: {vin: :ar_generated}
+        )
+        expect(described_class.classify([vehicle, car], :vin)).to eq(:column)
+      end
+
+      it "preserves single-class override-bypass — override on a 1-element Array stays :column" do
+        # Per +docs/compilation.md § Overrides are bypassed for column-backed
+        # attributes+: single-class +models: [SingleClass]+ explicitly opts
+        # into override bypass. The override-detection layer activates only
+        # for multi-class sets.
+        post = fake_ar_class_with_owners(
+          name: "Post",
+          columns: ["title"],
+          method_owners: {title: :user_class}
+        )
+        expect(described_class.classify([post], :title)).to eq(:column)
+      end
+    end
   end
 end

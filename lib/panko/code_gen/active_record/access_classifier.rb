@@ -20,9 +20,10 @@ module SerializersCodeGen
       # class sets+:
       #
       # 1. Column-backed in every class (+source+ in +klass.columns_hash+
-      #    for all) → +:column+. The fast path that bypasses any
-      #    user-defined reader override per +docs/compilation.md §
-      #    Overrides are bypassed+.
+      #    for all) AND no user override on any class (multi-class only)
+      #    → +:column+. The fast path that bypasses any user-defined
+      #    reader override per +docs/compilation.md § Overrides are
+      #    bypassed+.
       # 2. Else, instance method on every class (+klass.method_defined?+
       #    returns +true+ for all, even if some classes also have a
       #    column with the same name) → +:method+. This is the symmetric
@@ -33,20 +34,39 @@ module SerializersCodeGen
       # 3. Else (at least one class has neither a column nor an instance
       #    method by +source+'s name) → raise +UnknownSourceError+.
       #
+      # Override-detection (step 1's "no user override on any class"
+      # qualifier) activates only for multi-class sets (+klasses.size > 1+).
+      # The single-class case explicitly preserves
+      # +docs/compilation.md § Overrides are bypassed for column-backed
+      # attributes+: a 1-element +klasses+ Array with a column-backed
+      # source returns +:column+ even when the user has defined a
+      # reader override. The asymmetry is intentional — single-class
+      # callers opt into bypass semantics by passing
+      # +models: [SingleClass]+; multi-class STI callers expect
+      # symmetric behavior across instances of every class in the set.
+      #
       # Caller is responsible for ensuring AR's lazy attribute methods
       # have been generated (via +DefineAttributeMethods.ensure!+) on
       # every class in +klasses+ before classification; the
-      # +SourceResolution+ validator does this.
+      # +SourceResolution+ validator does this. Without
+      # +define_attribute_methods+ called first, +method_defined?+
+      # returns +false+ for column-name methods and the override-detection
+      # cannot distinguish auto-generated readers from user overrides.
       #
       # @param klasses [Array<Class>] one-or-more +Model+ classes to
       #   introspect; each must respond to +#columns_hash+ (returning a
-      #   Hash keyed by column-name String) and +#method_defined?+
+      #   Hash keyed by column-name String) and +#method_defined?+. For
+      #   multi-class override-detection, also +#instance_method+
+      #   (returning a +UnboundMethod+-like object whose +#owner+ is the
+      #   defining +Module+ or +Class+).
       # @param source [Symbol, String] the +Attribute#source+ to classify;
       #   accepts either type since +columns_hash+ keys are Strings while
       #   +method_defined?+ accepts both
       # @return [Symbol] +:column+ when uniformly column-backed across
-      #   every class; +:method+ when uniformly resolvable as a method
-      #   (even if some classes have a column with the same name)
+      #   every class with no user override (multi-class) or column-backed
+      #   on the single class (single-class); +:method+ when uniformly
+      #   resolvable as a method, when any class lacks the column-backing,
+      #   or when any class user-overrides the reader (multi-class)
       # @raise [SerializersCodeGen::UnknownSourceError] when at least one
       #   class lacks both a column and an instance method by +source+'s
       #   name; message names each offending class and the +source+ but
@@ -64,7 +84,10 @@ module SerializersCodeGen
             "#{names}: source :#{source_str} is not a column or instance method."
         end
 
-        return :column if verdicts.all?(:column)
+        if verdicts.all?(:column)
+          return :method if klasses.size > 1 && klasses.any? { |klass| user_override?(klass, source) }
+          return :column
+        end
         :method
       end
 
@@ -90,6 +113,34 @@ module SerializersCodeGen
         :missing
       end
       private_class_method :classify_one
+
+      # Detects whether +source+'s reader on +klass+ is a user-defined
+      # override (rather than AR's auto-generated reader). Only consulted
+      # by +.classify+ for multi-class sets — single-class sets bypass
+      # this check by design (see +.classify+'s asymmetry note).
+      #
+      # AR's auto-generated readers live in a per-class +Module+ named
+      # +<ClassName>::GeneratedAttributeMethods+, +include+'d into the
+      # AR class. Anything else (a user override defined directly on
+      # the class, an inherited override on a parent class, or a
+      # mixed-in concern Module that overrides the reader) yields a
+      # different +owner+ — and is treated as a user override.
+      #
+      # @param klass [Class] the +Model+ class to introspect
+      # @param source [Symbol, String] the source name to probe
+      # @return [Boolean] +true+ when the reader is user-overridden
+      #   (either on the class or via a mixed-in module / parent class);
+      #   +false+ when the reader is AR-auto-generated, when no method
+      #   exists by that name, or when +klass+ does not respond to
+      #   +#instance_method+ (defensive fallback for fakes that don't
+      #   implement the method-introspection API)
+      def self.user_override?(klass, source)
+        return false unless klass.method_defined?(source)
+        return false unless klass.respond_to?(:instance_method)
+        owner = klass.instance_method(source).owner
+        !owner.name.to_s.end_with?("::GeneratedAttributeMethods")
+      end
+      private_class_method :user_override?
     end
   end
 end

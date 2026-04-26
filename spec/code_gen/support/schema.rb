@@ -16,4 +16,10 @@ ActiveRecord::Schema.define do
     t.references :post, foreign_key: true
     t.string :body
   end
+
+  create_table :vehicles, force: true do |t|
+    t.string :type
+    t.string :vin
+    t.string :make
+  end
 end
