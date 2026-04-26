@@ -590,10 +590,9 @@ Item.create!(folder: root, subfolder: inner)
   4.0.x × Rails 7.2 / 8.0 / 8.1) runs the entire test suite against every combination —
   the matrix itself is the adapter verification; no dedicated per-version specs.
 
-## Open testing threads
+## Adjacent docs
 
-- **Benchmark harness.** See [open-questions.md](open-questions.md) — benchmark-ips +
-  memory_profiler, target comparisons, regression guard.
-
-The feature-test coverage matrix for cross-cutting concerns is fully resolved — see
-[Feature-test organization](#feature-test-organization) above.
+- Benchmark harness shape, scenario layout, and regression workflow live in
+  [benchmarks.md](benchmarks.md).
+- The feature-test coverage matrix for cross-cutting concerns is captured in
+  [Feature-test organization](#feature-test-organization) above.

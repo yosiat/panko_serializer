@@ -92,9 +92,8 @@ block. If a caller wants a shared default **Config**, they keep their own consta
 This avoids the class of bug where a global mutable config change invalidates cached
 **Generated Classes** held elsewhere.
 
-## Future fields (not yet decided)
+## Future fields
 
-Candidates under discussion — see [open-questions.md](open-questions.md):
-
-- Filter-related toggles are explicitly **not** planned — filters are a default feature,
-  unconditional. See [filters.md](filters.md).
+No additional fields are currently planned. In particular, filter-related toggles
+are explicitly **not** planned — filters are a default feature, unconditional.
+See [filters.md](filters.md).

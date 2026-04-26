@@ -165,4 +165,4 @@ Each emitter method is a pure function of (node, builder state) → output. Test
 3. Compile a fixture **Descriptor** and exercise the **Generated Class** against known inputs.
 
 Snapshot tests on the generated source are the primary unit-test mechanism (see
-[open-questions.md](open-questions.md) for framework details).
+[testing.md](testing.md) for the snapshot harness and tier rules).

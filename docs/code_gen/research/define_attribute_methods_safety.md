@@ -115,10 +115,10 @@ end
 
 - Call at **Compile** time, inside the **Generator**'s specialized-path introspection.
 - No need to gate on `attribute_methods_generated?` — the method self-gates.
-- Wrap in the per-Rails adapter (see
-  [`docs/open-questions.md#rails--rails-support-matrix-structure`](../open-questions.md)).
-  The wrapper body is one line today; if a future Rails ever renames or moves the method,
-  only the adapter changes.
+- Lives in `lib/serializers_code_gen/active_record/define_attribute_methods.rb` as a
+  one-line wrapper. If a future Rails ever renames or moves the method, the
+  feature-detect switch goes there — no per-Rails-version file tree (see
+  [`docs/structure.md` § Why no per-Rails-version adapter folder](../structure.md#why-no-per-rails-version-adapter-folder)).
 
 ## Cons / honest downsides
 

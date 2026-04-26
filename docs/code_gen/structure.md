@@ -134,8 +134,8 @@ lib/
 
 ### Why no per-Rails-version adapter folder
 
-The open-questions doc originally sketched `ar_adapter/rails_7_2.rb`, `rails_8_0.rb`, etc.
-That was speculative. The research notes in
+An earlier sketch had `ar_adapter/rails_7_2.rb`, `rails_8_0.rb`, etc. That was
+speculative. The research notes in
 [`research/define_attribute_methods_safety.md`](research/define_attribute_methods_safety.md)
 show `define_attribute_methods` is byte-identical across Rails 7.2 / 8.0 / 8.1, and
 [`research/ar_access_results.md`](research/ar_access_results.md) confirms `_read_attribute`
@@ -178,5 +178,5 @@ The small-file split exists so every file has an obvious unit-test target:
 - `compiler_spec.rb` — end-to-end: compile a fixture **Descriptor**, serialize, assert
   output.
 
-Full testing-strategy decisions (snapshot library choice, feature-test fixtures) remain
-open — see [open-questions.md](open-questions.md).
+Full testing strategy — tiers, snapshot harness, feature-test fixtures — is in
+[testing.md](testing.md).
