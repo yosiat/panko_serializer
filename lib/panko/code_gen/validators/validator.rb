@@ -9,16 +9,17 @@ module SerializersCodeGen
     #
     # The rule list grows one entry per validator slice — S4.1 plugs in
     # +callable_arity+; S6.1 adds +source_resolution+ (registered after
-    # +callable_arity+ so arity violations raise first); S9 will add
-    # +name_uniqueness+. Each rule module exposes a single
-    # +.validate(descriptor, output:, config:)+ entry point that raises
-    # the appropriate +CompileError+ subclass on violation.
+    # +callable_arity+ so arity violations raise first); S9 adds
+    # +name_uniqueness+ (registered after +source_resolution+). Each
+    # rule module exposes a single +.validate(descriptor, output:,
+    # config:)+ entry point that raises the appropriate +CompileError+
+    # subclass on violation.
     class Validator
       # Library-default rule list. Iterated in declaration order; the
       # first rule that raises short-circuits the rest. Each rule slice
       # adds its own require in +lib/serializers_code_gen.rb+ + an entry
       # to this constant.
-      DEFAULT_RULES = [CallableArity, SourceResolution].freeze
+      DEFAULT_RULES = [CallableArity, SourceResolution, NameUniqueness].freeze
 
       # @param rules [Array<#validate>] override the rule list at
       #   construction time — primarily a test-affordance escape hatch.
