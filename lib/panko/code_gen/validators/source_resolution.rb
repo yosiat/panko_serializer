@@ -81,8 +81,8 @@ module SerializersCodeGen
           descriptor.models.each do |model|
             next unless ar_class?(model)
             ActiveRecord::DefineAttributeMethods.ensure!(model)
-            descriptor.attributes.each do |attr|
-              classify_or_raise!(model, attr, descriptor.name)
+            descriptor.attributes.each do |attribute|
+              classify_or_raise!(model, attribute, descriptor.name)
             end
           end
         end
