@@ -28,7 +28,7 @@ RSpec.describe "Generator snapshot corpus" do
 
     describe fixture.name do
       fixture::MODES.each do |mode|
-        context "in #{mode} Output Mode" do
+        context "with #{mode} Output Mode" do
           let(:descriptor) { fixture::DESCRIPTOR }
           let(:config) { fixture::CONFIG }
           let(:snapshot_filename) { "#{basename}_#{mode}.rb" }

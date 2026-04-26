@@ -30,7 +30,7 @@ RSpec.configure do |config|
   config.order = :random
   Kernel.srand config.seed
 
-  config.around(:each) do |example|
+  config.around do |example|
     ActiveRecord::Base.transaction do
       example.run
       raise ActiveRecord::Rollback

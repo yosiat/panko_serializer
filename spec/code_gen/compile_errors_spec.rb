@@ -438,7 +438,7 @@ RSpec.describe "Compile-time errors" do
 
   describe "Mode independence — semantic validation runs pre-Generator" do
     %i[json hash].each do |mode|
-      context "in #{mode} Output Mode" do
+      context "with #{mode} Output Mode" do
         pending "NameCollisionError raises before Generator emit (S9)"
         pending "UnknownSourceError raises before Generator emit (S6)"
         pending "ArityError raises before Generator emit (S4)"
