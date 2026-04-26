@@ -8,4 +8,9 @@ ActiveRecord::Schema.define do
     t.references :post, foreign_key: true
     t.string :name
   end
+
+  create_table :comments, force: true do |t|
+    t.references :post, foreign_key: true
+    t.string :body
+  end
 end
