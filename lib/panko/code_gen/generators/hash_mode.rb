@@ -2,36 +2,80 @@
 
 module SerializersCodeGen
   module Generators
-    # Top-level Hash-mode emitter. Walks one Descriptor and produces the
-    # source string for one +<Name>_Hash+ Generated Class per
-    # +docs/output-modes.md § :hash+. Parallel — not a subclass — of
-    # +JsonMode+ per +docs/output-modes.md § Composition across modes+:
-    # the two emit shapes diverge (Writer-pushing vs Hash-mutation) so
-    # inheritance would couple distinct evolutionary paths. Shared
-    # field-level emit lives in +FieldEmitters::Attribute+; shared
-    # record-access shape lives in +RecordAccess::Generic+.
+    # Top-level Hash-mode emitter. Walks the Descriptor tree and produces a
+    # source string containing one +<Name>_Hash+ class per unique Descriptor
+    # in the tree, with children appearing before parents so each parent
+    # constructor's reference to its nested +<Inner>_Hash+ class resolves
+    # at module_eval time. Parallel — not a subclass — of +JsonMode+ per
+    # +docs/output-modes.md § Composition across modes+: the two emit
+    # shapes diverge (Writer-pushing vs Hash-mutation) so inheritance
+    # would couple distinct evolutionary paths. Shared field-level emit
+    # lives in +FieldEmitters::Attribute+ / +FieldEmitters::Association+;
+    # shared record-access shape lives in +RecordAccess::Generic+.
     #
-    # S3.3 closes the phase-1 filter contract for Hash mode: the
-    # +raise NotImplementedError if filters+ guard at the top of
-    # +serialize_one+ and +serialize_many+ — mirror of the JSON-mode
-    # S2.1/S2.2/S2.3 split.
+    # Composition wiring lands in S5.1: each Association gets an
+    # +@<name>_serializer+ ivar hoisted in the constructor pointing at
+    # one nested Generated Class instance — the call site in
+    # +_to_hash_*+ stays monomorphic per
+    # +docs/compilation.md § Composition of nested Associations+.
     class HashMode
-      # Builds and returns the source string for the Generated Class. The
-      # string starts with +# frozen_string_literal: true+
-      # (per +docs/code-generation.md § Source pragmas+) and is the byte
-      # payload that both +Compiler+ (+module_eval+) and +Dump+
-      # (+File.write+) consume.
+      # Builds and returns the source string for the Generated Class tree
+      # rooted at +descriptor+. The string starts with
+      # +# frozen_string_literal: true+ (per
+      # +docs/code-generation.md § Source pragmas+), then emits one class
+      # per unique Descriptor reachable from +descriptor+, children
+      # before parents (post-order). The byte payload feeds both
+      # +Compiler+ (+module_eval+) and +Dump+ (+File.write+).
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] the input
+      # @param descriptor [SerializersCodeGen::Descriptor] the root input
       # @param config [SerializersCodeGen::Config] resolved settings
       # @return [String] the emitted Ruby source
       def emit(descriptor, config)
         builder = CodeBuilder.new
         builder.line "# frozen_string_literal: true"
         builder.blank
+        descriptors_in_emit_order(descriptor).each_with_index do |desc, i|
+          builder.blank if i > 0
+          emit_class(desc, config, builder)
+        end
+        builder.to_s + "\n"
+      end
+
+      private
+
+      # Returns the unique Descriptors reachable from +root+ in
+      # post-order (children before parents) so each parent class
+      # definition references already-defined nested classes. The walk is
+      # identity-keyed (+__id__+) per
+      # +docs/descriptor.md § Recursive Descriptors+; a shared inner
+      # Descriptor (and, in S8, a recursive one) is emitted exactly once.
+      #
+      # @param root [SerializersCodeGen::Descriptor]
+      # @return [Array<SerializersCodeGen::Descriptor>] post-order list
+      def descriptors_in_emit_order(root)
+        order = []
+        seen = {}
+        walk = ->(desc) {
+          return if seen[desc.__id__]
+          seen[desc.__id__] = true
+          desc.associations.each { |assoc| walk.call(assoc.descriptor) }
+          order << desc
+        }
+        walk.call(root)
+        order
+      end
+
+      # Emits one +<Name>_Hash+ class shell with constructor + public
+      # entries + +RecordAccess::Generic+ helpers.
+      #
+      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param config [SerializersCodeGen::Config]
+      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @return [void]
+      def emit_class(descriptor, config, builder)
         builder.line "class #{descriptor.name}_Hash"
         builder.indent do
-          emit_initialize(builder)
+          emit_initialize(descriptor, builder)
           builder.blank
           emit_serialize_one(builder)
           builder.blank
@@ -40,20 +84,25 @@ module SerializersCodeGen
           RecordAccess::Generic.emit_hash(descriptor, config, builder)
         end
         builder.line "end"
-        builder.to_s + "\n"
       end
 
-      private
-
-      # Emits the +initialize(descriptor:)+ constructor. Body is empty in
-      # this slice — no Callables to hoist, no nested Generated Classes to
-      # construct. The shape must still be present so S4/S5 plug in
-      # without changing the constructor signature.
+      # Emits the +initialize(descriptor:)+ constructor. Per Association
+      # the body assigns +@<name>_serializer = <Inner>_Hash.new(descriptor:
+      # descriptor.associations[<i>].descriptor)+ — the Composition wiring
+      # from +docs/compilation.md § Composition of nested Associations+.
+      # When the Descriptor has no Associations, the body is empty (same
+      # shape as S3.1's walking-skeleton emitter).
       #
+      # @param descriptor [SerializersCodeGen::Descriptor]
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
-      def emit_initialize(builder)
+      def emit_initialize(descriptor, builder)
         builder.line "def initialize(descriptor:)"
+        builder.indent do
+          descriptor.associations.each_with_index do |assoc, i|
+            builder.line "@#{assoc.name}_serializer = #{assoc.descriptor.name}_Hash.new(descriptor: descriptor.associations[#{i}].descriptor)"
+          end
+        end
         builder.line "end"
       end
 
