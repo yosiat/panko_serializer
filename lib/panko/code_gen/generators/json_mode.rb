@@ -86,9 +86,20 @@ module SerializersCodeGen
       # construction cost) and assigns +@<name>_serializer = <Inner>_JSON
       # .new(descriptor: descriptor.associations[<i>].descriptor)+ — the
       # Composition wiring from
-      # +docs/compilation.md § Composition of nested Associations+. Body
-      # is empty when the Descriptor has neither Method Attributes nor
-      # Associations (the +shallow_generic+ case).
+      # +docs/compilation.md § Composition of nested Associations+.
+      #
+      # When an Association's nested Descriptor is the parent itself
+      # (+assoc.descriptor.equal?(descriptor)+ — the self-recursion
+      # signal per +docs/descriptor.md § Recursive Descriptors+ +
+      # +docs/compilation.md § Recursive Descriptors+), the constructor
+      # emits +@<name>_serializer = self+ instead of allocating a nested
+      # instance. Detection is identity-based, never structural — two
+      # structurally-equal but distinct Descriptors compile to distinct
+      # classes by design. The +self+ shortcut breaks what would
+      # otherwise be an infinite +.new+ chain at construction time.
+      #
+      # Body is empty when the Descriptor has neither Method Attributes
+      # nor Associations (the +shallow_generic+ case).
       #
       # @param descriptor [SerializersCodeGen::Descriptor]
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
@@ -104,7 +115,11 @@ module SerializersCodeGen
             if assoc.if
               builder.line "#{FieldEmitters::Association.ivar_name(assoc)} = descriptor.associations[#{i}].if"
             end
-            builder.line "@#{assoc.name}_serializer = #{assoc.descriptor.name}_JSON.new(descriptor: descriptor.associations[#{i}].descriptor)"
+            if assoc.descriptor.equal?(descriptor)
+              builder.line "@#{assoc.name}_serializer = self"
+            else
+              builder.line "@#{assoc.name}_serializer = #{assoc.descriptor.name}_JSON.new(descriptor: descriptor.associations[#{i}].descriptor)"
+            end
           end
         end
         builder.line "end"

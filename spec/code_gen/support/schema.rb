@@ -14,6 +14,7 @@ ActiveRecord::Schema.define do
 
   create_table :comments, force: true do |t|
     t.references :post, foreign_key: true
+    t.references :parent_comment, foreign_key: {to_table: :comments}
     t.string :body
   end
 
