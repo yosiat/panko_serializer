@@ -27,7 +27,7 @@ module SerializersCodeGen
         builder.blank
         builder.line "class #{descriptor.name}_JSON"
         builder.indent do
-          emit_initialize(builder)
+          emit_initialize(descriptor, builder)
           builder.blank
           emit_serialize_one(builder)
           builder.blank
@@ -41,15 +41,24 @@ module SerializersCodeGen
 
       private
 
-      # Emits the +initialize(descriptor:)+ constructor. Body is empty in
-      # this slice — no Callables to hoist, no nested Generated Classes to
-      # construct. The shape must still be present so S4/S5 plug in
-      # without changing the constructor signature.
+      # Emits the +initialize(descriptor:)+ constructor. Hoists each
+      # Method Attribute's Callable body into a per-Field +@cb_<name>+
+      # ivar in declaration order per
+      # +docs/code-generation.md § Callable hoisting+ — same shape Compile
+      # and Dump, no class-constant divergence. Body is empty when the
+      # Descriptor has no Method Attributes (the +shallow_generic+ case).
       #
+      # @param descriptor [SerializersCodeGen::Descriptor] the input
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
       # @return [void]
-      def emit_initialize(builder)
+      def emit_initialize(descriptor, builder)
         builder.line "def initialize(descriptor:)"
+        builder.indent do
+          descriptor.method_attributes.each_with_index do |method_attribute, index|
+            ivar = FieldEmitters::MethodAttribute.ivar_name(method_attribute)
+            builder.line "#{ivar} = descriptor.method_attributes[#{index}].body"
+          end
+        end
         builder.line "end"
       end
 

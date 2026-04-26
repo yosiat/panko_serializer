@@ -83,6 +83,13 @@ module SerializersCodeGen
             descriptor.attributes.each do |attribute|
               FieldEmitters::Attribute.emit_json(attribute, hash_read_expr(attribute, config), builder)
             end
+            descriptor.method_attributes.each do |method_attribute|
+              FieldEmitters::MethodAttribute.emit_json(
+                method_attribute,
+                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
+                builder
+              )
+            end
             builder.line "writer.pop"
           end
           builder.line "end"
@@ -101,6 +108,13 @@ module SerializersCodeGen
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
               FieldEmitters::Attribute.emit_json(attribute, "record.#{attribute.source}", builder)
+            end
+            descriptor.method_attributes.each do |method_attribute|
+              FieldEmitters::MethodAttribute.emit_json(
+                method_attribute,
+                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
+                builder
+              )
             end
             builder.line "writer.pop"
           end
@@ -146,6 +160,14 @@ module SerializersCodeGen
                 builder
               )
             end
+            descriptor.method_attributes.each do |method_attribute|
+              FieldEmitters::MethodAttribute.emit_hash(
+                method_attribute,
+                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
+                config.hash_output_key_type,
+                builder
+              )
+            end
             builder.line "result"
           end
           builder.line "end"
@@ -167,6 +189,14 @@ module SerializersCodeGen
               FieldEmitters::Attribute.emit_hash(
                 attribute,
                 "record.#{attribute.source}",
+                config.hash_output_key_type,
+                builder
+              )
+            end
+            descriptor.method_attributes.each do |method_attribute|
+              FieldEmitters::MethodAttribute.emit_hash(
+                method_attribute,
+                FieldEmitters::MethodAttribute.ivar_name(method_attribute),
                 config.hash_output_key_type,
                 builder
               )

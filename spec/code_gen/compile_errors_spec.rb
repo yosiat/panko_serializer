@@ -362,13 +362,43 @@ RSpec.describe "Compile-time errors" do
     end
 
     describe "ArityError (S4)" do
-      pending "raises when MethodAttribute body has arity 3"
-      pending "raises when MethodAttribute body has arity -1"
-      pending "raises when MethodAttribute body has arity -2"
+      def descriptor_with_method_attribute(name:, body:)
+        SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor",
+          models: nil,
+          attributes: [],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: name, body: body)],
+          associations: []
+        )
+      end
+
+      {
+        3 => ->(_a, _b, _c) { :ok },
+        -1 => ->(*_args) { :ok },
+        -2 => ->(_a, *_rest) { :ok }
+      }.each do |arity, body|
+        it "raises when MethodAttribute body has arity #{arity}" do
+          descriptor = descriptor_with_method_attribute(name: :likes_count, body: body)
+          expect {
+            SerializersCodeGen.compile(descriptor, output: :json)
+          }.to raise_error(SerializersCodeGen::ArityError, /arity #{arity}/)
+        end
+      end
+
       pending "raises when Association if: has arity outside {0, 1, 2}"
-      pending "compiles when MethodAttribute body has arity 0"
-      pending "compiles when MethodAttribute body has arity 1"
-      pending "compiles when MethodAttribute body has arity 2"
+
+      {
+        0 => -> { :ok },
+        1 => ->(_record) { :ok },
+        2 => ->(_record, _context) { :ok }
+      }.each do |arity, body|
+        it "compiles when MethodAttribute body has arity #{arity}" do
+          descriptor = descriptor_with_method_attribute(name: :computed, body: body)
+          expect {
+            SerializersCodeGen.compile(descriptor, output: :json)
+          }.not_to raise_error
+        end
+      end
     end
   end
 
@@ -385,7 +415,24 @@ RSpec.describe "Compile-time errors" do
 
     pending "NameCollisionError names the Descriptor, Field name, and rule (S9)"
     pending "UnknownSourceError names the Descriptor, Field name, rule, and observed Source (S6)"
-    pending "ArityError matches the docs/errors.md § Message convention example (S4)"
+
+    it "ArityError matches the docs/errors.md § Message convention example (S4)" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: nil,
+        attributes: [],
+        method_attributes: [
+          SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c) { :ok })
+        ],
+        associations: []
+      )
+      expect {
+        SerializersCodeGen.compile(descriptor, output: :json)
+      }.to raise_error(
+        SerializersCodeGen::ArityError,
+        "PostDescriptor#likes_count: MethodAttribute#body has arity 3; must be 0, 1, or 2."
+      )
+    end
   end
 
   describe "SKIP singleton (S1.3)" do
@@ -446,7 +493,21 @@ RSpec.describe "Compile-time errors" do
       context "with #{mode} Output Mode" do
         pending "NameCollisionError raises before Generator emit (S9)"
         pending "UnknownSourceError raises before Generator emit (S6)"
-        pending "ArityError raises before Generator emit (S4)"
+
+        it "ArityError raises before Generator emit (S4)" do
+          descriptor = SerializersCodeGen::Descriptor.new(
+            name: "PostDescriptor",
+            models: nil,
+            attributes: [],
+            method_attributes: [
+              SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c) { :ok })
+            ],
+            associations: []
+          )
+          expect {
+            SerializersCodeGen.compile(descriptor, output: mode)
+          }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 3/)
+        end
       end
     end
   end
