@@ -9,6 +9,8 @@ require "sti_specialized"
 require "recursive_self"
 require "recursive_mutual"
 require "config/config_root_key_on"
+require "config/config_hash_record_key_symbol"
+require "config/config_hash_output_key_symbol"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -24,7 +26,17 @@ require "config/config_root_key_on"
 # +shallow_generic+ × one +:json+ row. S3 onwards extend +MODES+ and the
 # fixture set.
 RSpec.describe "Generator snapshot corpus" do
-  fixtures = [Fixtures::ShallowGeneric, Fixtures::NestedComposition, Fixtures::ShallowSpecialized, Fixtures::StiSpecialized, Fixtures::RecursiveSelf, Fixtures::RecursiveMutual, Fixtures::Config::ConfigRootKeyOn]
+  fixtures = [
+    Fixtures::ShallowGeneric,
+    Fixtures::NestedComposition,
+    Fixtures::ShallowSpecialized,
+    Fixtures::StiSpecialized,
+    Fixtures::RecursiveSelf,
+    Fixtures::RecursiveMutual,
+    Fixtures::Config::ConfigRootKeyOn,
+    Fixtures::ConfigHashRecordKeySymbol,
+    Fixtures::ConfigHashOutputKeySymbol
+  ]
 
   fixtures.each do |fixture|
     # Snake-case slug derived from the fixture's last namespace segment —
