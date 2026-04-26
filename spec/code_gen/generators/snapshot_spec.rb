@@ -11,6 +11,7 @@ require "recursive_mutual"
 require "config/config_root_key_on"
 require "config/config_hash_record_key_symbol"
 require "config/config_hash_output_key_symbol"
+require "config/config_null_for_has_one_off"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -35,7 +36,8 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::RecursiveMutual,
     Fixtures::Config::ConfigRootKeyOn,
     Fixtures::ConfigHashRecordKeySymbol,
-    Fixtures::ConfigHashOutputKeySymbol
+    Fixtures::ConfigHashOutputKeySymbol,
+    Fixtures::ConfigNullForHasOneOff
   ]
 
   fixtures.each do |fixture|
