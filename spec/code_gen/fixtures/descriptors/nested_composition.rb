@@ -36,7 +36,8 @@ module Fixtures
         SerializersCodeGen::Association.new(
           name: :author,
           kind: :has_one,
-          descriptor: AUTHOR_DESCRIPTOR
+          descriptor: AUTHOR_DESCRIPTOR,
+          if: ->(_record, _context) { true }
         ),
         SerializersCodeGen::Association.new(
           name: :comments,

@@ -372,6 +372,24 @@ RSpec.describe "Compile-time errors" do
         )
       end
 
+      def descriptor_with_association_if(name:, if_callable:)
+        inner = SerializersCodeGen::Descriptor.new(
+          name: "InnerDescriptor", models: nil,
+          attributes: [], method_attributes: [], associations: []
+        )
+        SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor",
+          models: nil,
+          attributes: [],
+          method_attributes: [],
+          associations: [
+            SerializersCodeGen::Association.new(
+              name: name, kind: :has_one, descriptor: inner, if: if_callable
+            )
+          ]
+        )
+      end
+
       {
         3 => ->(_a, _b, _c) { :ok },
         -1 => ->(*_args) { :ok },
@@ -385,7 +403,21 @@ RSpec.describe "Compile-time errors" do
         end
       end
 
-      pending "raises when Association if: has arity outside {0, 1, 2}"
+      {
+        3 => ->(_a, _b, _c) { true },
+        -1 => ->(*_args) { true },
+        -2 => ->(_a, *_rest) { true }
+      }.each do |arity, body|
+        it "raises when Association if: has arity #{arity}" do
+          descriptor = descriptor_with_association_if(name: :author, if_callable: body)
+          expect {
+            SerializersCodeGen.compile(descriptor, output: :json)
+          }.to raise_error(
+            SerializersCodeGen::ArityError,
+            "PostDescriptor#author: Association#if has arity #{arity}; must be 0, 1, or 2."
+          )
+        end
+      end
 
       {
         0 => -> { :ok },
@@ -394,6 +426,19 @@ RSpec.describe "Compile-time errors" do
       }.each do |arity, body|
         it "compiles when MethodAttribute body has arity #{arity}" do
           descriptor = descriptor_with_method_attribute(name: :computed, body: body)
+          expect {
+            SerializersCodeGen.compile(descriptor, output: :json)
+          }.not_to raise_error
+        end
+      end
+
+      {
+        0 => -> { true },
+        1 => ->(_record) { true },
+        2 => ->(_record, _context) { true }
+      }.each do |arity, body|
+        it "compiles when Association if: has arity #{arity}" do
+          descriptor = descriptor_with_association_if(name: :author, if_callable: body)
           expect {
             SerializersCodeGen.compile(descriptor, output: :json)
           }.not_to raise_error

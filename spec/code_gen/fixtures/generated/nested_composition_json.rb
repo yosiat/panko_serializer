@@ -96,6 +96,7 @@ end
 
 class PostSerializer_JSON
   def initialize(descriptor:)
+    @cb_if_author = descriptor.associations[0].if
     @author_serializer = AuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
     @comments_serializer = CommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
   end
@@ -128,12 +129,14 @@ class PostSerializer_JSON
     writer.push_object
     writer.push_key("id")
     writer.push_value(record["id"])
-    value = record["author"]
-    writer.push_key("author")
-    if value.nil?
-      writer.push_value(nil)
-    else
-      @author_serializer._write_one(value, writer, context, filters)
+    if @cb_if_author.call(record, context)
+      value = record["author"]
+      writer.push_key("author")
+      if value.nil?
+        writer.push_value(nil)
+      else
+        @author_serializer._write_one(value, writer, context, filters)
+      end
     end
     writer.push_key("comments")
     writer.push_array
@@ -148,12 +151,14 @@ class PostSerializer_JSON
     writer.push_object
     writer.push_key("id")
     writer.push_value(record.id)
-    value = record.author
-    writer.push_key("author")
-    if value.nil?
-      writer.push_value(nil)
-    else
-      @author_serializer._write_one(value, writer, context, filters)
+    if @cb_if_author.call(record, context)
+      value = record.author
+      writer.push_key("author")
+      if value.nil?
+        writer.push_value(nil)
+      else
+        @author_serializer._write_one(value, writer, context, filters)
+      end
     end
     writer.push_key("comments")
     writer.push_array

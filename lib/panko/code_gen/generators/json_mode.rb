@@ -71,11 +71,14 @@ module SerializersCodeGen
       # Method Attribute's Callable body into a per-Field +@cb_<name>+
       # ivar in declaration order per
       # +docs/code-generation.md § Callable hoisting+, then per Association
-      # assigns +@<name>_serializer = <Inner>_JSON.new(descriptor:
-      # descriptor.associations[<i>].descriptor)+ — the Composition wiring
-      # from +docs/compilation.md § Composition of nested Associations+.
-      # Body is empty when the Descriptor has neither Method Attributes
-      # nor Associations (the +shallow_generic+ case).
+      # hoists the optional +if:+ Callable into +@cb_if_<name>+ (only when
+      # +assoc.if+ is non-+nil+ — unguarded Associations pay zero
+      # construction cost) and assigns +@<name>_serializer = <Inner>_JSON
+      # .new(descriptor: descriptor.associations[<i>].descriptor)+ — the
+      # Composition wiring from
+      # +docs/compilation.md § Composition of nested Associations+. Body
+      # is empty when the Descriptor has neither Method Attributes nor
+      # Associations (the +shallow_generic+ case).
       #
       # @param descriptor [SerializersCodeGen::Descriptor]
       # @param builder [SerializersCodeGen::CodeBuilder] target buffer
@@ -88,6 +91,9 @@ module SerializersCodeGen
             builder.line "#{ivar} = descriptor.method_attributes[#{index}].body"
           end
           descriptor.associations.each_with_index do |assoc, i|
+            if assoc.if
+              builder.line "#{FieldEmitters::Association.ivar_name(assoc)} = descriptor.associations[#{i}].if"
+            end
             builder.line "@#{assoc.name}_serializer = #{assoc.descriptor.name}_JSON.new(descriptor: descriptor.associations[#{i}].descriptor)"
           end
         end

@@ -12,13 +12,23 @@ module SerializersCodeGen
       #
       # S5.1 shipped +has_one+; S5.2 adds +has_many+ (collection emit:
       # +writer.push_array+ + element iteration + +writer.pop+ in JSON;
-      # +.map+ on the collection in Hash). +Association#if+ Callable
-      # wrapping lands in S5.3. Both +null_for_missing_has_one+ branches
-      # (default-+true+ → emit +null+/+nil+; +false+ → omit the key) are
-      # emitted as compile-time source choices keyed off
-      # +Config#null_for_missing_has_one+ for the +has_one+ Kind only;
-      # +has_many+ ignores the knob (an empty collection always emits
-      # +[]+ — never +null+, never omitted) per
+      # +.map+ on the collection in Hash). S5.3 adds the +Association#if+
+      # Callable wrap — when +association.if+ is non-+nil+ the entire
+      # per-Kind emit is wrapped in
+      # +if @cb_if_<name>.call(...) ... end+ with arity-specialized
+      # invocation per +docs/descriptor.md § Callable arity+; when +nil+
+      # no wrap is emitted (zero runtime cost — no branch, no Callable
+      # dispatch, no +@cb_if_<name>+ ivar hoisted by the constructor).
+      # The +if:+ wrap precedes the Source read so a falsy guard never
+      # invokes the Source per +docs/testing.md § association_if_spec.rb
+      # § Precedence ladder+ (item 2 wins over item 3; +if:+ falsy
+      # short-circuits before either +null_for_missing_has_one+ branch
+      # of +has_one+ or the +has_many+ collection iteration runs). Both
+      # +null_for_missing_has_one+ branches (default-+true+ → emit
+      # +null+/+nil+; +false+ → omit the key) are emitted as compile-time
+      # source choices keyed off +Config#null_for_missing_has_one+ for
+      # the +has_one+ Kind only; +has_many+ ignores the knob (an empty
+      # collection always emits +[]+ — never +null+, never omitted) per
       # +docs/output-modes.md § Null Association handling+. The
       # +null_for_missing_has_one: false+ branch is exercised end-to-end
       # by S10's +config_null_for_has_one_off+ fixture; this slice only
@@ -60,6 +70,21 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(association, source_read_expr, config, builder)
+          with_if_guard(association, builder) do
+            emit_json_body(association, source_read_expr, config, builder)
+          end
+        end
+
+        # Emits the per-Kind JSON body for one Association — the un-wrapped
+        # emit shape used inside the optional +if @cb_if_<name>.call(...)+
+        # guard (or directly when no guard is configured).
+        #
+        # @param association [SerializersCodeGen::Association]
+        # @param source_read_expr [String]
+        # @param config [SerializersCodeGen::Config]
+        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @return [void]
+        def self.emit_json_body(association, source_read_expr, config, builder)
           case association.kind
           when :has_one
             builder.line "value = #{source_read_expr}"
@@ -110,6 +135,23 @@ module SerializersCodeGen
           when :symbol then ":#{association.name}"
           else %("#{association.name}")
           end
+          with_if_guard(association, builder) do
+            emit_hash_body(association, source_read_expr, key_lit, config, builder)
+          end
+        end
+
+        # Emits the per-Kind Hash body for one Association — the un-wrapped
+        # emit shape used inside the optional +if @cb_if_<name>.call(...)+
+        # guard (or directly when no guard is configured).
+        #
+        # @param association [SerializersCodeGen::Association]
+        # @param source_read_expr [String]
+        # @param key_lit [String] pre-rendered Ruby literal for the output
+        #   key
+        # @param config [SerializersCodeGen::Config]
+        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @return [void]
+        def self.emit_hash_body(association, source_read_expr, key_lit, config, builder)
           case association.kind
           when :has_one
             builder.line "value = #{source_read_expr}"
@@ -235,6 +277,59 @@ module SerializersCodeGen
             "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
               "@#{association.name}_serializer._to_hash(element, context, filters) }"
           )
+        end
+
+        # Wraps +block+ in +if @cb_if_<name>.call(...) ... end+ when
+        # +association.if+ is non-+nil+, or yields the block directly
+        # when no guard is configured. The wrap pre-empts the per-Kind
+        # body — Source read, key push, nested call — so a falsy guard
+        # short-circuits before any of them run, per
+        # +docs/testing.md § association_if_spec.rb § Precedence ladder+.
+        # Call expression is arity-specialized per
+        # +docs/descriptor.md § Callable arity+ via
+        # {.call_expression}.
+        #
+        # @param association [SerializersCodeGen::Association]
+        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @yield emits the per-Kind body inside the guard
+        # @return [void]
+        def self.with_if_guard(association, builder)
+          if association.if
+            builder.line "if #{call_expression(ivar_name(association), association.if.arity)}"
+            builder.indent { yield }
+            builder.line "end"
+          else
+            yield
+          end
+        end
+
+        # Returns the per-Association +if:+ ivar name used for both
+        # constructor hoisting and the guard call site. Pinned at one
+        # place so the constructor and the field emitter can't drift.
+        #
+        # @param association [SerializersCodeGen::Association] the Field node
+        # @return [String] the ivar token, e.g. +"@cb_if_author"+
+        def self.ivar_name(association)
+          "@cb_if_#{association.name}"
+        end
+
+        # Returns the arity-specialized call expression for one ivar.
+        # Pre-validated by the +callable_arity+ rule (S4.1) — only +0+,
+        # +1+, +2+ ever reach this method. Mirrors the same arity-axis
+        # rule applied to +MethodAttribute#body+ via
+        # +FieldEmitters::MethodAttribute.call_expression+ — both Callable
+        # surfaces share the per-arity emit shape per
+        # +docs/descriptor.md § Callable arity+.
+        #
+        # @param ivar_name [String] the +@cb_if_<name>+ ivar to invoke
+        # @param arity [Integer] +0+, +1+, or +2+
+        # @return [String] Ruby source like +"@cb_if_author.call(record, context)"+
+        def self.call_expression(ivar_name, arity)
+          case arity
+          when 0 then "#{ivar_name}.call"
+          when 1 then "#{ivar_name}.call(record)"
+          else "#{ivar_name}.call(record, context)"
+          end
         end
       end
     end

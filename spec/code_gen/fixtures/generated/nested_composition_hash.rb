@@ -76,6 +76,7 @@ end
 
 class PostSerializer_Hash
   def initialize(descriptor:)
+    @cb_if_author = descriptor.associations[0].if
     @author_serializer = AuthorSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor)
     @comments_serializer = CommentSerializer_Hash.new(descriptor: descriptor.associations[1].descriptor)
   end
@@ -101,11 +102,13 @@ class PostSerializer_Hash
   def _to_hash_hash(record, context, filters)
     result = {}
     result["id"] = record["id"]
-    value = record["author"]
-    result["author"] = if value.nil?
-      nil
-    else
-      @author_serializer._to_hash(value, context, filters)
+    if @cb_if_author.call(record, context)
+      value = record["author"]
+      result["author"] = if value.nil?
+        nil
+      else
+        @author_serializer._to_hash(value, context, filters)
+      end
     end
     result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, filters) }
     result
@@ -114,11 +117,13 @@ class PostSerializer_Hash
   def _to_hash_object(record, context, filters)
     result = {}
     result["id"] = record.id
-    value = record.author
-    result["author"] = if value.nil?
-      nil
-    else
-      @author_serializer._to_hash(value, context, filters)
+    if @cb_if_author.call(record, context)
+      value = record.author
+      result["author"] = if value.nil?
+        nil
+      else
+        @author_serializer._to_hash(value, context, filters)
+      end
     end
     result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, filters) }
     result
