@@ -85,9 +85,11 @@ module SerializersCodeGen
     # @yield invoked on cache miss; expected to call
     #   +#set(descriptor, klass)+ on +self+ before any recursive
     #   +#lookup_or_compile+ on +descriptor+ identity
-    # @return [Class] the cached or freshly-built class — read out of
-    #   the cache after the block returns, so omitting the +#set+ inside
-    #   the block returns +nil+
+    # @yieldreturn [void] the block's return value is discarded; the
+    #   cache entry is read back via +#get+ after the block returns
+    # @return [Class, nil] the cached or freshly-built class — read out
+    #   of the cache after the block returns, so omitting the +#set+
+    #   inside the block returns +nil+
     def lookup_or_compile(descriptor)
       cached = @store[descriptor.__id__]
       return cached if cached
