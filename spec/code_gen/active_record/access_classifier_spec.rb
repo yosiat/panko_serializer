@@ -129,6 +129,18 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
         t = fake_ar_class(name: "Truck", columns: ["vin"])
         expect(described_class.classify([v, c, t], :vin)).to eq(:column)
       end
+
+      it "names only the missing classes (skipping non-missing) and preserves declaration order" do
+        v = fake_ar_class(name: "Vehicle", columns: ["vin"])
+        c = fake_ar_class(name: "Car", columns: ["vin"], methods: %i[wheels])
+        t = fake_ar_class(name: "Truck", columns: ["vin"])
+        expect {
+          described_class.classify([v, c, t], :wheels)
+        }.to raise_error(
+          SerializersCodeGen::UnknownSourceError,
+          "Vehicle, Truck: source :wheels is not a column or instance method."
+        )
+      end
     end
   end
 end

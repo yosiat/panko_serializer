@@ -210,6 +210,18 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
         described_class.validate(descriptor, output: :json, config: config)
       }.not_to raise_error
     end
+
+    it "does not name a non-AR class in the error message when only the AR class is missing the source" do
+      non_ar = Class.new { def self.name = "PlainClass" }
+      ar = fake_ar_class(name: "Post", columns: ["id"])
+      descriptor = descriptor_with(models: [non_ar, ar], attributes: [attribute(:title)])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.to raise_error(
+        SerializersCodeGen::UnknownSourceError,
+        "PostDescriptor#title: Attribute#source :title is not a column or instance method on Post."
+      )
+    end
   end
 
   describe ".validate — DefineAttributeMethods.ensure! is invoked per AR class" do
