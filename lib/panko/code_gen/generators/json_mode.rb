@@ -47,7 +47,13 @@ module SerializersCodeGen
       private
 
       # Emits one +<Name>_JSON+ class shell with constructor + public
-      # entries + +RecordAccess::Generic+ helpers.
+      # entries + the chosen +RecordAccess+ strategy's helpers.
+      # Strategy choice is per-Descriptor and keyed off
+      # +descriptor.models.nil?+ per +docs/compilation.md § Record-access
+      # strategy+: +nil+ → +RecordAccess::Generic+ (Hash + PORO via the
+      # +_write_one_hash+ / +_write_one_object+ split); set →
+      # +RecordAccess::Specialized+ (single +_write_one+ body, no Hash
+      # branch).
       #
       # @param descriptor [SerializersCodeGen::Descriptor]
       # @param config [SerializersCodeGen::Config]
@@ -62,7 +68,11 @@ module SerializersCodeGen
           builder.blank
           emit_serialize_many(builder)
           builder.blank
-          RecordAccess::Generic.emit_json(descriptor, config, builder)
+          if descriptor.models.nil?
+            RecordAccess::Generic.emit_json(descriptor, config, builder)
+          else
+            RecordAccess::Specialized.emit_json(descriptor, config, builder)
+          end
         end
         builder.line "end"
       end

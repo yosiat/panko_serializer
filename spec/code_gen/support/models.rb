@@ -3,6 +3,14 @@
 class Post < ActiveRecord::Base
   has_one :author
   has_many :comments
+
+  def title
+    super.upcase
+  end
+
+  def headline
+    "#{title} (id=#{id})"
+  end
 end
 
 class Author < ActiveRecord::Base
