@@ -11,9 +11,10 @@ require_relative "support/targets"
 # a child instance — the whole tree walks through one Generated Class.
 #
 # Bench dataset is the `:comment_trees` registry entry: roots eager-loaded
-# `replies: :replies` so the full 1 + 2 + 4 = 7-node tree walks without an
-# N+1 query inside the measured block (per docs/benchmarks.md § Fixture
-# data).
+# three levels deep (replies → replies → replies) so even the leaf
+# grandchildren have their empty replies cache populated and the full
+# 1 + 2 + 4 = 7-node tree walks without an N+1 query inside the measured
+# block (per docs/benchmarks.md § Fixture data).
 #
 # Only carries `serializers_code_gen/*` rows — there's no equivalent
 # panko / oj recursive primitive worth comparing (panko's recursive

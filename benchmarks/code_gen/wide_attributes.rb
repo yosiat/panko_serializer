@@ -48,7 +48,7 @@ Targets::PLAIN_HASH[:wide_attributes] = ->(records) { records.map(&:as_json) }
 
 # --- Scenario -------------------------------------------------------------
 
-benchmark_scenario "WideAttributes", type: :wide_post do |records|
+benchmark_scenario "WideAttributes", type: :wide_posts do |records|
   {
     "serializers_code_gen/json" => -> { Targets::SCG_JSON[:wide_attributes].call(records) },
     "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:wide_attributes].call(records) },

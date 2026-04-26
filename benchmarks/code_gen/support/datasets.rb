@@ -156,12 +156,13 @@ Bench::Comment.insert_all(comment_attrs)
 # comments below) stays unaffected.
 COMMENT_TREE_CHILDREN_PER_NODE = 2
 
+# Per-level placeholder counts at max_size=2300 (≤2 fields per row) stay
+# well under sqlite's default SQLITE_MAX_VARIABLE_NUMBER (32766 on modern
+# sqlite), so each level fits in a single insert_all without batching —
+# same window the per-post comment insert already trusts.
 tree_root_attrs = Array.new(max_size) do |i|
   {body: "Tree root ##{i}"}
 end
-# bench_comments is wide enough that 2300 × 2 fields = 4600 placeholders
-# stays well under sqlite's default SQLITE_MAX_VARIABLE_NUMBER (32766 on
-# modern sqlite — same window the per-post comment insert already trusts).
 Bench::Comment.insert_all(tree_root_attrs)
 tree_root_ids = Bench::Comment.where(bench_post_id: nil, parent_comment_id: nil).order(:id).pluck(:id)
 
@@ -170,8 +171,6 @@ tree_child_attrs = tree_root_ids.flat_map do |root_id|
     {parent_comment_id: root_id, body: "Tree child ##{j} of root #{root_id}"}
   end
 end
-# 2300 roots × 2 children × 2 fields = 9200 placeholders. One insert is
-# fine.
 Bench::Comment.insert_all(tree_child_attrs) unless tree_child_attrs.empty?
 tree_child_ids = Bench::Comment.where(bench_post_id: nil).where.not(parent_comment_id: nil).order(:id).pluck(:id)
 
@@ -180,8 +179,6 @@ tree_grandchild_attrs = tree_child_ids.flat_map do |child_id|
     {parent_comment_id: child_id, body: "Tree grandchild ##{j} of child #{child_id}"}
   end
 end
-# 2300 × 2 × 2 = 9200 grandchildren × 2 fields = 18400 placeholders. One
-# insert is fine.
 Bench::Comment.insert_all(tree_grandchild_attrs) unless tree_grandchild_attrs.empty?
 
 # Wide-post seeding — generate one row per slot with deterministic varied
@@ -211,13 +208,15 @@ wide_attrs.each_slice(WIDE_POST_INSERT_BATCH) { |slice| Bench::WidePost.insert_a
 # so association-walking scenarios don't pay an N+1 query cost inside the
 # measured block. :comments filters out the tree comments (bench_post_id IS
 # NULL) so the has_many.rb-shaped per-post comment set stays exactly what
-# S11.2 saw. :comment_trees returns only the roots, eager-loaded two levels
-# deep, so scg_recursive.rb's serialize_many walks the full 1+2+4 tree
-# without paying an N+1 inside the measured block.
+# S11.2 saw. :comment_trees returns only the roots; eager-loading nests three
+# levels (replies → replies → replies) so even the leaf grandchildren have
+# their (empty) replies cache populated — without the third level, the
+# recursive serializer would issue one SELECT per grandchild inside the
+# measured block.
 DATASETS = {
   posts: Bench::Post.includes(:author, :comments).to_a,
   authors: Bench::Author.includes(:post).to_a,
   comments: Bench::Comment.where.not(bench_post_id: nil).includes(:post).to_a,
-  comment_trees: Bench::Comment.where(bench_post_id: nil, parent_comment_id: nil).includes(replies: :replies).to_a,
-  wide_post: Bench::WidePost.all.to_a
+  comment_trees: Bench::Comment.where(bench_post_id: nil, parent_comment_id: nil).includes(replies: {replies: :replies}).to_a,
+  wide_posts: Bench::WidePost.all.to_a
 }.freeze
