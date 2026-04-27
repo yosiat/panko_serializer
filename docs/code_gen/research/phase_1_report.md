@@ -1,11 +1,14 @@
 # Phase 1 report — benchmark verdict
 
-> **Status:** raw numbers + env recorded (S12.2). Verdict, hard-/soft-bar
-> analysis, and beyond-sanity / scg-specific observations are still
-> pending — that's S12.3's work and lives in §§ 1, 4, 5, 6, 7. This
-> file's structure — verdict template, scenario list, hardware/env
-> block, hard- and soft-bar table skeletons — was committed **before**
-> any numbers were measured (S12.1), per the pre-registration discipline
+> **Status:** raw numbers + env recorded (S12.2); hard-bar analysis
+> filled in (§ 4) — Clauses A and B pass everywhere, Clause D passes
+> 7/8, but `json_column` fails Clause C at both sizes (recorded in
+> § 8.1, decision pending profile). Verdict, soft-bar analysis, and
+> beyond-sanity / scg-specific observations are still pending — that's
+> S12.3's remaining work and lives in §§ 1, 5, 6, 7. This file's
+> structure — verdict template, scenario list, hardware/env block,
+> hard- and soft-bar table skeletons — was committed **before** any
+> numbers were measured (S12.1), per the pre-registration discipline
 > used for S13's filter experiment
 > ([`docs/filters.md` § Experiment design](../filters.md#experiment-design)).
 > Writing down what's being measured before measuring it prevents the
@@ -314,22 +317,22 @@ that scenario+size; the per-row Yes/No values feed the Clause D tally.
 
 | Scenario           | Size | Clause A: scg/json vs panko/json | Clause B: scg/hash vs panko/object | Clause C: allocs scg ≤ panko | Strictly beats? |
 | ------------------ | ---- | -------------------------------- | ---------------------------------- | ---------------------------- | --------------- |
-| `simple`           | 50   |                                  |                                    |                              |                 |
-| `simple`           | 2300 |                                  |                                    |                              |                 |
-| `has_one`          | 50   |                                  |                                    |                              |                 |
-| `has_one`          | 2300 |                                  |                                    |                              |                 |
-| `has_many`         | 50   |                                  |                                    |                              |                 |
-| `has_many`         | 2300 |                                  |                                    |                              |                 |
-| `method_attribute` | 50   |                                  |                                    |                              |                 |
-| `method_attribute` | 2300 |                                  |                                    |                              |                 |
-| `aliases`          | 50   |                                  |                                    |                              |                 |
-| `aliases`          | 2300 |                                  |                                    |                              |                 |
-| `json_column`      | 50   |                                  |                                    |                              |                 |
-| `json_column`      | 2300 |                                  |                                    |                              |                 |
-| `filter_only`      | 50   |                                  |                                    |                              |                 |
-| `filter_only`      | 2300 |                                  |                                    |                              |                 |
-| `filter_except`    | 50   |                                  |                                    |                              |                 |
-| `filter_except`    | 2300 |                                  |                                    |                              |                 |
+| `simple`           | 50   | Yes (1.75×)                      | Yes (3.04×)                        | Yes (4 ≤ 20; 51 ≤ 71)        | Yes             |
+| `simple`           | 2300 | Yes (1.82×)                      | Yes (3.06×)                        | Yes (4 ≤ 20; 2301 ≤ 2321)    | Yes             |
+| `has_one`          | 50   | Yes (1.98×)                      | Yes (3.25×)                        | Yes (4 ≤ 28; 101 ≤ 129)      | Yes             |
+| `has_one`          | 2300 | Yes (1.95×)                      | Yes (3.14×)                        | Yes (4 ≤ 28; 4601 ≤ 4629)    | Yes             |
+| `has_many`         | 50   | Yes (2.07×)                      | Yes (2.60×)                        | Yes (4 ≤ 78; 351 ≤ 429)      | Yes             |
+| `has_many`         | 2300 | Yes (2.10×)                      | Yes (2.85×)                        | Yes (4 ≤ 2328; 16101 ≤ 18429) | Yes            |
+| `method_attribute` | 50   | Yes (1.93×)                      | Yes (3.32×)                        | Yes (4 ≤ 22; 51 ≤ 73)        | Yes             |
+| `method_attribute` | 2300 | Yes (1.92×)                      | Yes (3.18×)                        | Yes (4 ≤ 22; 2301 ≤ 2323)    | Yes             |
+| `aliases`          | 50   | Yes (1.86×)                      | Yes (3.34×)                        | Yes (4 ≤ 20; 51 ≤ 71)        | Yes             |
+| `aliases`          | 2300 | Yes (1.93×)                      | Yes (3.38×)                        | Yes (4 ≤ 20; 2301 ≤ 2321)    | Yes             |
+| `json_column`      | 50   | Yes (1.13×)                      | Yes (14.35×)                       | **No** (json: 154 > 70)      | Yes             |
+| `json_column`      | 2300 | Yes (1.15×)                      | Yes (15.17×)                       | **No** (json: 6904 > 2320)   | Yes             |
+| `filter_only`      | 50   | Yes (~tie, +0.4%)                | Yes (1.74×)                        | Yes (4 ≤ 22; 51 ≤ 73)        | No (within noise) |
+| `filter_only`      | 2300 | Yes (~tie, −1.6%)                | Yes (1.69×)                        | Yes (4 ≤ 22; 2301 ≤ 2323)    | No (within noise) |
+| `filter_except`    | 50   | Yes (1.51×)                      | Yes (2.71×)                        | Yes (4 ≤ 22; 51 ≤ 73)        | Yes             |
+| `filter_except`    | 2300 | Yes (1.52×)                      | Yes (2.65×)                        | Yes (4 ≤ 22; 2301 ≤ 2323)    | Yes             |
 
 ### 4.2 Clause D — "strictly beats" tally
 
@@ -339,9 +342,9 @@ the bar is verified per scenario, not per row.
 
 | | |
 | --- | --- |
-| Sanity scenarios where scg strictly beats Panko at both sizes | _pending_ / 8 |
+| Sanity scenarios where scg strictly beats Panko at both sizes | 7 / 8 (`simple`, `has_one`, `has_many`, `method_attribute`, `aliases`, `json_column`, `filter_except`; `filter_only` is a tie within noise) |
 | Threshold (at least half)                                     | 4 / 8         |
-| Clause D verdict                                              | _pending_     |
+| Clause D verdict                                              | **Pass** (7/8 ≥ 4/8) |
 
 ## 5. Soft-bar analysis
 
@@ -446,3 +449,20 @@ Default: fix first, tune as fallback. Each failing scenario gets its own
 sub-section here recording: what was profiled, what was changed (or what
 clause was tuned and why), and the iteration's number block (re-run
 output if a fix landed).
+
+### 8.1 `json_column` — Clause C failure (JSON-mode allocations)
+
+`json_column` fails Clause C at both sizes: `scg/json` allocates 154 at
+size=50 vs `panko/json`'s 70, and 6904 at size=2300 vs panko's 2320 —
+roughly 3 allocs/record on scg's JSON-column emit path vs ~1 alloc/record
+on Panko's. Speed clauses pass cleanly: `scg/json` is 1.13×–1.15× faster
+than `panko/json` (Clause A) and `scg/hash` is 14–15× faster than
+`panko/object` (Clause B). Hash mode is also better on allocations
+(`scg/hash` 51 / 2301 vs `panko/object` 571 / 25321), so the gap is
+JSON-mode specific.
+
+Decision (**fix** vs **tune**) is deferred until `PROFILE=memory` is
+captured for this row in S12.3 / S12.4. The per-record alloc count looks
+mechanical (constant 3/record across both sizes), so a fix is plausible
+once the call site is identified — most likely the path that materializes
+the JSON-column string before re-emitting it as a raw JSON value.
