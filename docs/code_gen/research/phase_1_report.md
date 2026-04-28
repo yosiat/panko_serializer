@@ -1,15 +1,15 @@
 # Phase 1 report — benchmark verdict
 
-> **Status:** raw numbers + env recorded (S12.2); hard-bar analysis
-> filled in (§ 4) — Clauses A and B pass everywhere, Clause D passes
-> 7/8, but `json_column` fails Clause C at both sizes (recorded in
-> § 8.1, decision pending profile). Verdict, soft-bar analysis, and
-> beyond-sanity / scg-specific observations are still pending — that's
-> S12.3's remaining work and lives in §§ 1, 5, 6, 7. This file's
-> structure — verdict template, scenario list, hardware/env block,
-> hard- and soft-bar table skeletons — was committed **before** any
-> numbers were measured (S12.1), per the pre-registration discipline
-> used for S13's filter experiment
+> **Status:** raw numbers + env recorded (S12.2); hard-bar, soft-bar,
+> beyond-sanity, scg-specific, and verdict all filled in (S12.3). Phase
+> 1 does not close yet — Clause C fails on `json_column` at both sizes;
+> the iteration is tracked in
+> [#60 (S12.5)](https://github.com/yosiat/serializers-code-gen/issues/60).
+> S12.4 closes phase 1 once S12.5 lands and the canonical bench
+> re-runs clean. This file's structure — verdict template, scenario
+> list, hardware/env block, hard- and soft-bar table skeletons — was
+> committed **before** any numbers were measured (S12.1), per the
+> pre-registration discipline used for S13's filter experiment
 > ([`docs/filters.md` § Experiment design](../filters.md#experiment-design)).
 > Writing down what's being measured before measuring it prevents the
 > verdict from being retro-fitted to the numbers.
@@ -24,21 +24,39 @@ report follows.
 
 ## 1. Verdict
 
-_Pending canonical run._ One paragraph will land here once S12.2 fills in
-the raw numbers and S12.3 walks the hard bar clause-by-clause. The
-paragraph will record:
+**S12.3 verdict (2026-04-28): hard bar fails on one clause; phase 1 does
+not close yet.** Clause A (`scg/json ≥ panko/json`) passes 16/16 rows
+(1.13×–2.10× across sanity scenarios). Clause B (`scg/hash ≥
+panko/object`) passes 16/16 (1.69×–15.17×). Clause D ("strictly beats
+Panko on ≥ 4/8 sanity scenarios at both sizes") passes 7/8 — `simple`,
+`has_one`, `has_many`, `method_attribute`, `aliases`, `json_column`, and
+`filter_except`; only `filter_only` is a within-noise tie. **Clause C
+(`allocations scg ≤ panko`) fails on `json_column` at both sizes**:
+`scg/json` allocates 154 (size=50) and 6904 (size=2300) vs `panko/json`'s
+70 and 2320 — a constant ~3 allocs / record gap on the JSON-column emit
+path that does not appear on any other sanity scenario. § 8.1 records
+the failure and defers the fix-vs-tune call until `PROFILE=memory`
+pinpoints the allocation site; the per-record figure is mechanical, so
+the default is **fix**, with **tune** held in reserve.
 
-- Pass/fail per hard-bar sub-clause from
-  [`docs/phase-1-bar.md` § 4 Performance bar met](../phase-1-bar.md#4-performance-bar-met)
-  — `scg/json ≥ panko/json`, `scg/hash ≥ panko/object`, allocations
-  `scg ≤ panko`, "strictly beats Panko on at least half of the sanity
-  scenarios".
-- The decision: phase 1 closed, bar tuned (with a citation to the new
-  clause in `docs/phase-1-bar.md`), or fixes landed and re-run (with a
-  pointer to the iteration recorded in § 8).
-- Soft-bar gaps (`scg/json` vs `oj_serializers/json`) >10% recorded but
-  not blocking, per
-  [`docs/phase-1-bar.md` § Soft bar](../phase-1-bar.md#soft-bar--measured-recorded-does-not-block).
+Soft bar: `scg/json` meets or beats `oj_serializers/json` on 14 / 16
+sanity rows. The two flagged rows are both `filter_only` (≈45% behind oj
+at both sizes); the gap is structural to phase 1 — scg passes
+`filters: nil` per the phase-1 contract, so it emits the full attribute
+set while oj honors `:only` at runtime — and closes mechanically when
+S13 / S14 land. Per
+[`docs/phase-1-bar.md` § Soft bar](../phase-1-bar.md#soft-bar--measured-recorded-does-not-block):
+recorded, does not block. Beyond-sanity (`wide_attributes`, `graph`) and
+scg-specific scenarios are recorded in §§ 6–7 as informational baselines
+per
+[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar).
+
+Decision: iterate, do not tune yet. The `json_column` iteration is filed
+as [#60 (S12.5 — json_column JSON-mode allocation iteration)](https://github.com/yosiat/serializers-code-gen/issues/60),
+blocked by this issue and blocking S12.4. Phase 1 closes when S12.5
+lands and the canonical `rake bench:all` re-runs with `json_column` on
+Clause C as **Yes**; S12.4 then verifies CI / standardrb / lefthook and
+flips the status header to "phase 1 closed".
 
 ## 2. Hardware / env
 
@@ -355,31 +373,63 @@ in § 5.2. Soft bar **does not block** phase-1 closeout.
 
 ### 5.1 scg/json vs oj_serializers/json — sanity scenarios × sizes
 
-| Scenario           | Size | scg/json ips | oj_serializers/json ips | Gap (%) | Flagged? |
-| ------------------ | ---- | ------------ | ----------------------- | ------- | -------- |
-| `simple`           | 50   |              |                         |         |          |
-| `simple`           | 2300 |              |                         |         |          |
-| `has_one`          | 50   |              |                         |         |          |
-| `has_one`          | 2300 |              |                         |         |          |
-| `has_many`         | 50   |              |                         |         |          |
-| `has_many`         | 2300 |              |                         |         |          |
-| `method_attribute` | 50   |              |                         |         |          |
-| `method_attribute` | 2300 |              |                         |         |          |
-| `aliases`          | 50   |              |                         |         |          |
-| `aliases`          | 2300 |              |                         |         |          |
-| `json_column`      | 50   |              |                         |         |          |
-| `json_column`      | 2300 |              |                         |         |          |
-| `filter_only`      | 50   |              |                         |         |          |
-| `filter_only`      | 2300 |              |                         |         |          |
-| `filter_except`    | 50   |              |                         |         |          |
-| `filter_except`    | 2300 |              |                         |         |          |
+"Gap (%)" is `(scg/json − oj_serializers/json) / oj_serializers/json × 100` —
+positive means scg is ahead, negative means `oj_serializers` is ahead.
+"Flagged?" is **Yes** only when `oj_serializers` is materially ahead (gap < −10%);
+positive cushions and within-noise rows are **No** per the bar's intent (the
+soft bar exists to surface scg losses, not scg wins).
+
+| Scenario           | Size | scg/json ips | oj_serializers/json ips | Gap (%)    | Flagged?           |
+| ------------------ | ---- | ------------ | ----------------------- | ---------- | ------------------ |
+| `simple`           | 50   | 79.37K       | 59.16K                  | +34.2%     | No (scg ahead)     |
+| `simple`           | 2300 | 1.86K        | 1.31K                   | +42.0%     | No (scg ahead)     |
+| `has_one`          | 50   | 55.95K       | 38.92K                  | +43.8%     | No (scg ahead)     |
+| `has_one`          | 2300 | 1.25K        | 854.38                  | +46.3%     | No (scg ahead)     |
+| `has_many`         | 50   | 21.67K       | 16.43K                  | +31.9%     | No (scg ahead)     |
+| `has_many`         | 2300 | 477.79       | 355.49                  | +34.4%     | No (scg ahead)     |
+| `method_attribute` | 50   | 114.60K      | 98.58K                  | +16.2%     | No (scg ahead)     |
+| `method_attribute` | 2300 | 2.73K        | 2.22K                   | +23.0%     | No (scg ahead)     |
+| `aliases`          | 50   | 95.18K       | 73.52K                  | +29.5%     | No (scg ahead)     |
+| `aliases`          | 2300 | 2.22K        | 1.62K                   | +37.0%     | No (scg ahead)     |
+| `json_column`      | 50   | 35.96K       | 34.19K                  | +5.2%      | No (within noise)  |
+| `json_column`      | 2300 | 820.72       | 770.21                  | +6.6%      | No (within noise)  |
+| `filter_only`      | 50   | 77.95K       | 141.69K                 | **−45.0%** | **Yes**            |
+| `filter_only`      | 2300 | 1.80K        | 3.25K                   | **−44.6%** | **Yes**            |
+| `filter_except`    | 50   | 77.53K       | 73.75K                  | +5.1%      | No (within noise)  |
+| `filter_except`    | 2300 | 1.79K        | 1.65K                   | +8.5%      | No (within noise)  |
+
+Aggregate: scg/json meets or beats `oj_serializers/json` on 14 / 16 sanity rows.
+The two flagged rows are both `filter_only` — the only flagged scenario — and
+are addressed in § 5.2.
 
 ### 5.2 Investigation notes (gaps >10%)
 
-_To be filled in S12.3 if any row in § 5.1 shows a gap >10%. Each note is
-one paragraph: where oj_serializers wins, a hypothesis for why
-(hand-rolled C path? hot-path mismatch?), and whether closing the gap is
-worth pursuing in phase 2._
+#### `filter_only` — both sizes, ~45% behind oj_serializers/json
+
+`oj_serializers/json` runs at 141.69K i/s (size=50) and 3.25K i/s (size=2300);
+`scg/json` runs at 77.95K and 1.80K respectively. The gap is structural to
+phase 1, not a hot-path miss: `scg` passes `filters: nil` per
+[`docs/filters.md`](../filters.md) — the phase-1 contract is "filters
+unimplemented; emit every attribute" — so the scg path is doing the full
+attribute-set emit while `oj_serializers` is honoring the runtime `:only`
+filter and skipping fields. The comparison is apples-to-oranges by
+construction; the scenario stays in the bench so the comparison flips on
+once filters land.
+
+Hypothesis for why `oj_serializers` outpaces even what a smaller attribute
+set would predict: oj's runtime `:only` short-circuits before the per-field
+dispatch (the filter check happens at the loop boundary, not per attribute),
+and oj_serializers also routes through hand-written C for the JSON
+encoding step. Both cushions vanish in the `filter_except` row, where scg
+ties oj within noise (+5–9%) — `:except` doesn't get the same fast-path
+treatment in oj, and that asymmetry is the visible artifact.
+
+Worth pursuing in phase 2? The gap closes mechanically when
+[`S13` (filter experiment)](../implementation-plan.md) and
+[`S14` (filter implementation)](../implementation-plan.md) land — the
+phase-2 design emits filter-aware code at compile time, so the runtime cost
+collapses to ~zero on the filtered subset. No phase-1 fix is warranted; the
+soft-bar gap is exactly the work item phase 2 exists to absorb.
 
 ## 6. Beyond-sanity scenarios — observations
 
@@ -391,15 +441,35 @@ fluid spec.
 
 ### 6.1 `wide_attributes`
 
-_Brief observation pending: how does scg/json compare to panko/json and
-oj_serializers/json at ~70 Attributes? Any allocation surprises at the
-per-Field emit boundary?_
+At ~70 Attributes, `scg/json` runs 1.78× over `panko/json` and 1.28× over
+`oj_serializers/json` at both sizes (3.85K vs 2.16K vs 3.01K at size=50;
+84.25 vs 47.27 vs 64.32 at size=2300) — the per-attribute speed cushion
+holds as the field count grows. `scg/hash` over `panko/object` widens to
+3.4× (5.56K vs 1.60K at size=50). Allocation: `scg/json` runs at a constant
+~15 allocs/record (754 / 50 = 15.08; 34504 / 2300 = 15.0), versus
+`panko/json`'s ~50 allocs/record (2520 / 50; 115020 / 2300). The 15-per-record
+figure is recorded for reference — it isn't a phase-1 regression
+(`panko` allocates more on this shape, so Clause C still passes if this
+were a sanity row), but the per-Attribute alloc count is the natural
+target for any future "wide schema" phase-2 optimization. Per
+[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar):
+informational, does not gate phase 1.
 
 ### 6.2 `graph`
 
-_Brief observation pending: how does scg handle the combined Composition
-shape (~5 Attributes + 2 has_one + 2 has_many) versus Panko's nested
-serializer chain?_
+The combined Composition shape (~5 Attributes + 2 has_one + 2 has_many)
+holds the same speed cushion as the flat scenarios: `scg/json` over
+`panko/json` is 1.86× / 1.85× across sizes (9.34K vs 5.02K at 50; 192.71
+vs 104.00 at 2300), and `scg/json` over `oj_serializers/json` is 1.39× /
+1.37× — the soft-bar cushion does not collapse under nested associations.
+`scg/json` allocates a constant 3 / record (154 / 50; 6904 / 2300) — the
+same per-record figure as `json_column`, which suggests the allocation is
+not specific to the JSON-column path but is an attribute of the JSON-mode
+emit at the Composition boundary. Per
+[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar):
+informational, does not gate phase 1; the shape is still
+fluid per [`docs/benchmarks.md` § Open refinements](../benchmarks.md#open-refinements),
+so the numbers are recorded as a reference point rather than as a gating signal.
 
 ## 7. scg-specific scenarios — observations
 
@@ -410,22 +480,39 @@ later docs or phase-2 work.
 
 ### 7.1 `scg_generic_vs_specialized`
 
-_Brief observation pending: how much does the Specialized path
-(`record._read_attribute("name")` + `models: [Post]`) buy over the
-Generic path's `_write_one_object` / `record.send(:name)` dispatch on the
-same flat shape?_
+The Specialized path (`record._read_attribute("name")`, `models: [Post]`)
+runs ~9–13% faster than the Generic path (`_write_one_object`,
+`record.send(:name)`) on the same flat shape across both modes and sizes:
++10.9% (json/50: 74.04K → 82.09K), +8.9% (hash/50: 90.69K → 98.73K), +12.7%
+(json/2300: 1.66K → 1.87K), +11.9% (hash/2300: 1.93K → 2.16K). Allocations
+are identical (4 in json mode, 51 / 2301 in hash mode) — the cost is pure
+dispatch, not garbage. Recorded as the canonical baseline for
+"Specialized buys ~10% over Generic" claims in future docs and
+phase-2 work.
 
 ### 7.2 `scg_skip_elision`
 
-_Brief observation pending: what does the SKIP-handling guard
-(`unless value.equal?(SerializersCodeGen::SKIP)`) cost when SKIP fires on
-half the records, vs an unconditional control with the same shape?_
+The SKIP-handling guard (`unless value.equal?(SerializersCodeGen::SKIP)`)
+costs roughly 2–6% when SKIP fires on half the records, measured against
+an unconditional control with the same shape: −2.3% (json/50: 118.05K →
+115.28K), −4.6% (hash/50: 136.14K → 129.82K), −3.6% (json/2300: 2.78K →
+2.68K), −5.6% (hash/2300: 3.05K → 2.88K). Allocations are unchanged at 4 /
+51 — the cost is the per-Attribute branch, not skipped-output garbage.
+Recorded as the canonical baseline for "SKIP guard ≤6% on this fixture
+shape" claims; sets the budget any future SKIP-elision optimization has
+to beat.
 
 ### 7.3 `scg_recursive`
 
-_Brief observation pending: how does the self-recursion shortcut
-(`@replies_serializer = self`, no allocation per recursive level) hold up
-across a 3-level Comment tree (1 + 2 + 4 = 7 nodes per root)?_
+Across a 3-level Comment tree (1 + 2 + 4 = 7 nodes per root), the
+self-recursion shortcut (`@replies_serializer = self`) holds up
+end-to-end: `scg/json` allocates a constant 4 at both sizes (10.16K i/s
+at size=50; 210.35 at size=2300) — the recursive path adds zero
+per-level allocations in JSON mode. Hash mode allocates ~14 per record
+(701 / 50; 32201 / 2300) — one hash + one array per node × 7 nodes per
+tree, which is the structural floor for the output, not codegen overhead.
+Recorded as the canonical baseline for "recursive Descriptors compose
+without per-level allocation cost in JSON mode" claims.
 
 ## 8. Decisions for failing scenarios
 
@@ -461,8 +548,13 @@ than `panko/json` (Clause A) and `scg/hash` is 14–15× faster than
 (`scg/hash` 51 / 2301 vs `panko/object` 571 / 25321), so the gap is
 JSON-mode specific.
 
-Decision (**fix** vs **tune**) is deferred until `PROFILE=memory` is
-captured for this row in S12.3 / S12.4. The per-record alloc count looks
-mechanical (constant 3/record across both sizes), so a fix is plausible
-once the call site is identified — most likely the path that materializes
-the JSON-column string before re-emitting it as a raw JSON value.
+Decision (**fix** vs **tune**) is deferred to
+[#60 (S12.5 — json_column JSON-mode allocation iteration)](https://github.com/yosiat/serializers-code-gen/issues/60),
+which will capture `PROFILE=memory` for this row, identify the allocation
+site, and either land a fix (with a TDD'd regression spec pinning the
+alloc-count invariant) or tune the bar in `docs/phase-1-bar.md` with
+rationale per § Tuning. The per-record alloc count looks mechanical
+(constant 3/record across both sizes), so a fix is plausible once the
+call site is identified — most likely the path that materializes the
+JSON-column string before re-emitting it as a raw JSON value. S12.4
+unblocks once S12.5 lands and the canonical bench re-runs clean.
