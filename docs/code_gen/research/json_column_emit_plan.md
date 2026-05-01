@@ -74,27 +74,18 @@ mirroring Panko's pure-Ruby reference branch.
 # lib/serializers_code_gen/active_record/access_classifier.rb (or sibling)
 
 # Returns true when +attribute_name+ on +model+ is backed by an
-# ActiveRecord JSON column safe for raw-passthrough emit. Recognizes
+# ActiveRecord JSON column safe for :wire_format emit. Recognizes
 # +ActiveRecord::Type::Json+ and any of its subclasses (notably
 # +ConnectionAdapters::PostgreSQL::OID::Jsonb+ for jsonb columns).
 # Sibling types like +ActiveRecord::Encryption::EncryptedAttributeType+
 # and +ActiveRecord::Type::Serialized+ are correctly rejected — they
 # do not inherit from +Type::Json+ (verified against AR 8.1.3).
 #
-# When +SerializersCodeGen.config.json_column_safe_types+ is set, the
-# predicate switches to strict allowlist mode and only accepts exact
-# class-name matches.
-#
 # @param model [Class] AR model class
 # @param attribute_name [Symbol, String]
 # @return [Boolean]
 def self.json_typed?(model, attribute_name)
-  t = model.type_for_attribute(attribute_name.to_s)
-  if (allowlist = SerializersCodeGen.config.json_column_safe_types)
-    allowlist.include?(t.class.name)
-  else
-    t.is_a?(::ActiveRecord::Type::Json)
-  end
+  model.type_for_attribute(attribute_name.to_s).is_a?(::ActiveRecord::Type::Json)
 end
 ```
 
@@ -120,8 +111,10 @@ by source-read in AR 8.1.3); `is_a?` accepts both `t.json` and
 `t.jsonb` without a separate class-name branch. Also accepts
 user-defined subclasses of `Type::Json` (e.g., `MyApp::JsonWithLogging`).
 The marginal risk — a user subclassing to override `serialize` for
-encryption — is unusual and easily diagnosed; users in that situation
-opt into the allowlist.
+encryption — is unusual and easily diagnosed. An allowlist-mode escape
+hatch (`json_column_safe_types`) was prototyped but deferred to v2 (see
+`docs/deferred.md`) — same behavior as Panko today, no real subclass
+risk in the wild, YAGNI.
 
 **Rejected approaches**:
 - Symbol check (`column.sql_type_metadata.type == :json`): `EncryptedAttributeType`
@@ -135,52 +128,33 @@ opt into the allowlist.
 
 ### 3.3 Config
 
+`Config` is a `Data.define` value (per `docs/config.md` § Shape). Add one new field:
+
 ```ruby
-# lib/serializers_code_gen/config.rb
-
-# Controls how JSON-column attributes emit on the Specialized
-# record-access path. Read at compile time; changing this between
-# compile() calls produces different generated code.
-#
-# - +:raw_passthrough+ (proposed default): fast path. Reads raw bytes
-#   via read_attribute_before_type_cast, validates well-formedness via
-#   Oj.sc_parse with a no-op handler, pushes them verbatim through
-#   push_json. Matches Panko 0.8.5 and stdlib JSON.generate
-#   byte-for-byte. Does NOT HTML-escape — defers HTML safety to the
-#   consumer's HTML layer (ERB json_escape, framework auto-escape,
-#   sanitizer libraries). Use when API responses go over the wire as
-#   application/json.
-# - +:hash_as_json+: today's behavior. Routes through Hash#as_json walk
-#   and Oj :rails mode. Slow but matches ActiveSupport::JSON.encode
-#   bytes exactly, including HTML-escape of <, >, &, U+2028, U+2029.
-#   Use when scg's output is embedded directly in HTML script tags
-#   without a sanitizer at the HTML layer (uncommon).
-#
-# @return [Symbol]
-attr_accessor :json_column_emit
-
-# Optional opt-in strict allowlist. When nil (default), the JSON-column
-# predicate uses +is_a?(ActiveRecord::Type::Json)+ — accepts subclasses.
-# When set to an Array of class-name Strings, the predicate switches to
-# exact-class-name matching, rejecting all subclasses including
-# +OID::Jsonb+ (so users in allowlist mode must list it explicitly).
-#
-# Recommended baseline allowlist:
-#
-#   ["ActiveRecord::Type::Json",
-#    "ActiveRecord::ConnectionAdapters::PostgreSQL::OID::Jsonb"]
-#
-# Users can extend with custom Type::Json subclasses they trust.
-#
-# @return [Array<String>, nil]
-attr_accessor :json_column_safe_types
-
-def initialize
-  @json_column_emit = :raw_passthrough  # proposed default — see § 11.1
-  @json_column_safe_types = nil
-  # ...existing...
+module SerializersCodeGen
+  Config = Data.define(
+    :null_for_missing_has_one,
+    :supports_root_key,
+    :hash_record_key_type,
+    :hash_output_key_type,
+    :json_column_emit,   # :wire_format (default) | :html_safe
+    # ...
+  )
 end
 ```
+
+`json_column_emit` semantics — `:wire_format` reads raw bytes via
+`read_attribute_before_type_cast`, validates with
+`Oj.sc_parse(JSON_NOOP_PARSER, raw, mode: :strict)`, pushes verbatim via
+`push_json`; matches Panko 0.8.5 byte-for-byte. `:html_safe` keeps today's
+`push_value(_read_attribute(...))` shape; `Hash#as_json` + Oj `:rails`
+mode HTML-escapes `<` / `>` / `&` and U+2028 / U+2029. Default is
+`:wire_format` (locked Q1 — Panko-internal contract).
+
+`Config` constructor validates `:json_column_emit ∈ {:wire_format,
+:html_safe}` and raises `ArgumentError` on anything else. The
+`json_column_safe_types` allowlist is **deferred to v2** (see
+`docs/deferred.md`); not part of this slice.
 
 ### 3.4 Codegen
 
@@ -192,13 +166,13 @@ embeds exactly one shape.
 For an Attribute(name: `:metadata`, source: `:metadata`) on a
 JSON-typed column:
 
-#### Mode `:hash_as_json` (today's behavior)
+#### Mode `:html_safe` (today's behavior)
 
 ```ruby
 writer.push_value(record._read_attribute("metadata"), "metadata")
 ```
 
-#### Mode `:raw_passthrough`
+#### Mode `:wire_format`
 
 ```ruby
 raw = record.read_attribute_before_type_cast("metadata")
@@ -224,14 +198,14 @@ push_json) was prototyped and benchmarked — see § 5.1. The Ruby regex
 engine slows down 7x when a character class contains any non-ASCII
 codepoint (U+2028, U+2029), which gates the "safe" mode at < 40% of
 today's throughput. Even the ASCII-only variant (`/[<>&]/` only) is
-20% slower than today's `:hash_as_json`. Not viable.
+20% slower than today's `:html_safe`. Not viable.
 
 ## 4. Two viable emit modes — comparison
 
 | Mode | Speed (size=2300) | Allocs/rec | HTML escape | `</`-XSS safe | Bytes match |
 |---|---|---|---|---|---|
-| `:hash_as_json` (today) | 797 ips (cache-hot) / 314 (cold) | ~3 (hot) / ~16 (cold) | yes | yes | AS::JSON.encode, Oj :rails, oj_serializers |
-| `:raw_passthrough` (proposed) | 793 ips (hot) / 429 (cold) | ~2 (hot) / ~9 (cold) | no | no — defers to consumer's HTML layer | Panko 0.8.5, stdlib JSON.generate, Oj :strict/:compat |
+| `:html_safe` (today) | 797 ips (cache-hot) / 314 (cold) | ~3 (hot) / ~16 (cold) | yes | yes | AS::JSON.encode, Oj :rails, oj_serializers |
+| `:wire_format` (proposed) | 793 ips (hot) / 429 (cold) | ~2 (hot) / ~9 (cold) | no | no — defers to consumer's HTML layer | Panko 0.8.5, stdlib JSON.generate, Oj :strict/:compat |
 
 A third mode `:html_safe_passthrough` (gsub-escape `<`, `>`, `&`,
 optionally U+2028/U+2029, before push_json) was bench-tested and
@@ -241,10 +215,10 @@ shape. See § 5.1 for numbers and root cause.
 **Cold-cache numbers matter for production framing**. The bench harness
 reuses records across iterations; AR memoizes typecast on the first
 read, hiding ~13 allocs/record of typecast cost. Production loads
-records fresh per request and pays both. The `:raw_passthrough` and
+records fresh per request and pays both. The `:wire_format` and
 `:html_safe_passthrough` modes are cache-independent — they never go
 through the typecast path, so their numbers are identical hot vs cold.
-`:hash_as_json` degrades 61% hot→cold.
+`:html_safe` degrades 61% hot→cold.
 
 ## 5. Benchmark numbers
 
@@ -389,14 +363,14 @@ For each mode:
 
 ### 7.3 Behavior spec (`spec/features/json_column_emit_spec.rb`)
 
-For Mode B (`:raw_passthrough`):
+For Mode B (`:wire_format`):
 - Happy path: `t.json` Specialized descriptor with metadata Hash → byte-identical to expected output
 - Malformed JSON in DB (raw SQL update): falls through, emits `null`
 - In-memory unsaved Hash assignment: falls through, byte-identical to today
 - Primitive non-string scalar in DB: falls through, emits the scalar
 - In-place mutation: emits stale pre-mutation bytes (pinned as inherited Panko behavior)
 
-For Mode A (`:hash_as_json`, today's): one snapshot regression spec
+For Mode A (`:html_safe`, today's): one snapshot regression spec
 confirming bytes match today's output across the same fixtures. Acts
 as a frozen baseline.
 
@@ -472,71 +446,58 @@ This is the **load-bearing safety test**. Must pass.
   methodology. The cold-cache run included here is for production framing
   only, not a replacement for the canonical bench.
 
-## 11. Open decisions (to lock before implementation)
+## 11. Locked decisions
 
-### 11.1 Default emit mode
+All open decisions resolved (grilling session 2026-05-02). Implementation
+unblocked. Sandcastle reads PRD #60 — the locked decisions below have
+been migrated to that issue's acceptance criteria.
 
-Two viable options:
+### 11.1 Default emit mode — `:wire_format`
 
-- **`:raw_passthrough`** — pure perf, byte-parity with Panko and stdlib
-  `JSON.generate`. Defers HTML safety to the consumer's HTML layer
-  (ERB `json_escape`, framework auto-escape, sanitizer libraries, etc.).
-  Matches the perf reason scg exists. **Cost**: existing consumers
-  who pipe scg output to HTML-injecting framework primitives without
-  sanitization lose the accidental HTML-escape safety net (silent
-  behavior change on upgrade).
-- **`:hash_as_json`** — preserves today's bytes exactly. Zero risk of
-  regressing existing consumers' behavior. **Cost**: loses the entire
-  optimization (#60's reason for existing).
+`config.json_column_emit = :wire_format` by default.
+
+**Rationale**: scg is internal to the Panko ecosystem (per gemspec
+metadata, `lib/serializers_code_gen.rb` header, and UL `Panko` entry).
+Every caller reaches scg through Panko, which has shipped no-escape
+JSON-column semantics since 0.x. `:wire_format` restores Panko's
+byte-for-byte contract for Panko-mediated callers. The default presumes
+Panko-mediated access; this is durable per Q1 lock.
+
+`:html_safe` exists as an opt-in for the case where scg's output is
+embedded directly in HTML script tags without an HTML-layer sanitizer
+(uncommon).
 
 A third option `:html_safe_passthrough` was prototyped, benchmarked,
-and rejected — costs 20% throughput with minimal benefit (Ruby regex
-slow path on multi-byte char-classes, gsub byte-scan cost on small
-fixtures). See § 5.1.
+and rejected — Ruby regex slow path on multi-byte char-classes plus
+gsub byte-scan cost on small fixtures. See § 5.1.
 
-**Recommendation: `:raw_passthrough` default, with a prominent
-migration note.** Justification:
+### 11.2 `json_column_safe_types` allowlist — defer
 
-1. Perf is why scg exists — defaulting to `:hash_as_json` ships #60 as
-   a no-op slice.
-2. The XSS exposure on upgrade is bounded: consumers must
-   (a) consume scg's JSON output, (b) embed values in HTML contexts
-   without sanitization, AND (c) have JSON-column data that contains
-   HTML-special characters they don't control. The third condition is
-   the load-bearing one — most JSON-column data is server-controlled
-   (config, structured records) or comes from inputs already
-   sanitized at the form layer. Consumers running user-provided
-   freeform text through JSON columns AND piping it to innerHTML
-   without sanitization have an XSS vector regardless of which JSON
-   serializer they use.
-3. The Ruby ecosystem split is 5/5 — scg picks the
-   standards-flavored half (Panko, stdlib, Oj :strict).
-4. Migration is a one-flag flip for users who need the old behavior.
+Not shipped in this slice. Recorded in `docs/deferred.md` as v2.
 
-If this trade-off feels wrong, default to `:hash_as_json` and document
-`:raw_passthrough` as opt-in for performance. The user-facing config
-shape is identical either way; only the default value changes.
+**Rationale**: scg's `:wire_format` default already matches Panko 0.8.5
+byte-for-byte today. The allowlist would defend against hypothetical
+unsafe `Type::Json` subclasses that don't currently exist —
+`EncryptedAttributeType` is a sibling (already rejected), `Type::Serialized`
+is a sibling (already rejected), `OID::Jsonb` is the only known subclass
+and is verified safe. Adding API surface for an unknown future threat
+is YAGNI; if a real subclass risk materializes, the predicate function
+is small enough to extend in a 30-minute follow-up slice.
 
-### 11.2 `json_column_safe_types` allowlist exposure
+### 11.3 Documentation strategy
 
-Ship the config knob (as documented in § 3.3) or omit it for now and
-add later if a user requests it? Leaning toward shipping — costs nothing
-to define, gives users an escape hatch for security-paranoid setups
-without coupling them to scg's internal predicate logic.
-
-### 11.3 Migration / docs strategy
-
-If the default emit mode produces different bytes from today's scg
-(Modes B and C both do), where does the "behavior change" notice live?
-Options:
-- Inline note in `phase_1_report.md § 8.1`
-- Top-level `CHANGELOG.md` entry (none exists yet)
-- A migration doc neighbor of `panko_behavior_diffs.md`
-- Just a release-notes paragraph on the implementation PR
-
-Lowest-friction: add a sentence in `panko_behavior_diffs.md` overview
-linking to `phase_1_report.md § 8.1` for the design rationale, and put
-the user-facing migration note on the PR.
+- **`docs/config.md`** — add `json_column_emit` knob with values, defaults,
+  one-paragraph rationale linking to `phase_1_report.md § 8.1`.
+- **`docs/deferred.md`** — v2 entry for `json_column_safe_types`.
+- **`docs/phase-1-bar.md`** — Clause C json_column-specific carve-out:
+  global "scg allocs ≤ Panko allocs" stays; json_column scenario reads
+  "scg allocs ≤ today's scg allocs" with rationale (residual alloc is
+  Oj.sc_parse working state, structural; deferred to a custom byte-scan
+  validator slice).
+- **`phase_1_report.md § 8.1`** — preserved as historical/research record.
+- **No new top-level topic doc** — design memory is split across the above
+  files; this plan + `panko_behavior_diffs.md` get migrated to PRD #60
+  body and deleted once implementation lands.
 
 ---
 

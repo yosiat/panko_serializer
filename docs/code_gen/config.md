@@ -12,6 +12,7 @@ module SerializersCodeGen
     :supports_root_key,          # Boolean; default: false
     :hash_record_key_type,       # :string | :symbol; default: :string — generic path only
     :hash_output_key_type,       # :string | :symbol; default: :string — Hash mode output
+    :json_column_emit,           # :wire_format | :html_safe; default: :wire_format — JSON-column emit shape
     # Additional knobs to be added as design proceeds
   )
 end
@@ -77,6 +78,35 @@ a parent and its nested **Generated Classes** by manually re-compiling with a di
 break. (The library does not enforce this at runtime; it's a caller contract.)
 
 No effect on **JSON Output Mode** — JSON keys are always strings per the spec.
+
+### `json_column_emit` (default: `:wire_format`)
+
+Controls how AR `:json`- and `:jsonb`-column **Attributes** emit on the **Specialized
+path** in **JSON Output Mode**. Read at **Compile** time; each **Generated Class** embeds
+exactly one shape.
+
+- `:wire_format` (default): reads the raw stored bytes via
+  `read_attribute_before_type_cast`, validates well-formedness via `Oj.sc_parse(mode: :strict)`
+  with a no-op handler, pushes them verbatim through `Oj::StringWriter#push_json`. Matches
+  Panko 0.8.5 byte-for-byte. Does **not** HTML-escape `<` / `>` / `&` or U+2028 /
+  U+2029 — defers HTML safety to the consumer's HTML layer.
+- `:html_safe`: routes through `Hash#as_json` and Oj `:rails` mode. HTML-escapes `<` /
+  `>` / `&` and U+2028 / U+2029 the way `ActiveSupport::JSON.encode` does. Roughly 36%
+  slower in production-shape (cold-cache) conditions and produces ~2× the allocations of
+  `:wire_format`.
+
+The default presumes Panko-mediated access (the only access pattern this gem supports per
+its gemspec metadata). `:html_safe` exists for the case where scg's output is embedded
+directly in HTML script tags without a sanitizer at the HTML layer (uncommon).
+
+Detection of JSON-typed columns uses `is_a?(::ActiveRecord::Type::Json)` —
+adapter-agnostic; matches `t.json` and `t.jsonb` on every supported backend; correctly
+rejects `encrypts :metadata` (sibling type, not a subclass) and `serialize :m, coder:`
+(also a sibling). Generic-path **Descriptors** (`models: nil`) are unaffected — the knob
+applies only to the **Specialized path**.
+
+Design rationale, byte-divergence table, and benchmark numbers:
+[`docs/research/phase_1_report.md § 8.1`](research/phase_1_report.md).
 
 ## What belongs in Config vs elsewhere
 
