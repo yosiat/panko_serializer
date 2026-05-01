@@ -31,6 +31,16 @@ require_relative "serializers_code_gen/compiler"
 # user-facing DSL — Panko owns that surface; this gem owns the input
 # shape, the code-gen, and the runnable output.
 module SerializersCodeGen
+  # Frozen no-op handler for +Oj.sc_parse+. The handler is queried via
+  # +respond_to?+ for +hash_start+ / +array_start+ / +add_value+ / etc.;
+  # an +Object.new+ instance responds to none of them, so Oj's C path
+  # skips every callback and validates well-formedness without
+  # materializing the parsed structure or invoking any Ruby callback.
+  # Used by the +:wire_format+ JSON-column emit path emitted by
+  # {Generators::FieldEmitters::Attribute.emit_json_column}; see
+  # {file:docs/config.md} for rationale and benchmark numbers.
+  JSON_NOOP_PARSER = Object.new.freeze
+
   # Compiles +descriptor+ into a fresh Generated Class for the named
   # +output:+ mode. Thin facade per +docs/structure.md § Public API
   # surface+ — every call goes through the same +Compiler+ orchestration

@@ -138,6 +138,37 @@ module SerializersCodeGen
         !owner.name.to_s.end_with?("::GeneratedAttributeMethods")
       end
       private_class_method :user_override?
+
+      # Returns +true+ when +attribute_name+ on +model+ is backed by an
+      # ActiveRecord JSON column safe for the +:wire_format+ JSON-mode emit
+      # path. Recognizes +ActiveRecord::Type::Json+ and any of its subclasses
+      # (notably +ConnectionAdapters::PostgreSQL::OID::Jsonb+ for
+      # +t.jsonb+ columns). Sibling types — +ActiveRecord::Type::Serialized+,
+      # +ActiveRecord::Encryption::EncryptedAttributeType+ — are correctly
+      # rejected; they share +#type+ symbols with +Type::Json+ but do not
+      # inherit from it, so the +is_a?+ check excludes them.
+      #
+      # Deliberately +rescue+-free. +type_for_attribute(name.to_s)+ returns
+      # the +ActiveModel::Type::Value+ default (not +Type::Json+, predicate
+      # returns +false+) for unknown attribute names, +nil+ inputs, or any
+      # other non-resolving Source. The two ways +type_for_attribute+ raises
+      # — abstract classes and tableless models — are pre-empted upstream by
+      # +AccessClassifier.classify+'s +columns_hash+ access; both fail there
+      # before this predicate runs. A blanket rescue would swallow real bugs
+      # (typos in the predicate, AR breaking-change in a future minor) without
+      # affecting the rejected cases.
+      #
+      # Caller contract: invoked at +Compile+ time on a Descriptor whose
+      # +Models+ is a concrete, table-backed AR class.
+      #
+      # @param model [Class] AR model class — must respond to
+      #   +#type_for_attribute+
+      # @param attribute_name [Symbol, String] the +Attribute#source+ to probe
+      # @return [Boolean] +true+ for +t.json+ / +t.jsonb+ columns and
+      #   +Type::Json+ subclasses; +false+ otherwise
+      def self.json_typed?(model, attribute_name)
+        model.type_for_attribute(attribute_name.to_s).is_a?(::ActiveRecord::Type::Json)
+      end
     end
   end
 end

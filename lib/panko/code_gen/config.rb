@@ -17,15 +17,22 @@ module SerializersCodeGen
   #   uses string keys (+record["id"]+).
   # - +hash_output_key_type+: +:string+ — Hash output mode keys are
   #   strings (+result["id"] = ...+).
+  # - +json_column_emit+: +:wire_format+ — Specialized-path JSON-mode
+  #   AR-JSON-column Attributes emit raw stored bytes via +push_json+
+  #   after a +Oj.sc_parse+ well-formedness check; +:html_safe+ keeps
+  #   today's +push_value(_read_attribute(...))+ shape (HTML-escaped).
   #
   # The two +hash_*_key_type+ fields are enum-shaped; only +:string+ and
   # +:symbol+ are accepted. Construction with any other value raises
-  # +DescriptorError+ synchronously.
+  # +DescriptorError+ synchronously. The +json_column_emit+ field is
+  # also enum-shaped; +:wire_format+ and +:html_safe+ are the only
+  # accepted values, and any other value raises +ArgumentError+ at +.new+.
   Config = Data.define(
     :null_for_missing_has_one,
     :supports_root_key,
     :hash_record_key_type,
-    :hash_output_key_type
+    :hash_output_key_type,
+    :json_column_emit
   )
 
   # Default values applied to omitted kwargs in +Config.new+. Documented
@@ -35,13 +42,19 @@ module SerializersCodeGen
     null_for_missing_has_one: true,
     supports_root_key: false,
     hash_record_key_type: :string,
-    hash_output_key_type: :string
+    hash_output_key_type: :string,
+    json_column_emit: :wire_format
   }.freeze
 
   # Allowed values for the +hash_record_key_type+ and
   # +hash_output_key_type+ enum fields. Anything outside this set raises
   # +DescriptorError+ at +.new+.
   Config::HASH_KEY_TYPES = %i[string symbol].freeze
+
+  # Allowed values for +json_column_emit+. Anything outside this set
+  # raises +ArgumentError+ at +.new+. See +docs/config.md+ for the
+  # per-mode contract and the byte-divergence table.
+  Config::JSON_COLUMN_EMIT_MODES = %i[wire_format html_safe].freeze
 
   # Class-method overrides prepended onto +Config+'s singleton class. The
   # prepend is required because +Data.define+'s generated +new+ is
@@ -61,6 +74,8 @@ module SerializersCodeGen
     #   populated.
     # @raise [DescriptorError] when +hash_record_key_type+ or
     #   +hash_output_key_type+ is not in {Config::HASH_KEY_TYPES}.
+    # @raise [ArgumentError] when +json_column_emit+ is not in
+    #   {Config::JSON_COLUMN_EMIT_MODES}.
     def new(**kwargs)
       merged = Config::DEFAULTS.merge(kwargs)
       validate!(merged)
@@ -76,10 +91,12 @@ module SerializersCodeGen
     # @param values [Hash{Symbol => Object}] the merged kwargs about to
     #   be passed to the +Data.define+-generated +new+.
     # @return [void]
-    # @raise [DescriptorError] on the first enum-field violation.
+    # @raise [DescriptorError] on a +hash_*_key_type+ enum violation.
+    # @raise [ArgumentError] on a +json_column_emit+ enum violation.
     def validate!(values)
       validate_enum!(:hash_record_key_type, values[:hash_record_key_type])
       validate_enum!(:hash_output_key_type, values[:hash_output_key_type])
+      validate_json_column_emit!(values[:json_column_emit])
     end
 
     # Asserts +value+ is one of the allowed enum values for +field+. On
@@ -98,6 +115,23 @@ module SerializersCodeGen
       return if Config::HASH_KEY_TYPES.include?(value)
       raise DescriptorError,
         "Config##{field}: invalid value #{value.inspect}; must be :string or :symbol."
+    end
+
+    # Asserts +value+ is one of {Config::JSON_COLUMN_EMIT_MODES}. Unlike
+    # the +hash_*_key_type+ enum, a violation here raises +ArgumentError+
+    # rather than +DescriptorError+ — the field gates a code-emit shape,
+    # not a Descriptor-shape, and the user-facing contract is "invalid
+    # symbolic option, fix the call site" rather than "invalid Descriptor
+    # input".
+    #
+    # @param value [Object] the observed value to check.
+    # @return [void]
+    # @raise [ArgumentError] when +value+ is not in
+    #   {Config::JSON_COLUMN_EMIT_MODES}.
+    def validate_json_column_emit!(value)
+      return if Config::JSON_COLUMN_EMIT_MODES.include?(value)
+      raise ArgumentError,
+        "Config#json_column_emit: invalid value #{value.inspect}; must be :wire_format or :html_safe."
     end
   end
 
