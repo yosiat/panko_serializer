@@ -548,13 +548,149 @@ than `panko/json` (Clause A) and `scg/hash` is 14–15× faster than
 (`scg/hash` 51 / 2301 vs `panko/object` 571 / 25321), so the gap is
 JSON-mode specific.
 
-Decision (**fix** vs **tune**) is deferred to
-[#60 (S12.5 — json_column JSON-mode allocation iteration)](https://github.com/yosiat/serializers-code-gen/issues/60),
-which will capture `PROFILE=memory` for this row, identify the allocation
-site, and either land a fix (with a TDD'd regression spec pinning the
-alloc-count invariant) or tune the bar in `docs/phase-1-bar.md` with
-rationale per § Tuning. The per-record alloc count looks mechanical
-(constant 3/record across both sizes), so a fix is plausible once the
-call site is identified — most likely the path that materializes the
-JSON-column string before re-emitting it as a raw JSON value. S12.4
-unblocks once S12.5 lands and the canonical bench re-runs clean.
+#### Profile findings (`PROFILE=memory`, 2026-04-30)
+
+`MemoryProfiler` against the `serializers_code_gen/json` row at
+size=2300 attributes 100% of the per-record allocations to
+ActiveSupport's `Hash#as_json` monkey-patch — none originate in scg's
+emitted code:
+
+- 2300 Hashes from
+  `activesupport-8.1.3/lib/active_support/core_ext/object/json.rb:189`
+  (one `result = {}` per record, allocated by `Hash#as_json` to merge
+  JSON options).
+- 4600 Arrays from `<internal:array>:246` (two per record, from
+  `Array#as_json` walking the `tags` element of the metadata Hash).
+- 4 fixed allocs total in scg's generated source (Oj::StringWriter, the
+  array opener, two output Strings).
+
+Today's emit shape is `writer.push_value(record._read_attribute("metadata"))`.
+`push_value` in `:rails` mode dispatches to `Hash#as_json`, which
+recursively walks the metadata Hash and re-encodes each value before
+Oj writes the bytes — the allocation comes from this walk, not from
+scg's codegen. Panko avoids the walk entirely by reading the
+pre-typecast raw String from `@value_before_type_cast` (via its C
+extension) and pushing those bytes verbatim through
+`Oj::StringWriter#push_json`.
+
+#### Decision (2026-04-30): fix via raw-passthrough emit
+
+The fix lands in scg's codegen, not in `docs/phase-1-bar.md`. When the
+access classifier detects an AR `:json`- or `:jsonb`-typed Attribute
+(`column.sql_type_metadata.type` ∈ `{:json, :jsonb}`), the emitter
+routes through a new `raw+val` path that mirrors Panko's pattern:
+
+```ruby
+raw = record.read_attribute_before_type_cast("metadata")
+if raw.is_a?(String) && !raw.empty? && (begin
+     Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw); true
+   rescue Oj::ParseError
+     false
+   end)
+  writer.push_json(raw, "metadata")
+else
+  writer.push_value(record._read_attribute("metadata"), "metadata")
+end
+```
+
+The validation step (`Oj.sc_parse` against a frozen empty-Object
+handler) verifies well-formedness without allocating the parsed
+structure — the same trick Panko's pure-Ruby reference branch ships at
+[`yosiat/panko_serializer@ruby-impl-perf`](https://github.com/yosiat/panko_serializer/blob/ruby-impl-perf/lib/panko/engine/attributes_writer/active_record/values_writer/json_writer.rb).
+
+**Implementation slice:**
+[#60 (S12.5 — json_column JSON-mode allocation iteration)](https://github.com/yosiat/serializers-code-gen/issues/60).
+The decision portion of S12.5 closed with this entry; #60's remaining
+acceptance criteria scope the codegen change, the TDD'd regression
+spec, and the canonical `rake bench:all` re-run. Verdict in § 1 stays
+"fail (Clause C, json_column)" until that re-run lands. S12.4 (#54)
+unblocks then.
+
+#### Variant comparison (cache-hot bench, IPS_TIME=2 IPS_WARMUP=1)
+
+| Variant                                         | size=50 ips | size=2300 ips | size=50 allocs | size=2300 allocs | per-record (size=2300) |
+| ----------------------------------------------- | ----------- | ------------- | -------------- | ---------------- | ---------------------- |
+| `scg/json` (today, `push_value(Hash)`)          | 36.27K      | 808           | 154            | 6904             | ~3.0                   |
+| `panko/json` (reference)                        | 30.67K      | 672           | 70             | 2320             | ~1.0                   |
+| **`scg/json/raw+val`** (proposed)               | **43.87K**  | **967**       | **54**         | **2304**         | **~1.0**               |
+| `scg/json/raw+nil` (typecast-as-validator)      | 147.19K     | 3.52K         | 4              | 4                | ~0 cache-hot only      |
+| `scg/json/raw` (no validation; unsafe baseline) | 172.90K     | 4.10K         | 4              | 4                | ~0                     |
+
+**Caveat — bench cache flattery.** The IPS harness reuses the same
+records across iterations. AR's typecast result is memoized on the
+AttributeSet after the warmup call, so the canonical row's 3
+allocs/record is the *as_json walk only*, not the typecast itself.
+Production loads records fresh per request and pays both. The
+`raw+val` row is cache-independent (`Oj.sc_parse` runs every call
+regardless of state), so its bench number IS its production number.
+The `raw+nil` variant considered during analysis appears competitive
+cache-hot but pays ~15 allocs/record cold (one AR typecast per
+record); cold-cache measurement via `Bench::Post.instantiate` on a
+fresh AttributeSet collapsed `raw+nil` to 369 ips at size=2300 in
+production-shape conditions while `raw+val` held at ~967. `raw+val`
+was selected for production parity with Panko, not maximum cache-hot
+throughput.
+
+#### Behavioral parity with Panko
+
+`raw+val` mirrors Panko's pattern but degrades more cleanly on edge
+cases the C-ext path raises on. Verified against the production
+`panko_serializer-0.8.5` gem:
+
+| Case                                              | Panko                          | scg `raw+val`                                             |
+| ------------------------------------------------- | ------------------------------ | --------------------------------------------------------- |
+| Valid JSON Hash                                   | clean                          | clean                                                     |
+| Malformed JSON in DB                              | raises `Oj::EncodingError`     | falls through, emits `null` (matches today)               |
+| In-memory unsaved Hash assignment                 | raises `TypeError`             | falls through, emits via `push_value(Hash)` (matches today) |
+| Primitive JSON literal in DB (`42`, `"hi"`, etc.) | raises `Oj::EncodingError`     | falls through, emits the typecast value                   |
+| In-place mutation (`record.metadata["k"] = v`)    | emits stale pre-mutation bytes | emits stale pre-mutation bytes                            |
+
+The in-place mutation behavior is **inherited from Panko** — neither
+implementation reads the typecast result on the happy path, so neither
+sees mid-request mutations. We document the same contract Panko ships
+implicitly: callers that mutate the typecast Hash before serialization
+must reassign (`record.metadata = record.metadata.merge(...)`) or call
+`metadata_will_change!` to dirty-flag the attribute. Adding a
+`metadata_changed?` guard was rejected — measurement showed it costs
+~13 allocs/record (AR's dirty-tracking re-encodes the typecast Hash
+on every emit), turning the fix into a regression vs today's path.
+
+Panko's own test suite has no edge-case coverage for these scenarios
+(verified — `panko_serializer-0.8.5` gem ships no specs; the
+`ruby-impl-perf` branch's `spec/` covers only basic round-trip and
+`AR::Type::Json` unit cases via `Oj.load + eq` on parsed Ruby values,
+never byte-identical emit assertions). scg's regression spec for #60
+will cover all five rows in the table above.
+
+#### Output equivalence
+
+`push_json(raw)` emits AR's stored bytes verbatim; `push_value(Hash)`
+re-encodes via `Hash#as_json`. For the bench fixture and any data
+round-tripped through `record.metadata = {...}; record.save`, the two
+paths produce byte-identical output (verified on the bench dataset).
+The bytes were originally generated by `ActiveSupport::JSON.encode`
+(invoked by `ActiveRecord::Type::Json#serialize` on write), so the
+stored form is already in the canonical encoding `Hash#as_json` would
+produce. Divergences are theoretically possible for bytes inserted by
+non-JSON-encoding writers (e.g., raw SQL with manually-constructed
+JSON) — those would either be malformed (caught by the `Oj.sc_parse`
+validation and routed to the slow path) or already canonical (emitted
+faithfully).
+
+#### Multi-DB coverage
+
+Verified across all three AR-supported JSON backends:
+
+- **SQLite `t.json`** (the bench): `read_attribute_before_type_cast`
+  returns the raw String. Fast path fires.
+- **Postgres `t.json` and `t.jsonb`**: AR registers its own type map
+  and never installs `pg`'s native JSON decoders. Both
+  `OID::Json` and `OID::Jsonb < Type::Json` keep raw bytes in
+  `@value_before_type_cast`. Fast path fires on both. (The detection
+  predicate matches `:json` and `:jsonb`.)
+- **MySQL `t.json`** (Rails 7+): adapter declares column type as
+  `:json` and stores text. Fast path fires.
+
+In-memory unsaved writes return the assigned Hash (not a String) on
+all three backends, so the `is_a?(String)` check is the universal
+portability hatch — never adapter-specific code in the emitter.
