@@ -93,6 +93,53 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
   end
 
+  describe "aliased Attribute (#name differs from #source)" do
+    # Pin that the OUTPUT JSON key is +Attribute#name+ while the column
+    # read uses +Attribute#source+ — same contract as +emit_json+ on
+    # non-JSON-column Attributes. Both modes must agree on the key
+    # because a Descriptor's user-facing key is +name+, not +source+.
+    let(:aliased_descriptor) do
+      SerializersCodeGen::Descriptor.new(
+        name: "AliasedJsonColumnSerializer",
+        models: [PlainPost],
+        attributes: [
+          SerializersCodeGen::Attribute.new(name: :id, source: :id),
+          SerializersCodeGen::Attribute.new(name: :extra, source: :metadata)
+        ],
+        method_attributes: [],
+        associations: []
+      )
+    end
+
+    def compile_aliased(mode)
+      config = SerializersCodeGen::Config.new(json_column_emit: mode)
+      SerializersCodeGen.compile(aliased_descriptor, output: :json, config: config).new(descriptor: aliased_descriptor)
+    end
+
+    it ":wire_format emits the alias name as the JSON key (saved record fast path)" do
+      PlainPost.create!(id: 1, metadata: {"a" => 1})
+      record = PlainPost.find(1)
+
+      expect(compile_aliased(:wire_format).serialize_one(record))
+        .to eq('{"id":1,"extra":{"a":1}}')
+    end
+
+    it ":wire_format emits the alias name as the JSON key (slow-path fallback on unsaved Hash)" do
+      record = PlainPost.new(id: 1, metadata: {"a" => 1})
+
+      expect(compile_aliased(:wire_format).serialize_one(record))
+        .to eq('{"id":1,"extra":{"a":1}}')
+    end
+
+    it ":html_safe emits the alias name as the JSON key" do
+      PlainPost.create!(id: 1, metadata: {"a" => 1})
+      record = PlainPost.find(1)
+
+      expect(compile_aliased(:html_safe).serialize_one(record))
+        .to eq('{"id":1,"extra":{"a":1}}')
+    end
+  end
+
   describe "malformed JSON in DB" do
     # AR's typecast-on-read returns +nil+ for malformed JSON bytes (the
     # column type's +deserialize+ rescues the parse error internally).
@@ -228,9 +275,8 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     # canonical macro signal; this in-spec assertion is the focused
     # regression spec a future codegen drift would trip first.
     it ":wire_format total allocations ≤ :html_safe total allocations on saved records" do
-      records = Array.new(50) do |i|
-        attrs = {id: i + 1, metadata: {"category" => "tech", "tags" => %w[ruby json], "n" => i}}
-        PlainPost.create!(attrs)
+      50.times do |i|
+        PlainPost.create!(id: i + 1, metadata: {"category" => "tech", "tags" => %w[ruby json], "n" => i})
       end
       saved = PlainPost.order(:id).to_a
 
@@ -245,9 +291,6 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
       html_report = MemoryProfiler.report { html_class.serialize_many(saved) }
 
       expect(wire_report.total_allocated).to be <= html_report.total_allocated
-
-      # ignore unused locals warning
-      _ = records
     end
   end
 end

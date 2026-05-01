@@ -66,8 +66,9 @@ module SerializersCodeGen
             emit_json(attribute, %(record._read_attribute("#{attribute.source}")), builder)
             return
           end
-          name_lit = %("#{attribute.source}")
-          builder.line %(raw = record.read_attribute_before_type_cast(#{name_lit}))
+          source_lit = %("#{attribute.source}")
+          key_lit = %("#{attribute.name}")
+          builder.line %(raw = record.read_attribute_before_type_cast(#{source_lit}))
           builder.line "if raw.is_a?(String) && !raw.empty? && (begin"
           builder.indent do
             builder.line "Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw, mode: :strict)"
@@ -79,11 +80,11 @@ module SerializersCodeGen
           end
           builder.line "end)"
           builder.indent do
-            builder.line "writer.push_json(raw, #{name_lit})"
+            builder.line "writer.push_json(raw, #{key_lit})"
           end
           builder.line "else"
           builder.indent do
-            builder.line "writer.push_value(record._read_attribute(#{name_lit}), #{name_lit})"
+            builder.line "writer.push_value(record._read_attribute(#{source_lit}), #{key_lit})"
           end
           builder.line "end"
         end
