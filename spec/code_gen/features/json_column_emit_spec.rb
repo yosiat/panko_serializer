@@ -27,10 +27,9 @@ require "memory_profiler"
 # - in-place mutation: documented and pinned as inherited-from-Panko
 #   stale-bytes behavior;
 # - byte-divergence vs today's scg: +</script>+, U+2028, U+2029, +-0.0+,
-#   +1e-300+, +1e300+ produce the bytes recorded in
-#   +docs/research/json_column_emit_plan.md § 6.2+ (now collapsed back
-#   into this spec; the standalone plan doc is removed in the same
-#   commit).
+#   +1e-300+, +1e300+ produce the bytes recorded in this spec — the
+#   regression contract for the +:wire_format+ default that S12.5
+#   inherited from Panko 0.8.5.
 RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   let(:descriptor) do
     SerializersCodeGen::Descriptor.new(
@@ -148,10 +147,9 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   describe "byte-divergence vs today's :html_safe (per phase_1_report § 8.1)" do
     # Each row inserts pre-encoded JSON bytes via raw SQL so the bytes
     # hit the column unmodified; the read-side path is then exercised
-    # against both modes. The expected bytes come from
-    # +docs/research/json_column_emit_plan.md § 6.2+ — they're now
-    # codified here as the regression contract; the standalone plan doc
-    # is deleted in the same commit per #60's acceptance.
+    # against both modes. These rows codify the byte-divergence contract
+    # +:wire_format+ inherited from Panko 0.8.5 — every cell here is the
+    # bytes Panko emits today.
 
     def insert_metadata_bytes(id, raw_json)
       ::ActiveRecord::Base.connection.execute(
