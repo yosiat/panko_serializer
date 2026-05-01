@@ -464,6 +464,12 @@ RSpec.describe "Compile-time errors" do
           define_singleton_method(:method_defined?) { |sym| methods_arr.include?(sym.to_sym) }
           define_singleton_method(:attribute_methods_generated?) { true }
           define_singleton_method(:define_attribute_methods) { nil }
+          # The Specialized JSON-mode emit calls AccessClassifier.json_typed? on
+          # every Models entry to decide whether the JSON-column raw-passthrough
+          # path applies. Faking +type_for_attribute+ to return a non-Json type
+          # value mirrors AR's "unknown column" fallback so the per-Attribute
+          # decision stays a clean +false+ in these tests.
+          define_singleton_method(:type_for_attribute) { |_name| ::ActiveModel::Type::Value.new }
         end
       end
 

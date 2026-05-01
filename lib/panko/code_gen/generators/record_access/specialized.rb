@@ -59,11 +59,16 @@ module SerializersCodeGen
         # @return [void]
         def self.emit_json(descriptor, config, builder)
           ensure_attribute_methods!(descriptor)
+          ar_classes = descriptor.models.select { |m| ar_class?(m) }
           builder.line "def _write_one(record, writer, context, filters)"
           builder.indent do
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
-              FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, descriptor), builder)
+              if json_column_attribute?(attribute, ar_classes)
+                FieldEmitters::Attribute.emit_json_column(attribute, config, builder)
+              else
+                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, descriptor), builder)
+              end
             end
             descriptor.associations.each do |association|
               FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, builder)
@@ -173,6 +178,25 @@ module SerializersCodeGen
         # @return [Boolean]
         def self.ar_class?(klass)
           klass.respond_to?(:columns_hash) && klass.respond_to?(:attribute_methods_generated?)
+        end
+
+        # Returns +true+ when +attribute+ is JSON-typed on every AR class in
+        # +ar_classes+. The S12.5 +:wire_format+ JSON-mode emit path fires
+        # only when the type is uniformly JSON across the whole +Models+ set
+        # — a non-uniform set (one class with +t.json+ and a sibling with
+        # +t.string+) downgrades to today's +emit_json+ shape so the
+        # Specialized class stays monomorphic per Attribute. Empty
+        # +ar_classes+ (the "non-AR class in models:" case) returns +false+;
+        # that path falls through to method dispatch on every Attribute and
+        # is irrelevant to the JSON-column optimization.
+        #
+        # @param attribute [SerializersCodeGen::Attribute] the Field node
+        # @param ar_classes [Array<Class>] AR-class subset of
+        #   +descriptor.models+
+        # @return [Boolean]
+        def self.json_column_attribute?(attribute, ar_classes)
+          return false if ar_classes.empty?
+          ar_classes.all? { |klass| ActiveRecord::AccessClassifier.json_typed?(klass, attribute.source) }
         end
       end
     end

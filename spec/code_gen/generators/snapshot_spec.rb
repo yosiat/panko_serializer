@@ -12,6 +12,8 @@ require "config/config_root_key_on"
 require "config/config_hash_record_key_symbol"
 require "config/config_hash_output_key_symbol"
 require "config/config_null_for_has_one_off"
+require "config/config_json_column_wire_format"
+require "config/config_json_column_html_safe"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -37,7 +39,9 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::Config::ConfigRootKeyOn,
     Fixtures::ConfigHashRecordKeySymbol,
     Fixtures::ConfigHashOutputKeySymbol,
-    Fixtures::ConfigNullForHasOneOff
+    Fixtures::ConfigNullForHasOneOff,
+    Fixtures::Config::ConfigJsonColumnWireFormat,
+    Fixtures::Config::ConfigJsonColumnHtmlSafe
   ]
 
   fixtures.each do |fixture|

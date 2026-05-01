@@ -13,6 +13,15 @@ class Post < ActiveRecord::Base
   end
 end
 
+# Bare AR model (no reader overrides) targeted by the S12.5 JSON-column
+# emit fixtures and behavior specs. +Post+ above overrides +#title+, which
+# breaks the byte-identical assertions for the +:html_safe+ snapshot —
+# +PlainPost+ keeps every Attribute as raw column-backed access so the
+# Specialized-path emit shape stays predictable.
+class PlainPost < ActiveRecord::Base
+  self.table_name = "posts"
+end
+
 class Author < ActiveRecord::Base
   belongs_to :post, optional: true
 end

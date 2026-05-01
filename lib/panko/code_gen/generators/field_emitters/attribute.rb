@@ -29,6 +29,65 @@ module SerializersCodeGen
           builder.line "writer.push_value(#{read_expr})"
         end
 
+        # Emits the JSON-mode write for one AR-JSON-column Attribute on the
+        # Specialized record-access path. Shape is selected at +Compile+
+        # time by +config.json_column_emit+:
+        #
+        # - +:wire_format+ (default) — read the pre-typecast raw bytes via
+        #   +record.read_attribute_before_type_cast(name)+, validate
+        #   well-formedness via +Oj.sc_parse(JSON_NOOP_PARSER, raw, mode:
+        #   :strict)+ inside an inline +rescue Oj::ParseError, EncodingError+
+        #   guard, and on success push the bytes verbatim through
+        #   +writer.push_json(raw, "<name>")+ — matches Panko 0.8.5
+        #   byte-for-byte. On any rejection (non-String, empty, malformed,
+        #   in-memory unsaved Hash, etc.) falls through to today's
+        #   +writer.push_value(record._read_attribute("<name>"), "<name>")+
+        #   slow path so the per-edge-case behavior is "scg degrades cleanly
+        #   where Panko crashes" per
+        #   +docs/research/phase_1_report.md § 8.1+.
+        # - +:html_safe+ — delegates back to {.emit_json}, keeping today's
+        #   +push_key+ + +push_value(_read_attribute(...))+ shape. Used when
+        #   the consumer embeds scg output directly in HTML script tags
+        #   without a sanitizer at the HTML layer; documented as opt-in in
+        #   +docs/config.md+.
+        #
+        # Routed only on the Specialized path's column-backed Attributes —
+        # see +RecordAccess::Specialized+. Generic-path Descriptors keep
+        # today's +emit_json+ shape regardless of the column type.
+        #
+        # @param attribute [SerializersCodeGen::Attribute] the Field node;
+        #   must be column-backed on the Specialized path
+        # @param config [SerializersCodeGen::Config] resolved compile-time
+        #   settings; +json_column_emit+ selects the emit shape
+        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_json_column(attribute, config, builder)
+          if config.json_column_emit == :html_safe
+            emit_json(attribute, %(record._read_attribute("#{attribute.source}")), builder)
+            return
+          end
+          name_lit = %("#{attribute.source}")
+          builder.line %(raw = record.read_attribute_before_type_cast(#{name_lit}))
+          builder.line "if raw.is_a?(String) && !raw.empty? && (begin"
+          builder.indent do
+            builder.line "Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw, mode: :strict)"
+            builder.line "true"
+          end
+          builder.line "rescue Oj::ParseError, EncodingError"
+          builder.indent do
+            builder.line "false"
+          end
+          builder.line "end)"
+          builder.indent do
+            builder.line "writer.push_json(raw, #{name_lit})"
+          end
+          builder.line "else"
+          builder.indent do
+            builder.line "writer.push_value(record._read_attribute(#{name_lit}), #{name_lit})"
+          end
+          builder.line "end"
+        end
+
         # Emits the Hash-mode write for one Attribute. One line:
         # +result[<key>] = <read_expr>+. The output-key shape comes from
         # +output_key_type+ — +:string+ (default) emits +result["id"]+,
