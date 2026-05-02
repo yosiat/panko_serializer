@@ -162,8 +162,28 @@ class GamePanko < Panko::Serializer
 end
 
 # ---- oj_serializers --------------------------------------------------------
+# Two trios — one with `default_format :json` for the json row, one with the
+# default :hash format for the hash row. Without the split, the upstream
+# `Oj.dump(GameOjSerializer.one_as_json(GAME))` shape paid an extra `Oj.dump`
+# dispatch the other JSON targets don't (panko's `serialize_to_json` and
+# scg's `serialize_one` both produce a JSON String in one call), biasing the
+# comparison. With `default_format :json`, the canonical user shape is
+# `Serializer.one(record)` → returns an `Oj::StringWriter`; calling `.to_s`
+# materializes the buffer to a JSON String for parity with the other rows
+# without going through `Oj.dump`.
+#
+# `default_format` is per-class and inherited, so each level of the
+# Game→scores/best_player/players graph needs its own pair. Nested
+# composition itself doesn't need `default_format :json` (parents always
+# call `child.write_one(writer, ...)` against the shared writer regardless),
+# but pinning the shortcut on every class keeps the two trios symmetrical
+# and makes it impossible to accidentally cross-wire a hash-mode parent to a
+# json-mode child or vice versa.
+#
+# See https://github.com/ElMassimo/oj_serializers#writing-to-json.
 
-class PlayerOjSerializer < OjSerializers::Serializer
+class PlayerOjJsonSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :first_name, :last_name
 
   attribute
@@ -172,15 +192,37 @@ class PlayerOjSerializer < OjSerializers::Serializer
   end
 end
 
-class ScoresOjSerializer < OjSerializers::Serializer
+class ScoresOjJsonSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :high_score, :score
 end
 
-class GameOjSerializer < OjSerializers::Serializer
+class GameOjJsonSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :name
-  has_one :scores, serializer: ScoresOjSerializer
-  has_one :best_player, serializer: PlayerOjSerializer
-  has_many :players, serializer: PlayerOjSerializer
+  has_one :scores, serializer: ScoresOjJsonSerializer
+  has_one :best_player, serializer: PlayerOjJsonSerializer
+  has_many :players, serializer: PlayerOjJsonSerializer
+end
+
+class PlayerOjHashSerializer < OjSerializers::Serializer
+  attributes :id, :first_name, :last_name
+
+  attribute
+  def full_name
+    @object.full_name
+  end
+end
+
+class ScoresOjHashSerializer < OjSerializers::Serializer
+  attributes :high_score, :score
+end
+
+class GameOjHashSerializer < OjSerializers::Serializer
+  attributes :id, :name
+  has_one :scores, serializer: ScoresOjHashSerializer
+  has_one :best_player, serializer: PlayerOjHashSerializer
+  has_many :players, serializer: PlayerOjHashSerializer
 end
 
 # ---- Output-parity check --------------------------------------------------
@@ -188,8 +230,8 @@ end
 parity_outputs = {
   "scg/json" => SCG_JSON.serialize_one(GAME),
   "panko" => GamePanko.new.serialize_to_json(GAME),
-  "oj_serializers" => Oj.dump(GameOjSerializer.one_as_json(GAME)),
-  "oj_serializers as_hash" => Oj.dump(GameOjSerializer.one_as_hash(GAME))
+  "oj_serializers/json" => GameOjJsonSerializer.one(GAME).to_s,
+  "oj_serializers/hash" => Oj.dump(GameOjHashSerializer.one(GAME))
 }
 parsed = parity_outputs.transform_values { |s| Oj.load(s.to_s, mode: :strict) }
 reference_label, reference = parsed.first
@@ -223,11 +265,16 @@ puts
 
 Benchmark.ips do |x|
   x.config(time: 5, warmup: 2)
-  x.report("oj_serializers as_hash") { Oj.dump GameOjSerializer.one_as_hash(GAME) }
-  x.report("oj_serializers") { Oj.dump GameOjSerializer.one_as_json(GAME) }
+  # JSON-string-producing rows — apples-to-apples comparison.
+  # `oj_serializers/json` uses `default_format :json` + `.one(GAME).to_s`
+  # rather than `Oj.dump(.one_as_json(GAME))` so it doesn't pay the extra
+  # Oj.dump dispatch the other JSON targets don't.
+  x.report("oj_serializers/json") { GameOjJsonSerializer.one(GAME).to_s }
   x.report("panko") { GamePanko.new.serialize_to_json(GAME) }
   x.report("scg/json") { SCG_JSON.serialize_one(GAME) }
   x.report("scg/hash + Oj.dump") { Oj.dump SCG_HASH.serialize_one(GAME) }
+  # Hash-producing rows — the in-process Hash output, no JSON encoding.
+  x.report("oj_serializers/hash") { GameOjHashSerializer.one(GAME) }
   x.report("scg/hash") { SCG_HASH.serialize_one(GAME) }
   x.compare!
 end
