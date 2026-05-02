@@ -10,6 +10,16 @@ module SerializersCodeGen
       # an instance of the nested Generated Class; the emit here calls
       # through that ivar.
       #
+      # Per-Association precedence ladder per
+      # +docs/filters.md § Filter before if:+ and
+      # +docs/testing.md § association_if_spec.rb § Precedence ladder+:
+      # Filter > +if:+ > Source. The codegen mirrors the order — the
+      # +unless filters.drops?(<index>)+ wrapper is the outermost guard,
+      # the +if @cb_if_<name>.call(...)+ wrap (when present) lives inside
+      # it, and only inside that wrap does the per-Kind body read the
+      # Source. A filter-dropped Association never calls its +if:+
+      # Callable and never loads its Source.
+      #
       # S5.1 shipped +has_one+; S5.2 adds +has_many+ (collection emit:
       # +writer.push_array+ + element iteration + +writer.pop+ in JSON;
       # +.map+ on the collection in Hash). S5.3 adds the +Association#if+
@@ -77,12 +87,18 @@ module SerializersCodeGen
         #   +"record.comments"+)
         # @param config [SerializersCodeGen::Config] resolved settings;
         #   +null_for_missing_has_one+ selects the +has_one+ emit branch
+        # @param index [Integer] codegen-time +FIELD_INDEX+ position used
+        #   in the +unless filters.drops?(<index>)+ wrapper
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_json(association, source_read_expr, config, builder)
-          with_if_guard(association, builder) do
-            emit_json_body(association, source_read_expr, config, builder)
+        def self.emit_json(association, source_read_expr, config, index, builder)
+          builder.line "unless filters.drops?(#{index})"
+          builder.indent do
+            with_if_guard(association, builder) do
+              emit_json_body(association, source_read_expr, config, builder)
+            end
           end
+          builder.line "end"
         end
 
         # Emits the per-Kind JSON body for one Association — the un-wrapped
@@ -138,16 +154,22 @@ module SerializersCodeGen
         #   pre-validated value of +Config#hash_output_key_type+
         # @param config [SerializersCodeGen::Config] resolved settings;
         #   +null_for_missing_has_one+ selects the +has_one+ emit branch
+        # @param index [Integer] codegen-time +FIELD_INDEX+ position used
+        #   in the +unless filters.drops?(<index>)+ wrapper
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_hash(association, source_read_expr, output_key_type, config, builder)
+        def self.emit_hash(association, source_read_expr, output_key_type, config, index, builder)
           key_lit = case output_key_type
           when :symbol then ":#{association.name}"
           else %("#{association.name}")
           end
-          with_if_guard(association, builder) do
-            emit_hash_body(association, source_read_expr, key_lit, config, builder)
+          builder.line "unless filters.drops?(#{index})"
+          builder.indent do
+            with_if_guard(association, builder) do
+              emit_hash_body(association, source_read_expr, key_lit, config, builder)
+            end
           end
+          builder.line "end"
         end
 
         # Emits the per-Kind Hash body for one Association — the un-wrapped

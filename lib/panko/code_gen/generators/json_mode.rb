@@ -67,8 +67,11 @@ module SerializersCodeGen
       #   threading
       # @return [void]
       def emit_class(descriptor, config, builder, cyclic_ids)
+        field_index = FieldIndex.build(descriptor)
         builder.line "class #{descriptor.name}_JSON"
         builder.indent do
+          builder.line "FIELD_INDEX = #{FieldIndex.to_hash_literal(field_index)}.freeze"
+          builder.blank
           emit_initialize(descriptor, builder, cyclic_ids)
           builder.blank
           emit_serialize_one(config, builder)
@@ -76,9 +79,9 @@ module SerializersCodeGen
           emit_serialize_many(config, builder)
           builder.blank
           if descriptor.models.nil?
-            RecordAccess::Generic.emit_json(descriptor, config, builder)
+            RecordAccess::Generic.emit_json(descriptor, config, field_index, builder)
           else
-            RecordAccess::Specialized.emit_json(descriptor, config, builder)
+            RecordAccess::Specialized.emit_json(descriptor, config, field_index, builder)
           end
           if config.supports_root_key
             builder.blank
@@ -197,10 +200,14 @@ module SerializersCodeGen
       # +Oj::StringWriter+ per call (Writer lifecycle per
       # +docs/output-modes.md § Writer lifecycle+), threads it through
       # +_write_one+, and returns +writer.to_s+. The +filters+ kwarg is
-      # accepted from day 1 to keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
-      # raises +NotImplementedError+ until the phase-2 implementation
-      # lands in S14.
+      # accepted from day 1 to keep the public signature locked (per
+      # +docs/filters.md § Phase-1 behavior+); the body's first line
+      # normalizes it via +SerializersCodeGen::Filter.wrap(filters)+.
+      # +nil+ and +{}+ collapse to +Filter::NONE+ (the no-filter
+      # singleton — allocation-free); non-empty Hashes raise
+      # +NotImplementedError+ from +Filter.wrap+ until the indexed cell
+      # ships in S14.2 per the S13 verdict
+      # (+docs/research/filter_experiments_results.md § 1+).
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # an additional +root_key:+ kwarg (defaulting to +nil+) and the
@@ -228,7 +235,7 @@ module SerializersCodeGen
           "def serialize_one(record, context: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "raise NotImplementedError if filters"
+          builder.line "filters = SerializersCodeGen::Filter.wrap(filters)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
@@ -254,10 +261,12 @@ module SerializersCodeGen
       # +Oj::StringWriter+, opens a top-level JSON array, dispatches each
       # element through +_write_one+, then closes the array
       # (per +docs/output-modes.md § :json+). The +filters+ kwarg is
-      # accepted from day 1 to keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
-      # raises +NotImplementedError+ until the phase-2 implementation
-      # lands in S14.
+      # accepted from day 1 to keep the public signature locked (per
+      # +docs/filters.md § Phase-1 behavior+); the body's first line
+      # normalizes it via +SerializersCodeGen::Filter.wrap(filters)+ —
+      # +nil+ / +{}+ → +Filter::NONE+; non-empty Hashes raise
+      # +NotImplementedError+ from +Filter.wrap+ until S14.2 ships the
+      # indexed cell.
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # the same +root_key:+ kwarg as +serialize_one+ and the body wraps
@@ -281,7 +290,7 @@ module SerializersCodeGen
           "def serialize_many(records, context: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "raise NotImplementedError if filters"
+          builder.line "filters = SerializersCodeGen::Filter.wrap(filters)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end

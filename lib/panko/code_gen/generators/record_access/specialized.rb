@@ -55,9 +55,15 @@ module SerializersCodeGen
         #   settings; threaded through to per-Field emitters whose source
         #   choices depend on it (e.g. +Association#emit_json+ branches on
         #   +null_for_missing_has_one+)
+        # @param field_index [Hash{Symbol => Integer}] codegen-time
+        #   +Field name → integer index+ map per
+        #   +docs/filters.md § Threading through Composition+; threaded
+        #   into each +FieldEmitters::*.emit_*+ call so the emitted
+        #   +unless filters.drops?(<integer>)+ wrapper bakes the
+        #   per-Field literal at codegen time
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_json(descriptor, config, builder)
+        def self.emit_json(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
           ar_classes = descriptor.models.select { |m| ar_class?(m) }
           builder.line "def _write_one(record, writer, context, filters)"
@@ -65,16 +71,16 @@ module SerializersCodeGen
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
               if json_column_attribute?(attribute, ar_classes)
-                FieldEmitters::Attribute.emit_json_column(attribute, config, builder)
+                FieldEmitters::Attribute.emit_json_column(attribute, config, field_index.fetch(attribute.name), builder)
               else
-                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, descriptor), builder)
+                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, descriptor), field_index.fetch(attribute.name), builder)
               end
             end
             descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, builder)
+              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.name), builder)
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_json(method_attribute, builder)
+              FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
             end
             builder.line "writer.pop"
           end
@@ -89,9 +95,11 @@ module SerializersCodeGen
         #
         # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
         # @param config [SerializersCodeGen::Config] resolved settings
+        # @param field_index [Hash{Symbol => Integer}] codegen-time
+        #   +Field name → integer index+ map (mirror of {emit_json})
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_hash(descriptor, config, builder)
+        def self.emit_hash(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
           builder.line "def _to_hash(record, context, filters)"
           builder.indent do
@@ -101,6 +109,7 @@ module SerializersCodeGen
                 attribute,
                 attribute_read_expr(attribute, descriptor),
                 config.hash_output_key_type,
+                field_index.fetch(attribute.name),
                 builder
               )
             end
@@ -110,11 +119,12 @@ module SerializersCodeGen
                 "record.#{association.source}",
                 config.hash_output_key_type,
                 config,
+                field_index.fetch(association.name),
                 builder
               )
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, builder)
+              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, field_index.fetch(method_attribute.name), builder)
             end
             builder.line "result"
           end

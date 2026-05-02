@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 class ConfigRootKeyOnSerializer_JSON
+  FIELD_INDEX = {id: 0}.freeze
+
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, filters: nil, root_key: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
     if root_key
@@ -20,7 +22,7 @@ class ConfigRootKeyOnSerializer_JSON
   end
 
   def serialize_many(records, context: nil, filters: nil, root_key: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
     writer.push_object if root_key
@@ -43,13 +45,17 @@ class ConfigRootKeyOnSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_value(record["id"], "id")
+    unless filters.drops?(0)
+      writer.push_value(record["id"], "id")
+    end
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_value(record.id, "id")
+    unless filters.drops?(0)
+      writer.push_value(record.id, "id")
+    end
     writer.pop
   end
 

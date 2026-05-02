@@ -102,7 +102,10 @@ lib/
     filter.rb                                  # Filter.wrap(hash) factory + interface
     filters/
       none.rb                                  # no-filter singleton (Null Object)
-      hash_backed.rb                           # Hash-wrapper implementation
+      indexed.rb                               # winning cell from S13's verdict —
+                                               # bit-mask (≤63 Fields) or Boolean Array
+                                               # (>63 Fields); see filters.md and
+                                               # research/filter_experiments_results.md
 
     # === Compilation orchestration ===
     compiler.rb                                # Compiler#compile: drive Generator + eval
