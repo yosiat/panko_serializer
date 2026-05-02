@@ -20,6 +20,17 @@ module SerializersCodeGen
       # Source. A filter-dropped Association never calls its +if:+
       # Callable and never loads its Source.
       #
+      # Nested calls thread +filters.child(:<source>)+ rather than the
+      # parent's +filters+ object verbatim — Filters do not inherit per
+      # +docs/filters.md § Rules+ ("+:only+ at the parent level does not
+      # propagate to child Associations. Children are governed by their
+      # own sub-hash (or are unfiltered if none is supplied)."). The
+      # +Source+ (not the +name+) is the lookup key per
+      # +docs/filters.md § Public shape+. For +has_many+ the +#child+
+      # lookup is hoisted to a +child_filter+ local above the iteration
+      # so the Filter cell's child cache is consulted at most once per
+      # +(Association, Record)+ pair rather than once per element.
+      #
       # S5.1 shipped +has_one+; S5.2 adds +has_many+ (collection emit:
       # +writer.push_array+ + element iteration + +writer.pop+ in JSON;
       # +.map+ on the collection in Hash). S5.3 adds the +Association#if+
@@ -207,6 +218,14 @@ module SerializersCodeGen
         # +push_key+ in the non-nil arm cannot be collapsed across that
         # frame boundary without restructuring +_write_one+'s contract.
         #
+        # The non-nil arm threads +filters.child(:<source>)+ — the
+        # +Source+ is the lookup key per
+        # +docs/filters.md § Threading through Composition+ ("Filters do
+        # not inherit"). Inlined at the call site for +has_one+ since
+        # the call fires at most once per record (Filter cell caches
+        # repeated +#child+ lookups but the inline form keeps the
+        # snapshot diff minimal vs hoisting to a local).
+        #
         # @param association [SerializersCodeGen::Association]
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
@@ -216,7 +235,7 @@ module SerializersCodeGen
           builder.line "else"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters)"
+            builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters.child(:#{association.source}))"
           end
           builder.line "end"
         end
@@ -231,6 +250,9 @@ module SerializersCodeGen
         # The +push_key+ here cannot be collapsed across that frame
         # boundary without restructuring +_write_one+'s contract.
         #
+        # Threads +filters.child(:<source>)+ for the same reason as
+        # {.emit_json_has_one_default}.
+        #
         # @param association [SerializersCodeGen::Association]
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
@@ -238,14 +260,15 @@ module SerializersCodeGen
           builder.line "unless value.nil?"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters)"
+            builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters.child(:#{association.source}))"
           end
           builder.line "end"
         end
 
         # Emits the Hash-mode default-true branch — assigns the key with
         # +nil+ or the nested call via the +result[k] = if/else/end+
-        # idiom.
+        # idiom. Threads +filters.child(:<source>)+ on the non-nil arm
+        # per +docs/filters.md § Threading through Composition+.
         #
         # @param association [SerializersCodeGen::Association]
         # @param key_lit [String] pre-rendered Ruby literal for the
@@ -257,14 +280,15 @@ module SerializersCodeGen
           builder.indent { builder.line "nil" }
           builder.line "else"
           builder.indent do
-            builder.line "@#{association.name}_serializer._to_hash(value, context, filters)"
+            builder.line "@#{association.name}_serializer._to_hash(value, context, filters.child(:#{association.source}))"
           end
           builder.line "end"
         end
 
         # Emits the Hash-mode +null_for_missing_has_one: false+ branch
         # — omits the key entirely (no assignment to +result+) when the
-        # Source returns +nil+.
+        # Source returns +nil+. Threads +filters.child(:<source>)+ on
+        # the non-nil arm.
         #
         # @param association [SerializersCodeGen::Association]
         # @param key_lit [String] pre-rendered Ruby literal for the
@@ -274,7 +298,7 @@ module SerializersCodeGen
         def self.emit_hash_has_one_omit(association, key_lit, builder)
           builder.line "unless value.nil?"
           builder.indent do
-            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, filters)"
+            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, filters.child(:#{association.source}))"
           end
           builder.line "end"
         end
@@ -288,6 +312,12 @@ module SerializersCodeGen
         # +null+ — empty array is its own state) per
         # +docs/output-modes.md § Null Association handling+.
         #
+        # Hoists +child_filter = filters.child(:<source>)+ above the
+        # iteration loop — one +#child+ call per Association per Record
+        # rather than one per element. Matches the +indexed x
+        # single_path+ winning cell from
+        # +docs/research/filter_experiments_bench.rb+ (lines 586–595).
+        #
         # @param association [SerializersCodeGen::Association]
         # @param source_read_expr [String] Ruby source for the parent
         #   Record's collection-returning Source (inlined into the
@@ -295,10 +325,11 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_many(association, source_read_expr, builder)
+          builder.line "child_filter = filters.child(:#{association.source})"
           builder.line %(writer.push_array("#{association.name}"))
           builder.line "#{source_read_expr}.each do |element|"
           builder.indent do
-            builder.line "@#{association.name}_serializer._write_one(element, writer, context, filters)"
+            builder.line "@#{association.name}_serializer._write_one(element, writer, context, child_filter)"
           end
           builder.line "end"
           builder.line "writer.pop"
@@ -311,6 +342,9 @@ module SerializersCodeGen
         # +Array#map+ on +[]+ returns +[]+) per
         # +docs/output-modes.md § Null Association handling+.
         #
+        # Hoists +child_filter = filters.child(:<source>)+ above the
+        # +.map+ — same rationale as {.emit_json_has_many}.
+        #
         # @param association [SerializersCodeGen::Association]
         # @param source_read_expr [String] Ruby source for the parent
         #   Record's collection-returning Source
@@ -319,9 +353,10 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
         def self.emit_hash_has_many(association, source_read_expr, key_lit, builder)
+          builder.line "child_filter = filters.child(:#{association.source})"
           builder.line(
             "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
-              "@#{association.name}_serializer._to_hash(element, context, filters) }"
+              "@#{association.name}_serializer._to_hash(element, context, child_filter) }"
           )
         end
 

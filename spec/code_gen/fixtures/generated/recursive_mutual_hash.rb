@@ -39,7 +39,7 @@ class RecursiveMutualItemSerializer_Hash
       result["subfolder"] = if value.nil?
         nil
       else
-        @subfolder_serializer._to_hash(value, context, filters)
+        @subfolder_serializer._to_hash(value, context, filters.child(:subfolder))
       end
     end
     result
@@ -58,7 +58,7 @@ class RecursiveMutualItemSerializer_Hash
       result["subfolder"] = if value.nil?
         nil
       else
-        @subfolder_serializer._to_hash(value, context, filters)
+        @subfolder_serializer._to_hash(value, context, filters.child(:subfolder))
       end
     end
     result
@@ -100,7 +100,8 @@ class RecursiveMutualFolderSerializer_Hash
       result["name"] = record["name"]
     end
     unless filters.drops?(2)
-      result["items"] = record["items"].map { |element| @items_serializer._to_hash(element, context, filters) }
+      child_filter = filters.child(:items)
+      result["items"] = record["items"].map { |element| @items_serializer._to_hash(element, context, child_filter) }
     end
     result
   end
@@ -114,7 +115,8 @@ class RecursiveMutualFolderSerializer_Hash
       result["name"] = record.name
     end
     unless filters.drops?(2)
-      result["items"] = record.items.map { |element| @items_serializer._to_hash(element, context, filters) }
+      child_filter = filters.child(:items)
+      result["items"] = record.items.map { |element| @items_serializer._to_hash(element, context, child_filter) }
     end
     result
   end

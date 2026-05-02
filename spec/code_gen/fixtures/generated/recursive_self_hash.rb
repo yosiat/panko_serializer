@@ -34,7 +34,8 @@ class RecursiveSelfCommentSerializer_Hash
       result["body"] = record["body"]
     end
     unless filters.drops?(2)
-      result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, filters) }
+      child_filter = filters.child(:replies)
+      result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, child_filter) }
     end
     result
   end
@@ -48,7 +49,8 @@ class RecursiveSelfCommentSerializer_Hash
       result["body"] = record.body
     end
     unless filters.drops?(2)
-      result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, filters) }
+      child_filter = filters.child(:replies)
+      result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, child_filter) }
     end
     result
   end

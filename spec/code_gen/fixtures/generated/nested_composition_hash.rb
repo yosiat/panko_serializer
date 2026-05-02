@@ -132,12 +132,13 @@ class NestedCompositionPostSerializer_Hash
         result["author"] = if value.nil?
           nil
         else
-          @author_serializer._to_hash(value, context, filters)
+          @author_serializer._to_hash(value, context, filters.child(:author))
         end
       end
     end
     unless filters.drops?(2)
-      result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, filters) }
+      child_filter = filters.child(:comments)
+      result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, child_filter) }
     end
     result
   end
@@ -153,12 +154,13 @@ class NestedCompositionPostSerializer_Hash
         result["author"] = if value.nil?
           nil
         else
-          @author_serializer._to_hash(value, context, filters)
+          @author_serializer._to_hash(value, context, filters.child(:author))
         end
       end
     end
     unless filters.drops?(2)
-      result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, filters) }
+      child_filter = filters.child(:comments)
+      result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, child_filter) }
     end
     result
   end

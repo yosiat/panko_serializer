@@ -163,14 +163,15 @@ class NestedCompositionPostSerializer_JSON
           writer.push_value(nil, "author")
         else
           writer.push_key("author")
-          @author_serializer._write_one(value, writer, context, filters)
+          @author_serializer._write_one(value, writer, context, filters.child(:author))
         end
       end
     end
     unless filters.drops?(2)
+      child_filter = filters.child(:comments)
       writer.push_array("comments")
       record["comments"].each do |element|
-        @comments_serializer._write_one(element, writer, context, filters)
+        @comments_serializer._write_one(element, writer, context, child_filter)
       end
       writer.pop
     end
@@ -189,14 +190,15 @@ class NestedCompositionPostSerializer_JSON
           writer.push_value(nil, "author")
         else
           writer.push_key("author")
-          @author_serializer._write_one(value, writer, context, filters)
+          @author_serializer._write_one(value, writer, context, filters.child(:author))
         end
       end
     end
     unless filters.drops?(2)
+      child_filter = filters.child(:comments)
       writer.push_array("comments")
       record.comments.each do |element|
-        @comments_serializer._write_one(element, writer, context, filters)
+        @comments_serializer._write_one(element, writer, context, child_filter)
       end
       writer.pop
     end
