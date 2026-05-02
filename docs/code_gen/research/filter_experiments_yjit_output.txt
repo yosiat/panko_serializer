@@ -1,0 +1,633 @@
+Ruby:    ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+AR:      8.1.3
+YJIT:    on
+IPS:     time=5s warmup=3s
+Cells:   hash_wrapper_single_path, hash_wrapper_dual_path, set_index_single_path, set_index_dual_path + reference
+
+=============================================
+[json] Fixture: wide_flat_none
+  descriptor: FilterExperimentsWidePostSerializer
+  filter:     nil
+  sizes:      [50, 2300]
+=============================================
+  pre-flight OK: 4 cells + reference produce identical output (no-filter fixture)
+
+--- ips: json/wide_flat_none size=50 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference   419.000 i/100ms
+hash_wrapper_single_path
+                       248.000 i/100ms
+hash_wrapper_dual_path
+                       257.000 i/100ms
+set_index_single_path
+                       253.000 i/100ms
+ set_index_dual_path   263.000 i/100ms
+Calculating -------------------------------------
+           reference      4.204k (± 2.5%) i/s  (237.85 μs/i) -     21.369k in   5.086239s
+hash_wrapper_single_path
+                          2.544k (± 3.1%) i/s  (393.01 μs/i) -     12.896k in   5.073377s
+hash_wrapper_dual_path
+                          2.639k (± 1.5%) i/s  (378.98 μs/i) -     13.364k in   5.065817s
+set_index_single_path
+                          2.575k (± 1.8%) i/s  (388.41 μs/i) -     12.903k in   5.013226s
+ set_index_dual_path      2.655k (± 1.7%) i/s  (376.59 μs/i) -     13.413k in   5.052814s
+
+Comparison:
+           reference:     4204.2 i/s
+ set_index_dual_path:     2655.4 i/s - 1.58x  slower
+hash_wrapper_dual_path:     2638.7 i/s - 1.59x  slower
+set_index_single_path:     2574.6 i/s - 1.63x  slower
+hash_wrapper_single_path:     2544.5 i/s - 1.65x  slower
+
+
+--- allocations: json/wide_flat_none size=50 (1 call each) ---
+  reference                                     754 allocs       140357 bytes
+  hash_wrapper_single_path                     7854 allocs       424357 bytes
+  hash_wrapper_dual_path                       7854 allocs       424357 bytes
+  set_index_single_path                        7854 allocs       424357 bytes
+  set_index_dual_path                          7854 allocs       424357 bytes
+
+--- ips: json/wide_flat_none size=2300 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference     8.000 i/100ms
+hash_wrapper_single_path
+                         5.000 i/100ms
+hash_wrapper_dual_path
+                         5.000 i/100ms
+set_index_single_path
+                         5.000 i/100ms
+ set_index_dual_path     5.000 i/100ms
+Calculating -------------------------------------
+           reference     92.885 (± 3.2%) i/s   (10.77 ms/i) -    472.000 in   5.086465s
+hash_wrapper_single_path
+                         53.888 (± 5.6%) i/s   (18.56 ms/i) -    270.000 in   5.021648s
+hash_wrapper_dual_path
+                         56.973 (± 3.5%) i/s   (17.55 ms/i) -    285.000 in   5.009156s
+set_index_single_path
+                         54.922 (± 3.6%) i/s   (18.21 ms/i) -    275.000 in   5.016663s
+ set_index_dual_path     57.085 (± 3.5%) i/s   (17.52 ms/i) -    285.000 in   5.000379s
+
+Comparison:
+           reference:       92.9 i/s
+ set_index_dual_path:       57.1 i/s - 1.63x  slower
+hash_wrapper_dual_path:       57.0 i/s - 1.63x  slower
+set_index_single_path:       54.9 i/s - 1.69x  slower
+hash_wrapper_single_path:       53.9 i/s - 1.72x  slower
+
+
+--- allocations: json/wide_flat_none size=2300 (1 call each) ---
+  reference                                   34504 allocs      6873621 bytes
+  hash_wrapper_single_path                   361104 allocs     19937621 bytes
+  hash_wrapper_dual_path                     361104 allocs     19937621 bytes
+  set_index_single_path                      361104 allocs     19937621 bytes
+  set_index_dual_path                        361104 allocs     19937621 bytes
+
+=============================================
+[json] Fixture: wide_flat_shallow_only
+  descriptor: FilterExperimentsWidePostSerializer
+  filter:     {only: [:s_01, :s_02, :s_03, :s_04, :s_05, :s_06, :s_07, :s_08, :i_01, :i_02, :i_03, :i_04, :i_05, :i_06, :b_01, :b_02, :b_03, :d_01, :d_02, :t_01]}
+  sizes:      [1, 50, 2300]
+=============================================
+  pre-flight OK: 4 cells produce identical output (reference is filter-machinery-absent ceiling)
+
+--- ips: json/wide_flat_shallow_only size=1 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    19.108k i/100ms
+hash_wrapper_single_path
+                         8.169k i/100ms
+hash_wrapper_dual_path
+                         8.650k i/100ms
+set_index_single_path
+                        22.971k i/100ms
+ set_index_dual_path    22.440k i/100ms
+Calculating -------------------------------------
+           reference    191.954k (± 1.5%) i/s    (5.21 μs/i) -    974.508k in   5.078020s
+hash_wrapper_single_path
+                         82.283k (± 3.3%) i/s   (12.15 μs/i) -    416.619k in   5.068810s
+hash_wrapper_dual_path
+                         84.469k (± 2.9%) i/s   (11.84 μs/i) -    423.850k in   5.022145s
+set_index_single_path
+                        230.576k (± 2.3%) i/s    (4.34 μs/i) -      1.172M in   5.083921s
+ set_index_dual_path    224.423k (± 2.4%) i/s    (4.46 μs/i) -      1.122M in   5.002674s
+
+Comparison:
+set_index_single_path:   230576.1 i/s
+ set_index_dual_path:   224422.5 i/s - same-ish: difference falls within error
+           reference:   191953.9 i/s - 1.20x  slower
+hash_wrapper_dual_path:    84469.2 i/s - 2.73x  slower
+hash_wrapper_single_path:    82283.4 i/s - 2.80x  slower
+
+
+--- allocations: json/wide_flat_shallow_only size=1 (1 call each) ---
+  reference                                      19 allocs         3011 bytes
+  hash_wrapper_single_path                       53 allocs         2880 bytes
+  hash_wrapper_dual_path                         53 allocs         2880 bytes
+  set_index_single_path                          57 allocs         3776 bytes
+  set_index_dual_path                            57 allocs         3776 bytes
+
+--- ips: json/wide_flat_shallow_only size=50 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference   435.000 i/100ms
+hash_wrapper_single_path
+                       188.000 i/100ms
+hash_wrapper_dual_path
+                       185.000 i/100ms
+set_index_single_path
+                       655.000 i/100ms
+ set_index_dual_path   651.000 i/100ms
+Calculating -------------------------------------
+           reference      4.309k (± 1.3%) i/s  (232.05 μs/i) -     21.750k in   5.047991s
+hash_wrapper_single_path
+                          1.863k (± 4.0%) i/s  (536.75 μs/i) -      9.400k in   5.053971s
+hash_wrapper_dual_path
+                          1.895k (± 2.1%) i/s  (527.67 μs/i) -      9.620k in   5.078595s
+set_index_single_path
+                          6.603k (± 1.9%) i/s  (151.45 μs/i) -     33.405k in   5.060922s
+ set_index_dual_path      6.553k (± 1.8%) i/s  (152.61 μs/i) -     33.201k in   5.068497s
+
+Comparison:
+set_index_single_path:     6603.0 i/s
+ set_index_dual_path:     6552.6 i/s - same-ish: difference falls within error
+           reference:     4309.4 i/s - 1.53x  slower
+hash_wrapper_dual_path:     1895.1 i/s - 3.48x  slower
+hash_wrapper_single_path:     1863.1 i/s - 3.54x  slower
+
+
+--- allocations: json/wide_flat_shallow_only size=50 (1 call each) ---
+  reference                                     754 allocs       140357 bytes
+  hash_wrapper_single_path                     2258 allocs       121805 bytes
+  hash_wrapper_dual_path                       2258 allocs       121805 bytes
+  set_index_single_path                        2262 allocs       122701 bytes
+  set_index_dual_path                          2262 allocs       122701 bytes
+
+--- ips: json/wide_flat_shallow_only size=2300 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference     9.000 i/100ms
+hash_wrapper_single_path
+                         3.000 i/100ms
+hash_wrapper_dual_path
+                         4.000 i/100ms
+set_index_single_path
+                        14.000 i/100ms
+ set_index_dual_path    14.000 i/100ms
+Calculating -------------------------------------
+           reference     94.799 (± 2.1%) i/s   (10.55 ms/i) -    477.000 in   5.035661s
+hash_wrapper_single_path
+                         40.311 (± 5.0%) i/s   (24.81 ms/i) -    204.000 in   5.075077s
+hash_wrapper_dual_path
+                         39.509 (± 5.1%) i/s   (25.31 ms/i) -    200.000 in   5.073801s
+set_index_single_path
+                        142.196 (± 2.8%) i/s    (7.03 ms/i) -    714.000 in   5.025096s
+ set_index_dual_path    141.126 (± 2.8%) i/s    (7.09 ms/i) -    714.000 in   5.063017s
+
+Comparison:
+set_index_single_path:      142.2 i/s
+ set_index_dual_path:      141.1 i/s - same-ish: difference falls within error
+           reference:       94.8 i/s - 1.50x  slower
+hash_wrapper_single_path:       40.3 i/s - 3.53x  slower
+hash_wrapper_dual_path:       39.5 i/s - 3.60x  slower
+
+
+--- allocations: json/wide_flat_shallow_only size=2300 (1 call each) ---
+  reference                                   34504 allocs      6873621 bytes
+  hash_wrapper_single_path                   103508 allocs      5708115 bytes
+  hash_wrapper_dual_path                     103508 allocs      5708115 bytes
+  set_index_single_path                      103512 allocs      5709011 bytes
+  set_index_dual_path                        103512 allocs      5709011 bytes
+
+=============================================
+[json] Fixture: medium_graph_none
+  descriptor: FilterExperimentsPostSerializer
+  filter:     nil
+  sizes:      [50, 2300]
+=============================================
+  pre-flight OK: 4 cells + reference produce identical output (no-filter fixture)
+
+--- ips: json/medium_graph_none size=50 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference     1.244k i/100ms
+hash_wrapper_single_path
+                       774.000 i/100ms
+hash_wrapper_dual_path
+                       749.000 i/100ms
+set_index_single_path
+                       765.000 i/100ms
+ set_index_dual_path   782.000 i/100ms
+Calculating -------------------------------------
+           reference     12.494k (± 2.4%) i/s   (80.04 μs/i) -     63.444k in   5.081536s
+hash_wrapper_single_path
+                          7.728k (± 2.6%) i/s  (129.39 μs/i) -     38.700k in   5.011003s
+hash_wrapper_dual_path
+                          7.908k (± 2.0%) i/s  (126.45 μs/i) -     39.697k in   5.021635s
+set_index_single_path
+                          7.855k (± 2.2%) i/s  (127.31 μs/i) -     39.780k in   5.067062s
+ set_index_dual_path      7.876k (± 2.0%) i/s  (126.97 μs/i) -     39.882k in   5.065849s
+
+Comparison:
+           reference:    12493.6 i/s
+hash_wrapper_dual_path:     7908.3 i/s - 1.58x  slower
+ set_index_dual_path:     7876.0 i/s - 1.59x  slower
+set_index_single_path:     7854.5 i/s - 1.59x  slower
+hash_wrapper_single_path:     7728.4 i/s - 1.62x  slower
+
+
+--- allocations: json/medium_graph_none size=50 (1 call each) ---
+  reference                                     104 allocs        46739 bytes
+  hash_wrapper_single_path                     2254 allocs       132739 bytes
+  hash_wrapper_dual_path                       2254 allocs       132739 bytes
+  set_index_single_path                        2254 allocs       132739 bytes
+  set_index_dual_path                          2254 allocs       132739 bytes
+
+--- ips: json/medium_graph_none size=2300 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    24.000 i/100ms
+hash_wrapper_single_path
+                        17.000 i/100ms
+hash_wrapper_dual_path
+                        16.000 i/100ms
+set_index_single_path
+                        16.000 i/100ms
+ set_index_dual_path    16.000 i/100ms
+Calculating -------------------------------------
+           reference    264.100 (± 3.0%) i/s    (3.79 ms/i) -      1.320k in   5.003178s
+hash_wrapper_single_path
+                        170.002 (± 4.1%) i/s    (5.88 ms/i) -    850.000 in   5.008478s
+hash_wrapper_dual_path
+                        172.653 (± 4.1%) i/s    (5.79 ms/i) -    864.000 in   5.013016s
+set_index_single_path
+                        169.523 (± 3.5%) i/s    (5.90 ms/i) -    848.000 in   5.009376s
+ set_index_dual_path    170.091 (± 4.1%) i/s    (5.88 ms/i) -    864.000 in   5.089468s
+
+Comparison:
+           reference:      264.1 i/s
+hash_wrapper_dual_path:      172.7 i/s - 1.53x  slower
+ set_index_dual_path:      170.1 i/s - 1.55x  slower
+hash_wrapper_single_path:      170.0 i/s - 1.55x  slower
+set_index_single_path:      169.5 i/s - 1.56x  slower
+
+
+--- allocations: json/medium_graph_none size=2300 (1 call each) ---
+  reference                                    4604 allocs      2232801 bytes
+  hash_wrapper_single_path                   103504 allocs      6188801 bytes
+  hash_wrapper_dual_path                     103504 allocs      6188801 bytes
+  set_index_single_path                      103504 allocs      6188801 bytes
+  set_index_dual_path                        103504 allocs      6188801 bytes
+
+=============================================
+[json] Fixture: medium_graph_shallow_only
+  descriptor: FilterExperimentsPostSerializer
+  filter:     {only: [:id, :title, :author]}
+  sizes:      [1, 50, 2300]
+=============================================
+  pre-flight OK: 4 cells produce identical output (reference is filter-machinery-absent ceiling)
+
+--- ips: json/medium_graph_shallow_only size=1 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    47.708k i/100ms
+hash_wrapper_single_path
+                        75.000k i/100ms
+hash_wrapper_dual_path
+                        74.605k i/100ms
+set_index_single_path
+                        67.692k i/100ms
+ set_index_dual_path    67.430k i/100ms
+Calculating -------------------------------------
+           reference    489.730k (± 2.2%) i/s    (2.04 μs/i) -      2.481M in   5.068103s
+hash_wrapper_single_path
+                        776.255k (± 2.2%) i/s    (1.29 μs/i) -      3.900M in   5.026465s
+hash_wrapper_dual_path
+                        754.692k (± 4.5%) i/s    (1.33 μs/i) -      3.805M in   5.052339s
+set_index_single_path
+                        695.454k (± 2.3%) i/s    (1.44 μs/i) -      3.520M in   5.064068s
+ set_index_dual_path    682.339k (± 1.8%) i/s    (1.47 μs/i) -      3.439M in   5.041564s
+
+Comparison:
+hash_wrapper_single_path:   776255.3 i/s
+hash_wrapper_dual_path:   754691.9 i/s - same-ish: difference falls within error
+set_index_single_path:   695453.6 i/s - 1.12x  slower
+ set_index_dual_path:   682339.3 i/s - 1.14x  slower
+           reference:   489730.0 i/s - 1.59x  slower
+
+
+--- allocations: json/medium_graph_shallow_only size=1 (1 call each) ---
+  reference                                       6 allocs         1680 bytes
+  hash_wrapper_single_path                       19 allocs         1120 bytes
+  hash_wrapper_dual_path                         19 allocs         1120 bytes
+  set_index_single_path                          23 allocs         1504 bytes
+  set_index_dual_path                            23 allocs         1504 bytes
+
+--- ips: json/medium_graph_shallow_only size=50 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference     1.269k i/100ms
+hash_wrapper_single_path
+                         2.826k i/100ms
+hash_wrapper_dual_path
+                         2.898k i/100ms
+set_index_single_path
+                         2.786k i/100ms
+ set_index_dual_path     2.840k i/100ms
+Calculating -------------------------------------
+           reference     12.543k (± 2.4%) i/s   (79.73 μs/i) -     63.450k in   5.062181s
+hash_wrapper_single_path
+                         28.665k (± 3.1%) i/s   (34.89 μs/i) -    144.126k in   5.033541s
+hash_wrapper_dual_path
+                         29.550k (± 1.7%) i/s   (33.84 μs/i) -    147.798k in   5.003134s
+set_index_single_path
+                         29.410k (± 7.6%) i/s   (34.00 μs/i) -    147.658k in   5.052305s
+ set_index_dual_path     29.689k (± 6.9%) i/s   (33.68 μs/i) -    147.680k in   5.000244s
+
+Comparison:
+ set_index_dual_path:    29688.6 i/s
+hash_wrapper_dual_path:    29549.8 i/s - same-ish: difference falls within error
+set_index_single_path:    29410.0 i/s - same-ish: difference falls within error
+hash_wrapper_single_path:    28664.7 i/s - same-ish: difference falls within error
+           reference:    12542.9 i/s - 2.37x  slower
+
+
+--- allocations: json/medium_graph_shallow_only size=50 (1 call each) ---
+  reference                                     104 allocs        46739 bytes
+  hash_wrapper_single_path                      558 allocs        32249 bytes
+  hash_wrapper_dual_path                        558 allocs        32249 bytes
+  set_index_single_path                         562 allocs        32633 bytes
+  set_index_dual_path                           562 allocs        32633 bytes
+
+--- ips: json/medium_graph_shallow_only size=2300 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    25.000 i/100ms
+hash_wrapper_single_path
+                        63.000 i/100ms
+hash_wrapper_dual_path
+                        64.000 i/100ms
+set_index_single_path
+                        69.000 i/100ms
+ set_index_dual_path    69.000 i/100ms
+Calculating -------------------------------------
+           reference    263.222 (± 4.2%) i/s    (3.80 ms/i) -      1.325k in   5.042473s
+hash_wrapper_single_path
+                        661.018 (± 3.8%) i/s    (1.51 ms/i) -      3.339k in   5.058552s
+hash_wrapper_dual_path
+                        653.281 (± 3.5%) i/s    (1.53 ms/i) -      3.328k in   5.100696s
+set_index_single_path
+                        690.716 (± 3.0%) i/s    (1.45 ms/i) -      3.519k in   5.099631s
+ set_index_dual_path    695.040 (± 3.3%) i/s    (1.44 ms/i) -      3.519k in   5.068587s
+
+Comparison:
+ set_index_dual_path:      695.0 i/s
+set_index_single_path:      690.7 i/s - same-ish: difference falls within error
+hash_wrapper_single_path:      661.0 i/s - same-ish: difference falls within error
+hash_wrapper_dual_path:      653.3 i/s - same-ish: difference falls within error
+           reference:      263.2 i/s - 2.64x  slower
+
+
+--- allocations: json/medium_graph_shallow_only size=2300 (1 call each) ---
+  reference                                    4604 allocs      2232801 bytes
+  hash_wrapper_single_path                    25308 allocs      1502757 bytes
+  hash_wrapper_dual_path                      25308 allocs      1502757 bytes
+  set_index_single_path                       25312 allocs      1503141 bytes
+  set_index_dual_path                         25312 allocs      1503141 bytes
+
+=============================================
+[json] Fixture: medium_graph_deep_nested
+  descriptor: FilterExperimentsPostSerializer
+  filter:     {only: [:id, :title, :author, :comments], author: {only: [:id, :name]}, comments: {except: [:id]}}
+  sizes:      [1, 50, 2300]
+=============================================
+  pre-flight OK: 4 cells produce identical output (reference is filter-machinery-absent ceiling)
+
+--- ips: json/medium_graph_deep_nested size=1 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    48.023k i/100ms
+hash_wrapper_single_path
+                        43.119k i/100ms
+hash_wrapper_dual_path
+                        42.776k i/100ms
+set_index_single_path
+                        35.104k i/100ms
+ set_index_dual_path    35.012k i/100ms
+Calculating -------------------------------------
+           reference    491.226k (± 2.5%) i/s    (2.04 μs/i) -      2.497M in   5.086693s
+hash_wrapper_single_path
+                        429.812k (± 4.1%) i/s    (2.33 μs/i) -      2.156M in   5.025050s
+hash_wrapper_dual_path
+                        432.195k (± 1.7%) i/s    (2.31 μs/i) -      2.182M in   5.049155s
+set_index_single_path
+                        357.169k (± 2.9%) i/s    (2.80 μs/i) -      1.790M in   5.017259s
+ set_index_dual_path    352.170k (± 1.9%) i/s    (2.84 μs/i) -      1.786M in   5.072128s
+
+Comparison:
+           reference:   491225.6 i/s
+hash_wrapper_dual_path:   432194.6 i/s - 1.14x  slower
+hash_wrapper_single_path:   429812.2 i/s - 1.14x  slower
+set_index_single_path:   357169.3 i/s - 1.38x  slower
+ set_index_dual_path:   352170.0 i/s - 1.39x  slower
+
+
+--- allocations: json/medium_graph_deep_nested size=1 (1 call each) ---
+  reference                                       6 allocs         1680 bytes
+  hash_wrapper_single_path                       30 allocs         1880 bytes
+  hash_wrapper_dual_path                         30 allocs         1880 bytes
+  set_index_single_path                          38 allocs         2872 bytes
+  set_index_dual_path                            38 allocs         2872 bytes
+
+--- ips: json/medium_graph_deep_nested size=50 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference     1.269k i/100ms
+hash_wrapper_single_path
+                         1.233k i/100ms
+hash_wrapper_dual_path
+                         1.196k i/100ms
+set_index_single_path
+                         1.236k i/100ms
+ set_index_dual_path     1.213k i/100ms
+Calculating -------------------------------------
+           reference     12.518k (± 2.6%) i/s   (79.88 μs/i) -     63.450k in   5.072430s
+hash_wrapper_single_path
+                         12.226k (± 1.3%) i/s   (81.80 μs/i) -     61.650k in   5.043543s
+hash_wrapper_dual_path
+                         12.196k (± 0.9%) i/s   (81.99 μs/i) -     60.996k in   5.001652s
+set_index_single_path
+                         12.730k (± 6.3%) i/s   (78.55 μs/i) -     64.272k in   5.070641s
+ set_index_dual_path     12.472k (± 6.1%) i/s   (80.18 μs/i) -     63.076k in   5.078047s
+
+Comparison:
+set_index_single_path:    12730.0 i/s
+           reference:    12518.3 i/s - same-ish: difference falls within error
+ set_index_dual_path:    12471.8 i/s - same-ish: difference falls within error
+hash_wrapper_single_path:    12225.6 i/s - same-ish: difference falls within error
+hash_wrapper_dual_path:    12196.3 i/s - same-ish: difference falls within error
+
+
+--- allocations: json/medium_graph_deep_nested size=50 (1 call each) ---
+  reference                                     104 allocs        46739 bytes
+  hash_wrapper_single_path                     1108 allocs        63469 bytes
+  hash_wrapper_dual_path                       1108 allocs        63469 bytes
+  set_index_single_path                        1018 allocs        60541 bytes
+  set_index_dual_path                          1018 allocs        60541 bytes
+
+--- ips: json/medium_graph_deep_nested size=2300 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    24.000 i/100ms
+hash_wrapper_single_path
+                        26.000 i/100ms
+hash_wrapper_dual_path
+                        25.000 i/100ms
+set_index_single_path
+                        27.000 i/100ms
+ set_index_dual_path    26.000 i/100ms
+Calculating -------------------------------------
+           reference    263.296 (± 4.2%) i/s    (3.80 ms/i) -      1.320k in   5.023754s
+hash_wrapper_single_path
+                        256.344 (± 2.7%) i/s    (3.90 ms/i) -      1.300k in   5.075268s
+hash_wrapper_dual_path
+                        250.589 (± 2.8%) i/s    (3.99 ms/i) -      1.275k in   5.092207s
+set_index_single_path
+                        278.437 (± 3.2%) i/s    (3.59 ms/i) -      1.404k in   5.048582s
+ set_index_dual_path    263.977 (± 3.0%) i/s    (3.79 ms/i) -      1.326k in   5.027962s
+
+Comparison:
+set_index_single_path:      278.4 i/s
+ set_index_dual_path:      264.0 i/s - same-ish: difference falls within error
+           reference:      263.3 i/s - same-ish: difference falls within error
+hash_wrapper_single_path:      256.3 i/s - 1.09x  slower
+hash_wrapper_dual_path:      250.6 i/s - 1.11x  slower
+
+
+--- allocations: json/medium_graph_deep_nested size=2300 (1 call each) ---
+  reference                                    4604 allocs      2232801 bytes
+  hash_wrapper_single_path                    50608 allocs      2930977 bytes
+  hash_wrapper_dual_path                      50608 allocs      2930977 bytes
+  set_index_single_path                       46018 allocs      2748049 bytes
+  set_index_dual_path                         46018 allocs      2748049 bytes
+
+=============================================
+Hash-mode parity check
+=============================================
+=============================================
+[hash] Fixture: wide_flat_shallow_only
+  descriptor: FilterExperimentsWidePostSerializer
+  filter:     {only: [:s_01, :s_02, :s_03, :s_04, :s_05, :s_06, :s_07, :s_08, :i_01, :i_02, :i_03, :i_04, :i_05, :i_06, :b_01, :b_02, :b_03, :d_01, :d_02, :t_01]}
+  sizes:      [1, 50, 2300]
+=============================================
+  pre-flight OK: 4 cells produce identical output (reference is filter-machinery-absent ceiling)
+
+--- ips: hash/wide_flat_shallow_only size=1 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    26.224k i/100ms
+hash_wrapper_single_path
+                         9.173k i/100ms
+hash_wrapper_dual_path
+                         9.208k i/100ms
+set_index_single_path
+                        25.244k i/100ms
+ set_index_dual_path    25.236k i/100ms
+Calculating -------------------------------------
+           reference    273.453k (± 1.6%) i/s    (3.66 μs/i) -      1.390M in   5.083911s
+hash_wrapper_single_path
+                         88.195k (± 5.2%) i/s   (11.34 μs/i) -    440.304k in   5.006129s
+hash_wrapper_dual_path
+                         90.912k (± 4.1%) i/s   (11.00 μs/i) -    460.400k in   5.072895s
+set_index_single_path
+                        256.720k (± 5.0%) i/s    (3.90 μs/i) -      1.287M in   5.029176s
+ set_index_dual_path    257.356k (± 5.7%) i/s    (3.89 μs/i) -      1.287M in   5.019741s
+
+Comparison:
+           reference:   273453.4 i/s
+ set_index_dual_path:   257355.8 i/s - same-ish: difference falls within error
+set_index_single_path:   256720.0 i/s - same-ish: difference falls within error
+hash_wrapper_dual_path:    90912.3 i/s - 3.01x  slower
+hash_wrapper_single_path:    88194.9 i/s - 3.10x  slower
+
+
+--- allocations: hash/wide_flat_shallow_only size=1 (1 call each) ---
+  reference                                       2 allocs         3528 bytes
+  hash_wrapper_single_path                       46 allocs         2792 bytes
+  hash_wrapper_dual_path                         46 allocs         2792 bytes
+  set_index_single_path                          50 allocs         3688 bytes
+  set_index_dual_path                            50 allocs         3688 bytes
+
+--- ips: hash/wide_flat_shallow_only size=50 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference   546.000 i/100ms
+hash_wrapper_single_path
+                       186.000 i/100ms
+hash_wrapper_dual_path
+                       188.000 i/100ms
+set_index_single_path
+                       610.000 i/100ms
+ set_index_dual_path   625.000 i/100ms
+Calculating -------------------------------------
+           reference      5.500k (± 2.8%) i/s  (181.81 μs/i) -     27.846k in   5.067168s
+hash_wrapper_single_path
+                          1.874k (± 6.5%) i/s  (533.55 μs/i) -      9.486k in   5.085090s
+hash_wrapper_dual_path
+                          1.848k (± 6.8%) i/s  (541.05 μs/i) -      9.212k in   5.009525s
+set_index_single_path
+                          6.352k (± 7.4%) i/s  (157.44 μs/i) -     31.720k in   5.024009s
+ set_index_dual_path      6.319k (± 8.2%) i/s  (158.25 μs/i) -     31.875k in   5.081868s
+
+Comparison:
+set_index_single_path:     6351.6 i/s
+ set_index_dual_path:     6319.2 i/s - same-ish: difference falls within error
+           reference:     5500.2 i/s - 1.15x  slower
+hash_wrapper_single_path:     1874.2 i/s - 3.39x  slower
+hash_wrapper_dual_path:     1848.3 i/s - 3.44x  slower
+
+
+--- allocations: hash/wide_flat_shallow_only size=50 (1 call each) ---
+  reference                                      51 allocs       175040 bytes
+  hash_wrapper_single_path                     2055 allocs       130400 bytes
+  hash_wrapper_dual_path                       2055 allocs       130400 bytes
+  set_index_single_path                        2059 allocs       131296 bytes
+  set_index_dual_path                          2059 allocs       131296 bytes
+
+--- ips: hash/wide_flat_shallow_only size=2300 ---
+ruby 4.0.2 (2026-03-17 revision d3da9fec82) +YJIT +PRISM [arm64-darwin25]
+Warming up --------------------------------------
+           reference    11.000 i/100ms
+hash_wrapper_single_path
+                         3.000 i/100ms
+hash_wrapper_dual_path
+                         4.000 i/100ms
+set_index_single_path
+                        14.000 i/100ms
+ set_index_dual_path    14.000 i/100ms
+Calculating -------------------------------------
+           reference    117.734 (± 2.5%) i/s    (8.49 ms/i) -    594.000 in   5.049508s
+hash_wrapper_single_path
+                         40.089 (± 5.0%) i/s   (24.94 ms/i) -    201.000 in   5.028548s
+hash_wrapper_dual_path
+                         40.515 (± 4.9%) i/s   (24.68 ms/i) -    204.000 in   5.047571s
+set_index_single_path
+                        142.360 (± 2.8%) i/s    (7.02 ms/i) -    714.000 in   5.020250s
+ set_index_dual_path    144.563 (± 2.8%) i/s    (6.92 ms/i) -    728.000 in   5.040014s
+
+Comparison:
+ set_index_dual_path:      144.6 i/s
+set_index_single_path:      142.4 i/s - same-ish: difference falls within error
+           reference:      117.7 i/s - 1.23x  slower
+hash_wrapper_dual_path:       40.5 i/s - 3.57x  slower
+hash_wrapper_single_path:       40.1 i/s - 3.61x  slower
+
+
+--- allocations: hash/wide_flat_shallow_only size=2300 (1 call each) ---
+  reference                                    2301 allocs      8040840 bytes
+  hash_wrapper_single_path                    94305 allocs      5980200 bytes
+  hash_wrapper_dual_path                      94305 allocs      5980200 bytes
+  set_index_single_path                       94309 allocs      5981096 bytes
+  set_index_dual_path                         94309 allocs      5981096 bytes
+

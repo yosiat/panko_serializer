@@ -124,14 +124,14 @@ Same field set as [`phase_1_report.md` § 2](phase_1_report.md).
 
 | Field | Value |
 | --- | --- |
-| Ruby (`ruby -v`)                              | _pending_ |
-| YJIT (`RubyVM::YJIT.enabled?` at run start)   | _pending_ |
-| Hardware model                                | _pending_ |
-| CPU                                           | _pending_ |
-| RAM                                           | _pending_ |
-| OS                                            | _pending_ |
-| Run date                                      | _pending_ |
-| `bundle list \| grep -E 'panko\|oj_serializers'` | _pending_ |
+| Ruby (`ruby -v`)                              | `ruby 4.0.2 (2026-03-17 revision d3da9fec82) +PRISM [arm64-darwin25]` |
+| YJIT (`RubyVM::YJIT.enabled?` at run start)   | `true` (bench startup logged `YJIT: on`) |
+| Hardware model                                | MacBook Pro (Mac16,5) |
+| CPU                                           | Apple M4 Max — 16 cores (12 performance + 4 efficiency) |
+| RAM                                           | 64 GB |
+| OS                                            | macOS 26.3.1 (build 25D2128) |
+| Run date                                      | 2026-05-02 |
+| `bundle list \| grep -E 'panko\|oj_serializers'` | `panko_serializer (0.8.5)`, `oj_serializers (3.0.0)` |
 
 Per [`docs/filters.md` § Ruby and JIT target](../filters.md#ruby-and-jit-target):
 Ruby 4.0.2 + YJIT is the canonical target. No-JIT numbers are
@@ -159,51 +159,51 @@ column is computed from the `ips` column once both are filled and reads
 
 | Cell                              | size=50 ips | size=50 allocs | size=2300 ips | size=2300 allocs | Δ vs reference (ips) |
 | --------------------------------- | ----------- | -------------- | ------------- | ---------------- | -------------------- |
-| `hash_wrapper × single_path`      |             |                |               |                  |                      |
-| `hash_wrapper × dual_path`        |             |                |               |                  |                      |
-| `set_index × single_path`         |             |                |               |                  |                      |
-| `set_index × dual_path`           |             |                |               |                  |                      |
-| `reference (no filter machinery)` |             |                |               |                  | n/a (ceiling)        |
+| `hash_wrapper × single_path`      | 2.544k      | 7854           | 53.888        | 361104           | −42.0%               |
+| `hash_wrapper × dual_path`        | 2.639k      | 7854           | 56.973        | 361104           | −38.7%               |
+| `set_index × single_path`         | 2.575k      | 7854           | 54.922        | 361104           | −40.9%               |
+| `set_index × dual_path`           | 2.655k      | 7854           | 57.085        | 361104           | −38.5%               |
+| `reference (no filter machinery)` | 4.204k      | 754            | 92.885        | 34504            | n/a (ceiling)        |
 
 ### 6.2 Fixture #2 — `wide_flat_shallow_only`
 
 | Cell                              | size=1 ips | size=1 allocs | size=50 ips | size=50 allocs | size=2300 ips | size=2300 allocs | Δ vs reference (ips) |
 | --------------------------------- | ---------- | ------------- | ----------- | -------------- | ------------- | ---------------- | -------------------- |
-| `hash_wrapper × single_path`      |            |               |             |                |               |                  |                      |
-| `hash_wrapper × dual_path`        |            |               |             |                |               |                  |                      |
-| `set_index × single_path`         |            |               |             |                |               |                  |                      |
-| `set_index × dual_path`           |            |               |             |                |               |                  |                      |
-| `reference (no filter machinery)` |            |               |             |                |               |                  | n/a (ceiling)        |
+| `hash_wrapper × single_path`      | 82.283k    | 53            | 1.863k      | 2258           | 40.311        | 103508           | −57.5%               |
+| `hash_wrapper × dual_path`        | 84.469k    | 53            | 1.895k      | 2258           | 39.509        | 103508           | −58.3%               |
+| `set_index × single_path`         | 230.576k   | 57            | 6.603k      | 2262           | 142.196       | 103512           | +50.0%               |
+| `set_index × dual_path`           | 224.423k   | 57            | 6.553k      | 2262           | 141.126       | 103512           | +48.9%               |
+| `reference (no filter machinery)` | 191.954k   | 19            | 4.309k      | 754            | 94.799        | 34504            | n/a (ceiling)        |
 
 ### 6.3 Fixture #3 — `medium_graph_none`
 
 | Cell                              | size=50 ips | size=50 allocs | size=2300 ips | size=2300 allocs | Δ vs reference (ips) |
 | --------------------------------- | ----------- | -------------- | ------------- | ---------------- | -------------------- |
-| `hash_wrapper × single_path`      |             |                |               |                  |                      |
-| `hash_wrapper × dual_path`        |             |                |               |                  |                      |
-| `set_index × single_path`         |             |                |               |                  |                      |
-| `set_index × dual_path`           |             |                |               |                  |                      |
-| `reference (no filter machinery)` |             |                |               |                  | n/a (ceiling)        |
+| `hash_wrapper × single_path`      | 7.728k      | 2254           | 170.002       | 103504           | −35.6%               |
+| `hash_wrapper × dual_path`        | 7.908k      | 2254           | 172.653       | 103504           | −34.6%               |
+| `set_index × single_path`         | 7.855k      | 2254           | 169.523       | 103504           | −35.8%               |
+| `set_index × dual_path`           | 7.876k      | 2254           | 170.091       | 103504           | −35.6%               |
+| `reference (no filter machinery)` | 12.494k     | 104            | 264.100       | 4604             | n/a (ceiling)        |
 
 ### 6.4 Fixture #4 — `medium_graph_shallow_only`
 
 | Cell                              | size=1 ips | size=1 allocs | size=50 ips | size=50 allocs | size=2300 ips | size=2300 allocs | Δ vs reference (ips) |
 | --------------------------------- | ---------- | ------------- | ----------- | -------------- | ------------- | ---------------- | -------------------- |
-| `hash_wrapper × single_path`      |            |               |             |                |               |                  |                      |
-| `hash_wrapper × dual_path`        |            |               |             |                |               |                  |                      |
-| `set_index × single_path`         |            |               |             |                |               |                  |                      |
-| `set_index × dual_path`           |            |               |             |                |               |                  |                      |
-| `reference (no filter machinery)` |            |               |             |                |               |                  | n/a (ceiling)        |
+| `hash_wrapper × single_path`      | 776.255k   | 19            | 28.665k     | 558            | 661.018       | 25308            | +151.1%              |
+| `hash_wrapper × dual_path`        | 754.692k   | 19            | 29.550k     | 558            | 653.281       | 25308            | +148.2%              |
+| `set_index × single_path`         | 695.454k   | 23            | 29.410k     | 562            | 690.716       | 25312            | +162.4%              |
+| `set_index × dual_path`           | 682.339k   | 23            | 29.689k     | 562            | 695.040       | 25312            | +164.1%              |
+| `reference (no filter machinery)` | 489.730k   | 6             | 12.543k     | 104            | 263.222       | 4604             | n/a (ceiling)        |
 
 ### 6.5 Fixture #5 — `medium_graph_deep_nested`
 
 | Cell                              | size=1 ips | size=1 allocs | size=50 ips | size=50 allocs | size=2300 ips | size=2300 allocs | Δ vs reference (ips) |
 | --------------------------------- | ---------- | ------------- | ----------- | -------------- | ------------- | ---------------- | -------------------- |
-| `hash_wrapper × single_path`      |            |               |             |                |               |                  |                      |
-| `hash_wrapper × dual_path`        |            |               |             |                |               |                  |                      |
-| `set_index × single_path`         |            |               |             |                |               |                  |                      |
-| `set_index × dual_path`           |            |               |             |                |               |                  |                      |
-| `reference (no filter machinery)` |            |               |             |                |               |                  | n/a (ceiling)        |
+| `hash_wrapper × single_path`      | 429.812k   | 30            | 12.226k     | 1108           | 256.344       | 50608            | −2.6%                |
+| `hash_wrapper × dual_path`        | 432.195k   | 30            | 12.196k     | 1108           | 250.589       | 50608            | −4.8%                |
+| `set_index × single_path`         | 357.169k   | 38            | 12.730k     | 1018           | 278.437       | 46018            | +5.8%                |
+| `set_index × dual_path`           | 352.170k   | 38            | 12.472k     | 1018           | 263.977       | 46018            | +0.3%                |
+| `reference (no filter machinery)` | 491.226k   | 6             | 12.518k     | 104            | 263.296       | 4604             | n/a (ceiling)        |
 
 ## 7. Hash-mode parity check
 
