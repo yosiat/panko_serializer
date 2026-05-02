@@ -12,11 +12,11 @@ module SerializersCodeGen
     # always returns +self+, +none?+ returns +true+. All three are
     # constant-time, allocation-free, and prime YJIT inlining targets.
     #
-    # Frozen at module load (the +.freeze+ on the assignment in
-    # +lib/serializers_code_gen/filter.rb+); reassignment is impossible
-    # without bypassing +Module#const_set+. The singleton's identity is
-    # the contract — emitted code may compare via +.equal?+ when a
-    # future cell ships a +none?+-shortcut dispatcher.
+    # Frozen at module load — the trailing +freeze+ inside the module
+    # body below seals the singleton before any caller can observe it.
+    # The singleton's identity is the contract: emitted code may compare
+    # via +.equal?+ when a future cell ships a +none?+-shortcut
+    # dispatcher.
     module None
       # Returns +false+ unconditionally — by definition, the no-filter
       # singleton drops nothing. The integer parameter exists only to
