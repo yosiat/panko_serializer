@@ -38,8 +38,8 @@ RSpec.describe "JSON-column emit fallthrough — source token regression" do
         config: fixture::CONFIG
       )
 
-      expect(source).to include('writer.push_value(record["metadata"])')
-      expect(source).to include("writer.push_value(record.metadata)")
+      expect(source).to include('writer.push_value(record["metadata"], "metadata")')
+      expect(source).to include('writer.push_value(record.metadata, "metadata")')
       expect(source).not_to include("push_json")
       expect(source).not_to include("Oj.sc_parse")
       expect(source).not_to include("JSON_NOOP_PARSER")
@@ -57,7 +57,7 @@ RSpec.describe "JSON-column emit fallthrough — source token regression" do
         config: fixture::CONFIG
       )
 
-      expect(source).to include('writer.push_value(record._read_attribute("metadata"))')
+      expect(source).to include('writer.push_value(record._read_attribute("metadata"), "metadata")')
       expect(source).not_to include("push_json")
       expect(source).not_to include("Oj.sc_parse")
       expect(source).not_to include("JSON_NOOP_PARSER")

@@ -22,10 +22,8 @@ class ConfigJsonColumnNonUniformSpecializedSerializer_JSON
 
   def _write_one(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
-    writer.push_key("metadata")
-    writer.push_value(record._read_attribute("metadata"))
+    writer.push_value(record.id, "id")
+    writer.push_value(record._read_attribute("metadata"), "metadata")
     writer.pop
   end
 end
