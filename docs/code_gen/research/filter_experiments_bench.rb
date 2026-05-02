@@ -278,14 +278,178 @@ class SetIndexFilter
   end
 end
 
-REPRESENTATIONS = {
-  hash_wrapper: HashWrapperFilter,
-  set_index: SetIndexFilter
-}.freeze
+# Filter representation C — codegen-time field indexing. Each Field
+# (Attribute / MethodAttribute / Association, in declared order on the
+# Descriptor) gets a 0-based index assigned at overlay-emit time, baked
+# into the +unless filters.drops?(<integer>)+ check site as an integer
+# literal. The Filter object stores the drop set as either an Integer
+# bit-mask (when the Descriptor's Field count fits in 63 bits — a
+# tagged Fixnum on 64-bit, so bit ops avoid Bignum boxing) or a Boolean
+# Array (when the Field count exceeds 63). +drops?+ is then a single
+# +Integer#[]+ shift+and (bits) or +Array#[]+ load (array) — no symbol
+# hashing, no Set probe. Per the +#59+ HITL extension to the
+# pre-registered cell matrix; rationale + decision-rule re-application
+# are recorded in the results doc § 4 + § 8.
 
-EMIT_STRATEGIES = %i[single_path dual_path].freeze
+class IndexedBitsFilter
+  def initialize(drops_mask, children)
+    @drops_mask = drops_mask
+    @children = children
+  end
 
-CELL_NAMES = REPRESENTATIONS.keys.product(EMIT_STRATEGIES).map { |r, s| :"#{r}_#{s}" }.freeze
+  def drops?(index)
+    @drops_mask[index] == 1
+  end
+
+  def child(source)
+    @children[source] || NoneFilter::INSTANCE
+  end
+
+  def none?
+    false
+  end
+end
+
+class IndexedArrayFilter
+  def initialize(drops_array, children)
+    @drops = drops_array
+    @children = children
+  end
+
+  def drops?(index)
+    @drops[index]
+  end
+
+  def child(source)
+    @children[source] || NoneFilter::INSTANCE
+  end
+
+  def none?
+    false
+  end
+end
+
+# Builds an indexed Filter for +descriptor+ from the caller's +hash+.
+# Walks the Descriptor once at construction (like Set-index) to:
+#   1. Resolve each Field name in the caller's +:only+ / +:except+ into
+#      its declared-order integer position on the Descriptor.
+#   2. Pick the dynamic representation: Integer bit-mask when the Field
+#      count <= 63, Boolean Array otherwise. The threshold is the
+#      tagged-Fixnum cap on 64-bit (Bignum boxing of a 64-bit literal
+#      makes +Integer#[]+ stop being constant-time).
+#   3. Recursively build child Filters for each sub-Hash whose key
+#      matches an Association +source+ on the Descriptor — child
+#      indices are computed against the child Descriptor's Field
+#      ordering, so each level uses its own integer space.
+#
+# Unknown sub-Hash keys are silently dropped (matches HashWrapper /
+# Set-index per +docs/filters.md § Unknown keys+). Empty / +nil+
+# sub-Hashes collapse to +NoneFilter::INSTANCE+ via the lookup miss in
+# +child+.
+module IndexedFilter
+  module_function
+
+  BIT_THRESHOLD = 63
+  # Cache of per-Descriptor frozen field-name lists, keyed by
+  # +Descriptor#__id__+. The field list is fixed at compile time on a
+  # Descriptor (Data.define is immutable); production codegen would bake
+  # it into a per-class constant. This cache plays the equivalent role
+  # in the bench so +IndexedFilter.build+'s per-call allocation profile
+  # matches what production would ship.
+  DESCRIPTOR_FIELDS_CACHE = {}
+  # Frozen empty Hash returned from +build_children+ when the caller's
+  # filter Hash has no Association sub-Hashes. Avoids a fresh empty Hash
+  # allocation per +serialize_*+ call on shallow-only fixtures.
+  EMPTY_CHILDREN = {}.freeze
+
+  def build(descriptor, hash)
+    fields = descriptor_fields(descriptor)
+    n = fields.size
+    only = hash[:only]
+    except = hash[:except]
+    only_set = only && (only.is_a?(Set) ? only : Set.new(only))
+    except_set = except && (except.is_a?(Set) ? except : Set.new(except))
+
+    if n <= BIT_THRESHOLD
+      # Bit-mask path: accumulate into a single Integer, no intermediate
+      # Array. +0+ allocations besides the Filter object + children.
+      mask = 0
+      i = 0
+      while i < n
+        name = fields[i]
+        drop = if only_set
+          !only_set.include?(name)
+        elsif except_set
+          except_set.include?(name)
+        else
+          false
+        end
+        mask |= (1 << i) if drop
+        i += 1
+      end
+      IndexedBitsFilter.new(mask, build_children(descriptor, hash))
+    else
+      # Array path: pre-size with +nil+, fill in place. One Array
+      # allocation regardless of drop count.
+      arr = Array.new(n)
+      i = 0
+      while i < n
+        name = fields[i]
+        arr[i] = if only_set
+          !only_set.include?(name)
+        elsif except_set
+          except_set.include?(name)
+        else
+          false
+        end
+        i += 1
+      end
+      IndexedArrayFilter.new(arr, build_children(descriptor, hash))
+    end
+  end
+
+  # Field ordering: Attributes, then MethodAttributes, then Associations,
+  # each in declared order on the Descriptor. Codegen and Filter
+  # construction MUST agree on this ordering or the integer indices
+  # baked at codegen time will probe the wrong drops bit.
+  #
+  # @return [Array<Symbol>] Field names in canonical declared order.
+  def descriptor_fields(descriptor)
+    DESCRIPTOR_FIELDS_CACHE[descriptor.__id__] ||=
+      (descriptor.attributes + descriptor.method_attributes + descriptor.associations).map(&:name).freeze
+  end
+
+  def build_children(descriptor, hash)
+    children = nil
+    hash.each do |key, value|
+      next if key == :only || key == :except
+      next if value.nil? || value.empty?
+      assoc = descriptor.associations.find { |a| a.source == key }
+      next unless assoc
+      children ||= {}
+      children[key] = build(assoc.descriptor, value)
+    end
+    children || EMPTY_CHILDREN
+  end
+end
+
+# The cells the bench exercises. Originally a 2x2 product of
+# +{Hash-wrapper, Set-index} x {single-path, dual-path}+ per the
+# pre-registered matrix in +docs/filters.md § Decision rule+. The
+# +indexed_single_path+ cell was added during +#59+ review per HITL
+# scope amendment to evaluate the integer-indexed bool-array /
+# bit-vector approach (see results doc § 4 + § 8 for the amendment
+# record). +indexed_dual_path+ is intentionally omitted: dual-path's
+# dispatcher branch buys nothing measurable on either of the
+# pre-registered representations, so the indexed experiment runs
+# single-path only.
+CELL_NAMES = %i[
+  hash_wrapper_single_path
+  hash_wrapper_dual_path
+  set_index_single_path
+  set_index_dual_path
+  indexed_single_path
+].freeze
 
 # ---- Overlay emitter -------------------------------------------------------
 #
@@ -305,13 +469,33 @@ CELL_NAMES = REPRESENTATIONS.keys.product(EMIT_STRATEGIES).map { |r, s| :"#{r}_#
 module Overlay
   module_function
 
-  def emit_for(descriptor:, strategy:, output:)
-    case [strategy, output]
-    when [:single_path, :json] then emit_single_path_json(descriptor)
-    when [:dual_path, :json] then emit_dual_path_json(descriptor)
-    when [:single_path, :hash] then emit_single_path_hash(descriptor)
-    when [:dual_path, :hash] then emit_dual_path_hash(descriptor)
+  # Prepended to every overlay source string before +module_eval+. Mirrors
+  # the +# frozen_string_literal: true+ line that production codegen emits
+  # at line 1 of every Generated Class body
+  # (+lib/serializers_code_gen/generators/{json,hash}_mode.rb+) so the
+  # bench measures the same per-call allocation profile production will
+  # ship: +"name"+ literals interned at parse time instead of allocated
+  # per call. Without the pragma, +record._read_attribute("name")+ and
+  # +writer.push_value(..., "name")+ allocate two fresh Strings per
+  # attribute per record (+~140 strings/record on the wide-flat fixture+),
+  # which dominates the bench numbers and hides the real Filter-object
+  # overhead the verdict cares about.
+  FROZEN_PRAGMA = "# frozen_string_literal: true\n\n"
+
+  def emit_for(descriptor:, cell_name:, output:)
+    body = case [cell_name, output]
+    when [:hash_wrapper_single_path, :json], [:set_index_single_path, :json]
+      emit_single_path_json(descriptor)
+    when [:hash_wrapper_dual_path, :json], [:set_index_dual_path, :json]
+      emit_dual_path_json(descriptor)
+    when [:hash_wrapper_single_path, :hash], [:set_index_single_path, :hash]
+      emit_single_path_hash(descriptor)
+    when [:hash_wrapper_dual_path, :hash], [:set_index_dual_path, :hash]
+      emit_dual_path_hash(descriptor)
+    when [:indexed_single_path, :json] then emit_indexed_single_path_json(descriptor)
+    when [:indexed_single_path, :hash] then emit_indexed_single_path_hash(descriptor)
     end
+    FROZEN_PRAGMA + body
   end
 
   # ---- JSON ----
@@ -535,6 +719,126 @@ module Overlay
               "@#{assoc.name}_serializer._to_hash_unfiltered(element, context) }\n"
     end
   end
+
+  # ---- Indexed (single-path only) ----
+  #
+  # Field-index ordering MUST match +IndexedFilter.descriptor_fields+:
+  # +attributes + method_attributes + associations+, each in declared
+  # order. The integer literal at every check site is resolved at
+  # codegen time from this ordering; the Filter object built per
+  # +serialize_*+ call uses the same ordering to set its drop bits.
+  # Drift between codegen and Filter construction would silently probe
+  # the wrong bit; pre-flight byte-equivalence catches it as a divergent
+  # output rather than a wrong-but-still-valid one.
+
+  def emit_indexed_single_path_json(descriptor)
+    field_index = field_index_for(descriptor)
+    [
+      "def _write_one(record, writer, context, filters)\n",
+      "  writer.push_object\n",
+      json_indexed_filtered_body(descriptor, field_index, indent: 2),
+      "  writer.pop\n",
+      "end\n\n",
+      json_serialize_many_bench
+    ].join
+  end
+
+  def emit_indexed_single_path_hash(descriptor)
+    field_index = field_index_for(descriptor)
+    [
+      "def _to_hash(record, context, filters)\n",
+      "  result = {}\n",
+      hash_indexed_filtered_body(descriptor, field_index, indent: 2),
+      "  result\n",
+      "end\n\n",
+      hash_serialize_many_bench
+    ].join
+  end
+
+  def json_indexed_filtered_body(descriptor, field_index, indent:)
+    pad = " " * indent
+    body = +""
+    descriptor.attributes.each do |a|
+      idx = field_index.fetch(a.name)
+      body << pad << "unless filters.drops?(#{idx})\n"
+      body << pad << "  writer.push_value(record._read_attribute(\"#{a.source}\"), \"#{a.name}\")\n"
+      body << pad << "end\n"
+    end
+    descriptor.associations.each do |assoc|
+      body << emit_indexed_assoc_json_filtered(assoc, field_index, indent: indent)
+    end
+    body
+  end
+
+  def hash_indexed_filtered_body(descriptor, field_index, indent:)
+    pad = " " * indent
+    body = +""
+    descriptor.attributes.each do |a|
+      idx = field_index.fetch(a.name)
+      body << pad << "unless filters.drops?(#{idx})\n"
+      body << pad << "  result[\"#{a.name}\"] = record._read_attribute(\"#{a.source}\")\n"
+      body << pad << "end\n"
+    end
+    descriptor.associations.each do |assoc|
+      body << emit_indexed_assoc_hash_filtered(assoc, field_index, indent: indent)
+    end
+    body
+  end
+
+  def emit_indexed_assoc_json_filtered(assoc, field_index, indent:)
+    pad = " " * indent
+    idx = field_index.fetch(assoc.name)
+    case assoc.kind
+    when :has_one
+      pad + "unless filters.drops?(#{idx})\n" +
+        pad + "  value = record.#{assoc.source}\n" +
+        pad + "  if value.nil?\n" +
+        pad + "    writer.push_value(nil, \"#{assoc.name}\")\n" +
+        pad + "  else\n" +
+        pad + "    writer.push_key(\"#{assoc.name}\")\n" +
+        pad + "    @#{assoc.name}_serializer._write_one(value, writer, context, filters.child(:#{assoc.source}))\n" +
+        pad + "  end\n" +
+        pad + "end\n"
+    when :has_many
+      pad + "unless filters.drops?(#{idx})\n" +
+        pad + "  child_filter = filters.child(:#{assoc.source})\n" +
+        pad + "  writer.push_array(\"#{assoc.name}\")\n" +
+        pad + "  record.#{assoc.source}.each do |element|\n" +
+        pad + "    @#{assoc.name}_serializer._write_one(element, writer, context, child_filter)\n" +
+        pad + "  end\n" +
+        pad + "  writer.pop\n" +
+        pad + "end\n"
+    end
+  end
+
+  def emit_indexed_assoc_hash_filtered(assoc, field_index, indent:)
+    pad = " " * indent
+    idx = field_index.fetch(assoc.name)
+    case assoc.kind
+    when :has_one
+      pad + "unless filters.drops?(#{idx})\n" +
+        pad + "  value = record.#{assoc.source}\n" +
+        pad + "  result[\"#{assoc.name}\"] = if value.nil?\n" +
+        pad + "    nil\n" +
+        pad + "  else\n" +
+        pad + "    @#{assoc.name}_serializer._to_hash(value, context, filters.child(:#{assoc.source}))\n" +
+        pad + "  end\n" +
+        pad + "end\n"
+    when :has_many
+      pad + "unless filters.drops?(#{idx})\n" +
+        pad + "  child_filter = filters.child(:#{assoc.source})\n" +
+        pad + "  result[\"#{assoc.name}\"] = record.#{assoc.source}.map { |element| " \
+                "@#{assoc.name}_serializer._to_hash(element, context, child_filter) }\n" +
+        pad + "end\n"
+    end
+  end
+
+  def field_index_for(descriptor)
+    h = {}
+    fields = descriptor.attributes + descriptor.method_attributes + descriptor.associations
+    fields.each_with_index { |f, i| h[f.name] = i }
+    h
+  end
 end
 
 # ---- Per-cell instance builder ---------------------------------------------
@@ -562,14 +866,14 @@ end
 #
 # Compile is a pure function per `docs/compilation.md`, so each cell gets
 # an independent class tree — no method-cache contamination across cells.
-def compile_cell_instance(descriptor, strategy:, output:)
+def compile_cell_instance(descriptor, cell_name:, output:)
   cache = SerializersCodeGen::CompileCache.new
   config = SerializersCodeGen::Config.new
   root = SerializersCodeGen::Compiler.new(descriptor, output: output, config: config, cache: cache).compile
   each_unique_descriptor(descriptor) do |d|
     klass = cache.get(d)
-    src = Overlay.emit_for(descriptor: d, strategy: strategy, output: output)
-    klass.module_eval(src, "(filter_experiments_bench: #{d.name}/#{output}/#{strategy})", 1)
+    src = Overlay.emit_for(descriptor: d, cell_name: cell_name, output: output)
+    klass.module_eval(src, "(filter_experiments_bench: #{d.name}/#{output}/#{cell_name})", 1)
   end
   root.new(descriptor: descriptor)
 end
@@ -718,16 +1022,14 @@ FIXTURES = [
 
 # ---- Cell construction + Filter wrapping -----------------------------------
 
-# Builds reference + 4 cell instances for one Descriptor / output mode.
-# Returns a Hash keyed by `:reference` and the four cell names; each value
-# is a Generated Class instance ready for `_serialize_many_*(...)`.
+# Builds reference + one Generated Class instance per cell for the given
+# Descriptor / output mode. Returns a Hash keyed by `:reference` and
+# every name in +CELL_NAMES+; each value is a Generated Class instance
+# ready for `_serialize_many_*(...)`.
 def build_fixture_instances(descriptor, output:)
   instances = {reference: compile_reference_instance(descriptor, output: output)}
-  EMIT_STRATEGIES.each do |strategy|
-    REPRESENTATIONS.each_key do |rep|
-      cell_name = :"#{rep}_#{strategy}"
-      instances[cell_name] = compile_cell_instance(descriptor, strategy: strategy, output: output)
-    end
+  CELL_NAMES.each do |cell_name|
+    instances[cell_name] = compile_cell_instance(descriptor, cell_name: cell_name, output: output)
   end
   instances
 end
@@ -735,11 +1037,19 @@ end
 # Builds a Filter object for one cell at run time. Mirrors what the
 # production public entry point would do: normalize the caller's Hash once
 # into a representation-specific Filter object. `nil` / `{}` collapse to
-# the `NoneFilter` singleton per `docs/filters.md § Public shape`.
-def build_filter(cell_name, filter_hash)
+# the `NoneFilter` singleton per `docs/filters.md § Public shape`. The
+# +indexed_single_path+ cell additionally requires the Descriptor to
+# resolve Field-name → integer index at construction.
+def build_filter(cell_name, descriptor, filter_hash)
   return NoneFilter::INSTANCE if filter_hash.nil? || filter_hash.empty?
-  rep = REPRESENTATIONS.keys.find { |r| cell_name.to_s.start_with?("#{r}_") }
-  REPRESENTATIONS.fetch(rep).new(filter_hash)
+  case cell_name
+  when :hash_wrapper_single_path, :hash_wrapper_dual_path
+    HashWrapperFilter.new(filter_hash)
+  when :set_index_single_path, :set_index_dual_path
+    SetIndexFilter.new(filter_hash)
+  when :indexed_single_path
+    IndexedFilter.build(descriptor, filter_hash)
+  end
 end
 
 # ---- Byte-equivalence pre-flight -------------------------------------------
@@ -755,10 +1065,11 @@ end
 # equivalence is mandatory or the comparison is meaningless).
 def assert_byte_equivalent!(label, fixture, instances)
   records = fixture[:records].first(50)
+  descriptor = fixture[:descriptor]
   cell_outputs = {}
   CELL_NAMES.each do |cell_name|
     inst = instances[cell_name]
-    filter = build_filter(cell_name, fixture[:filter_hash])
+    filter = build_filter(cell_name, descriptor, fixture[:filter_hash])
     cell_outputs[cell_name] = inst._serialize_many_bench(records, filter)
   end
   first_name, first_out = cell_outputs.first
@@ -771,9 +1082,9 @@ def assert_byte_equivalent!(label, fixture, instances)
     unless reference_out == first_out
       abort "Pre-flight FAILED [#{label}/#{fixture[:name]}]: reference diverges from cells (no-filter fixture)"
     end
-    puts "  pre-flight OK: 4 cells + reference produce identical output (no-filter fixture)"
+    puts "  pre-flight OK: #{CELL_NAMES.size} cells + reference produce identical output (no-filter fixture)"
   else
-    puts "  pre-flight OK: 4 cells produce identical output (reference is filter-machinery-absent ceiling)"
+    puts "  pre-flight OK: #{CELL_NAMES.size} cells produce identical output (reference is filter-machinery-absent ceiling)"
   end
 end
 
@@ -790,6 +1101,7 @@ def run_fixture(fixture, output:, label:)
   assert_byte_equivalent!(label, fixture, instances)
   puts
 
+  descriptor = fixture[:descriptor]
   fixture[:sizes].each do |size|
     records = fixture[:records].first(size)
     puts "--- ips: #{label}/#{fixture[:name]} size=#{size} ---"
@@ -800,7 +1112,7 @@ def run_fixture(fixture, output:, label:)
         inst = instances[cell_name]
         filter_hash = fixture[:filter_hash]
         x.report(cell_name.to_s) do
-          filter = build_filter(cell_name, filter_hash)
+          filter = build_filter(cell_name, descriptor, filter_hash)
           inst._serialize_many_bench(records, filter)
         end
       end
@@ -815,7 +1127,7 @@ def run_fixture(fixture, output:, label:)
       inst = instances[cell_name]
       filter_hash = fixture[:filter_hash]
       report = MemoryProfiler.report do
-        filter = build_filter(cell_name, filter_hash)
+        filter = build_filter(cell_name, descriptor, filter_hash)
         inst._serialize_many_bench(records, filter)
       end
       puts "  %-40s %8d allocs %12d bytes" % [cell_name.to_s, report.total_allocated, report.total_allocated_memsize]
