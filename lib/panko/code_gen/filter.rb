@@ -44,6 +44,13 @@ module SerializersCodeGen
     # constant-lookup cost when no filtering is in effect (the lookup
     # is one constant resolution per call regardless).
     #
+    # Recursively walks +filters+ before delegating to {Indexed.build}
+    # and raises +ArgumentError+ at the first level (depth-first) that
+    # carries both +:only+ and +:except+ keys per
+    # +docs/filters.md § Rules+. Validation runs once per +serialize_*+
+    # call so the emitted +_write_one+ / +_to_hash+ bodies stay free of
+    # validation branches.
+    #
     # @param filters [Hash, nil] the caller-supplied +filters:+ kwarg
     # @param field_index [Hash{Symbol => Integer}, nil] the
     #   per-Generated-Class +FIELD_INDEX+ map; required when +filters+
@@ -52,10 +59,39 @@ module SerializersCodeGen
     # @raise [ArgumentError] when +filters+ is a non-empty Hash but
     #   +field_index+ is +nil+ — the indexed cell needs the per-class
     #   field map to translate symbols to integer positions
+    # @raise [ArgumentError] when any level of +filters+ supplies both
+    #   +:only+ and +:except+
     def self.wrap(filters, field_index = nil)
       return NONE if filters.nil? || filters.empty?
+      validate_no_only_except_co_supply!(filters)
       raise ArgumentError, "Filter.wrap: a non-empty filters Hash requires a field_index (the Generated Class's FIELD_INDEX)" if field_index.nil?
       Indexed.build(filters, field_index)
     end
+
+    # Walks +hash+ depth-first and raises +ArgumentError+ at the first
+    # level that has both +:only+ and +:except+ keys. Recurses into any
+    # value that is itself a +Hash+ (Association sub-filters) and
+    # ignores non-Hash values (the +:only+ / +:except+ Arrays
+    # themselves, plus forward-compat unknown-shape values that
+    # +docs/filters.md § Rules+ documents as silently ignored).
+    #
+    # Module-private: only {wrap} should call this. Pinned at module
+    # scope (rather than inlined) so the recursion-around-Hash-values
+    # contract is testable via {Filter.wrap} from one site.
+    #
+    # @param hash [Hash] a level of the caller-supplied +filters:+
+    # @return [void]
+    # @raise [ArgumentError] when +hash+ has both +:only+ and +:except+
+    def self.validate_no_only_except_co_supply!(hash)
+      if hash.key?(:only) && hash.key?(:except)
+        raise ArgumentError,
+          "filters: cannot supply both :only and :except at the same level " \
+          "(got only: #{hash[:only].inspect}, except: #{hash[:except].inspect})"
+      end
+      hash.each_value do |value|
+        validate_no_only_except_co_supply!(value) if value.is_a?(Hash)
+      end
+    end
+    private_class_method :validate_no_only_except_co_supply!
   end
 end

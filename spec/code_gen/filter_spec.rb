@@ -26,6 +26,52 @@ RSpec.describe SerializersCodeGen::Filter do
       expect { described_class.wrap({only: [:id]}) }
         .to raise_error(ArgumentError, /field_index/)
     end
+
+    describe ":only + :except co-supplied" do
+      # Per +docs/filters.md § Rules+ ("+:only+ and +:except+ at the
+      # same level are mutually exclusive. Supplying both is a caller
+      # error and raises +ArgumentError+ at the first +_write_one+ /
+      # +_to_hash+ entry on that level."). +Filter.wrap+ runs once per
+      # +serialize_*+ call and walks the nested filter Hash recursively
+      # so the emitted body can stay free of validation branches.
+      it "raises ArgumentError when supplied at the top level" do
+        expect { described_class.wrap({only: [:id], except: [:title]}, {id: 0, title: 1}) }
+          .to raise_error(ArgumentError, /only.*except/i)
+      end
+
+      it "raises ArgumentError when supplied at a nested Association level" do
+        expect {
+          described_class.wrap({author: {only: [:id], except: [:name]}}, {id: 0, author: 1})
+        }.to raise_error(ArgumentError, /only.*except/i)
+      end
+
+      it "raises ArgumentError when supplied at a deeply-nested level" do
+        expect {
+          described_class.wrap(
+            {comments: {replies: {only: [:id], except: [:body]}}},
+            {id: 0, comments: 1}
+          )
+        }.to raise_error(ArgumentError, /only.*except/i)
+      end
+
+      it "does not raise when only +:only+ is supplied at every level" do
+        expect {
+          described_class.wrap({only: [:id], author: {only: [:name]}}, {id: 0, author: 1})
+        }.not_to raise_error
+      end
+
+      it "does not raise when only +:except+ is supplied at every level" do
+        expect {
+          described_class.wrap({except: [:id], author: {except: [:name]}}, {id: 0, author: 1})
+        }.not_to raise_error
+      end
+
+      it "does not raise when +:only+ at parent and +:except+ at a child are split across levels" do
+        expect {
+          described_class.wrap({only: [:id, :author], author: {except: [:name]}}, {id: 0, author: 1})
+        }.not_to raise_error
+      end
+    end
   end
 
   describe "::NONE" do
@@ -109,7 +155,13 @@ RSpec.describe SerializersCodeGen::Filter do
           expect(filter.drops?(1)).to be(true)
         end
 
-        it "lets +only:+ win when both +only:+ and +except:+ are co-supplied (S14.3 will raise)" do
+        it "lets +only:+ win when both +only:+ and +except:+ reach Indexed.build directly (validation lives at Filter.wrap)" do
+          # Per S14.3: caller-facing validation rejects co-supply at
+          # +Filter.wrap+. +Indexed.build+ has no validator of its own —
+          # if a future caller skips +Filter.wrap+, the resolution rule
+          # below ("+:only+ wins") is the documented fallback. Pinned
+          # so a refactor that moves validation downstream still
+          # preserves the resolution rule it bypasses.
           filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0], except: [:f1]}, field_index)
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
