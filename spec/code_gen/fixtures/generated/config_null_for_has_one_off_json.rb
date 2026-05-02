@@ -101,7 +101,7 @@ class ConfigNullForHasOneOffSerializer_JSON
       value = record["inner"]
       unless value.nil?
         writer.push_key("inner")
-        @inner_serializer._write_one(value, writer, context, filters.child(:inner))
+        @inner_serializer._write_one(value, writer, context, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop
@@ -116,7 +116,7 @@ class ConfigNullForHasOneOffSerializer_JSON
       value = record.inner
       unless value.nil?
         writer.push_key("inner")
-        @inner_serializer._write_one(value, writer, context, filters.child(:inner))
+        @inner_serializer._write_one(value, writer, context, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop

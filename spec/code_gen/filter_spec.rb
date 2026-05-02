@@ -104,9 +104,9 @@ RSpec.describe SerializersCodeGen::Filter do
       expect(none.drops?(42)).to be(false)
     end
 
-    it "child returns self for any source name" do
-      expect(none.child(:author)).to equal(none)
-      expect(none.child(:comments)).to equal(none)
+    it "child returns self for any source name (field_index unread on the no-filter path)" do
+      expect(none.child(:author, {id: 0, name: 1})).to equal(none)
+      expect(none.child(:comments, {id: 0, body: 1})).to equal(none)
     end
 
     it "none? returns true" do
@@ -191,27 +191,44 @@ RSpec.describe SerializersCodeGen::Filter do
       end
 
       describe "#child" do
+        # The +child_field_index+ is the per-Generated-Class +FIELD_INDEX+
+        # the parent's emitted code passes at the nested call site (S14.4
+        # +Composition+ threading per
+        # +docs/filters.md § Threading through Composition+). Unit tests
+        # pin behavior with a hand-rolled child shape that mirrors what
+        # +nested_composition+'s author would carry — small enough to
+        # stay in both representations' coverage.
+        let(:child_field_index) { {id: 0, name: 1} }
+
         it "returns the same cached object on repeated calls within one call" do
           filter = SerializersCodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
-          first = filter.child(:author)
-          second = filter.child(:author)
+          first = filter.child(:author, child_field_index)
+          second = filter.child(:author, child_field_index)
           expect(first).to equal(second)
+        end
+
+        it "materializes a real child Indexed cell when the sub-hash is non-empty" do
+          filter = SerializersCodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
+          child = filter.child(:author, child_field_index)
+          expect(child).to be_a(SerializersCodeGen::Filter::Indexed::Bits)
+          expect(child.drops?(0)).to be(false) # :id kept by :only
+          expect(child.drops?(1)).to be(true)  # :name dropped by :only
         end
 
         it "returns Filter::NONE for a Source not present in the caller hash" do
           filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-          expect(filter.child(:author)).to equal(SerializersCodeGen::Filter::NONE)
+          expect(filter.child(:author, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
         end
 
         it "returns Filter::NONE for a Source whose sub-hash is empty" do
           filter = SerializersCodeGen::Filter::Indexed.build({author: {}}, field_index)
-          expect(filter.child(:author)).to equal(SerializersCodeGen::Filter::NONE)
+          expect(filter.child(:author, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
         end
 
         it "returns Filter::NONE for a Source whose value is non-Hash (silently ignored)" do
           filter = SerializersCodeGen::Filter::Indexed.build({author: 123, comments: nil}, field_index)
-          expect(filter.child(:author)).to equal(SerializersCodeGen::Filter::NONE)
-          expect(filter.child(:comments)).to equal(SerializersCodeGen::Filter::NONE)
+          expect(filter.child(:author, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
+          expect(filter.child(:comments, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
         end
       end
     end

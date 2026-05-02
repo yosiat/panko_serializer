@@ -44,7 +44,7 @@ class RecursiveSelfCommentSerializer_JSON
       writer.push_value(record["body"], "body")
     end
     unless filters.drops?(2)
-      child_filter = filters.child(:replies)
+      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
       writer.push_array("replies")
       record["replies"].each do |element|
         @replies_serializer._write_one(element, writer, context, child_filter)
@@ -63,7 +63,7 @@ class RecursiveSelfCommentSerializer_JSON
       writer.push_value(record.body, "body")
     end
     unless filters.drops?(2)
-      child_filter = filters.child(:replies)
+      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
       writer.push_array("replies")
       record.replies.each do |element|
         @replies_serializer._write_one(element, writer, context, child_filter)

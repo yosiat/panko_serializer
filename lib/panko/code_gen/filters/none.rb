@@ -32,12 +32,17 @@ module SerializersCodeGen
 
       # Returns the singleton itself — the no-filter path stays
       # allocation-free through nested +Composition+ per
-      # +docs/filters.md § Threading through Composition+.
+      # +docs/filters.md § Threading through Composition+. The nested
+      # Generated Class's +FIELD_INDEX+ is unread on this path because no
+      # child cell needs to be materialized — the no-filter sentinel
+      # propagates verbatim down the +Composition+ tree.
       #
       # @param _source [Symbol] the Association's Source; unused on the
       #   no-filter path
+      # @param _field_index [Hash{Symbol => Integer}] the nested Generated
+      #   Class's +FIELD_INDEX+; unused on the no-filter path
       # @return [Filter::None] +self+
-      def self.child(_source)
+      def self.child(_source, _field_index)
         self
       end
 

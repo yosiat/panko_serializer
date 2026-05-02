@@ -50,7 +50,7 @@ class RecursiveMutualItemSerializer_JSON
         writer.push_value(nil, "subfolder")
       else
         writer.push_key("subfolder")
-        @subfolder_serializer._write_one(value, writer, context, filters.child(:subfolder))
+        @subfolder_serializer._write_one(value, writer, context, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop
@@ -70,7 +70,7 @@ class RecursiveMutualItemSerializer_JSON
         writer.push_value(nil, "subfolder")
       else
         writer.push_key("subfolder")
-        @subfolder_serializer._write_one(value, writer, context, filters.child(:subfolder))
+        @subfolder_serializer._write_one(value, writer, context, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop
@@ -122,7 +122,7 @@ class RecursiveMutualFolderSerializer_JSON
       writer.push_value(record["name"], "name")
     end
     unless filters.drops?(2)
-      child_filter = filters.child(:items)
+      child_filter = filters.child(:items, RecursiveMutualItemSerializer_JSON::FIELD_INDEX)
       writer.push_array("items")
       record["items"].each do |element|
         @items_serializer._write_one(element, writer, context, child_filter)
@@ -141,7 +141,7 @@ class RecursiveMutualFolderSerializer_JSON
       writer.push_value(record.name, "name")
     end
     unless filters.drops?(2)
-      child_filter = filters.child(:items)
+      child_filter = filters.child(:items, RecursiveMutualItemSerializer_JSON::FIELD_INDEX)
       writer.push_array("items")
       record.items.each do |element|
         @items_serializer._write_one(element, writer, context, child_filter)

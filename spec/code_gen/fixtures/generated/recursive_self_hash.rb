@@ -34,7 +34,7 @@ class RecursiveSelfCommentSerializer_Hash
       result["body"] = record["body"]
     end
     unless filters.drops?(2)
-      child_filter = filters.child(:replies)
+      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
       result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, child_filter) }
     end
     result
@@ -49,7 +49,7 @@ class RecursiveSelfCommentSerializer_Hash
       result["body"] = record.body
     end
     unless filters.drops?(2)
-      child_filter = filters.child(:replies)
+      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
       result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, child_filter) }
     end
     result

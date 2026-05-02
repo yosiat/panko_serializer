@@ -26,13 +26,17 @@ module SerializersCodeGen
     # Composition+. The hot-path representation is chosen at construction
     # time and never re-checked per call.
     #
-    # +child(<symbol>)+ caches its result keyed by +Source+ symbol (cache
-    # lifetime = one +serialize_*+ call — the +Filter+ object is
-    # constructed per call and discarded after). For S14.2 the cache
-    # always memoizes +Filter::NONE+; threading filters through
-    # +Composition+ at nested call sites — and resolving child filters
-    # against the nested Generated Class's +FIELD_INDEX+ — lands in
-    # S14.4 per the parent S14 PRD scope split.
+    # +child(<symbol>, <field_index>)+ caches its result keyed by +Source+
+    # symbol (cache lifetime = one +serialize_*+ call — the +Filter+ object
+    # is constructed per call and discarded after). The nested Generated
+    # Class's +FIELD_INDEX+ is passed at the call site by the parent's
+    # emitted code (the parent statically knows the child class's
+    # +FIELD_INDEX+ constant via +Composition+); the child cell is built
+    # against it and memoized for the remainder of the +serialize_*+ call.
+    # When the parent's caller-supplied +Hash+ has no entry for +source+,
+    # an empty sub-+Hash+, or a non-+Hash+ value, the cache memoizes the
+    # {Filter::NONE} singleton instead per
+    # +docs/filters.md § Public shape+.
     module Indexed
       module_function
 
@@ -137,19 +141,25 @@ module SerializersCodeGen
           @drops_mask[index] == 1
         end
 
-        # Returns the cached child filter for +source+. See
-        # {Indexed} for the cache-lifetime contract; for S14.2 the cache
-        # always memoizes +Filter::NONE+ — the per-source sub-hash is
-        # observed but materialization of a real child {Bits} / {Array}
-        # against the nested Generated Class's +FIELD_INDEX+ ships in
-        # S14.4 with +Composition+ threading.
+        # Returns the cached child filter for +source+ scoped against the
+        # nested Generated Class's +field_index+. See {Indexed} for the
+        # cache-lifetime contract: the resolved child is memoized for the
+        # remainder of the parent's +serialize_*+ call so a +has_many+
+        # iteration consults the cache once at hoist time and never
+        # rebuilds. Per +docs/filters.md § Threading through Composition+
+        # the parent's emitted code passes the child class's +FIELD_INDEX+
+        # constant at the call site; this cell is shape-agnostic about
+        # the child Descriptor.
         #
         # @param source [Symbol] the Association's +Source+
+        # @param field_index [Hash{Symbol => Integer}] the nested Generated
+        #   Class's +FIELD_INDEX+ — required when the parent's
+        #   caller-supplied sub-+Hash+ for +source+ is non-empty
         # @return [Filter::None, Bits, Array]
-        def child(source)
+        def child(source, field_index)
           cached = @children_cache[source]
           return cached if cached
-          @children_cache[source] = Indexed.resolve_child(@hash, source)
+          @children_cache[source] = Indexed.resolve_child(@hash, source, field_index)
         end
 
         # Returns +false+ — every Indexed cell carries at least one
@@ -187,15 +197,18 @@ module SerializersCodeGen
           @drops_array[index]
         end
 
-        # Returns the cached child filter for +source+. Same
-        # cache-lifetime + S14.2-scope contract as {Bits#child}.
+        # Returns the cached child filter for +source+ scoped against the
+        # nested Generated Class's +field_index+. Same cache-lifetime +
+        # +Composition+-threading contract as {Bits#child}.
         #
         # @param source [Symbol] the Association's +Source+
+        # @param field_index [Hash{Symbol => Integer}] the nested Generated
+        #   Class's +FIELD_INDEX+
         # @return [Filter::None, Bits, Array]
-        def child(source)
+        def child(source, field_index)
           cached = @children_cache[source]
           return cached if cached
-          @children_cache[source] = Indexed.resolve_child(@hash, source)
+          @children_cache[source] = Indexed.resolve_child(@hash, source, field_index)
         end
 
         # Returns +false+ — see {Bits#none?}.
@@ -207,30 +220,30 @@ module SerializersCodeGen
       end
 
       # Resolves the child filter for +source+ given the parent's
-      # caller-supplied +hash+. Returns +Filter::NONE+ when the parent
-      # hash carries no entry for +source+, when the entry is +nil+,
-      # when it is the empty Hash, or when it is non-Hash (the public
-      # contract per +docs/filters.md § Public shape+ is that nested
-      # values are Hashes — non-Hashes are silently ignored).
+      # caller-supplied +hash+ and the nested Generated Class's
+      # +field_index+. Returns +Filter::NONE+ when the parent hash carries
+      # no entry for +source+, when the entry is +nil+, when it is the
+      # empty Hash, or when it is non-Hash (the public contract per
+      # +docs/filters.md § Public shape+ is that nested values are Hashes
+      # — non-Hashes are silently ignored).
       #
-      # In S14.2 a non-empty sub-hash also collapses to +Filter::NONE+:
-      # materializing a real child Indexed cell needs the nested
-      # Generated Class's +FIELD_INDEX+, which only becomes available
-      # once +Composition+ threading lands in S14.4. Until then the
-      # cache memoizes the {None} singleton so repeated +#child+ calls
-      # within one +serialize_*+ call return the same object per the
-      # acceptance criterion.
+      # When the sub-hash is a non-empty +Hash+, builds a real child
+      # {Bits} / {Array} cell directly via {build} — co-supply validation
+      # (per +docs/filters.md § Rules+) already ran at the top-level
+      # +Filter.wrap+ call and walked every nested level depth-first, so
+      # this resolution path can skip re-validating and pay only the
+      # one-shot index walk that {build} performs against +field_index+.
       #
       # @param hash [Hash] the parent's caller-supplied +filters:+ Hash
       # @param source [Symbol] the Association's +Source+
-      # @return [Filter::None]
-      def resolve_child(hash, source)
+      # @param field_index [Hash{Symbol => Integer}] the nested Generated
+      #   Class's +FIELD_INDEX+ — required when +hash[source]+ is a
+      #   non-empty +Hash+
+      # @return [Filter::None, Bits, Array]
+      def resolve_child(hash, source, field_index)
         sub = hash[source]
         return NONE unless sub.is_a?(Hash) && !sub.empty?
-        # TODO(S14.4): build a real child Bits/Array against the nested
-        # Generated Class's FIELD_INDEX once Composition threading wires
-        # filters.child(:source) at nested call sites.
-        NONE
+        build(sub, field_index)
       end
     end
   end

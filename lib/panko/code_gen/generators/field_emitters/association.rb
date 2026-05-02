@@ -64,20 +64,21 @@ module SerializersCodeGen
         #     writer.push_value(nil, "<name>")
         #   else
         #     writer.push_key("<name>")
-        #     @<name>_serializer._write_one(value, writer, context, filters)
+        #     @<name>_serializer._write_one(value, writer, context, filters.child(:<source>, <Child>_JSON::FIELD_INDEX))
         #   end
         #
         # +has_one+ — omit-when-nil (+null_for_missing_has_one: false+) emits:
         #   value = <source_read_expr>
         #   unless value.nil?
         #     writer.push_key("<name>")
-        #     @<name>_serializer._write_one(value, writer, context, filters)
+        #     @<name>_serializer._write_one(value, writer, context, filters.child(:<source>, <Child>_JSON::FIELD_INDEX))
         #   end
         #
         # +has_many+ emits (config-independent — empty collection → +[]+):
+        #   child_filter = filters.child(:<source>, <Child>_JSON::FIELD_INDEX)
         #   writer.push_array("<name>")
         #   <source_read_expr>.each do |element|
-        #     @<name>_serializer._write_one(element, writer, context, filters)
+        #     @<name>_serializer._write_one(element, writer, context, child_filter)
         #   end
         #   writer.pop
         #
@@ -110,6 +111,35 @@ module SerializersCodeGen
             end
           end
           builder.line "end"
+        end
+
+        # Returns the Ruby source for the +filters.child(:<source>, ...)+
+        # call at one Association's nested call site. The second argument
+        # is the nested Generated Class's +FIELD_INDEX+ constant — the
+        # parent statically knows the child class name from
+        # +association.descriptor.name+ + the per-mode +suffix+ ("JSON" or
+        # "Hash") since it constructs the +@<name>_serializer+ ivar
+        # against that same class. Pinned at one place so the JSON and
+        # Hash emit paths can't drift on the qualified-constant shape.
+        #
+        # The child class's +FIELD_INDEX+ is referenced by its fully
+        # qualified name (e.g. +AuthorSerializer_JSON::FIELD_INDEX+)
+        # rather than via +@<name>_serializer.class::FIELD_INDEX+ — the
+        # constant lookup is a single +get_const+ on a literal token
+        # (YJIT-inlinable, no method dispatch), and self-recursive
+        # Descriptors resolve the constant against the in-scope class
+        # (+RecursiveSelfCommentSerializer_JSON::FIELD_INDEX+ from inside
+        # +RecursiveSelfCommentSerializer_JSON+'s body works because
+        # constant resolution happens at method-execution time, by which
+        # point the class is fully defined).
+        #
+        # @param association [SerializersCodeGen::Association] the Field node
+        # @param suffix [String] +"JSON"+ or +"Hash"+ — the per-mode
+        #   Generated Class suffix for the nested class
+        # @return [String] Ruby source like
+        #   +'filters.child(:author, AuthorSerializer_JSON::FIELD_INDEX)'+
+        def self.child_filter_expr(association, suffix)
+          "filters.child(:#{association.source}, #{association.descriptor.name}_#{suffix}::FIELD_INDEX)"
         end
 
         # Emits the per-Kind JSON body for one Association — the un-wrapped
@@ -235,7 +265,7 @@ module SerializersCodeGen
           builder.line "else"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters.child(:#{association.source}))"
+            builder.line "@#{association.name}_serializer._write_one(value, writer, context, #{child_filter_expr(association, "JSON")})"
           end
           builder.line "end"
         end
@@ -260,7 +290,7 @@ module SerializersCodeGen
           builder.line "unless value.nil?"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters.child(:#{association.source}))"
+            builder.line "@#{association.name}_serializer._write_one(value, writer, context, #{child_filter_expr(association, "JSON")})"
           end
           builder.line "end"
         end
@@ -280,7 +310,7 @@ module SerializersCodeGen
           builder.indent { builder.line "nil" }
           builder.line "else"
           builder.indent do
-            builder.line "@#{association.name}_serializer._to_hash(value, context, filters.child(:#{association.source}))"
+            builder.line "@#{association.name}_serializer._to_hash(value, context, #{child_filter_expr(association, "Hash")})"
           end
           builder.line "end"
         end
@@ -298,7 +328,7 @@ module SerializersCodeGen
         def self.emit_hash_has_one_omit(association, key_lit, builder)
           builder.line "unless value.nil?"
           builder.indent do
-            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, filters.child(:#{association.source}))"
+            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, #{child_filter_expr(association, "Hash")})"
           end
           builder.line "end"
         end
@@ -325,7 +355,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_many(association, source_read_expr, builder)
-          builder.line "child_filter = filters.child(:#{association.source})"
+          builder.line "child_filter = #{child_filter_expr(association, "JSON")}"
           builder.line %(writer.push_array("#{association.name}"))
           builder.line "#{source_read_expr}.each do |element|"
           builder.indent do
@@ -353,7 +383,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
         def self.emit_hash_has_many(association, source_read_expr, key_lit, builder)
-          builder.line "child_filter = filters.child(:#{association.source})"
+          builder.line "child_filter = #{child_filter_expr(association, "Hash")}"
           builder.line(
             "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
               "@#{association.name}_serializer._to_hash(element, context, child_filter) }"
