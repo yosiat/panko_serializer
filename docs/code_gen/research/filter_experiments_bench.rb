@@ -1,0 +1,859 @@
+# frozen_string_literal: true
+
+# Phase-2 filter-experiment harness — measures the 2x2 cell matrix
+# `{Hash-wrapper, Set-index} x {single-path, dual-path}` against 5 fixtures
+# x a record-count sweep, exercising the real compiled
+# `SerializersCodeGen` Generated Class via per-cell `module_eval` overlays
+# per `docs/filters.md § Experiment design`.
+#
+# Run (YJIT — the production target):
+#   bundle exec ruby --yjit filter_experiments_bench.rb
+#
+# Tunables (env vars):
+#   IPS_TIME=5     benchmark-ips measurement seconds (default 5)
+#   IPS_WARMUP=3   benchmark-ips warmup seconds      (default 3)
+#
+# S13.2 acceptance: harness runs end-to-end with short `IPS_TIME` (e.g.
+# IPS_TIME=1) and produces structurally-correct output for every cell x
+# fixture x size. Canonical timed run with long `IPS_TIME` is S13.3 — this
+# file is the harness only; the verdict-backfill pass lives there.
+#
+# Self-contained per `docs/research/` convention (mirrors
+# `ar_access_bench.rb` / `game_serializer_bench.rb`): inline AR
+# sqlite-in-memory schema + AR models + dataset seeding; does not reuse
+# `benchmarks/support/` or `spec/support/`.
+
+require "active_record"
+require "sqlite3"
+require "benchmark/ips"
+require "memory_profiler"
+require "oj"
+require "date"
+
+# Local scg, loaded from the repo's lib/. This script lives at
+# `docs/research/`, so `../../lib` resolves to the gem's `lib/`.
+$LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
+require "serializers_code_gen"
+
+RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
+
+# ---- Tunables --------------------------------------------------------------
+
+IPS_TIME = Integer(ENV.fetch("IPS_TIME", "5"))
+IPS_WARMUP = Integer(ENV.fetch("IPS_WARMUP", "3"))
+
+# ---- AR setup --------------------------------------------------------------
+
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
+ActiveRecord::Migration.verbose = false
+
+# Wide-flat shape: 30 string + 20 integer + 10 boolean + 5 decimal + 5 date
+# = 70 columns split across the four AR primitive types — mirrors
+# `WIDE_POST_ATTRIBUTE_NAMES` from `benchmarks/wide_attributes.rb` so the
+# experiment stresses per-Field emit + dispatch on the same shape the
+# canonical benchmarks measure.
+WIDE_STRING_COUNT = 30
+WIDE_INTEGER_COUNT = 20
+WIDE_BOOLEAN_COUNT = 10
+WIDE_DECIMAL_COUNT = 5
+WIDE_DATE_COUNT = 5
+
+WIDE_STRING_NAMES = (1..WIDE_STRING_COUNT).map { |i| "s_%02d" % i }.freeze
+WIDE_INTEGER_NAMES = (1..WIDE_INTEGER_COUNT).map { |i| "i_%02d" % i }.freeze
+WIDE_BOOLEAN_NAMES = (1..WIDE_BOOLEAN_COUNT).map { |i| "b_%02d" % i }.freeze
+WIDE_DECIMAL_NAMES = (1..WIDE_DECIMAL_COUNT).map { |i| "d_%02d" % i }.freeze
+WIDE_DATE_NAMES = (1..WIDE_DATE_COUNT).map { |i| "t_%02d" % i }.freeze
+WIDE_ATTRIBUTE_NAMES = (
+  WIDE_STRING_NAMES + WIDE_INTEGER_NAMES + WIDE_BOOLEAN_NAMES +
+    WIDE_DECIMAL_NAMES + WIDE_DATE_NAMES
+).freeze
+
+ActiveRecord::Schema.define do
+  create_table :flt_posts, force: true do |t|
+    t.string :title
+    t.string :body
+    t.integer :views
+    t.boolean :published
+  end
+
+  create_table :flt_authors, force: true do |t|
+    t.references :flt_post
+    t.string :name
+    t.string :email
+  end
+
+  create_table :flt_comments, force: true do |t|
+    t.references :flt_post
+    t.string :body
+  end
+
+  create_table :flt_wide_posts, force: true do |t|
+    WIDE_STRING_NAMES.each { |n| t.string n }
+    WIDE_INTEGER_NAMES.each { |n| t.integer n }
+    WIDE_BOOLEAN_NAMES.each { |n| t.boolean n }
+    WIDE_DECIMAL_NAMES.each { |n| t.decimal n, precision: 12, scale: 2 }
+    WIDE_DATE_NAMES.each { |n| t.date n }
+  end
+end
+
+module FilterBench
+  class Post < ActiveRecord::Base
+    self.table_name = "flt_posts"
+    has_one :author, class_name: "FilterBench::Author", foreign_key: :flt_post_id
+    has_many :comments, class_name: "FilterBench::Comment", foreign_key: :flt_post_id
+
+    # Reads from the already-eager-loaded `:comments` collection so the
+    # `:first_comment` Association source on `GRAPH_DESCRIPTOR` doesn't
+    # trigger an N+1 query inside the measured block.
+    def first_comment
+      comments.first
+    end
+  end
+
+  class Author < ActiveRecord::Base
+    self.table_name = "flt_authors"
+    belongs_to :post, class_name: "FilterBench::Post", foreign_key: :flt_post_id, optional: true
+  end
+
+  class Comment < ActiveRecord::Base
+    self.table_name = "flt_comments"
+    belongs_to :post, class_name: "FilterBench::Post", foreign_key: :flt_post_id, optional: true
+  end
+
+  class WidePost < ActiveRecord::Base
+    self.table_name = "flt_wide_posts"
+  end
+end
+
+[FilterBench::Post, FilterBench::Author, FilterBench::Comment, FilterBench::WidePost]
+  .each(&:define_attribute_methods)
+
+# ---- Dataset seeding -------------------------------------------------------
+
+# `MAX_SIZE` matches the largest size in the matrix; the bench slices to
+# the requested size each iteration. 5 comments per post mirrors the
+# graph.rb scenario in `benchmarks/`.
+MAX_SIZE = 2300
+COMMENTS_PER_POST = 5
+
+post_attrs = Array.new(MAX_SIZE) do |i|
+  {title: "Post ##{i}", body: "Body of post ##{i}", views: i, published: i.even?}
+end
+FilterBench::Post.insert_all(post_attrs)
+
+post_ids = FilterBench::Post.pluck(:id)
+
+author_attrs = post_ids.map.with_index do |post_id, i|
+  {flt_post_id: post_id, name: "Author ##{i}", email: "author#{i}@example.com"}
+end
+FilterBench::Author.insert_all(author_attrs)
+
+comment_attrs = post_ids.flat_map do |post_id|
+  Array.new(COMMENTS_PER_POST) { |j| {flt_post_id: post_id, body: "Comment ##{j}"} }
+end
+FilterBench::Comment.insert_all(comment_attrs)
+
+# Wide-post seeding — 70 columns x 2300 rows = 161 000 placeholders. Sqlite
+# caps `SQLITE_MAX_VARIABLE_NUMBER` at 32 766 on modern builds; batch at
+# 400 rows so each insert stays under that limit (400 x 70 = 28 000).
+WIDE_POST_INSERT_BATCH = 400
+base_date = Date.new(2025, 1, 1)
+wide_attrs = Array.new(MAX_SIZE) do |i|
+  row = {}
+  WIDE_STRING_NAMES.each_with_index { |n, j| row[n] = "s#{j}_v#{i}" }
+  WIDE_INTEGER_NAMES.each_with_index { |n, j| row[n] = i + j }
+  WIDE_BOOLEAN_NAMES.each_with_index { |n, j| row[n] = (i + j).even? }
+  WIDE_DECIMAL_NAMES.each_with_index { |n, j| row[n] = "%.2f" % ((i * 100 + j) / 100.0) }
+  WIDE_DATE_NAMES.each_with_index { |n, j| row[n] = base_date + (i + j) }
+  row
+end
+wide_attrs.each_slice(WIDE_POST_INSERT_BATCH) { |slice| FilterBench::WidePost.insert_all(slice) }
+
+# Eager-load author + comments for the graph fixture so the measured loop
+# doesn't pay an N+1 query cost. Frozen so accidental mutation surfaces as
+# `FrozenError` rather than measurement drift.
+WIDE_RECORDS = FilterBench::WidePost.all.to_a.freeze
+GRAPH_RECORDS = FilterBench::Post.includes(:author, :comments).to_a.freeze
+
+# ---- Filter classes --------------------------------------------------------
+#
+# Three implementations sharing the `drops?(name) / child(source) / none?`
+# interface from `docs/filters.md § Threading through Composition`. The 2x2
+# matrix multiplies `{HashWrapperFilter, SetIndexFilter}` x emit-strategy
+# overlay (applied to the Generated Class body via `module_eval`).
+# `NoneFilter` is the C-axis from `docs/filters.md § No-filter fast path` —
+# the singleton used when the caller passes no filter; same singleton across
+# both representations.
+#
+# Per `docs/filters.md § Internal representation — experiment-driven`:
+# - `HashWrapperFilter` is Option A — zero upfront cost, O(n) per check.
+# - `SetIndexFilter` is Option B — one walk + allocations upfront, O(1)
+#   per check.
+
+# Singleton "no filter in effect" Filter object — `drops?` always false,
+# `child` always self, `none?` true. Frozen so identity is stable across
+# the program lifetime; both representations recursively collapse to this
+# singleton when a sub-Hash is missing or empty per
+# `docs/filters.md § Public shape` ("Empty Hash `{}` at a level is
+# equivalent to `nil` at that level — no filtering").
+class NoneFilter
+  def drops?(_name)
+    false
+  end
+
+  def child(_source)
+    self
+  end
+
+  def none?
+    true
+  end
+
+  INSTANCE = new.freeze
+end
+
+# Filter representation A — wraps the caller's nested Hash directly. No
+# copy, no upfront walk, no normalization. `drops?` does direct Hash
+# lookups + `Array#include?` (O(n) per check); `child` allocates a new
+# wrapper around the sub-Hash on each call (or returns `NoneFilter::INSTANCE`
+# when the sub-Hash is empty / missing). The fair test of "lazy O(n)
+# per check" per `#55` user story 31.
+class HashWrapperFilter
+  def initialize(hash)
+    @hash = hash
+    @only = hash[:only]
+    @except = hash[:except]
+  end
+
+  def drops?(name)
+    return !@only.include?(name) if @only
+    return @except.include?(name) if @except
+    false
+  end
+
+  def child(source)
+    sub = @hash[source]
+    return NoneFilter::INSTANCE if sub.nil? || sub.empty?
+    HashWrapperFilter.new(sub)
+  end
+
+  def none?
+    false
+  end
+end
+
+# Filter representation B — at construction, walks the Hash once and
+# builds per-level `Set`s keyed by node name + a Hash of child Filter
+# objects keyed by Source. `drops?` is O(1) `Set#include?`; `child`
+# returns the cached sub-Filter (or `NoneFilter::INSTANCE` when the
+# sub-Hash was empty / missing at construction). The fair test of
+# "amortized O(1) per check" per `#55` user story 32 — one upfront walk,
+# many cheap lookups.
+class SetIndexFilter
+  def initialize(hash)
+    only = hash[:only]
+    except = hash[:except]
+    @only_set = only && Set.new(only)
+    @except_set = except && Set.new(except)
+    @children = {}
+    hash.each do |key, value|
+      next if key == :only || key == :except
+      next if value.nil? || value.empty?
+      @children[key] = SetIndexFilter.new(value)
+    end
+  end
+
+  def drops?(name)
+    return !@only_set.include?(name) if @only_set
+    return @except_set.include?(name) if @except_set
+    false
+  end
+
+  def child(source)
+    @children[source] || NoneFilter::INSTANCE
+  end
+
+  def none?
+    false
+  end
+end
+
+REPRESENTATIONS = {
+  hash_wrapper: HashWrapperFilter,
+  set_index: SetIndexFilter
+}.freeze
+
+EMIT_STRATEGIES = %i[single_path dual_path].freeze
+
+CELL_NAMES = REPRESENTATIONS.keys.product(EMIT_STRATEGIES).map { |r, s| :"#{r}_#{s}" }.freeze
+
+# ---- Overlay emitter -------------------------------------------------------
+#
+# Emits filter-aware Ruby source for a per-cell `_write_one` (and the
+# dual-path `_write_one_unfiltered` / `_write_one_filtered` pair when the
+# strategy is `:dual_path`) on top of an already-compiled Generated Class.
+# Mirrors the per-Field shape `Generators::RecordAccess::Specialized`
+# emits — `record._read_attribute("name")` for column-backed Attributes,
+# `record.<source>` for Associations + per-Kind dispatch — and additionally
+# threads the Filter object through `filters.drops?(name)` checks and
+# `filters.child(source)` for nested calls per
+# `docs/filters.md § Threading through Composition`.
+#
+# The overlay is the cell-specific shape under measurement. Per `#55` user
+# story 23 the overlay's source is the drafting board that S14 lifts into
+# `lib/serializers_code_gen/filters/<winner>.rb` once the verdict is in.
+module Overlay
+  module_function
+
+  def emit_for(descriptor:, strategy:, output:)
+    case [strategy, output]
+    when [:single_path, :json] then emit_single_path_json(descriptor)
+    when [:dual_path, :json] then emit_dual_path_json(descriptor)
+    when [:single_path, :hash] then emit_single_path_hash(descriptor)
+    when [:dual_path, :hash] then emit_dual_path_hash(descriptor)
+    end
+  end
+
+  # ---- JSON ----
+
+  def emit_single_path_json(descriptor)
+    [
+      "def _write_one(record, writer, context, filters)\n",
+      "  writer.push_object\n",
+      json_filtered_body(descriptor, indent: 2),
+      "  writer.pop\n",
+      "end\n\n",
+      json_serialize_many_bench
+    ].join
+  end
+
+  def emit_dual_path_json(descriptor)
+    [
+      "def _write_one(record, writer, context, filters)\n",
+      "  if filters.none?\n",
+      "    _write_one_unfiltered(record, writer, context)\n",
+      "  else\n",
+      "    _write_one_filtered(record, writer, context, filters)\n",
+      "  end\n",
+      "end\n\n",
+      "def _write_one_unfiltered(record, writer, context)\n",
+      "  writer.push_object\n",
+      json_unfiltered_body(descriptor, indent: 2),
+      "  writer.pop\n",
+      "end\n\n",
+      "def _write_one_filtered(record, writer, context, filters)\n",
+      "  writer.push_object\n",
+      json_filtered_body(descriptor, indent: 2),
+      "  writer.pop\n",
+      "end\n\n",
+      json_serialize_many_bench
+    ].join
+  end
+
+  def json_serialize_many_bench
+    "def _serialize_many_bench(records, filter)\n" \
+      "  writer = Oj::StringWriter.new(mode: :rails)\n" \
+      "  writer.push_array\n" \
+      "  records.each { |r| _write_one(r, writer, nil, filter) }\n" \
+      "  writer.pop\n" \
+      "  writer.to_s.chomp\n" \
+      "end\n"
+  end
+
+  def json_filtered_body(descriptor, indent:)
+    pad = " " * indent
+    body = +""
+    descriptor.attributes.each do |a|
+      body << pad << "unless filters.drops?(:#{a.name})\n"
+      body << pad << "  writer.push_value(record._read_attribute(\"#{a.source}\"), \"#{a.name}\")\n"
+      body << pad << "end\n"
+    end
+    descriptor.associations.each do |assoc|
+      body << emit_assoc_json_filtered(assoc, indent: indent)
+    end
+    body
+  end
+
+  def json_unfiltered_body(descriptor, indent:)
+    pad = " " * indent
+    body = +""
+    descriptor.attributes.each do |a|
+      body << pad << "writer.push_value(record._read_attribute(\"#{a.source}\"), \"#{a.name}\")\n"
+    end
+    descriptor.associations.each do |assoc|
+      body << emit_assoc_json_unfiltered(assoc, indent: indent)
+    end
+    body
+  end
+
+  def emit_assoc_json_filtered(assoc, indent:)
+    pad = " " * indent
+    case assoc.kind
+    when :has_one
+      pad + "unless filters.drops?(:#{assoc.name})\n" +
+        pad + "  value = record.#{assoc.source}\n" +
+        pad + "  if value.nil?\n" +
+        pad + "    writer.push_value(nil, \"#{assoc.name}\")\n" +
+        pad + "  else\n" +
+        pad + "    writer.push_key(\"#{assoc.name}\")\n" +
+        pad + "    @#{assoc.name}_serializer._write_one(value, writer, context, filters.child(:#{assoc.source}))\n" +
+        pad + "  end\n" +
+        pad + "end\n"
+    when :has_many
+      pad + "unless filters.drops?(:#{assoc.name})\n" +
+        pad + "  child_filter = filters.child(:#{assoc.source})\n" +
+        pad + "  writer.push_array(\"#{assoc.name}\")\n" +
+        pad + "  record.#{assoc.source}.each do |element|\n" +
+        pad + "    @#{assoc.name}_serializer._write_one(element, writer, context, child_filter)\n" +
+        pad + "  end\n" +
+        pad + "  writer.pop\n" +
+        pad + "end\n"
+    end
+  end
+
+  def emit_assoc_json_unfiltered(assoc, indent:)
+    pad = " " * indent
+    case assoc.kind
+    when :has_one
+      pad + "value = record.#{assoc.source}\n" +
+        pad + "if value.nil?\n" +
+        pad + "  writer.push_value(nil, \"#{assoc.name}\")\n" +
+        pad + "else\n" +
+        pad + "  writer.push_key(\"#{assoc.name}\")\n" +
+        pad + "  @#{assoc.name}_serializer._write_one_unfiltered(value, writer, context)\n" +
+        pad + "end\n"
+    when :has_many
+      pad + "writer.push_array(\"#{assoc.name}\")\n" +
+        pad + "record.#{assoc.source}.each do |element|\n" +
+        pad + "  @#{assoc.name}_serializer._write_one_unfiltered(element, writer, context)\n" +
+        pad + "end\n" +
+        pad + "writer.pop\n"
+    end
+  end
+
+  # ---- Hash ----
+
+  def emit_single_path_hash(descriptor)
+    [
+      "def _to_hash(record, context, filters)\n",
+      "  result = {}\n",
+      hash_filtered_body(descriptor, indent: 2),
+      "  result\n",
+      "end\n\n",
+      hash_serialize_many_bench
+    ].join
+  end
+
+  def emit_dual_path_hash(descriptor)
+    [
+      "def _to_hash(record, context, filters)\n",
+      "  if filters.none?\n",
+      "    _to_hash_unfiltered(record, context)\n",
+      "  else\n",
+      "    _to_hash_filtered(record, context, filters)\n",
+      "  end\n",
+      "end\n\n",
+      "def _to_hash_unfiltered(record, context)\n",
+      "  result = {}\n",
+      hash_unfiltered_body(descriptor, indent: 2),
+      "  result\n",
+      "end\n\n",
+      "def _to_hash_filtered(record, context, filters)\n",
+      "  result = {}\n",
+      hash_filtered_body(descriptor, indent: 2),
+      "  result\n",
+      "end\n\n",
+      hash_serialize_many_bench
+    ].join
+  end
+
+  def hash_serialize_many_bench
+    "def _serialize_many_bench(records, filter)\n" \
+      "  records.map { |r| _to_hash(r, nil, filter) }\n" \
+      "end\n"
+  end
+
+  def hash_filtered_body(descriptor, indent:)
+    pad = " " * indent
+    body = +""
+    descriptor.attributes.each do |a|
+      body << pad << "unless filters.drops?(:#{a.name})\n"
+      body << pad << "  result[\"#{a.name}\"] = record._read_attribute(\"#{a.source}\")\n"
+      body << pad << "end\n"
+    end
+    descriptor.associations.each do |assoc|
+      body << emit_assoc_hash_filtered(assoc, indent: indent)
+    end
+    body
+  end
+
+  def hash_unfiltered_body(descriptor, indent:)
+    pad = " " * indent
+    body = +""
+    descriptor.attributes.each do |a|
+      body << pad << "result[\"#{a.name}\"] = record._read_attribute(\"#{a.source}\")\n"
+    end
+    descriptor.associations.each do |assoc|
+      body << emit_assoc_hash_unfiltered(assoc, indent: indent)
+    end
+    body
+  end
+
+  def emit_assoc_hash_filtered(assoc, indent:)
+    pad = " " * indent
+    case assoc.kind
+    when :has_one
+      pad + "unless filters.drops?(:#{assoc.name})\n" +
+        pad + "  value = record.#{assoc.source}\n" +
+        pad + "  result[\"#{assoc.name}\"] = if value.nil?\n" +
+        pad + "    nil\n" +
+        pad + "  else\n" +
+        pad + "    @#{assoc.name}_serializer._to_hash(value, context, filters.child(:#{assoc.source}))\n" +
+        pad + "  end\n" +
+        pad + "end\n"
+    when :has_many
+      pad + "unless filters.drops?(:#{assoc.name})\n" +
+        pad + "  child_filter = filters.child(:#{assoc.source})\n" +
+        pad + "  result[\"#{assoc.name}\"] = record.#{assoc.source}.map { |element| " \
+                "@#{assoc.name}_serializer._to_hash(element, context, child_filter) }\n" +
+        pad + "end\n"
+    end
+  end
+
+  def emit_assoc_hash_unfiltered(assoc, indent:)
+    pad = " " * indent
+    case assoc.kind
+    when :has_one
+      pad + "value = record.#{assoc.source}\n" +
+        pad + "result[\"#{assoc.name}\"] = if value.nil?\n" +
+        pad + "  nil\n" +
+        pad + "else\n" +
+        pad + "  @#{assoc.name}_serializer._to_hash_unfiltered(value, context)\n" +
+        pad + "end\n"
+    when :has_many
+      pad + "result[\"#{assoc.name}\"] = record.#{assoc.source}.map { |element| " \
+              "@#{assoc.name}_serializer._to_hash_unfiltered(element, context) }\n"
+    end
+  end
+end
+
+# ---- Per-cell instance builder ---------------------------------------------
+
+# Walks the Descriptor tree depth-first, yielding each unique Descriptor
+# exactly once (identity-keyed). Mirrors `Compiler#cache_descendants`'s
+# walk shape so the overlay applies to the same set of classes the
+# `CompileCache` populated.
+def each_unique_descriptor(descriptor)
+  seen = {}
+  stack = [descriptor]
+  until stack.empty?
+    d = stack.pop
+    next if seen[d.__id__]
+    seen[d.__id__] = true
+    yield d
+    d.associations.each { |a| stack.push(a.descriptor) }
+  end
+end
+
+# Compiles a fresh class tree for `descriptor` with our own `CompileCache`
+# threaded through, then walks the tree and applies the cell-specific
+# overlay to each class. Returns a fresh root-class instance ready for
+# `_serialize_many_bench(records, filter)`.
+#
+# Compile is a pure function per `docs/compilation.md`, so each cell gets
+# an independent class tree — no method-cache contamination across cells.
+def compile_cell_instance(descriptor, strategy:, output:)
+  cache = SerializersCodeGen::CompileCache.new
+  config = SerializersCodeGen::Config.new
+  root = SerializersCodeGen::Compiler.new(descriptor, output: output, config: config, cache: cache).compile
+  each_unique_descriptor(descriptor) do |d|
+    klass = cache.get(d)
+    src = Overlay.emit_for(descriptor: d, strategy: strategy, output: output)
+    klass.module_eval(src, "(filter_experiments_bench: #{d.name}/#{output}/#{strategy})", 1)
+  end
+  root.new(descriptor: descriptor)
+end
+
+# Compiles the reference instance — the filter-machinery-absent variant
+# identical to the phase-1 emit body per `docs/filters.md § Experiment
+# design § Reference row`. Adds a `_serialize_many_ref` entry that calls
+# the standard `_write_one(r, writer, nil, nil)` directly so the
+# `serialize_many` `raise NotImplementedError if filters` gate is bypassed
+# at zero filter cost (the standard body forwards `filters` to children
+# but never inspects it).
+def compile_reference_instance(descriptor, output:)
+  klass = SerializersCodeGen.compile(descriptor, output: output)
+  src = if output == :json
+    "def _serialize_many_ref(records)\n" \
+      "  writer = Oj::StringWriter.new(mode: :rails)\n" \
+      "  writer.push_array\n" \
+      "  records.each { |r| _write_one(r, writer, nil, nil) }\n" \
+      "  writer.pop\n" \
+      "  writer.to_s.chomp\n" \
+      "end\n"
+  else
+    "def _serialize_many_ref(records)\n" \
+      "  records.map { |r| _to_hash(r, nil, nil) }\n" \
+      "end\n"
+  end
+  # Apply the helper to every unique class in the tree so any back-edge
+  # call (none today, but keeps the shape symmetric with the cell-overlay
+  # walk) finds the helper available on each class.
+  cache = SerializersCodeGen::CompileCache.new
+  SerializersCodeGen::Compiler.new(descriptor, output: output, config: SerializersCodeGen::Config.new, cache: cache).compile
+  each_unique_descriptor(descriptor) do |d|
+    cache.get(d).module_eval(src)
+  end
+  klass.module_eval(src)
+  klass.new(descriptor: descriptor)
+end
+
+# ---- Fixtures --------------------------------------------------------------
+
+WIDE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+  name: "FilterExperimentsWidePostSerializer",
+  models: [FilterBench::WidePost],
+  attributes: [
+    SerializersCodeGen::Attribute.new(name: :id, source: :id),
+    *WIDE_ATTRIBUTE_NAMES.map { |n| SerializersCodeGen::Attribute.new(name: n.to_sym, source: n.to_sym) }
+  ],
+  method_attributes: [],
+  associations: []
+)
+
+GRAPH_AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+  name: "FilterExperimentsAuthorSerializer",
+  models: [FilterBench::Author],
+  attributes: [
+    SerializersCodeGen::Attribute.new(name: :id, source: :id),
+    SerializersCodeGen::Attribute.new(name: :name, source: :name),
+    SerializersCodeGen::Attribute.new(name: :email, source: :email)
+  ],
+  method_attributes: [],
+  associations: []
+)
+
+GRAPH_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+  name: "FilterExperimentsCommentSerializer",
+  models: [FilterBench::Comment],
+  attributes: [
+    SerializersCodeGen::Attribute.new(name: :id, source: :id),
+    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+  ],
+  method_attributes: [],
+  associations: []
+)
+
+# Medium graph per `docs/filters.md § Matrix`: ~5 Attributes + 2 has_one
+# + 1 has_many (~10 children given 5 comments per post).
+GRAPH_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+  name: "FilterExperimentsPostSerializer",
+  models: [FilterBench::Post],
+  attributes: [
+    SerializersCodeGen::Attribute.new(name: :id, source: :id),
+    SerializersCodeGen::Attribute.new(name: :title, source: :title),
+    SerializersCodeGen::Attribute.new(name: :body, source: :body),
+    SerializersCodeGen::Attribute.new(name: :views, source: :views),
+    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+  ],
+  method_attributes: [],
+  associations: [
+    SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: GRAPH_AUTHOR_DESCRIPTOR),
+    SerializersCodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: GRAPH_COMMENT_DESCRIPTOR),
+    SerializersCodeGen::Association.new(name: :comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR)
+  ]
+)
+
+# Shallow `:only` for fixture #2 — 20 of 70 attribute names, mixed across
+# the four primitive types so the filter doesn't trivially cluster.
+WIDE_ONLY_NAMES = (
+  WIDE_STRING_NAMES.first(8) +
+  WIDE_INTEGER_NAMES.first(6) +
+  WIDE_BOOLEAN_NAMES.first(3) +
+  WIDE_DECIMAL_NAMES.first(2) +
+  WIDE_DATE_NAMES.first(1)
+).map(&:to_sym).freeze
+
+FIXTURES = [
+  {
+    name: "wide_flat_none",
+    descriptor: WIDE_DESCRIPTOR,
+    records: WIDE_RECORDS,
+    filter_hash: nil,
+    sizes: [50, 2300]
+  },
+  {
+    name: "wide_flat_shallow_only",
+    descriptor: WIDE_DESCRIPTOR,
+    records: WIDE_RECORDS,
+    filter_hash: {only: WIDE_ONLY_NAMES},
+    sizes: [1, 50, 2300]
+  },
+  {
+    name: "medium_graph_none",
+    descriptor: GRAPH_DESCRIPTOR,
+    records: GRAPH_RECORDS,
+    filter_hash: nil,
+    sizes: [50, 2300]
+  },
+  {
+    name: "medium_graph_shallow_only",
+    descriptor: GRAPH_DESCRIPTOR,
+    records: GRAPH_RECORDS,
+    filter_hash: {only: %i[id title author]},
+    sizes: [1, 50, 2300]
+  },
+  {
+    name: "medium_graph_deep_nested",
+    descriptor: GRAPH_DESCRIPTOR,
+    records: GRAPH_RECORDS,
+    filter_hash: {
+      only: %i[id title author comments],
+      author: {only: %i[id name]},
+      comments: {except: %i[id]}
+    },
+    sizes: [1, 50, 2300]
+  }
+].freeze
+
+# ---- Cell construction + Filter wrapping -----------------------------------
+
+# Builds reference + 4 cell instances for one Descriptor / output mode.
+# Returns a Hash keyed by `:reference` and the four cell names; each value
+# is a Generated Class instance ready for `_serialize_many_*(...)`.
+def build_fixture_instances(descriptor, output:)
+  instances = {reference: compile_reference_instance(descriptor, output: output)}
+  EMIT_STRATEGIES.each do |strategy|
+    REPRESENTATIONS.each_key do |rep|
+      cell_name = :"#{rep}_#{strategy}"
+      instances[cell_name] = compile_cell_instance(descriptor, strategy: strategy, output: output)
+    end
+  end
+  instances
+end
+
+# Builds a Filter object for one cell at run time. Mirrors what the
+# production public entry point would do: normalize the caller's Hash once
+# into a representation-specific Filter object. `nil` / `{}` collapse to
+# the `NoneFilter` singleton per `docs/filters.md § Public shape`.
+def build_filter(cell_name, filter_hash)
+  return NoneFilter::INSTANCE if filter_hash.nil? || filter_hash.empty?
+  rep = REPRESENTATIONS.keys.find { |r| cell_name.to_s.start_with?("#{r}_") }
+  REPRESENTATIONS.fetch(rep).new(filter_hash)
+end
+
+# ---- Byte-equivalence pre-flight -------------------------------------------
+#
+# Per the issue's "Byte-equivalence pre-flight" criterion: before each
+# fixture's timed loop, assert that all 4 cells produce identical output.
+# For no-filter fixtures (#1, #3) the reference must also match — the
+# cells run with `NoneFilter` and emit the same fields as the unmodified
+# phase-1 body. For filter-present fixtures (#2, #4, #5) the reference
+# diverges by design — it is the filter-machinery-absent ceiling per
+# `docs/filters.md § Experiment design § Reference row`. If any cell
+# diverges from the others, the bench halts before measurement (output
+# equivalence is mandatory or the comparison is meaningless).
+def assert_byte_equivalent!(label, fixture, instances)
+  records = fixture[:records].first(50)
+  cell_outputs = {}
+  CELL_NAMES.each do |cell_name|
+    inst = instances[cell_name]
+    filter = build_filter(cell_name, fixture[:filter_hash])
+    cell_outputs[cell_name] = inst._serialize_many_bench(records, filter)
+  end
+  first_name, first_out = cell_outputs.first
+  cell_outputs.each do |cell_name, out|
+    next if out == first_out
+    abort "Pre-flight FAILED [#{label}/#{fixture[:name]}]: cell #{cell_name} diverges from #{first_name}"
+  end
+  if fixture[:filter_hash].nil?
+    reference_out = instances[:reference]._serialize_many_ref(records)
+    unless reference_out == first_out
+      abort "Pre-flight FAILED [#{label}/#{fixture[:name]}]: reference diverges from cells (no-filter fixture)"
+    end
+    puts "  pre-flight OK: 4 cells + reference produce identical output (no-filter fixture)"
+  else
+    puts "  pre-flight OK: 4 cells produce identical output (reference is filter-machinery-absent ceiling)"
+  end
+end
+
+# ---- Bench loop ------------------------------------------------------------
+
+def run_fixture(fixture, output:, label:)
+  puts "============================================="
+  puts "[#{label}] Fixture: #{fixture[:name]}"
+  puts "  descriptor: #{fixture[:descriptor].name}"
+  puts "  filter:     #{fixture[:filter_hash].inspect}"
+  puts "  sizes:      #{fixture[:sizes].inspect}"
+  puts "============================================="
+  instances = build_fixture_instances(fixture[:descriptor], output: output)
+  assert_byte_equivalent!(label, fixture, instances)
+  puts
+
+  fixture[:sizes].each do |size|
+    records = fixture[:records].first(size)
+    puts "--- ips: #{label}/#{fixture[:name]} size=#{size} ---"
+    Benchmark.ips do |x|
+      x.config(time: IPS_TIME, warmup: IPS_WARMUP)
+      x.report("reference") { instances[:reference]._serialize_many_ref(records) }
+      CELL_NAMES.each do |cell_name|
+        inst = instances[cell_name]
+        filter_hash = fixture[:filter_hash]
+        x.report(cell_name.to_s) do
+          filter = build_filter(cell_name, filter_hash)
+          inst._serialize_many_bench(records, filter)
+        end
+      end
+      x.compare!
+    end
+    puts
+
+    puts "--- allocations: #{label}/#{fixture[:name]} size=#{size} (1 call each) ---"
+    ref_report = MemoryProfiler.report { instances[:reference]._serialize_many_ref(records) }
+    puts "  %-40s %8d allocs %12d bytes" % ["reference", ref_report.total_allocated, ref_report.total_allocated_memsize]
+    CELL_NAMES.each do |cell_name|
+      inst = instances[cell_name]
+      filter_hash = fixture[:filter_hash]
+      report = MemoryProfiler.report do
+        filter = build_filter(cell_name, filter_hash)
+        inst._serialize_many_bench(records, filter)
+      end
+      puts "  %-40s %8d allocs %12d bytes" % [cell_name.to_s, report.total_allocated, report.total_allocated_memsize]
+    end
+    puts
+  end
+end
+
+# ---- Environment -----------------------------------------------------------
+
+puts "Ruby:    #{RUBY_DESCRIPTION}"
+puts "AR:      #{ActiveRecord::VERSION::STRING}"
+puts "YJIT:    #{(defined?(RubyVM::YJIT) && RubyVM::YJIT.enabled?) ? "on" : "off"}"
+puts "IPS:     time=#{IPS_TIME}s warmup=#{IPS_WARMUP}s"
+puts "Cells:   #{CELL_NAMES.join(", ")} + reference"
+puts
+unless defined?(RubyVM::YJIT) && RubyVM::YJIT.enabled?
+  warn "WARNING: YJIT is not enabled. Re-run with --yjit for production-target numbers."
+  puts
+end
+
+# ---- Canonical JSON-mode run -----------------------------------------------
+
+FIXTURES.each do |fixture|
+  run_fixture(fixture, output: :json, label: "json")
+end
+
+# ---- Hash-mode parity check (fixture #2 only) ------------------------------
+#
+# Per `docs/filters.md § Output mode coverage`: re-run one fixture
+# (wide-flat x shallow `:only`) in `:hash` mode to confirm the same cell
+# wins. If it doesn't, S13.3 halts the verdict and investigates the
+# divergence per `#55` user story 14 — divergence would signal that the
+# Filter object is leaking output-mode coupling. The bench just measures;
+# the verdict + halt logic lives in the results-doc backfill.
+
+puts "============================================="
+puts "Hash-mode parity check"
+puts "============================================="
+parity_fixture = FIXTURES.find { |f| f[:name] == "wide_flat_shallow_only" }
+run_fixture(parity_fixture, output: :hash, label: "hash")
