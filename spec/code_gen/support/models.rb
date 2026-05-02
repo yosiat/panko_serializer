@@ -26,6 +26,17 @@ class Author < ActiveRecord::Base
   belongs_to :post, optional: true
 end
 
+# Sibling AR model paired with +PlainPost+ in the non-uniform-Specialized
+# JSON-column regression fixture (#61). Its +metadata+ column is +t.string+,
+# so +ActiveRecord::AccessClassifier.json_typed?+ returns +false+ for it —
+# the +ar_classes.all?+ guard in
+# +Generators::RecordAccess::Specialized.json_column_attribute?+ then
+# rejects the whole +Models+ set and the per-Attribute emit downgrades to
+# today's +push_value+ shape.
+class PlainNote < ActiveRecord::Base
+  self.table_name = "notes"
+end
+
 class Comment < ActiveRecord::Base
   belongs_to :post, optional: true
   belongs_to :parent_comment, class_name: "Comment", optional: true

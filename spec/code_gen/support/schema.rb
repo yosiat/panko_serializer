@@ -19,6 +19,16 @@ ActiveRecord::Schema.define do
     t.string :name
   end
 
+  create_table :notes, force: true do |t|
+    # Backs the non-uniform-Specialized regression fixture (#61): paired
+    # with +PlainPost+'s +t.json :metadata+ to exercise the +ar_classes.all?+
+    # downgrade in +RecordAccess::Specialized.json_column_attribute?+. The
+    # +t.string+ column type is what flips the predicate +false+ —
+    # +type_for_attribute+ resolves to +Type::String+, not +Type::Json+ —
+    # forcing the per-Attribute emit back to today's +push_value+ shape.
+    t.string :metadata
+  end
+
   create_table :comments, force: true do |t|
     t.references :post, foreign_key: true
     t.references :parent_comment, foreign_key: {to_table: :comments}
