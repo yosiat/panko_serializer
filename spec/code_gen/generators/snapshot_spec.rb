@@ -14,6 +14,8 @@ require "config/config_hash_output_key_symbol"
 require "config/config_null_for_has_one_off"
 require "config/config_json_column_wire_format"
 require "config/config_json_column_html_safe"
+require "config/config_json_column_generic_fallthrough"
+require "config/config_json_column_non_uniform_specialized"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -41,7 +43,9 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::ConfigHashOutputKeySymbol,
     Fixtures::ConfigNullForHasOneOff,
     Fixtures::Config::ConfigJsonColumnWireFormat,
-    Fixtures::Config::ConfigJsonColumnHtmlSafe
+    Fixtures::Config::ConfigJsonColumnHtmlSafe,
+    Fixtures::Config::ConfigJsonColumnGenericFallthrough,
+    Fixtures::Config::ConfigJsonColumnNonUniformSpecialized
   ]
 
   fixtures.each do |fixture|
