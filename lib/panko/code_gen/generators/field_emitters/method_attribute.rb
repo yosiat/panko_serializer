@@ -23,51 +23,72 @@ module SerializersCodeGen
       #   exactly as one of the three call forms above per
       #   +docs/code-generation.md § Callable hoisting+.
       #
-      # Both entries wrap the call in the +SKIP+ identity guard:
-      # +unless value.equal?(SerializersCodeGen::SKIP)+. The +equal?+
-      # check is load-bearing — +==+ would let an +==+-overriding object
-      # accidentally collide with +SKIP+ per
-      # +docs/descriptor.md § SKIP sentinel+.
+      # Both entries wrap the call in two nested guards:
+      #
+      # 1. +unless filters.drops?(<index>) ... end+ — the codegen-time
+      #    Filter wrapper per +docs/filters.md § Threading through
+      #    Composition+. A filter-dropped Method Attribute never invokes
+      #    its Callable, so the Callable + +equal?(SKIP)+ pair is
+      #    completely elided when the Filter says no.
+      # 2. Inside it, +unless value.equal?(SerializersCodeGen::SKIP)+.
+      #    The +equal?+ check is load-bearing — +==+ would let an
+      #    +==+-overriding object accidentally collide with +SKIP+ per
+      #    +docs/descriptor.md § SKIP sentinel+.
       module MethodAttribute
-        # Emits the JSON-mode write for one +MethodAttribute+. Two lines
-        # under +unless value.equal?(SerializersCodeGen::SKIP)+:
-        # +value = @cb_<name>.call(...)+ (outside the guard) and
-        # +writer.push_value(value, "<name>")+ (inside) — the 2-arg form
+        # Emits the JSON-mode write for one +MethodAttribute+. Two
+        # nested guards: outer +unless filters.drops?(<index>) ... end+
+        # (filter-side); inner +unless value.equal?(SerializersCodeGen::SKIP)+
+        # (SKIP-side, after the Callable runs). Inside the inner guard
+        # one line: +writer.push_value(value, "<name>")+ — the 2-arg form
         # collapses the +push_key+ + +push_value+ pair into a single
         # C-extension dispatch (byte-identical output, fewer dispatches).
         #
         # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
+        # @param index [Integer] codegen-time +FIELD_INDEX+ position used
+        #   in the +unless filters.drops?(<index>)+ wrapper
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_json(method_attribute, builder)
-          builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
-          builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
+        def self.emit_json(method_attribute, index, builder)
+          builder.line "unless filters.drops?(#{index})"
           builder.indent do
-            builder.line %(writer.push_value(value, "#{method_attribute.name}"))
+            builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
+            builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
+            builder.indent do
+              builder.line %(writer.push_value(value, "#{method_attribute.name}"))
+            end
+            builder.line "end"
           end
           builder.line "end"
         end
 
-        # Emits the Hash-mode write for one +MethodAttribute+. One body
-        # line under +unless value.equal?(SerializersCodeGen::SKIP)+:
-        # +result[<key>] = value+. The output-key shape comes from
-        # +output_key_type+ — +:string+ (default) emits +result["<name>"]+,
-        # +:symbol+ emits +result[:<name>]+.
+        # Emits the Hash-mode write for one +MethodAttribute+. Two
+        # nested guards parallel to {.emit_json}: outer
+        # +unless filters.drops?(<index>) ... end+; inner
+        # +unless value.equal?(SerializersCodeGen::SKIP)+. Inside the
+        # inner guard one line: +result[<key>] = value+. The output-key
+        # shape comes from +output_key_type+ — +:string+ (default) emits
+        # +result["<name>"]+, +:symbol+ emits +result[:<name>]+.
         #
         # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
         # @param output_key_type [Symbol] +:string+ or +:symbol+ — the
         #   pre-validated value of +Config#hash_output_key_type+
+        # @param index [Integer] codegen-time +FIELD_INDEX+ position used
+        #   in the +unless filters.drops?(<index>)+ wrapper
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_hash(method_attribute, output_key_type, builder)
+        def self.emit_hash(method_attribute, output_key_type, index, builder)
           key_lit = case output_key_type
           when :symbol then ":#{method_attribute.name}"
           else %("#{method_attribute.name}")
           end
-          builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
-          builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
+          builder.line "unless filters.drops?(#{index})"
           builder.indent do
-            builder.line "result[#{key_lit}] = value"
+            builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
+            builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
+            builder.indent do
+              builder.line "result[#{key_lit}] = value"
+            end
+            builder.line "end"
           end
           builder.line "end"
         end

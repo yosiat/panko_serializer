@@ -1,16 +1,18 @@
 # frozen_string_literal: true
 
 class ConfigHashOutputKeySymbolSerializer_Hash
+  FIELD_INDEX = {id: 0, name: 1}.freeze
+
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, filters: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     _to_hash(record, context, filters)
   end
 
   def serialize_many(records, context: nil, filters: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     records.map { |r| _to_hash(r, context, filters) }
   end
 
@@ -24,15 +26,23 @@ class ConfigHashOutputKeySymbolSerializer_Hash
 
   def _to_hash_hash(record, context, filters)
     result = {}
-    result[:id] = record["id"]
-    result[:name] = record["name"]
+    unless filters.drops?(0)
+      result[:id] = record["id"]
+    end
+    unless filters.drops?(1)
+      result[:name] = record["name"]
+    end
     result
   end
 
   def _to_hash_object(record, context, filters)
     result = {}
-    result[:id] = record.id
-    result[:name] = record.name
+    unless filters.drops?(0)
+      result[:id] = record.id
+    end
+    unless filters.drops?(1)
+      result[:name] = record.name
+    end
     result
   end
 end

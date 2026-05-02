@@ -39,20 +39,18 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(generated.serialize_one(record, filters: nil)).to eq(expected)
         end
 
-        it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+        it "raises NotImplementedError referencing S14.2 when filters: is a non-empty Hash" do
           generated = generated_class.new(descriptor: descriptor)
           record = {"id" => 1, "title" => "hi"}
           expect {
             generated.serialize_one(record, filters: {only: [:id]})
-          }.to raise_error(NotImplementedError)
+          }.to raise_error(NotImplementedError, /S14\.2/)
         end
 
-        it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+        it "returns the expected output when filters: {} is passed (collapses to Filter::NONE)" do
           generated = generated_class.new(descriptor: descriptor)
           record = {"id" => 1, "title" => "hi"}
-          expect {
-            generated.serialize_one(record, filters: {})
-          }.to raise_error(NotImplementedError)
+          expect(generated.serialize_one(record, filters: {})).to eq(expected)
         end
       end
     end
@@ -110,18 +108,16 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(generated.serialize_many(records, filters: nil)).to eq(expected_single[mode])
         end
 
-        it "raises NotImplementedError when filters: is a non-nil Hash with :only" do
+        it "raises NotImplementedError referencing S14.2 when filters: is a non-empty Hash" do
           records = [{"id" => 1, "title" => "hi"}]
           expect {
             generated.serialize_many(records, filters: {only: [:id]})
-          }.to raise_error(NotImplementedError)
+          }.to raise_error(NotImplementedError, /S14\.2/)
         end
 
-        it "raises NotImplementedError when filters: is an empty Hash (any non-nil triggers the raise)" do
+        it "returns the expected output when filters: {} is passed (collapses to Filter::NONE)" do
           records = [{"id" => 1, "title" => "hi"}]
-          expect {
-            generated.serialize_many(records, filters: {})
-          }.to raise_error(NotImplementedError)
+          expect(generated.serialize_many(records, filters: {})).to eq(expected_single[mode])
         end
       end
     end

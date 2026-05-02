@@ -63,8 +63,11 @@ module SerializersCodeGen
       #   threading
       # @return [void]
       def emit_class(descriptor, config, builder, cyclic_ids)
+        field_index = FieldIndex.build(descriptor)
         builder.line "class #{descriptor.name}_Hash"
         builder.indent do
+          builder.line "FIELD_INDEX = #{FieldIndex.to_hash_literal(field_index)}.freeze"
+          builder.blank
           emit_initialize(descriptor, builder, cyclic_ids)
           builder.blank
           emit_serialize_one(config, builder)
@@ -72,9 +75,9 @@ module SerializersCodeGen
           emit_serialize_many(config, builder)
           builder.blank
           if descriptor.models.nil?
-            RecordAccess::Generic.emit_hash(descriptor, config, builder)
+            RecordAccess::Generic.emit_hash(descriptor, config, field_index, builder)
           else
-            RecordAccess::Specialized.emit_hash(descriptor, config, builder)
+            RecordAccess::Specialized.emit_hash(descriptor, config, field_index, builder)
           end
           if config.supports_root_key
             builder.blank
@@ -193,10 +196,12 @@ module SerializersCodeGen
       # Writer (per +docs/output-modes.md § :hash+) — the body is a
       # straight delegate to +_to_hash+, whose return value is the
       # produced Hash. The +filters+ kwarg is accepted from day 1 to
-      # keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
-      # raises +NotImplementedError+ until the phase-2 implementation
-      # lands in S14.
+      # keep the public signature locked (per
+      # +docs/filters.md § Phase-1 behavior+); the body's first line
+      # normalizes it via +SerializersCodeGen::Filter.wrap(filters)+.
+      # +nil+ and +{}+ collapse to +Filter::NONE+ (allocation-free);
+      # non-empty Hashes raise +NotImplementedError+ from +Filter.wrap+
+      # until S14.2 ships the indexed cell from S13's verdict.
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # an additional +root_key:+ kwarg (defaulting to +nil+); when
@@ -218,7 +223,7 @@ module SerializersCodeGen
           "def serialize_one(record, context: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "raise NotImplementedError if filters"
+          builder.line "filters = SerializersCodeGen::Filter.wrap(filters)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
             builder.line "result = _to_hash(record, context, filters)"
@@ -234,10 +239,12 @@ module SerializersCodeGen
       # Writer (per +docs/output-modes.md § :hash+) — the body walks the
       # input enumerable with +.map+, calling +_to_hash+ per element, and
       # returns the resulting +Array<Hash>+. The +filters+ kwarg is
-      # accepted from day 1 to keep the public signature locked
-      # (per +docs/filters.md § Phase-1 behavior+); a non-nil value
-      # raises +NotImplementedError+ until the phase-2 implementation
-      # lands in S14.
+      # accepted from day 1 to keep the public signature locked (per
+      # +docs/filters.md § Phase-1 behavior+); the body's first line
+      # normalizes it via +SerializersCodeGen::Filter.wrap(filters)+ —
+      # +nil+ / +{}+ → +Filter::NONE+; non-empty Hashes raise
+      # +NotImplementedError+ from +Filter.wrap+ until S14.2 ships the
+      # indexed cell.
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # the same +root_key:+ kwarg as +serialize_one+; a truthy value
@@ -256,7 +263,7 @@ module SerializersCodeGen
           "def serialize_many(records, context: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "raise NotImplementedError if filters"
+          builder.line "filters = SerializersCodeGen::Filter.wrap(filters)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
             builder.line "result = records.map { |r| _to_hash(r, context, filters) }"

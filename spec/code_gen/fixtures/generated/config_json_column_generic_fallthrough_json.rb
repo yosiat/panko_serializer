@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 class ConfigJsonColumnGenericFallthroughSerializer_JSON
+  FIELD_INDEX = {id: 0, metadata: 1}.freeze
+
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, filters: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     writer = Oj::StringWriter.new(mode: :rails)
     _write_one(record, writer, context, filters)
     result = writer.to_s
@@ -14,7 +16,7 @@ class ConfigJsonColumnGenericFallthroughSerializer_JSON
   end
 
   def serialize_many(records, context: nil, filters: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     writer = Oj::StringWriter.new(mode: :rails)
     writer.push_array
     records.each { |r| _write_one(r, writer, context, filters) }
@@ -34,15 +36,23 @@ class ConfigJsonColumnGenericFallthroughSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_value(record["id"], "id")
-    writer.push_value(record["metadata"], "metadata")
+    unless filters.drops?(0)
+      writer.push_value(record["id"], "id")
+    end
+    unless filters.drops?(1)
+      writer.push_value(record["metadata"], "metadata")
+    end
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_value(record.id, "id")
-    writer.push_value(record.metadata, "metadata")
+    unless filters.drops?(0)
+      writer.push_value(record.id, "id")
+    end
+    unless filters.drops?(1)
+      writer.push_value(record.metadata, "metadata")
+    end
     writer.pop
   end
 end

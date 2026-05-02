@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 class RecursiveSelfCommentSerializer_JSON
+  FIELD_INDEX = {id: 0, body: 1, replies: 2}.freeze
+
   def initialize(descriptor:)
     @replies_serializer = self
   end
 
   def serialize_one(record, context: nil, filters: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     writer = Oj::StringWriter.new(mode: :rails)
     _write_one(record, writer, context, filters)
     result = writer.to_s
@@ -15,7 +17,7 @@ class RecursiveSelfCommentSerializer_JSON
   end
 
   def serialize_many(records, context: nil, filters: nil)
-    raise NotImplementedError if filters
+    filters = SerializersCodeGen::Filter.wrap(filters)
     writer = Oj::StringWriter.new(mode: :rails)
     writer.push_array
     records.each { |r| _write_one(r, writer, context, filters) }
@@ -35,25 +37,37 @@ class RecursiveSelfCommentSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_value(record["id"], "id")
-    writer.push_value(record["body"], "body")
-    writer.push_array("replies")
-    record["replies"].each do |element|
-      @replies_serializer._write_one(element, writer, context, filters)
+    unless filters.drops?(0)
+      writer.push_value(record["id"], "id")
     end
-    writer.pop
+    unless filters.drops?(1)
+      writer.push_value(record["body"], "body")
+    end
+    unless filters.drops?(2)
+      writer.push_array("replies")
+      record["replies"].each do |element|
+        @replies_serializer._write_one(element, writer, context, filters)
+      end
+      writer.pop
+    end
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_value(record.id, "id")
-    writer.push_value(record.body, "body")
-    writer.push_array("replies")
-    record.replies.each do |element|
-      @replies_serializer._write_one(element, writer, context, filters)
+    unless filters.drops?(0)
+      writer.push_value(record.id, "id")
     end
-    writer.pop
+    unless filters.drops?(1)
+      writer.push_value(record.body, "body")
+    end
+    unless filters.drops?(2)
+      writer.push_array("replies")
+      record.replies.each do |element|
+        @replies_serializer._write_one(element, writer, context, filters)
+      end
+      writer.pop
+    end
     writer.pop
   end
 end
