@@ -39,12 +39,12 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(generated.serialize_one(record, filters: nil)).to eq(expected)
         end
 
-        it "raises NotImplementedError referencing S14.2 when filters: is a non-empty Hash" do
+        it "applies a non-empty filters: Hash via the Filter::Indexed cell (S14.2)" do
           generated = generated_class.new(descriptor: descriptor)
           record = {"id" => 1, "title" => "hi"}
-          expect {
-            generated.serialize_one(record, filters: {only: [:id]})
-          }.to raise_error(NotImplementedError, /S14\.2/)
+          filtered = generated.serialize_one(record, filters: {only: [:id]})
+          expected_filtered = (mode == :json) ? '{"id":1}' : {"id" => 1}
+          expect(filtered).to eq(expected_filtered)
         end
 
         it "returns the expected output when filters: {} is passed (collapses to Filter::NONE)" do
@@ -108,11 +108,11 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(generated.serialize_many(records, filters: nil)).to eq(expected_single[mode])
         end
 
-        it "raises NotImplementedError referencing S14.2 when filters: is a non-empty Hash" do
+        it "applies a non-empty filters: Hash via the Filter::Indexed cell (S14.2)" do
           records = [{"id" => 1, "title" => "hi"}]
-          expect {
-            generated.serialize_many(records, filters: {only: [:id]})
-          }.to raise_error(NotImplementedError, /S14\.2/)
+          filtered = generated.serialize_many(records, filters: {only: [:id]})
+          expected_filtered = (mode == :json) ? '[{"id":1}]' : [{"id" => 1}]
+          expect(filtered).to eq(expected_filtered)
         end
 
         it "returns the expected output when filters: {} is passed (collapses to Filter::NONE)" do

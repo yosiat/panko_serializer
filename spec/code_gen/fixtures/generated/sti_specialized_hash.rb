@@ -7,12 +7,12 @@ class StiSpecializedSerializer_Hash
   end
 
   def serialize_one(record, context: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters)
+    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     _to_hash(record, context, filters)
   end
 
   def serialize_many(records, context: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters)
+    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     records.map { |r| _to_hash(r, context, filters) }
   end
 

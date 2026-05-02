@@ -202,12 +202,14 @@ module SerializersCodeGen
       # +_write_one+, and returns +writer.to_s+. The +filters+ kwarg is
       # accepted from day 1 to keep the public signature locked (per
       # +docs/filters.md § Phase-1 behavior+); the body's first line
-      # normalizes it via +SerializersCodeGen::Filter.wrap(filters)+.
-      # +nil+ and +{}+ collapse to +Filter::NONE+ (the no-filter
-      # singleton — allocation-free); non-empty Hashes raise
-      # +NotImplementedError+ from +Filter.wrap+ until the indexed cell
-      # ships in S14.2 per the S13 verdict
-      # (+docs/research/filter_experiments_results.md § 1+).
+      # normalizes it via
+      # +SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)+. +nil+
+      # and +{}+ collapse to +Filter::NONE+ (the no-filter singleton —
+      # allocation-free, +FIELD_INDEX+ is unread on that path); a
+      # non-empty Hash routes to the +Filter::Indexed+ cell from S13's
+      # verdict (S14.2,
+      # +docs/research/filter_experiments_results.md § 1+) — bit-mask
+      # rep when +FIELD_INDEX.size <= 63+, Boolean Array otherwise.
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # an additional +root_key:+ kwarg (defaulting to +nil+) and the
@@ -235,7 +237,7 @@ module SerializersCodeGen
           "def serialize_one(record, context: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "filters = SerializersCodeGen::Filter.wrap(filters)"
+          builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
@@ -263,10 +265,10 @@ module SerializersCodeGen
       # (per +docs/output-modes.md § :json+). The +filters+ kwarg is
       # accepted from day 1 to keep the public signature locked (per
       # +docs/filters.md § Phase-1 behavior+); the body's first line
-      # normalizes it via +SerializersCodeGen::Filter.wrap(filters)+ —
-      # +nil+ / +{}+ → +Filter::NONE+; non-empty Hashes raise
-      # +NotImplementedError+ from +Filter.wrap+ until S14.2 ships the
-      # indexed cell.
+      # normalizes it via
+      # +SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)+ —
+      # +nil+ / +{}+ → +Filter::NONE+; a non-empty Hash routes to the
+      # +Filter::Indexed+ cell against +FIELD_INDEX+ per S14.2.
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # the same +root_key:+ kwarg as +serialize_one+ and the body wraps
@@ -290,7 +292,7 @@ module SerializersCodeGen
           "def serialize_many(records, context: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "filters = SerializersCodeGen::Filter.wrap(filters)"
+          builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end

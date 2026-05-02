@@ -731,51 +731,6 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "NotImplementedError — filters contract (S2.3 / S3.3 → S14.1 → S14.2)" do
-    let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
-    let(:config) { Fixtures::ShallowGeneric::CONFIG }
-    let(:record) { {"id" => 1, "title" => "hi"} }
-
-    before do
-      require "shallow_generic"
-    end
-
-    %i[json hash].each do |mode|
-      context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
-        let(:instance) { generated_class.new(descriptor: descriptor) }
-
-        it "raises NotImplementedError referencing S14.2 on serialize_one with non-empty filters:" do
-          expect {
-            instance.serialize_one(record, filters: {only: [:id]})
-          }.to raise_error(NotImplementedError, /S14\.2/)
-        end
-
-        it "does not raise on serialize_one with filters: {} (collapses to Filter::NONE)" do
-          expect(instance.serialize_one(record, filters: {})).not_to be_nil
-        end
-
-        it "does not raise on serialize_one with default filters: nil" do
-          expect(instance.serialize_one(record)).not_to be_nil
-        end
-
-        it "raises NotImplementedError referencing S14.2 on serialize_many with non-empty filters:" do
-          expect {
-            instance.serialize_many([record], filters: {only: [:id]})
-          }.to raise_error(NotImplementedError, /S14\.2/)
-        end
-
-        it "does not raise on serialize_many with filters: {} (collapses to Filter::NONE)" do
-          expect(instance.serialize_many([record], filters: {})).not_to be_nil
-        end
-
-        it "does not raise on serialize_many with default filters: nil" do
-          expect(instance.serialize_many([record])).not_to be_nil
-        end
-      end
-    end
-  end
-
   describe "Mode independence — semantic validation runs pre-Generator" do
     def unknown_source_descriptor
       klass = Class.new do

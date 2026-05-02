@@ -7,7 +7,7 @@ class ConfigRootKeyOnSerializer_JSON
   end
 
   def serialize_one(record, context: nil, filters: nil, root_key: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters)
+    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
     if root_key
@@ -22,7 +22,7 @@ class ConfigRootKeyOnSerializer_JSON
   end
 
   def serialize_many(records, context: nil, filters: nil, root_key: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters)
+    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
     writer.push_object if root_key
