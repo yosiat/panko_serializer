@@ -209,8 +209,8 @@ module SerializersCodeGen
       # cannot be collapsed into a 2-arg +push_object(root_key)+ here:
       # the inner +_write_one+ opens its own +push_object+ frame
       # internally, so collapsing across that boundary would require
-      # restructuring +_write_one+'s contract — out of scope for the
-      # 2-arg-form sweep. Per +docs/generated-class.md § serialize_one+,
+      # restructuring +_write_one+'s contract. Per
+      # +docs/generated-class.md § serialize_one+,
       # the value must be a non-empty String or +nil+;
       # +validate_root_key!+ raises +ArgumentError+ on anything else.
       # When +supports_root_key+ is +false+, the kwarg is omitted from

@@ -68,7 +68,8 @@ module SerializersCodeGen
         # split: the inner +_write_one+ opens its own +push_object+ frame
         # per +docs/compilation.md § Composition of nested Associations+,
         # so collapsing across that boundary would require restructuring
-        # the +_write_one+ contract — out of scope for this slice.
+        # the +_write_one+ contract (a keyed-+_write_one+ variant or an
+        # +_emit_fields+ helper that doesn't open its own frame).
         #
         # @param association [SerializersCodeGen::Association] the Field node
         # @param source_read_expr [String] Ruby source for fetching the
@@ -181,9 +182,8 @@ module SerializersCodeGen
         # the nested Generated Class's +_write_one+, which opens its own
         # +push_object+ frame internally per
         # +docs/compilation.md § Composition of nested Associations+. The
-        # +push_key+ in the non-nil arm cannot be collapsed without
-        # restructuring +_write_one+'s contract; left as-is per the
-        # acceptance-criterion exception.
+        # +push_key+ in the non-nil arm cannot be collapsed across that
+        # frame boundary without restructuring +_write_one+'s contract.
         #
         # @param association [SerializersCodeGen::Association]
         # @param builder [SerializersCodeGen::CodeBuilder]
@@ -206,9 +206,8 @@ module SerializersCodeGen
         # +_write_one+, which opens its own +push_object+ frame
         # internally per
         # +docs/compilation.md § Composition of nested Associations+.
-        # The +push_key+ here cannot be collapsed without restructuring
-        # +_write_one+'s contract; left as-is per the acceptance-
-        # criterion exception.
+        # The +push_key+ here cannot be collapsed across that frame
+        # boundary without restructuring +_write_one+'s contract.
         #
         # @param association [SerializersCodeGen::Association]
         # @param builder [SerializersCodeGen::CodeBuilder]
