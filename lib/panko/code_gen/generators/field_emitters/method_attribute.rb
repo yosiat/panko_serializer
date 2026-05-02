@@ -6,7 +6,9 @@ module SerializersCodeGen
       # Emits the per-mode write for one +MethodAttribute+ inside a
       # +_write_one_*+ / +_to_hash_*+ helper. Two axes of variation:
       #
-      # - *Output Mode* — JSON emits +writer.push_key+ + +writer.push_value+;
+      # - *Output Mode* — JSON emits +writer.push_value(value, "<name>")+
+      #   (the 2-arg form collapses +push_key+ + +push_value+ into one
+      #   C-extension dispatch — byte-identical output, fewer dispatches);
       #   Hash emits +result[<key>] = value+. One module, one entry per mode,
       #   per +docs/output-modes.md § Composition across modes+.
       # - *Callable arity* — the call expression is specialized per arity
@@ -27,10 +29,12 @@ module SerializersCodeGen
       # accidentally collide with +SKIP+ per
       # +docs/descriptor.md § SKIP sentinel+.
       module MethodAttribute
-        # Emits the JSON-mode write for one +MethodAttribute+. Three lines
+        # Emits the JSON-mode write for one +MethodAttribute+. Two lines
         # under +unless value.equal?(SerializersCodeGen::SKIP)+:
-        # +value = @cb_<name>.call(...)+, +writer.push_key("<name>")+,
-        # +writer.push_value(value)+.
+        # +value = @cb_<name>.call(...)+ (outside the guard) and
+        # +writer.push_value(value, "<name>")+ (inside) — the 2-arg form
+        # collapses the +push_key+ + +push_value+ pair into a single
+        # C-extension dispatch (byte-identical output, fewer dispatches).
         #
         # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
@@ -39,8 +43,7 @@ module SerializersCodeGen
           builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
           builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
           builder.indent do
-            builder.line %(writer.push_key("#{method_attribute.name}"))
-            builder.line "writer.push_value(value)"
+            builder.line %(writer.push_value(value, "#{method_attribute.name}"))
           end
           builder.line "end"
         end

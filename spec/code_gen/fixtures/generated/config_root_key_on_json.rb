@@ -21,11 +21,8 @@ class ConfigRootKeyOnSerializer_JSON
     raise NotImplementedError if filters
     validate_root_key!(root_key)
     writer = Oj::StringWriter.new(mode: :rails)
-    if root_key
-      writer.push_object
-      writer.push_key(root_key)
-    end
-    writer.push_array
+    writer.push_object if root_key
+    writer.push_array(root_key)
     records.each { |r| _write_one(r, writer, context, filters) }
     writer.pop
     writer.pop if root_key
@@ -42,15 +39,13 @@ class ConfigRootKeyOnSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
+    writer.push_value(record["id"], "id")
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
+    writer.push_value(record.id, "id")
     writer.pop
   end
 

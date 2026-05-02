@@ -32,15 +32,13 @@ class RecursiveMutualItemSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
-    writer.push_key("name")
-    writer.push_value(record["name"])
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["name"], "name")
     value = record["subfolder"]
-    writer.push_key("subfolder")
     if value.nil?
-      writer.push_value(nil)
+      writer.push_value(nil, "subfolder")
     else
+      writer.push_key("subfolder")
       @subfolder_serializer._write_one(value, writer, context, filters)
     end
     writer.pop
@@ -48,15 +46,13 @@ class RecursiveMutualItemSerializer_JSON
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
-    writer.push_key("name")
-    writer.push_value(record.name)
+    writer.push_value(record.id, "id")
+    writer.push_value(record.name, "name")
     value = record.subfolder
-    writer.push_key("subfolder")
     if value.nil?
-      writer.push_value(nil)
+      writer.push_value(nil, "subfolder")
     else
+      writer.push_key("subfolder")
       @subfolder_serializer._write_one(value, writer, context, filters)
     end
     writer.pop
@@ -95,12 +91,9 @@ class RecursiveMutualFolderSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
-    writer.push_key("name")
-    writer.push_value(record["name"])
-    writer.push_key("items")
-    writer.push_array
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["name"], "name")
+    writer.push_array("items")
     record["items"].each do |element|
       @items_serializer._write_one(element, writer, context, filters)
     end
@@ -110,12 +103,9 @@ class RecursiveMutualFolderSerializer_JSON
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
-    writer.push_key("name")
-    writer.push_value(record.name)
-    writer.push_key("items")
-    writer.push_array
+    writer.push_value(record.id, "id")
+    writer.push_value(record.name, "name")
+    writer.push_array("items")
     record.items.each do |element|
       @items_serializer._write_one(element, writer, context, filters)
     end

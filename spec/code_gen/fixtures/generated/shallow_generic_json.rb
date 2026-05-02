@@ -30,19 +30,15 @@ class ShallowGenericSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
-    writer.push_key("title")
-    writer.push_value(record["title"])
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["title"], "title")
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
-    writer.push_key("title")
-    writer.push_value(record.title)
+    writer.push_value(record.id, "id")
+    writer.push_value(record.title, "title")
     writer.pop
   end
 end

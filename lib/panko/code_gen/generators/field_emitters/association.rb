@@ -39,10 +39,10 @@ module SerializersCodeGen
         #
         # +has_one+ — default (+null_for_missing_has_one: true+) emits:
         #   value = <source_read_expr>
-        #   writer.push_key("<name>")
         #   if value.nil?
-        #     writer.push_value(nil)
+        #     writer.push_value(nil, "<name>")
         #   else
+        #     writer.push_key("<name>")
         #     @<name>_serializer._write_one(value, writer, context, filters)
         #   end
         #
@@ -54,12 +54,21 @@ module SerializersCodeGen
         #   end
         #
         # +has_many+ emits (config-independent — empty collection → +[]+):
-        #   writer.push_key("<name>")
-        #   writer.push_array
+        #   writer.push_array("<name>")
         #   <source_read_expr>.each do |element|
         #     @<name>_serializer._write_one(element, writer, context, filters)
         #   end
         #   writer.pop
+        #
+        # The 2-arg +push_value(nil, "<name>")+ form on the +has_one+ nil
+        # arm and the 2-arg +push_array("<name>")+ on +has_many+ collapse
+        # a +push_key+ + opener pair into a single C-extension dispatch
+        # (byte-identical output, fewer dispatches). The non-nil
+        # +has_one+ arms keep the +push_key("<name>")+ + +_write_one+
+        # split: the inner +_write_one+ opens its own +push_object+ frame
+        # per +docs/compilation.md § Composition of nested Associations+,
+        # so collapsing across that boundary would require restructuring
+        # the +_write_one+ contract — out of scope for this slice.
         #
         # @param association [SerializersCodeGen::Association] the Field node
         # @param source_read_expr [String] Ruby source for fetching the
@@ -165,18 +174,26 @@ module SerializersCodeGen
           end
         end
 
-        # Emits the JSON-mode default-true branch — writes the key
-        # unconditionally, then +null+ or the nested call.
+        # Emits the JSON-mode default-true branch — branches first on
+        # +value.nil?+: the nil arm collapses key+value into the 2-arg
+        # +writer.push_value(nil, "<name>")+ form (one C-extension
+        # dispatch); the non-nil arm pushes the key then dispatches to
+        # the nested Generated Class's +_write_one+, which opens its own
+        # +push_object+ frame internally per
+        # +docs/compilation.md § Composition of nested Associations+. The
+        # +push_key+ in the non-nil arm cannot be collapsed without
+        # restructuring +_write_one+'s contract; left as-is per the
+        # acceptance-criterion exception.
         #
         # @param association [SerializersCodeGen::Association]
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_one_default(association, builder)
-          builder.line %(writer.push_key("#{association.name}"))
           builder.line "if value.nil?"
-          builder.indent { builder.line "writer.push_value(nil)" }
+          builder.indent { builder.line %(writer.push_value(nil, "#{association.name}")) }
           builder.line "else"
           builder.indent do
+            builder.line %(writer.push_key("#{association.name}"))
             builder.line "@#{association.name}_serializer._write_one(value, writer, context, filters)"
           end
           builder.line "end"
@@ -184,7 +201,14 @@ module SerializersCodeGen
 
         # Emits the JSON-mode +null_for_missing_has_one: false+ branch
         # — omits the key entirely (no +push_key+, no +push_value+) when
-        # the Source returns +nil+.
+        # the Source returns +nil+. When the Source is non-nil, pushes
+        # the key then dispatches to the nested Generated Class's
+        # +_write_one+, which opens its own +push_object+ frame
+        # internally per
+        # +docs/compilation.md § Composition of nested Associations+.
+        # The +push_key+ here cannot be collapsed without restructuring
+        # +_write_one+'s contract; left as-is per the acceptance-
+        # criterion exception.
         #
         # @param association [SerializersCodeGen::Association]
         # @param builder [SerializersCodeGen::CodeBuilder]
@@ -234,11 +258,13 @@ module SerializersCodeGen
           builder.line "end"
         end
 
-        # Emits the JSON-mode +has_many+ shape — opens an array on the
-        # Writer, iterates the Source collection element-by-element
-        # through the nested Generated Class's +_write_one+, then closes
-        # the array. An empty collection naturally emits +[]+ (no key
-        # omission, no +null+ — empty array is its own state) per
+        # Emits the JSON-mode +has_many+ shape — opens a keyed array on
+        # the Writer via the 2-arg +push_array("<name>")+ form (one
+        # C-extension dispatch in place of +push_key+ + +push_array+),
+        # iterates the Source collection element-by-element through the
+        # nested Generated Class's +_write_one+, then closes the array.
+        # An empty collection naturally emits +[]+ (no key omission, no
+        # +null+ — empty array is its own state) per
         # +docs/output-modes.md § Null Association handling+.
         #
         # @param association [SerializersCodeGen::Association]
@@ -248,8 +274,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_many(association, source_read_expr, builder)
-          builder.line %(writer.push_key("#{association.name}"))
-          builder.line "writer.push_array"
+          builder.line %(writer.push_array("#{association.name}"))
           builder.line "#{source_read_expr}.each do |element|"
           builder.indent do
             builder.line "@#{association.name}_serializer._write_one(element, writer, context, filters)"

@@ -30,19 +30,15 @@ class NestedCompositionAuthorSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
-    writer.push_key("name")
-    writer.push_value(record["name"])
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["name"], "name")
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
-    writer.push_key("name")
-    writer.push_value(record.name)
+    writer.push_value(record.id, "id")
+    writer.push_value(record.name, "name")
     writer.pop
   end
 end
@@ -77,19 +73,15 @@ class NestedCompositionCommentSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
-    writer.push_key("body")
-    writer.push_value(record["body"])
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["body"], "body")
     writer.pop
   end
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
-    writer.push_key("body")
-    writer.push_value(record.body)
+    writer.push_value(record.id, "id")
+    writer.push_value(record.body, "body")
     writer.pop
   end
 end
@@ -127,19 +119,17 @@ class NestedCompositionPostSerializer_JSON
 
   def _write_one_hash(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record["id"])
+    writer.push_value(record["id"], "id")
     if @cb_if_author.call(record, context)
       value = record["author"]
-      writer.push_key("author")
       if value.nil?
-        writer.push_value(nil)
+        writer.push_value(nil, "author")
       else
+        writer.push_key("author")
         @author_serializer._write_one(value, writer, context, filters)
       end
     end
-    writer.push_key("comments")
-    writer.push_array
+    writer.push_array("comments")
     record["comments"].each do |element|
       @comments_serializer._write_one(element, writer, context, filters)
     end
@@ -149,19 +139,17 @@ class NestedCompositionPostSerializer_JSON
 
   def _write_one_object(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record.id)
+    writer.push_value(record.id, "id")
     if @cb_if_author.call(record, context)
       value = record.author
-      writer.push_key("author")
       if value.nil?
-        writer.push_value(nil)
+        writer.push_value(nil, "author")
       else
+        writer.push_key("author")
         @author_serializer._write_one(value, writer, context, filters)
       end
     end
-    writer.push_key("comments")
-    writer.push_array
+    writer.push_array("comments")
     record.comments.each do |element|
       @comments_serializer._write_one(element, writer, context, filters)
     end

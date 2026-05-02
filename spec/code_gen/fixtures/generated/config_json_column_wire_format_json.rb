@@ -22,8 +22,7 @@ class ConfigJsonColumnWireFormatSerializer_JSON
 
   def _write_one(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record._read_attribute("id"))
+    writer.push_value(record._read_attribute("id"), "id")
     raw = record.read_attribute_before_type_cast("metadata")
     if raw.is_a?(String) && !raw.empty? && (begin
       Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw, mode: :strict)

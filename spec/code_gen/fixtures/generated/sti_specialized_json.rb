@@ -22,10 +22,8 @@ class StiSpecializedSerializer_JSON
 
   def _write_one(record, writer, context, filters)
     writer.push_object
-    writer.push_key("vin")
-    writer.push_value(record._read_attribute("vin"))
-    writer.push_key("make")
-    writer.push_value(record.make)
+    writer.push_value(record._read_attribute("vin"), "vin")
+    writer.push_value(record.make, "make")
     writer.pop
   end
 end
