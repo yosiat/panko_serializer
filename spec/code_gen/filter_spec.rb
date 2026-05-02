@@ -54,6 +54,20 @@ RSpec.describe SerializersCodeGen::Filter do
         }.to raise_error(ArgumentError, /only.*except/i)
       end
 
+      it "raises ArgumentError when co-supplied under an unknown top-level Source key" do
+        # The validator walks every Hash value regardless of whether the
+        # key matches a known Source on the +FIELD_INDEX+. A typo in a
+        # Source name does not silence the co-supply error — caller still
+        # learns about the mutually-exclusive misuse rather than seeing
+        # a silently unfiltered result.
+        expect {
+          described_class.wrap(
+            {totally_unknown: {only: [:a], except: [:b]}},
+            {id: 0, title: 1}
+          )
+        }.to raise_error(ArgumentError, /only.*except/i)
+      end
+
       it "does not raise when only +:only+ is supplied at every level" do
         expect {
           described_class.wrap({only: [:id], author: {only: [:name]}}, {id: 0, author: 1})
