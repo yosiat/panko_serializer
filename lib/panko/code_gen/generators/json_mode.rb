@@ -243,7 +243,9 @@ module SerializersCodeGen
           end
           builder.line "_write_one(record, writer, context, filters)"
           builder.line "writer.pop if root_key" if config.supports_root_key
-          builder.line "writer.to_s.chomp"
+          builder.line "result = writer.to_s"
+          builder.line "result.chomp!"
+          builder.line "result"
         end
         builder.line "end"
       end
@@ -293,7 +295,9 @@ module SerializersCodeGen
           builder.line "records.each { |r| _write_one(r, writer, context, filters) }"
           builder.line "writer.pop"
           builder.line "writer.pop if root_key" if config.supports_root_key
-          builder.line "writer.to_s.chomp"
+          builder.line "result = writer.to_s"
+          builder.line "result.chomp!"
+          builder.line "result"
         end
         builder.line "end"
       end

@@ -9,7 +9,9 @@ class RecursiveSelfCommentSerializer_JSON
     raise NotImplementedError if filters
     writer = Oj::StringWriter.new(mode: :rails)
     _write_one(record, writer, context, filters)
-    writer.to_s.chomp
+    result = writer.to_s
+    result.chomp!
+    result
   end
 
   def serialize_many(records, context: nil, filters: nil)
@@ -18,7 +20,9 @@ class RecursiveSelfCommentSerializer_JSON
     writer.push_array
     records.each { |r| _write_one(r, writer, context, filters) }
     writer.pop
-    writer.to_s.chomp
+    result = writer.to_s
+    result.chomp!
+    result
   end
 
   def _write_one(record, writer, context, filters)

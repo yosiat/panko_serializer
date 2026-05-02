@@ -14,7 +14,9 @@ class ConfigRootKeyOnSerializer_JSON
     end
     _write_one(record, writer, context, filters)
     writer.pop if root_key
-    writer.to_s.chomp
+    result = writer.to_s
+    result.chomp!
+    result
   end
 
   def serialize_many(records, context: nil, filters: nil, root_key: nil)
@@ -26,7 +28,9 @@ class ConfigRootKeyOnSerializer_JSON
     records.each { |r| _write_one(r, writer, context, filters) }
     writer.pop
     writer.pop if root_key
-    writer.to_s.chomp
+    result = writer.to_s
+    result.chomp!
+    result
   end
 
   def _write_one(record, writer, context, filters)
