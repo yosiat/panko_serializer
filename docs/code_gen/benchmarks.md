@@ -54,6 +54,12 @@ benchmarks/
   wide_attributes.rb             # ~70 Attributes — stresses per-Field emit/dispatch cost
   graph.rb                       # entrypoint Descriptor with Attributes + multiple has_one
                                  # + multiple has_many — stresses combined Composition
+  single_record.rb               # one-record APIs (`serialize_one`, `Serializer.one`,
+                                 # `record.as_json`) on a Bench::Post + author + comments
+                                 # graph; carries an output-parity guard at the top of the
+                                 # file (Oj.load(mode: :strict) on every row's JSON; abort
+                                 # with a labeled diff if any row diverges) — future
+                                 # scenarios should mirror this guard
 
   # serializers_code_gen-specific scenarios
   # (only compare scg variants against each other; no cross-target row)
