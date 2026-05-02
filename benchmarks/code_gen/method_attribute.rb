@@ -38,6 +38,7 @@ class MethodAttributePostPankoSerializer < Panko::Serializer
 end
 
 class MethodAttributePostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title
 
   attribute
@@ -52,7 +53,7 @@ Targets::SCG_JSON[:method_attribute] = ->(records) { SCG_JSON_METHOD_ATTRIBUTE.s
 Targets::SCG_HASH[:method_attribute] = ->(records) { SCG_HASH_METHOD_ATTRIBUTE.serialize_many(records) }
 Targets::PANKO_JSON[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_a }
-Targets::OJ_JSON[:method_attribute] = ->(records) { MethodAttributePostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:method_attribute] = ->(records) { MethodAttributePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:method_attribute] = ->(records) { records.map { |r| {id: r.id, title: r.title, body_length: r.body.length} }.to_json }
 Targets::PLAIN_HASH[:method_attribute] = ->(records) { records.map { |r| {id: r.id, title: r.title, body_length: r.body.length} } }
 

@@ -33,6 +33,7 @@ class WideAttributesPostPankoSerializer < Panko::Serializer
 end
 
 class WideAttributesPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes(*WIDE_ATTRIBUTES_PANKO_NAMES)
 end
 
@@ -42,7 +43,7 @@ Targets::SCG_JSON[:wide_attributes] = ->(records) { SCG_JSON_WIDE_ATTRIBUTES.ser
 Targets::SCG_HASH[:wide_attributes] = ->(records) { SCG_HASH_WIDE_ATTRIBUTES.serialize_many(records) }
 Targets::PANKO_JSON[:wide_attributes] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:wide_attributes] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoSerializer).to_a }
-Targets::OJ_JSON[:wide_attributes] = ->(records) { WideAttributesPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:wide_attributes] = ->(records) { WideAttributesPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:wide_attributes] = ->(records) { records.map(&:as_json).to_json }
 Targets::PLAIN_HASH[:wide_attributes] = ->(records) { records.map(&:as_json) }
 

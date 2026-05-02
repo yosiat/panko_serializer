@@ -44,6 +44,7 @@ end
 
 # oj_serializers has no runtime only:/except:; bake the narrowed set in.
 class FilterOnlyPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title
 end
 
@@ -56,7 +57,7 @@ Targets::SCG_JSON[:filter_only] = ->(records) { SCG_JSON_FILTER_ONLY.serialize_m
 Targets::SCG_HASH[:filter_only] = ->(records) { SCG_HASH_FILTER_ONLY.serialize_many(records, filters: nil) }
 Targets::PANKO_JSON[:filter_only] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: FilterOnlyPostPankoSerializer, only: FILTER_ONLY_KEYS).to_json }
 Targets::PANKO_OBJECT[:filter_only] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: FilterOnlyPostPankoSerializer, only: FILTER_ONLY_KEYS).to_a }
-Targets::OJ_JSON[:filter_only] = ->(records) { FilterOnlyPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:filter_only] = ->(records) { FilterOnlyPostOjSerializer.many(records).to_s }
 
 # --- Scenario -------------------------------------------------------------
 

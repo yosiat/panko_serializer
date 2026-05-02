@@ -31,6 +31,7 @@ class AliasesPostPankoSerializer < Panko::Serializer
 end
 
 class AliasesPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id
   attributes title: {as: :name}, body: {as: :content}, views: {as: :hits}
 end
@@ -41,7 +42,7 @@ Targets::SCG_JSON[:aliases] = ->(records) { SCG_JSON_ALIASES.serialize_many(reco
 Targets::SCG_HASH[:aliases] = ->(records) { SCG_HASH_ALIASES.serialize_many(records) }
 Targets::PANKO_JSON[:aliases] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:aliases] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoSerializer).to_a }
-Targets::OJ_JSON[:aliases] = ->(records) { AliasesPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:aliases] = ->(records) { AliasesPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:aliases] = ->(records) { records.map { |r| {id: r.id, name: r.title, content: r.body, hits: r.views} }.to_json }
 Targets::PLAIN_HASH[:aliases] = ->(records) { records.map { |r| {id: r.id, name: r.title, content: r.body, hits: r.views} } }
 

@@ -44,6 +44,7 @@ end
 # oj_serializers has no runtime only:/except:; bake the narrowed set in
 # (i.e., `body` is already absent from the definition).
 class FilterExceptPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title, :views, :published
 end
 
@@ -56,7 +57,7 @@ Targets::SCG_JSON[:filter_except] = ->(records) { SCG_JSON_FILTER_EXCEPT.seriali
 Targets::SCG_HASH[:filter_except] = ->(records) { SCG_HASH_FILTER_EXCEPT.serialize_many(records, filters: nil) }
 Targets::PANKO_JSON[:filter_except] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: FilterExceptPostPankoSerializer, except: FILTER_EXCEPT_KEYS).to_json }
 Targets::PANKO_OBJECT[:filter_except] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: FilterExceptPostPankoSerializer, except: FILTER_EXCEPT_KEYS).to_a }
-Targets::OJ_JSON[:filter_except] = ->(records) { FilterExceptPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:filter_except] = ->(records) { FilterExceptPostOjSerializer.many(records).to_s }
 
 # --- Scenario -------------------------------------------------------------
 

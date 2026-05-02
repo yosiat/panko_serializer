@@ -51,10 +51,12 @@ class HasOnePostPankoSerializer < Panko::Serializer
 end
 
 class HasOneAuthorOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :name
 end
 
 class HasOnePostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title, :body
   has_one :author, serializer: HasOneAuthorOjSerializer
 end
@@ -65,7 +67,7 @@ Targets::SCG_JSON[:has_one] = ->(records) { SCG_JSON_HAS_ONE.serialize_many(reco
 Targets::SCG_HASH[:has_one] = ->(records) { SCG_HASH_HAS_ONE.serialize_many(records) }
 Targets::PANKO_JSON[:has_one] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasOnePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:has_one] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasOnePostPankoSerializer).to_a }
-Targets::OJ_JSON[:has_one] = ->(records) { HasOnePostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:has_one] = ->(records) { HasOnePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:has_one] = ->(records) { records.map { |r| r.as_json(include: :author) }.to_json }
 Targets::PLAIN_HASH[:has_one] = ->(records) { records.map { |r| r.as_json(include: :author) } }
 

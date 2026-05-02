@@ -50,10 +50,12 @@ class HasManyPostPankoSerializer < Panko::Serializer
 end
 
 class HasManyCommentOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :body
 end
 
 class HasManyPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title
   has_many :comments, serializer: HasManyCommentOjSerializer
 end
@@ -64,7 +66,7 @@ Targets::SCG_JSON[:has_many] = ->(records) { SCG_JSON_HAS_MANY.serialize_many(re
 Targets::SCG_HASH[:has_many] = ->(records) { SCG_HASH_HAS_MANY.serialize_many(records) }
 Targets::PANKO_JSON[:has_many] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasManyPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:has_many] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasManyPostPankoSerializer).to_a }
-Targets::OJ_JSON[:has_many] = ->(records) { HasManyPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:has_many] = ->(records) { HasManyPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:has_many] = ->(records) { records.map { |r| r.as_json(include: :comments) }.to_json }
 Targets::PLAIN_HASH[:has_many] = ->(records) { records.map { |r| r.as_json(include: :comments) } }
 
