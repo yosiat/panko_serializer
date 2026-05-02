@@ -108,6 +108,13 @@ RSpec.describe SerializersCodeGen::Filter do
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
         end
+
+        it "lets +only:+ win when both +only:+ and +except:+ are co-supplied (S14.3 will raise)" do
+          filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0], except: [:f1]}, field_index)
+          expect(filter.drops?(0)).to be(false)
+          expect(filter.drops?(1)).to be(true)
+          expect(filter.drops?(2)).to be(true)
+        end
       end
 
       describe "#none?" do
@@ -133,6 +140,12 @@ RSpec.describe SerializersCodeGen::Filter do
         it "returns Filter::NONE for a Source whose sub-hash is empty" do
           filter = SerializersCodeGen::Filter::Indexed.build({author: {}}, field_index)
           expect(filter.child(:author)).to equal(SerializersCodeGen::Filter::NONE)
+        end
+
+        it "returns Filter::NONE for a Source whose value is non-Hash (silently ignored)" do
+          filter = SerializersCodeGen::Filter::Indexed.build({author: 123, comments: nil}, field_index)
+          expect(filter.child(:author)).to equal(SerializersCodeGen::Filter::NONE)
+          expect(filter.child(:comments)).to equal(SerializersCodeGen::Filter::NONE)
         end
       end
     end
