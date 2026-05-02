@@ -101,14 +101,17 @@ class GraphPostPankoSerializer < Panko::Serializer
 end
 
 class GraphAuthorOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :name
 end
 
 class GraphCommentOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :body
 end
 
 class GraphPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title, :body, :views, :published
   has_one :author, serializer: GraphAuthorOjSerializer
   has_one :first_comment, serializer: GraphCommentOjSerializer
@@ -122,7 +125,7 @@ Targets::SCG_JSON[:graph] = ->(records) { SCG_JSON_GRAPH.serialize_many(records)
 Targets::SCG_HASH[:graph] = ->(records) { SCG_HASH_GRAPH.serialize_many(records) }
 Targets::PANKO_JSON[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_a }
-Targets::OJ_JSON[:graph] = ->(records) { GraphPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:graph] = ->(records) { GraphPostOjSerializer.many(records).to_s }
 # n/a — `as_json(include:)` doesn't follow methods like `first_comment` /
 # `recent_comments`, so the plain rows can't reach shape parity with the
 # library rows. They mirror the AR-relation subset (:author, :comments) as

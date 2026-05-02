@@ -30,6 +30,7 @@ class JsonColumnPostPankoSerializer < Panko::Serializer
 end
 
 class JsonColumnPostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :metadata
 end
 
@@ -39,7 +40,7 @@ Targets::SCG_JSON[:json_column] = ->(records) { SCG_JSON_JSON_COLUMN.serialize_m
 Targets::SCG_HASH[:json_column] = ->(records) { SCG_HASH_JSON_COLUMN.serialize_many(records) }
 Targets::PANKO_JSON[:json_column] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: JsonColumnPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:json_column] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: JsonColumnPostPankoSerializer).to_a }
-Targets::OJ_JSON[:json_column] = ->(records) { JsonColumnPostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:json_column] = ->(records) { JsonColumnPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:json_column] = ->(records) { records.map { |r| {id: r.id, metadata: r.metadata} }.to_json }
 Targets::PLAIN_HASH[:json_column] = ->(records) { records.map { |r| {id: r.id, metadata: r.metadata} } }
 

@@ -31,6 +31,7 @@ class SimplePostPankoSerializer < Panko::Serializer
 end
 
 class SimplePostOjSerializer < OjSerializers::Serializer
+  default_format :json
   attributes :id, :title, :body, :views, :published
 end
 
@@ -40,7 +41,7 @@ Targets::SCG_JSON[:simple] = ->(records) { SCG_JSON_SIMPLE.serialize_many(record
 Targets::SCG_HASH[:simple] = ->(records) { SCG_HASH_SIMPLE.serialize_many(records) }
 Targets::PANKO_JSON[:simple] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:simple] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoSerializer).to_a }
-Targets::OJ_JSON[:simple] = ->(records) { SimplePostOjSerializer.many_as_json(records) }
+Targets::OJ_JSON[:simple] = ->(records) { SimplePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:simple] = ->(records) { records.map(&:as_json).to_json }
 Targets::PLAIN_HASH[:simple] = ->(records) { records.map(&:as_json) }
 
