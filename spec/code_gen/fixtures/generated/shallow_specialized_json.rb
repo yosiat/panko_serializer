@@ -25,26 +25,20 @@ class ShallowSpecializedSerializer_JSON
 
   def _write_one(record, writer, context, filters)
     writer.push_object
-    writer.push_key("id")
-    writer.push_value(record._read_attribute("id"))
-    writer.push_key("title")
-    writer.push_value(record._read_attribute("title"))
-    writer.push_key("headline")
-    writer.push_value(record.headline)
+    writer.push_value(record._read_attribute("id"), "id")
+    writer.push_value(record._read_attribute("title"), "title")
+    writer.push_value(record.headline, "headline")
     value = @cb_static.call
     unless value.equal?(SerializersCodeGen::SKIP)
-      writer.push_key("static")
-      writer.push_value(value)
+      writer.push_value(value, "static")
     end
     value = @cb_hidden.call(record)
     unless value.equal?(SerializersCodeGen::SKIP)
-      writer.push_key("hidden")
-      writer.push_value(value)
+      writer.push_value(value, "hidden")
     end
     value = @cb_contextual.call(record, context)
     unless value.equal?(SerializersCodeGen::SKIP)
-      writer.push_key("contextual")
-      writer.push_value(value)
+      writer.push_value(value, "contextual")
     end
     writer.pop
   end

@@ -205,14 +205,18 @@ module SerializersCodeGen
       # When +Config#supports_root_key+ is +true+, the signature gains
       # an additional +root_key:+ kwarg (defaulting to +nil+) and the
       # body wraps the emit in a +push_object+ / +push_key+ / ... /
-      # +pop+ frame when the kwarg is truthy. Per
-      # +docs/generated-class.md § serialize_one+, the value must be a
-      # non-empty String or +nil+; +validate_root_key!+ raises
-      # +ArgumentError+ on anything else. When +supports_root_key+ is
-      # +false+, the kwarg is omitted from the signature entirely so
-      # callers passing +root_key:+ get Ruby's own
-      # +ArgumentError: unknown keyword+ — zero runtime cost from the
-      # feature being absent per +docs/config.md+.
+      # +pop+ frame when the kwarg is truthy. The +push_key(root_key)+
+      # cannot be collapsed into a 2-arg +push_object(root_key)+ here:
+      # the inner +_write_one+ opens its own +push_object+ frame
+      # internally, so collapsing across that boundary would require
+      # restructuring +_write_one+'s contract. Per
+      # +docs/generated-class.md § serialize_one+,
+      # the value must be a non-empty String or +nil+;
+      # +validate_root_key!+ raises +ArgumentError+ on anything else.
+      # When +supports_root_key+ is +false+, the kwarg is omitted from
+      # the signature entirely so callers passing +root_key:+ get
+      # Ruby's own +ArgumentError: unknown keyword+ — zero runtime cost
+      # from the feature being absent per +docs/config.md+.
       #
       # @param config [SerializersCodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
@@ -255,10 +259,15 @@ module SerializersCodeGen
       #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # the same +root_key:+ kwarg as +serialize_one+ and the body wraps
-      # the array emit in a +push_object+ / +push_key+ frame so an empty
-      # collection still emits +{"<root>":[]}+ (wrapped empty array,
-      # never +null+, never omitted) per the contract in
-      # +docs/testing.md § root_key_spec.rb+ (case 6).
+      # the array emit in a +push_object+ + +push_array(root_key)+
+      # frame so an empty collection still emits +{"<root>":[]}+
+      # (wrapped empty array, never +null+, never omitted) per the
+      # contract in +docs/testing.md § root_key_spec.rb+ (case 6). The
+      # 2-arg +push_array(root_key)+ form collapses +push_key(root_key)+
+      # + +push_array+ into one C-extension dispatch (byte-identical
+      # output, fewer dispatches per call); +push_array(nil)+ is a no-op
+      # on the key axis, so the unwrapped path falls through the same
+      # line.
       #
       # @param config [SerializersCodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
@@ -276,14 +285,11 @@ module SerializersCodeGen
           end
           builder.line "writer = Oj::StringWriter.new(mode: :rails)"
           if config.supports_root_key
-            builder.line "if root_key"
-            builder.indent do
-              builder.line "writer.push_object"
-              builder.line "writer.push_key(root_key)"
-            end
-            builder.line "end"
+            builder.line "writer.push_object if root_key"
+            builder.line "writer.push_array(root_key)"
+          else
+            builder.line "writer.push_array"
           end
-          builder.line "writer.push_array"
           builder.line "records.each { |r| _write_one(r, writer, context, filters) }"
           builder.line "writer.pop"
           builder.line "writer.pop if root_key" if config.supports_root_key

@@ -16,8 +16,11 @@ module SerializersCodeGen
       # divergence stays in one file rather than copy-pasted across the
       # codebase.
       module Attribute
-        # Emits the JSON-mode write for one Attribute. Two lines:
-        # +writer.push_key("<name>")+ and +writer.push_value(<read_expr>)+.
+        # Emits the JSON-mode write for one Attribute. One line:
+        # +writer.push_value(<read_expr>, "<name>")+ — the 2-arg form of
+        # +Oj::StringWriter#push_value+ collapses a +push_key+ + +push_value+
+        # pair into a single C-extension dispatch (byte-identical output,
+        # identical allocations, fewer dispatches per Field).
         #
         # @param attribute [SerializersCodeGen::Attribute] the Field node
         # @param read_expr [String] Ruby source for fetching the value
@@ -25,8 +28,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(attribute, read_expr, builder)
-          builder.line %(writer.push_key("#{attribute.name}"))
-          builder.line "writer.push_value(#{read_expr})"
+          builder.line %(writer.push_value(#{read_expr}, "#{attribute.name}"))
         end
 
         # Emits the JSON-mode write for one AR-JSON-column Attribute on the
@@ -46,7 +48,7 @@ module SerializersCodeGen
         #   where Panko crashes" per
         #   +docs/research/phase_1_report.md § 8.1+.
         # - +:html_safe+ — delegates back to {.emit_json}, keeping today's
-        #   +push_key+ + +push_value(_read_attribute(...))+ shape. Used when
+        #   +push_value(_read_attribute(...), "<name>")+ shape. Used when
         #   the consumer embeds scg output directly in HTML script tags
         #   without a sanitizer at the HTML layer; documented as opt-in in
         #   +docs/config.md+.

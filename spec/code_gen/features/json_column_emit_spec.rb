@@ -69,7 +69,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
         output: :json,
         config: SerializersCodeGen::Config.new(json_column_emit: :html_safe)
       )
-      expect(source).to include('writer.push_value(record._read_attribute("metadata"))')
+      expect(source).to include('writer.push_value(record._read_attribute("metadata"), "metadata")')
       expect(source).not_to include("push_json")
       expect(source).not_to include("Oj.sc_parse")
     end
