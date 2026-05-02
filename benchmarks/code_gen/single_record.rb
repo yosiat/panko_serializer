@@ -85,7 +85,7 @@ end
 # `default_format` aliases the class-level `.one`/`.many` shortcut to the
 # json (writer) variant and is inherited per-class, so a per-row toggle
 # means re-declaring the alias inside the bench loop. Two parallel trios is
-# the lighter trade — clarity over clever (per the issue body).
+# the lighter trade — clarity over clever.
 
 class AuthorOjJsonSerializer < OjSerializers::Serializer
   default_format :json
