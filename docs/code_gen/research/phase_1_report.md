@@ -1,17 +1,21 @@
 # Phase 1 report — benchmark verdict
 
-> **Status:** raw numbers + env recorded (S12.2); hard-bar, soft-bar,
-> beyond-sanity, scg-specific, and verdict all filled in (S12.3). The
-> S12.5 iteration ([#60](https://github.com/yosiat/serializers-code-gen/issues/60))
-> closes the `json_column` Clause C gap — see § 8.1's closeout block
-> for the implementation pointer, the post-fix raw-number block, and
-> the allocation delta vs the pre-fix baseline. S12.4 verifies the
-> 5-cell CI matrix + lint hygiene and flips the status header to
-> "phase 1 closed" once the cells stay green on a representative
-> change. This file's structure — verdict template, scenario list,
-> hardware/env block, hard- and soft-bar table skeletons — was
-> committed **before** any numbers were measured (S12.1), per the
-> pre-registration discipline used for S13's filter experiment
+> **Status: phase 1 closed (2026-05-02, S12.4).** Hard bar passes on
+> every sanity row including `json_column` via the
+> [carve-out clause](../phase-1-bar.md#json_column-allocation-carve-out)
+> introduced atomically in S12.5. Soft bar measured and recorded: 14/16
+> sanity rows meet or beat `oj_serializers/json`; the one flagged
+> scenario (`filter_only`, both sizes, ~45% behind) is structural to the
+> phase-1 contract (`filters: nil`) and closes mechanically when S13/S14
+> land. 5-cell CI matrix green at HEAD on `main` per
+> [run 25249854276](https://github.com/yosiat/serializers-code-gen/actions/runs/25249854276)
+> (Ruby 3.4 × {7.2, 8.0, 8.1}, Ruby 4.0 × {8.0, 8.1}); standardrb clean;
+> lefthook pre-commit clean on the representative change that ships this
+> verdict flip. Phase 2 (filters) unblocks. This file's structure —
+> verdict template, scenario list, hardware/env block, hard- and
+> soft-bar table skeletons — was committed **before** any numbers were
+> measured (S12.1), per the pre-registration discipline used for S13's
+> filter experiment
 > ([`docs/filters.md` § Experiment design](../filters.md#experiment-design)).
 > Writing down what's being measured before measuring it prevents the
 > verdict from being retro-fitted to the numbers.
@@ -26,8 +30,9 @@ report follows.
 
 ## 1. Verdict
 
-**S12.5 verdict (2026-05-01): hard bar passes on every sanity row;
-phase 1 closes pending S12.4's CI green-light.** Clause A
+**S12.4 verdict (2026-05-02): phase 1 closed — hard bar met, soft bar
+measured and recorded with one flagged scenario (`filter_only`)
+documented as structural to the phase-1 contract.** Clause A
 (`scg/json ≥ panko/json`) passes 16/16 rows (1.13×–2.10× across sanity
 scenarios). Clause B (`scg/hash ≥ panko/object`) passes 16/16
 (1.69×–15.17×). Clause D ("strictly beats Panko on ≥ 4/8 sanity
@@ -35,15 +40,15 @@ scenarios at both sizes") passes 7/8 — `simple`, `has_one`,
 `has_many`, `method_attribute`, `aliases`, `json_column`, and
 `filter_except`; only `filter_only` is a within-noise tie. **Clause C
 (`allocations scg ≤ panko`) passes on every sanity row except
-`json_column`, which now passes the
+`json_column`, which passes the
 [json_column-specific carve-out clause](../phase-1-bar.md#json_column-allocation-carve-out)
-introduced in S12.5**: `scg/json` on `json_column` drops from
-154 / 6904 allocs (pre-fix baseline) to ~104 / ~4604 allocs (post-fix)
-at sizes [50, 2300] — a clean self-comparison "≤ today's scg" win, on
-top of the 1.13×–1.20× speed cushion vs `panko/json`. The residual
-~2 allocs/record vs Panko's ~1 is the +Oj.sc_parse+ working-state
-object, structural; closing it requires either a custom byte-scan
-validator or a +:trusted+ mode and is deferred (see § 8.1's
+introduced atomically in S12.5**: `scg/json` on `json_column` drops
+from 154 / 6904 allocs (pre-fix baseline) to ~104 / ~4604 allocs
+(post-fix) at sizes [50, 2300] — a clean self-comparison "≤ today's
+scg" win, on top of the 1.13×–1.20× speed cushion vs `panko/json`.
+The residual ~2 allocs/record vs Panko's ~1 is the +Oj.sc_parse+
+working-state object, structural; closing it requires either a custom
+byte-scan validator or a +:trusted+ mode and is deferred (see § 8.1's
 "Out of scope" note).
 
 Soft bar: `scg/json` meets or beats `oj_serializers/json` on 14 / 16
@@ -58,16 +63,22 @@ scg-specific scenarios are recorded in §§ 6–7 as informational baselines
 per
 [`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar).
 
-Decision: fix landed in S12.5; phase 1 closes pending S12.4's CI green
-verification. The `json_column` iteration shipped as
+Decision: phase 1 closed. The `json_column` iteration shipped as
 [#60 (S12.5 — json_column JSON-mode allocation iteration)](https://github.com/yosiat/serializers-code-gen/issues/60):
 detection + emit-mode knob + raw-passthrough emit, with regression-spec
 coverage of the Panko-parity table and the byte-divergence rows. The
 canonical bench re-ran clean against the
 [json_column-specific carve-out clause](../phase-1-bar.md#json_column-allocation-carve-out) —
 see § 8.1's S12.5 closeout block for the post-fix raw-number block and
-allocation delta. S12.4 unblocks; phase 1 closes once it confirms the
-5-cell CI matrix is green on a representative change.
+allocation delta. S12.4 verified the closeout gates from
+[`docs/phase-1-bar.md` § 2 CI green on full matrix](../phase-1-bar.md#2-ci-green-on-full-matrix):
+the 5-cell CI matrix is green at HEAD on `main`
+([run 25249854276](https://github.com/yosiat/serializers-code-gen/actions/runs/25249854276):
+Ruby 3.4 × {Rails 7.2, 8.0, 8.1}; Ruby 4.0 × {Rails 8.0, 8.1}),
+standardrb is clean, and the full Rails matrix runs clean (523 examples,
+0 failures across `rails_7.2`, `rails_8.0`, `rails_8.1`) so the
+lefthook pre-commit hook will run clean on the representative change
+that ships this verdict flip. Phase 2 (filters, S13/S14) unblocks.
 
 ## 2. Hardware / env
 
