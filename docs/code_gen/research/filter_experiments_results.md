@@ -120,8 +120,7 @@ fast path](../filters.md#no-filter-fast-path).
 Filled in immediately before the canonical run (S13.3). Reproducibility
 matters more than the specific hardware — anyone re-running the bench
 should be able to compare apples-to-apples or note the hardware delta.
-Same field set as [`phase_1_report.md` § 2](phase_1_report.md) and
-[`ar_access_results.md` § 1](ar_access_results.md).
+Same field set as [`phase_1_report.md` § 2](phase_1_report.md).
 
 | Field | Value |
 | --- | --- |
