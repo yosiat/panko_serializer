@@ -28,6 +28,12 @@ module SerializersCodeGen
       # preserved by Ruby's +Hash+ so the produced map iterates in the
       # same order the constant emits.
       #
+      # Consumers MUST look up integers by +field.name+ (not by
+      # iteration position); the +unless filters.drops?(N)+ wrappers in
+      # emitted code bake +field_index.fetch(name)+ so the parity
+      # between this map and the wrappers is name-keyed, not
+      # order-keyed. Pinned by +spec/generators/field_index_spec.rb+.
+      #
       # @param descriptor [SerializersCodeGen::Descriptor]
       # @return [Hash{Symbol => Integer}]
       def build(descriptor)
