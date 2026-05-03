@@ -110,13 +110,6 @@ MEDIUM_GRAPH_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
 SCG_JSON_MEDIUM_GRAPH = SerializersCodeGen.compile(MEDIUM_GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: MEDIUM_GRAPH_POST_DESCRIPTOR)
 SCG_HASH_MEDIUM_GRAPH = SerializersCodeGen.compile(MEDIUM_GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: MEDIUM_GRAPH_POST_DESCRIPTOR)
 
-# Top-level `:only` keeps id + title + the entire author Composition;
-# the `:first_comment` has_one and `:comments` has_many are dropped. No
-# nested narrowing — the author Descriptor emits all 3 of its Attributes.
-# Matches `FIXTURES[3][:filter_hash]` in
-# `docs/research/filter_experiments_bench.rb` verbatim.
-MEDIUM_GRAPH_SHALLOW_ONLY_FILTER = {only: %i[id title author]}.freeze
-
 class MediumGraphAuthorPankoSerializer < Panko::Serializer
   attributes :id, :name, :email
 end
@@ -146,10 +139,17 @@ class MediumGraphPostOjSerializer < OjSerializers::Serializer
   has_one :author, serializer: MediumGraphAuthorOjSerializer
 end
 
-# Top-level Array form mirrors the scg filter — id, title, author. Panko
-# threads the `:author` key through to the nested AuthorSerializer; with
-# no nested narrowing, all 3 author attrs emit.
+# Top-level narrowed set — keeps id + title + the entire author
+# Composition; the `:first_comment` has_one and `:comments` has_many are
+# dropped. Used two ways: as the scg filter's `:only` value, and as the
+# Panko `only:` kwarg list. Panko threads the `:author` key through to
+# the nested AuthorSerializer; with no nested narrowing, all 3 author
+# attrs emit.
 MEDIUM_GRAPH_SHALLOW_ONLY_KEYS = %i[id title author].freeze
+
+# Matches `FIXTURES[3][:filter_hash]` in
+# `docs/research/filter_experiments_bench.rb` verbatim.
+MEDIUM_GRAPH_SHALLOW_ONLY_FILTER = {only: MEDIUM_GRAPH_SHALLOW_ONLY_KEYS}.freeze
 
 # --- Target registry entries ----------------------------------------------
 # n/a — plain has no filter primitive
