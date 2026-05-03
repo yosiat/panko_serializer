@@ -25,6 +25,7 @@ Read that first; every term in bold elsewhere is defined there.
 | [ci.md](ci.md)                                    | CI matrix, Appraisal wiring, lint/benchmark policy, lefthook hooks          |
 | [benchmarks.md](benchmarks.md)                    | Benchmark harness, scenario layout, comparison targets, baseline workflow   |
 | [phase-1-bar.md](phase-1-bar.md)                  | Release-gating bar for phase 1 of the initial release — hard Panko bar + soft Oj-Serializers bar |
+| [merging-into-panko.md](merging-into-panko.md)    | Decisions that only make sense in the context of the eventual Panko merge   |
 | [deferred.md](deferred.md)                        | Explicitly punted items and the version they're deferred to                  |
 | [research/](research/)                            | Benchmarks and spikes that informed specific decisions                       |
 
