@@ -106,6 +106,12 @@ lib/
                                                # bit-mask (≤63 Fields) or Boolean Array
                                                # (>63 Fields); see filters.md and
                                                # research/filter_experiments_results.md
+                                               # The integer space `Filter::Indexed` and
+                                               # the per-emitter `unless filters.drops?(N)`
+                                               # wrappers share is sourced from
+                                               # `Generators::FieldIndex.build` and pinned
+                                               # name-keyed (not order-keyed) by
+                                               # `spec/generators/field_index_spec.rb`.
 
     # === Compilation orchestration ===
     compiler.rb                                # Compiler#compile: drive Generator + eval
