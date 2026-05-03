@@ -48,6 +48,14 @@ ActiveRecord::Schema.define do
   create_table :bench_authors, force: true do |t|
     t.references :bench_post
     t.string :name
+    # Backs the medium_graph_shallow_only.rb scenario's 3-attr Author
+    # Descriptor (id, name, email) — matches S13 fixture #6.4's
+    # `GRAPH_AUTHOR_DESCRIPTOR` shape verbatim so the with-only IPS row
+    # reproduces the `indexed × single_path` verdict cell for rule-2
+    # numeric application. Existing scenarios that load `:posts` and walk
+    # `Bench::Author` (graph.rb, has_one.rb) don't reference :email and
+    # are unaffected by the additional column.
+    t.string :email
   end
 
   create_table :bench_comments, force: true do |t|
@@ -137,7 +145,7 @@ Bench::Post.insert_all(post_attrs)
 post_ids = Bench::Post.pluck(:id)
 
 author_attrs = post_ids.each_with_index.map do |post_id, i|
-  {bench_post_id: post_id, name: "Author ##{i}"}
+  {bench_post_id: post_id, name: "Author ##{i}", email: "author#{i}@example.com"}
 end
 Bench::Author.insert_all(author_attrs)
 
