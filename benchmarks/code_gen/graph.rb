@@ -121,8 +121,22 @@ end
 
 # --- Target registry entries ----------------------------------------------
 
+# Filter narrowing for the with-filter rows. Top-level `:only` keeps two
+# Attributes + the two-level Composition (`author` + `comments`); the
+# nested entries narrow each child Descriptor to one Attribute. This shape
+# exercises the `Filter::Indexed::Bits#child` cache **during emit** — the
+# `has_many :comments` walk hoists the resolved child filter out of the
+# loop (S14.4) so subsequent records hit the cache without rebuild.
+GRAPH_FILTER_HASH = {
+  only: %i[id title author comments],
+  author: {only: %i[id]},
+  comments: {only: %i[body]}
+}.freeze
+
 Targets::SCG_JSON[:graph] = ->(records) { SCG_JSON_GRAPH.serialize_many(records) }
 Targets::SCG_HASH[:graph] = ->(records) { SCG_HASH_GRAPH.serialize_many(records) }
+Targets::SCG_JSON[:graph_with_only] = ->(records) { SCG_JSON_GRAPH.serialize_many(records, filters: GRAPH_FILTER_HASH) }
+Targets::SCG_HASH[:graph_with_only] = ->(records) { SCG_HASH_GRAPH.serialize_many(records, filters: GRAPH_FILTER_HASH) }
 Targets::PANKO_JSON[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_a }
 Targets::OJ_JSON[:graph] = ->(records) { GraphPostOjSerializer.many(records).to_s }
@@ -139,6 +153,8 @@ benchmark_scenario "Graph", type: :posts do |records|
   {
     "serializers_code_gen/json" => -> { Targets::SCG_JSON[:graph].call(records) },
     "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:graph].call(records) },
+    "serializers_code_gen/json[with-only]" => -> { Targets::SCG_JSON[:graph_with_only].call(records) },
+    "serializers_code_gen/hash[with-only]" => -> { Targets::SCG_HASH[:graph_with_only].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:graph].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:graph].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:graph].call(records) },
