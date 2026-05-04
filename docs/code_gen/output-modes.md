@@ -8,37 +8,75 @@ Two **Output Modes** are supported: `:json` and `:hash`. Each produces a differe
 ### Shape
 
 ```ruby
-# Public
-def serialize_one(record, context: nil, filters: nil)
-  writer = Oj::StringWriter.new(mode: :rails)
-  _write_one(record, writer, context, filters)
-  writer.to_s
-end
+class PostSerializer_JSON
+  POOL = SerializersCodeGen::WritersPool::ThreadLocal.new(:_scg_writer__PostSerializer_JSON)
 
-def serialize_many(records, context: nil, filters: nil)
-  writer = Oj::StringWriter.new(mode: :rails)
-  writer.push_array
-  records.each { |r| _write_one(r, writer, context, filters) }
-  writer.pop
-  writer.to_s
-end
+  # Public
+  def serialize_one(record, context: nil, filters: nil)
+    writer = POOL.checkout
+    begin
+      _write_one(record, writer, context, filters)
+      writer.to_s
+    ensure
+      POOL.checkin(writer)
+    end
+  end
 
-# Internal — invoked by this class and by parent Generated Classes (Composition)
-def _write_one(record, writer, context, filters)
-  writer.push_object
-  # ... emitted attribute / method_attribute / association writes ...
-  writer.pop
+  def serialize_many(records, context: nil, filters: nil)
+    writer = POOL.checkout
+    begin
+      writer.push_array
+      records.each { |r| _write_one(r, writer, context, filters) }
+      writer.pop
+      writer.to_s
+    ensure
+      POOL.checkin(writer)
+    end
+  end
+
+  # Internal — invoked by this class and by parent Generated Classes (Composition)
+  def _write_one(record, writer, context, filters)
+    writer.push_object
+    # ... emitted attribute / method_attribute / association writes ...
+    writer.pop
+  end
 end
 ```
 
 ### Writer lifecycle
 
-- A fresh `Oj::StringWriter` is allocated at the top of each public `serialize_one` /
-  `serialize_many` call.
-- The **Writer** is threaded through **Composition** as an explicit positional argument to
-  `_write_one` — never held as an ivar. This keeps the **Generated Class** stateless and
-  thread-safe.
-- **Writer** pooling is deferred until benchmarks motivate it. See [deferred.md](deferred.md).
+- Each **Generated Class** holds a class-level `POOL` constant pointing at a per-class
+  `WritersPool` instance ([`lib/serializers_code_gen/writers_pool.rb`](../lib/serializers_code_gen/writers_pool.rb)).
+  The pool is keyed off a unique Symbol — `:_scg_writer__<Name>_JSON` — so two **Generated
+  Classes** never share a stack and one class's pool can't corrupt another.
+- `serialize_one` / `serialize_many` call `POOL.checkout` at the top, thread the
+  **Writer** through `_write_one` (and through **Composition** as an explicit positional
+  argument), call `writer.to_s`, then call `POOL.checkin(writer)` from an `ensure` block —
+  so an exception in the body still returns the **Writer** to the stack cleared.
+- The pool's storage is **fiber-local**. The `WritersPool::ThreadLocal` backend uses
+  `Thread.current[]`, which is fiber-local per MRI (`thread.c:3812`,
+  `"Thread#[] and Thread#[]= are not thread-local but fiber-local"`). When
+  `ActiveSupport::IsolatedExecutionState` is loaded (Rails 7.0+), the
+  `WritersPool::IsolatedExecutionState` backend is selected instead, aligning the pool's
+  locality with AR ConnectionPool's locality (per-thread under Puma, per-fiber under
+  Falcon). Backend selection happens once at **Compile** via
+  `defined?(ActiveSupport::IsolatedExecutionState)` and is baked into the emitted source
+  as a literal class name — no per-call branching.
+- The **Writer** is reset (via `Oj::StringWriter#reset`) on `checkin`, not on `checkout`.
+  This means the pool's slot holds a clean, empty-buffered **Writer** between calls; the
+  high-water mark of one call's buffer doesn't leak into an unrelated call's `to_s` if
+  the latter happens to fault before writing.
+- Reentrancy is handled by the LIFO stack itself, with no depth counter or in-use flag. A
+  **Method Attribute** body that re-enters `serialize_one` — either on the same
+  **Generated Class** (recursive shape) or on a different one (cross-class call) — finds
+  its pool's stack empty at depth 2 and allocates a fresh **Writer**; the matching
+  `checkin` returns it; subsequent calls at the same depth reuse without further
+  allocation. Steady-state pool size equals the peak observed reentrancy depth on that
+  fiber for that **Generated Class**.
+- The pool is gated by [`Config#pool_writer`](config.md#pool_writer-default-true) (default `true`).
+  Setting it to `false` emits the pre-pooling source verbatim — `writer =
+  Oj::StringWriter.new(mode: :rails)` inline, no `POOL` constant, no `begin`/`ensure`
+  wrap — for ABI-strict callers or emergency rollback.
 
 ### Output shape
 
