@@ -4,6 +4,13 @@ require "spec_helper"
 require "serializers_code_gen/writers_pool"
 
 RSpec.describe SerializersCodeGen::WritersPool do
+  describe "abstract base" do
+    it "raises NotImplementedError on checkout, since #storage is unimplemented" do
+      expect { described_class.new(:_scg_writer_abstract_base_test).checkout }
+        .to raise_error(NotImplementedError, /must override #storage/)
+    end
+  end
+
   describe SerializersCodeGen::WritersPool::ThreadLocal do
     subject(:pool) { described_class.new(storage_key) }
 
@@ -141,24 +148,28 @@ RSpec.describe SerializersCodeGen::WritersPool do
     end
 
     describe "fiber-local isolation (Thread#[] is fiber-local per MRI thread.c:3812)" do
-      it "hands out distinct Writers to two Fibers checking out before any checkin" do
-        ids = []
+      # A globally-shared storage would fail this test: Fiber A's checked-in
+      # writer would sit in the shared stack and Fiber B's checkout would
+      # pop it, returning the same instance. Fiber-local storage isolates
+      # the stacks, so Fiber B finds an empty stack and allocates fresh.
+      it "does not surface a Fiber's checked-in Writer to a sibling Fiber's checkout" do
+        a_writer = nil
+        b_writer = nil
+
         f_a = Fiber.new do
-          w = pool.checkout
-          ids << w.object_id
+          a_writer = pool.checkout
+          pool.checkin(a_writer)
           Fiber.yield
         end
         f_b = Fiber.new do
-          w = pool.checkout
-          ids << w.object_id
+          b_writer = pool.checkout
         end
 
         f_a.resume
         f_b.resume
         f_a.resume
 
-        expect(ids.size).to eq(2)
-        expect(ids.first).not_to eq(ids.last)
+        expect(b_writer).not_to equal(a_writer)
       end
     end
   end
@@ -189,27 +200,29 @@ RSpec.describe SerializersCodeGen::WritersPool do
       expect(second).to equal(first)
     end
 
-    it "isolates checkouts across Fibers when AS::IES isolation_level is :fiber" do
+    # Mirror of the ThreadLocal locality test: with isolation_level: :fiber,
+    # AS::IES is fiber-local, so a checkin in Fiber A must not surface to a
+    # checkout in Fiber B. A non-fiber-local backend would pop A's writer.
+    it "does not surface a Fiber's checked-in Writer to a sibling Fiber when isolation_level is :fiber" do
       prior = ActiveSupport::IsolatedExecutionState.isolation_level
       ActiveSupport::IsolatedExecutionState.isolation_level = :fiber
-      ids = []
+      a_writer = nil
+      b_writer = nil
       begin
         f_a = Fiber.new do
-          w = pool.checkout
-          ids << w.object_id
+          a_writer = pool.checkout
+          pool.checkin(a_writer)
           Fiber.yield
         end
         f_b = Fiber.new do
-          w = pool.checkout
-          ids << w.object_id
+          b_writer = pool.checkout
         end
 
         f_a.resume
         f_b.resume
         f_a.resume
 
-        expect(ids.size).to eq(2)
-        expect(ids.first).not_to eq(ids.last)
+        expect(b_writer).not_to equal(a_writer)
       ensure
         ActiveSupport::IsolatedExecutionState.isolation_level = prior
       end
