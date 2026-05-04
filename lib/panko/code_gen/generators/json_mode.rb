@@ -71,6 +71,9 @@ module SerializersCodeGen
         builder.line "class #{descriptor.name}_JSON"
         builder.indent do
           builder.line "FIELD_INDEX = #{FieldIndex.to_hash_literal(field_index)}.freeze"
+          if config.pool_writer
+            builder.line "POOL = SerializersCodeGen::WritersPool::#{pool_subclass_name}.new(#{pool_storage_key(descriptor).inspect})"
+          end
           builder.blank
           emit_initialize(descriptor, builder, cyclic_ids)
           builder.blank
@@ -89,6 +92,41 @@ module SerializersCodeGen
           end
         end
         builder.line "end"
+      end
+
+      # Returns the literal +WritersPool+ subclass name to bake into the
+      # emitted +POOL = ...+ constant. Selected once at +Compile+ time —
+      # never re-evaluated at runtime — by checking
+      # +defined?(ActiveSupport::IsolatedExecutionState)+. When Rails 7.0+
+      # is loaded, AR ConnectionPool keys off
+      # +ActiveSupport::IsolatedExecutionState+ and aligning the pool's
+      # locality with that constant gives Falcon (fiber-isolated) the
+      # right semantics; otherwise +Thread.current[]+ (fiber-local in
+      # MRI) is the safe default.
+      #
+      # @return [String] +"IsolatedExecutionState"+ or +"ThreadLocal"+ —
+      #   used as the unqualified subclass name spliced into the emitted
+      #   +SerializersCodeGen::WritersPool::<name>+ literal
+      def pool_subclass_name
+        if defined?(ActiveSupport::IsolatedExecutionState)
+          "IsolatedExecutionState"
+        else
+          "ThreadLocal"
+        end
+      end
+
+      # Returns the unique storage-bucket Symbol passed to the emitted
+      # pool's constructor. Derived from the Descriptor name so two
+      # Generated Classes never share a stack — e.g.
+      # +:_scg_writer__PostSerializer_JSON+ for a +PostSerializer+
+      # Descriptor. The +_scg_writer__+ prefix and +_JSON+ suffix make
+      # the bucket recognizable in +Thread.current+ inspectors and
+      # avoid collision with arbitrary user keys.
+      #
+      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @return [Symbol] the per-Generated-Class storage key
+      def pool_storage_key(descriptor)
+        :"_scg_writer__#{descriptor.name}_JSON"
       end
 
       # Emits the +initialize(descriptor:)+ constructor. Hoists each
@@ -241,22 +279,51 @@ module SerializersCodeGen
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
-          builder.line "writer = Oj::StringWriter.new(mode: :rails)"
-          if config.supports_root_key
-            builder.line "if root_key"
+          if config.pool_writer
+            builder.line "writer = POOL.checkout"
+            builder.line "begin"
             builder.indent do
-              builder.line "writer.push_object"
-              builder.line "writer.push_key(root_key)"
+              emit_serialize_one_body(config, builder)
+            end
+            builder.line "ensure"
+            builder.indent do
+              builder.line "POOL.checkin(writer)"
             end
             builder.line "end"
+          else
+            builder.line "writer = Oj::StringWriter.new(mode: :rails)"
+            emit_serialize_one_body(config, builder)
           end
-          builder.line "_write_one(record, writer, context, filters)"
-          builder.line "writer.pop if root_key" if config.supports_root_key
-          builder.line "result = writer.to_s"
-          builder.line "result.chomp!"
-          builder.line "result"
         end
         builder.line "end"
+      end
+
+      # Emits the body lines that live between the writer's acquisition
+      # and its (possibly +ensure+-bound) release in +serialize_one+. The
+      # same lines are emitted whether the writer came from
+      # +POOL.checkout+ (pool_writer +true+) or +Oj::StringWriter.new(mode:
+      # :rails)+ (pool_writer +false+); the only difference is one
+      # indentation level (the body sits inside +begin+/+ensure+ in the
+      # pooled path). Keeping the body in one helper guarantees the two
+      # paths' bytes can only diverge on the wrap, not the inner emit.
+      #
+      # @param config [SerializersCodeGen::Config]
+      # @param builder [SerializersCodeGen::CodeBuilder]
+      # @return [void]
+      def emit_serialize_one_body(config, builder)
+        if config.supports_root_key
+          builder.line "if root_key"
+          builder.indent do
+            builder.line "writer.push_object"
+            builder.line "writer.push_key(root_key)"
+          end
+          builder.line "end"
+        end
+        builder.line "_write_one(record, writer, context, filters)"
+        builder.line "writer.pop if root_key" if config.supports_root_key
+        builder.line "result = writer.to_s"
+        builder.line "result.chomp!"
+        builder.line "result"
       end
 
       # Emits the public +serialize_many+ method. Allocates a fresh
@@ -296,21 +363,47 @@ module SerializersCodeGen
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
-          builder.line "writer = Oj::StringWriter.new(mode: :rails)"
-          if config.supports_root_key
-            builder.line "writer.push_object if root_key"
-            builder.line "writer.push_array(root_key)"
+          if config.pool_writer
+            builder.line "writer = POOL.checkout"
+            builder.line "begin"
+            builder.indent do
+              emit_serialize_many_body(config, builder)
+            end
+            builder.line "ensure"
+            builder.indent do
+              builder.line "POOL.checkin(writer)"
+            end
+            builder.line "end"
           else
-            builder.line "writer.push_array"
+            builder.line "writer = Oj::StringWriter.new(mode: :rails)"
+            emit_serialize_many_body(config, builder)
           end
-          builder.line "records.each { |r| _write_one(r, writer, context, filters) }"
-          builder.line "writer.pop"
-          builder.line "writer.pop if root_key" if config.supports_root_key
-          builder.line "result = writer.to_s"
-          builder.line "result.chomp!"
-          builder.line "result"
         end
         builder.line "end"
+      end
+
+      # Emits the body lines that live between the writer's acquisition
+      # and its (possibly +ensure+-bound) release in +serialize_many+.
+      # Mirror of {#emit_serialize_one_body} for the +many+ shape; the
+      # +push_array+ frame opens here so an empty +records+ collection
+      # still emits +[]+ rather than a bare empty buffer.
+      #
+      # @param config [SerializersCodeGen::Config]
+      # @param builder [SerializersCodeGen::CodeBuilder]
+      # @return [void]
+      def emit_serialize_many_body(config, builder)
+        if config.supports_root_key
+          builder.line "writer.push_object if root_key"
+          builder.line "writer.push_array(root_key)"
+        else
+          builder.line "writer.push_array"
+        end
+        builder.line "records.each { |r| _write_one(r, writer, context, filters) }"
+        builder.line "writer.pop"
+        builder.line "writer.pop if root_key" if config.supports_root_key
+        builder.line "result = writer.to_s"
+        builder.line "result.chomp!"
+        builder.line "result"
       end
 
       # Emits the private +validate_root_key!+ helper used by the wrap
