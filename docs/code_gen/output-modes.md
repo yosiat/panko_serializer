@@ -73,7 +73,7 @@ end
   `checkin` returns it; subsequent calls at the same depth reuse without further
   allocation. Steady-state pool size equals the peak observed reentrancy depth on that
   fiber for that **Generated Class**.
-- The pool is gated by [`Config#pool_writer`](config.md#pool_writer) (default `true`).
+- The pool is gated by [`Config#pool_writer`](config.md#pool_writer-default-true) (default `true`).
   Setting it to `false` emits the pre-pooling source verbatim — `writer =
   Oj::StringWriter.new(mode: :rails)` inline, no `POOL` constant, no `begin`/`ensure`
   wrap — for ABI-strict callers or emergency rollback.
