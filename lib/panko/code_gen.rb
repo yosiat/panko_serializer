@@ -27,6 +27,7 @@ require_relative "serializers_code_gen/generators/hash_mode"
 require_relative "serializers_code_gen/generator"
 require_relative "serializers_code_gen/compile_cache"
 require_relative "serializers_code_gen/compiler"
+require_relative "serializers_code_gen/writers_pool"
 
 # Internal Panko-ecosystem code generator. Turns an immutable Descriptor
 # into a Generated Class that emits JSON or a Ruby Hash. Has no
