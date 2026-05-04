@@ -26,6 +26,10 @@ RSpec.describe SerializersCodeGen::Config do
       expect(config.json_column_emit).to eq(:wire_format)
     end
 
+    it "defaults pool_writer to true" do
+      expect(config.pool_writer).to be(true)
+    end
+
     it "returns a frozen instance" do
       expect(config).to be_frozen
     end
@@ -79,6 +83,26 @@ RSpec.describe SerializersCodeGen::Config do
         described_class.new(json_column_emit: :wire_format)
       }.not_to raise_error
     end
+
+    it "overrides only pool_writer" do
+      config = described_class.new(pool_writer: false)
+
+      expect(config.pool_writer).to be(false)
+      expect(config.json_column_emit).to eq(:wire_format)
+      expect(config.supports_root_key).to be(false)
+    end
+
+    it "accepts true for pool_writer" do
+      expect {
+        described_class.new(pool_writer: true)
+      }.not_to raise_error
+    end
+
+    it "accepts false for pool_writer" do
+      expect {
+        described_class.new(pool_writer: false)
+      }.not_to raise_error
+    end
   end
 
   describe "structural validation at .new" do
@@ -123,6 +147,18 @@ RSpec.describe SerializersCodeGen::Config do
         described_class.new(json_column_emit: "wire_format")
       }.to raise_error(ArgumentError)
     end
+
+    it "raises ArgumentError when pool_writer is not a Boolean" do
+      expect {
+        described_class.new(pool_writer: :yes)
+      }.to raise_error(ArgumentError)
+    end
+
+    it "raises ArgumentError when pool_writer is nil" do
+      expect {
+        described_class.new(pool_writer: nil)
+      }.to raise_error(ArgumentError)
+    end
   end
 
   describe "error message format" do
@@ -150,6 +186,15 @@ RSpec.describe SerializersCodeGen::Config do
       }.to raise_error(
         ArgumentError,
         "Config#json_column_emit: invalid value :foo; must be :wire_format or :html_safe."
+      )
+    end
+
+    it "names the offending field and the observed value for pool_writer" do
+      expect {
+        described_class.new(pool_writer: :yes)
+      }.to raise_error(
+        ArgumentError,
+        "Config#pool_writer: invalid value :yes; must be true or false."
       )
     end
   end
