@@ -27,9 +27,6 @@ require "nested_composition"
 # documented contract is invariant across both backends at the spec
 # tier.
 RSpec.describe "WritersPool — feature-level pool contract" do
-  let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
-  let(:config) { Fixtures::ShallowGeneric::CONFIG }
-
   describe "thread isolation" do
     # Spawn N threads each calling +serialize_one+ in a tight loop and
     # assert every output is the canonical fixture string. A
@@ -37,7 +34,8 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     # across threads and at least one output would diverge; per-thread
     # storage produces +N × M+ correct outputs.
     it "produces correct output across 8 threads × 1000 calls each" do
-      generated = SerializersCodeGen.compile(descriptor, output: :json, config: config)
+      descriptor = Fixtures::ShallowGeneric::DESCRIPTOR
+      generated = SerializersCodeGen.compile(descriptor, output: :json, config: Fixtures::ShallowGeneric::CONFIG)
         .new(descriptor: descriptor)
       record = Fixtures::ShallowGeneric.sanity_record
       expected = Fixtures::ShallowGeneric.expected_output(:json)
@@ -83,17 +81,18 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       generated = SerializersCodeGen.compile(yielding_descriptor, output: :json)
         .new(descriptor: yielding_descriptor)
 
-      results = {}
-      f_a = Fiber.new { results[:a] = generated.serialize_one({"id" => 1, "name" => "alice"}) }
-      f_b = Fiber.new { results[:b] = generated.serialize_one({"id" => 2, "name" => "bob"}) }
+      result_a = nil
+      result_b = nil
+      f_a = Fiber.new { result_a = generated.serialize_one({"id" => 1, "name" => "alice"}) }
+      f_b = Fiber.new { result_b = generated.serialize_one({"id" => 2, "name" => "bob"}) }
 
       f_a.resume
       f_b.resume
       f_a.resume
       f_b.resume
 
-      expect(results[:a]).to eq('{"id":1,"name":"alice"}')
-      expect(results[:b]).to eq('{"id":2,"name":"bob"}')
+      expect(result_a).to eq('{"id":1,"name":"alice"}')
+      expect(result_b).to eq('{"id":2,"name":"bob"}')
     end
   end
 
@@ -147,8 +146,8 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     # cycle — total +Oj::StringWriter.new+ across 1000 cycles is exactly
     # 2.
     it "allocates exactly 2 Oj::StringWriter instances across 1000 reentrant cycles" do
-      depth_counter = {n: 0}
-      generated_holder = {}
+      depth = 0
+      generated = nil
       reentrant_descriptor = SerializersCodeGen::Descriptor.new(
         name: "WriterPoolSameClassReentrantSerializer",
         models: nil,
@@ -157,14 +156,14 @@ RSpec.describe "WritersPool — feature-level pool contract" do
           SerializersCodeGen::MethodAttribute.new(
             name: :child,
             body: ->(record, _context) {
-              if depth_counter[:n] >= 1
+              if depth >= 1
                 nil
               else
-                depth_counter[:n] += 1
+                depth += 1
                 begin
-                  generated_holder[:instance].serialize_one({"id" => -record["id"]})
+                  generated.serialize_one({"id" => -record["id"]})
                 ensure
-                  depth_counter[:n] -= 1
+                  depth -= 1
                 end
               end
             }
@@ -172,7 +171,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
         ],
         associations: []
       )
-      generated_holder[:instance] = SerializersCodeGen.compile(reentrant_descriptor, output: :json)
+      generated = SerializersCodeGen.compile(reentrant_descriptor, output: :json)
         .new(descriptor: reentrant_descriptor)
 
       call_count = 0
@@ -182,7 +181,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
         original_new.call(*args, **kwargs)
       end
 
-      results = 1000.times.map { |i| generated_holder[:instance].serialize_one({"id" => i + 1}) }
+      results = 1000.times.map { |i| generated.serialize_one({"id" => i + 1}) }
 
       expect(call_count).to eq(2)
       expect(results.first).to eq('{"id":1,"child":"{\"id\":-1,\"child\":null}"}')
@@ -196,7 +195,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     # — so the next +serialize_one+ call sees a clean buffer and
     # produces correct output.
     it "next serialize_one after a mid-emit raise produces correct output" do
-      should_raise = {flag: true}
+      should_raise = true
       raising_descriptor = SerializersCodeGen::Descriptor.new(
         name: "WriterPoolExceptionRecoverySerializer",
         models: nil,
@@ -205,7 +204,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
           SerializersCodeGen::MethodAttribute.new(
             name: :name,
             body: ->(record, _context) {
-              raise "boom" if should_raise[:flag]
+              raise "boom" if should_raise
               record["name"]
             }
           )
@@ -219,7 +218,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
         generated.serialize_one({"id" => 1, "name" => "alice"})
       }.to raise_error("boom")
 
-      should_raise[:flag] = false
+      should_raise = false
       expect(generated.serialize_one({"id" => 2, "name" => "bob"}))
         .to eq('{"id":2,"name":"bob"}')
     end
