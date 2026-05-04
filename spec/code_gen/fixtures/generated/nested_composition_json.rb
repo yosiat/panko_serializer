@@ -2,28 +2,37 @@
 
 class NestedCompositionAuthorSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1}.freeze
+  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionAuthorSerializer_JSON)
 
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    _write_one(record, writer, context, filters)
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      _write_one(record, writer, context, filters)
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def serialize_many(records, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    writer.push_array
-    records.each { |r| _write_one(r, writer, context, filters) }
-    writer.pop
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      writer.push_array
+      records.each { |r| _write_one(r, writer, context, filters) }
+      writer.pop
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def _write_one(record, writer, context, filters)
@@ -59,28 +68,37 @@ end
 
 class NestedCompositionCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1}.freeze
+  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionCommentSerializer_JSON)
 
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    _write_one(record, writer, context, filters)
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      _write_one(record, writer, context, filters)
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def serialize_many(records, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    writer.push_array
-    records.each { |r| _write_one(r, writer, context, filters) }
-    writer.pop
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      writer.push_array
+      records.each { |r| _write_one(r, writer, context, filters) }
+      writer.pop
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def _write_one(record, writer, context, filters)
@@ -116,6 +134,7 @@ end
 
 class NestedCompositionPostSerializer_JSON
   FIELD_INDEX = {id: 0, author: 1, comments: 2}.freeze
+  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionPostSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_if_author = descriptor.associations[0].if
@@ -125,22 +144,30 @@ class NestedCompositionPostSerializer_JSON
 
   def serialize_one(record, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    _write_one(record, writer, context, filters)
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      _write_one(record, writer, context, filters)
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def serialize_many(records, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    writer.push_array
-    records.each { |r| _write_one(r, writer, context, filters) }
-    writer.pop
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      writer.push_array
+      records.each { |r| _write_one(r, writer, context, filters) }
+      writer.pop
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def _write_one(record, writer, context, filters)

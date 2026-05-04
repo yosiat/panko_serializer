@@ -2,6 +2,7 @@
 
 class ShallowSpecializedSerializer_JSON
   FIELD_INDEX = {id: 0, title: 1, headline: 2, static: 3, hidden: 4, contextual: 5}.freeze
+  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ShallowSpecializedSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_static = descriptor.method_attributes[0].body
@@ -11,22 +12,30 @@ class ShallowSpecializedSerializer_JSON
 
   def serialize_one(record, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    _write_one(record, writer, context, filters)
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      _write_one(record, writer, context, filters)
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def serialize_many(records, context: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    writer = Oj::StringWriter.new(mode: :rails)
-    writer.push_array
-    records.each { |r| _write_one(r, writer, context, filters) }
-    writer.pop
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      writer.push_array
+      records.each { |r| _write_one(r, writer, context, filters) }
+      writer.pop
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def _write_one(record, writer, context, filters)

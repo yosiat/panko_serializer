@@ -2,6 +2,7 @@
 
 class ConfigRootKeyOnSerializer_JSON
   FIELD_INDEX = {id: 0}.freeze
+  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ConfigRootKeyOnSerializer_JSON)
 
   def initialize(descriptor:)
   end
@@ -9,30 +10,38 @@ class ConfigRootKeyOnSerializer_JSON
   def serialize_one(record, context: nil, filters: nil, root_key: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
-    writer = Oj::StringWriter.new(mode: :rails)
-    if root_key
-      writer.push_object
-      writer.push_key(root_key)
+    writer = POOL.checkout
+    begin
+      if root_key
+        writer.push_object
+        writer.push_key(root_key)
+      end
+      _write_one(record, writer, context, filters)
+      writer.pop if root_key
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
     end
-    _write_one(record, writer, context, filters)
-    writer.pop if root_key
-    result = writer.to_s
-    result.chomp!
-    result
   end
 
   def serialize_many(records, context: nil, filters: nil, root_key: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
-    writer = Oj::StringWriter.new(mode: :rails)
-    writer.push_object if root_key
-    writer.push_array(root_key)
-    records.each { |r| _write_one(r, writer, context, filters) }
-    writer.pop
-    writer.pop if root_key
-    result = writer.to_s
-    result.chomp!
-    result
+    writer = POOL.checkout
+    begin
+      writer.push_object if root_key
+      writer.push_array(root_key)
+      records.each { |r| _write_one(r, writer, context, filters) }
+      writer.pop
+      writer.pop if root_key
+      result = writer.to_s
+      result.chomp!
+      result
+    ensure
+      POOL.checkin(writer)
+    end
   end
 
   def _write_one(record, writer, context, filters)

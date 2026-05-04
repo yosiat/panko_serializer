@@ -62,9 +62,6 @@ RSpec.describe "Generator snapshot corpus" do
           let(:snapshot_filename) { "#{basename}_#{mode}.rb" }
 
           it "Generator#emit bytes equal the committed snapshot" do
-            if mode == :json
-              skip "S16.3 will regenerate JSON snapshots after S16.2 wires WritersPool through the emit pipeline"
-            end
             source = SerializersCodeGen::Generator.new.emit(descriptor, output: mode, config: config)
             expect(source).to match_snapshot(snapshot_filename)
           end
