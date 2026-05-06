@@ -138,7 +138,16 @@ GAME_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
 )
 
 SCG_JSON = SerializersCodeGen.compile(GAME_DESCRIPTOR, output: :json).new(descriptor: GAME_DESCRIPTOR)
-SCG_HASH = SerializersCodeGen.compile(GAME_DESCRIPTOR, output: :hash).new(descriptor: GAME_DESCRIPTOR)
+# Symbol keys for the hash row: Symbol#hash is cached, so Hash construction
+# is ~9–11% faster than with String keys (see docs/deferred.md § Hash-mode
+# default key type). The parity check below normalizes both rows through
+# Oj.load(mode: :strict), which coerces Symbol/String keys to Strings, so
+# the byte-parity assertion still holds.
+SCG_HASH = SerializersCodeGen.compile(
+  GAME_DESCRIPTOR,
+  output: :hash,
+  config: SerializersCodeGen::Config.new(hash_output_key_type: :symbol)
+).new(descriptor: GAME_DESCRIPTOR)
 
 # ---- Panko ----------------------------------------------------------------
 
