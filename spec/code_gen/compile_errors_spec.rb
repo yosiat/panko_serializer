@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "serializers_code_gen"
+require "tmpdir"
 
 RSpec.describe "Compile-time errors" do
   describe "Error hierarchy" do
@@ -739,7 +740,6 @@ RSpec.describe "Compile-time errors" do
     # first, so we hand a syntactically-valid (non-empty String) +path:+
     # under a fresh +Dir.mktmpdir+; the validator raises before any
     # +File.write+ side effect, so the tmp dir stays empty.
-    require "tmpdir"
 
     it "ArityError parity — Dump raises the same class as Compile (S4)" do
       descriptor = SerializersCodeGen::Descriptor.new(
