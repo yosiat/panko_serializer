@@ -73,15 +73,14 @@ end
 # Baseline workflow). When BENCH=<substr> is set and the label doesn't
 # case-insensitively contain it, the row is silently skipped.
 #
-# GC is left running during the IPS measurement: empirically (see
-# +docs/research/game_serializer_results.md § GC.disable+) disabling it
-# during a 5s/iter window lets the heap grow unbounded for high-alloc rows
-# (heap-growth syscalls become the dominant noise source — error bands
-# explode to ±30–60% on +scg/hash+, +oj_serializers/json+, +plain/*+).
-# Leaving GC enabled drops those bands to ±3–7% and replicates production
-# behavior. The MemoryProfiler block keeps GC disabled because it's
-# explicitly measuring allocations and the standard isolation pattern for
-# that path is GC-off.
+# GC is left running during the IPS measurement: empirically, disabling
+# it during a 5s/iter window lets the heap grow unbounded for high-alloc
+# rows (heap-growth syscalls become the dominant noise source — error
+# bands explode to ±30–60% on +scg/hash+, +oj_serializers/json+,
+# +plain/*+). Leaving GC enabled drops those bands to ±3–7% and
+# replicates production behavior. The MemoryProfiler block keeps GC
+# disabled because it's explicitly measuring allocations and the
+# standard isolation pattern for that path is GC-off.
 #
 # @param label [String] human-readable row label
 # @yield invoked many times under benchmark-ips, then once under MemoryProfiler

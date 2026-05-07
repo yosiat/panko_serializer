@@ -19,9 +19,8 @@
 # file is the harness only; the verdict-backfill pass lives there.
 #
 # Self-contained per `docs/research/` convention (mirrors
-# `ar_access_bench.rb` / `game_serializer_bench.rb`): inline AR
-# sqlite-in-memory schema + AR models + dataset seeding; does not reuse
-# `benchmarks/support/` or `spec/support/`.
+# `ar_access_bench.rb`): inline AR sqlite-in-memory schema + AR models +
+# dataset seeding; does not reuse `benchmarks/support/` or `spec/support/`.
 
 require "active_record"
 require "sqlite3"

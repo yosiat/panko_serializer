@@ -15,9 +15,8 @@ require_relative "support/benchmark"
 # single-record-only scenario won't reuse any of these elsewhere.
 #
 # Output-parity guard at the top aborts before the bench burns CPU if any
-# target's emit shape diverges from the reference — see
-# `docs/research/game_serializer_bench.rb § Output-parity check` for the
-# pattern. Future scenarios should mirror this guard.
+# target's emit shape diverges from the reference. Future scenarios
+# should mirror this guard.
 
 RECORD = DATASETS.fetch(:posts).first
 
