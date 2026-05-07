@@ -731,6 +731,95 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
+  describe "Dump-side parity — Dump shares Validator with Compiler (S15.6)" do
+    # +Dump+ runs the same +Validators::Validator+ rule list as +Compiler+
+    # before reaching +File.write+, so the same +Descriptor+ that breaks
+    # under +SerializersCodeGen.compile+ must raise the same +CompileError+
+    # subclass under +SerializersCodeGen.dump+. Path validation runs
+    # first, so we hand a syntactically-valid (non-empty String) +path:+
+    # under a fresh +Dir.mktmpdir+; the validator raises before any
+    # +File.write+ side effect, so the tmp dir stays empty.
+    require "tmpdir"
+
+    it "ArityError parity — Dump raises the same class as Compile (S4)" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: nil,
+        attributes: [],
+        method_attributes: [
+          SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c) { :ok })
+        ],
+        associations: []
+      )
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "post_descriptor_json.rb")
+        expect {
+          SerializersCodeGen.dump(descriptor, output: :json, path: target)
+        }.to raise_error(
+          SerializersCodeGen::ArityError,
+          "PostDescriptor#likes_count: MethodAttribute#body has arity 3; must be 0, 1, or 2."
+        )
+        expect(Dir.children(dir)).to be_empty
+      end
+    end
+
+    it "NameCollisionError parity — Dump raises the same class as Compile (S9)" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: nil,
+        attributes: [
+          SerializersCodeGen::Attribute.new(name: :id),
+          SerializersCodeGen::Attribute.new(name: :id)
+        ],
+        method_attributes: [],
+        associations: []
+      )
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "post_descriptor_json.rb")
+        expect {
+          SerializersCodeGen.dump(descriptor, output: :json, path: target)
+        }.to raise_error(
+          SerializersCodeGen::NameCollisionError,
+          "PostDescriptor#id: Attribute and Attribute share name; every Field at the same level must have a unique name."
+        )
+        expect(Dir.children(dir)).to be_empty
+      end
+    end
+
+    it "UnknownSourceError parity — Dump raises the same class as Compile (S6)" do
+      klass = Class.new do
+        def self.name = "Post"
+
+        def self.columns_hash = {"id" => :stub}
+
+        def self.method_defined?(_sym) = false
+
+        def self.attribute_methods_generated? = true
+
+        def self.define_attribute_methods = nil
+
+        def self.type_for_attribute(_name) = ::ActiveModel::Type::Value.new
+      end
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: [klass],
+        attributes: [SerializersCodeGen::Attribute.new(name: :missing, source: :missing)],
+        method_attributes: [],
+        associations: []
+      )
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "post_descriptor_json.rb")
+        expect {
+          SerializersCodeGen.dump(descriptor, output: :json, path: target)
+        }.to raise_error(
+          SerializersCodeGen::UnknownSourceError,
+          "PostDescriptor#missing: Attribute#source :missing is not a column or instance method on Post."
+        )
+        expect(Dir.children(dir)).to be_empty
+      end
+    end
+  end
+
   describe "Mode independence — semantic validation runs pre-Generator" do
     def unknown_source_descriptor
       klass = Class.new do
