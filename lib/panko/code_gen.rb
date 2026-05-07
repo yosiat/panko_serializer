@@ -28,6 +28,7 @@ require_relative "serializers_code_gen/generators/hash_mode"
 require_relative "serializers_code_gen/generator"
 require_relative "serializers_code_gen/compile_cache"
 require_relative "serializers_code_gen/compiler"
+require_relative "serializers_code_gen/dump"
 require_relative "serializers_code_gen/writers_pool"
 
 # Internal Panko-ecosystem code generator. Turns an immutable Descriptor
@@ -64,5 +65,31 @@ module SerializersCodeGen
   #   {Generator::OUTPUT_MODES}
   def self.compile(descriptor, output:, config: Config.new)
     Compiler.new(descriptor, output: output, config: config).compile
+  end
+
+  # Dumps +descriptor+ into a runnable +.rb+ file at +path:+ for the
+  # named +output:+ mode. Thin facade per +docs/structure.md § Public
+  # API surface+ — every call goes through the same +Dump+
+  # orchestration so the +Compile ≡ Dump byte-identical+ contract from
+  # +docs/structure.md § Layered architecture+ stays intact (the same
+  # +Generator+ output drives both materialization paths). S15.2 ships
+  # flat single-file output; nested-Descriptor multi-file fan-out is
+  # S15.5 territory.
+  #
+  # @param descriptor [SerializersCodeGen::Descriptor] the input
+  # @param output [Symbol] +:json+ or +:hash+
+  # @param config [SerializersCodeGen::Config] resolved settings;
+  #   defaults to {Config.new} (library defaults)
+  # @param path [String] on-disk target file path; required, must be a
+  #   non-empty +String+ — anything else raises +ArgumentError+ before
+  #   any disk side effect
+  # @return [String] the +path:+ argument the bytes were written to
+  # @raise [SerializersCodeGen::CompileError] when semantic validation
+  #   rejects the input
+  # @raise [ArgumentError] when +output:+ is not in
+  #   {Generator::OUTPUT_MODES}, or when +path:+ is +nil+, empty, or
+  #   not a String
+  def self.dump(descriptor, output:, path:, config: Config.new)
+    Dump.new(descriptor, output: output, config: config, path: path).dump
   end
 end
