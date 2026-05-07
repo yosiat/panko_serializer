@@ -113,6 +113,27 @@ only difference is the materialization step (`Compiler` evals, `Dump` writes to 
 A CLI (`$ serializers-code-gen dump ...`) is out of scope for v1 — callers drive the
 facade from Ruby.
 
+### `Method#source_location` attribution
+
+The path stamped onto `Method#source_location` is supplied at the materialization step,
+not embedded in the **Generator**'s emitted bytes — `Generator#emit` knows nothing about
+where the source will land. Each materializer threads its own path through Ruby's
+standard machinery:
+
+- **Compile** passes the synthetic identifier `"(serializers-code-gen: <Name>/<output>)"`
+  as `module_eval`'s second (`__FILE__`) argument. `Method#source_location` returns the
+  synthetic string, so Pry's `show-source` works out of the box (per
+  [Console inspection](#console-inspection) above).
+- **Dump** writes the bytes to the caller-supplied `path:` via `File.write`. After the
+  caller `require`s (or `require_relative`s) the dumped file, Ruby auto-stamps the real
+  on-disk path on `Method#source_location` — IDEs, debuggers, and stack traces all
+  resolve to the on-disk file.
+
+Neither path mutates the source bytes: the on-disk snapshot is exactly what the Generator
+emitted, character for character. The byte-identity contract from
+[structure.md § Layered architecture](structure.md#layered-architecture) is therefore on
+the **emit bytes themselves**, not on a post-substitution view of them.
+
 ### Nested Descriptor dumps
 
 When a **Descriptor** has **Associations**, the **Generated Class** for the inner
