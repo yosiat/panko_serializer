@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "tmpdir"
 require "serializers_code_gen"
 require "shallow_generic"
 require "nested_composition"
@@ -22,8 +23,10 @@ require "config/config_json_column_non_uniform_specialized"
 # (fixture, mode):
 #
 # 1. +Generator#emit+ bytes equal the on-disk snapshot.
-# 2. +SerializersCodeGen.dump(...)+ write equals the snapshot — pending
-#    until S15 ships +Dump+.
+# 2. +SerializersCodeGen.dump(...)+ writes a file whose bytes equal the
+#    snapshot. Active for flat fixtures (no Associations) as of S15.4;
+#    pending for nested / recursive fixtures until S15.5 ships the
+#    multi-file +require_relative+ fan-out.
 # 3. The committed snapshot file loads + runs + serializes
 #    +sanity_record+ to +expected_output(mode)+.
 #
@@ -67,7 +70,15 @@ RSpec.describe "Generator snapshot corpus" do
           end
 
           it "SerializersCodeGen.dump write equals the snapshot" do
-            skip "Dump (S15) not yet shipped"
+            if descriptor.associations.any?
+              skip "Multi-file fan-out for nested / recursive Descriptors lands in S15.5"
+            end
+
+            Dir.mktmpdir do |tmpdir|
+              target = File.join(tmpdir, snapshot_filename)
+              SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
+              expect(File.read(target)).to match_snapshot(snapshot_filename)
+            end
           end
 
           it "snapshot file loads + runs + serializes sanity_record to expected_output" do
