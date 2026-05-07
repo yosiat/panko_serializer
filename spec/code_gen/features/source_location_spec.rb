@@ -51,7 +51,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
         klass = Object.const_get(:S15ThreeSyntheticPathFixture_JSON)
         path, line = klass.instance_method(:_write_one).source_location
 
-        expect(path).to eq(File.realpath(target))
+        expect(File.realpath(path)).to eq(File.realpath(target))
         expect(line).to be_a(Integer).and(be_positive)
       end
     end
@@ -65,7 +65,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
         klass = Object.const_get(:S15ThreeSyntheticPathFixture_Hash)
         path, line = klass.instance_method(:_to_hash).source_location
 
-        expect(path).to eq(File.realpath(target))
+        expect(File.realpath(path)).to eq(File.realpath(target))
         expect(line).to be_a(Integer).and(be_positive)
       end
     end
