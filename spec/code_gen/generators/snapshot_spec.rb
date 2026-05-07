@@ -22,13 +22,17 @@ require "config/config_json_column_non_uniform_specialized"
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
 # (fixture, mode):
 #
-# 1. +Generator#emit+ bytes equal the on-disk snapshot.
-# 2. +SerializersCodeGen.dump(...)+ writes a file whose bytes equal the
-#    snapshot. Active for flat fixtures (no Associations) as of S15.4;
-#    pending for nested / recursive fixtures until S15.5 ships the
-#    multi-file +require_relative+ fan-out.
-# 3. The committed snapshot file loads + runs + serializes
-#    +sanity_record+ to +expected_output(mode)+.
+# 1. +Generator#emit+ bytes equal the on-disk +<fixture>_<mode>.rb+
+#    snapshot (the single-file concatenated form Compile evaluates via
+#    +module_eval+).
+# 2. +SerializersCodeGen.dump(...)+ writes one or more files whose
+#    bytes equal the on-disk per-Generated-Class snapshots (one
+#    +<descriptor_snake>_<mode>.rb+ snapshot per +Generated Class+
+#    in the tree). Flat fixtures land in S15.4; nested + Recursive
+#    fixtures land in S15.5 via the multi-file +require_relative+
+#    fan-out from {Generators::Fanout}.
+# 3. The committed +<fixture>_<mode>.rb+ snapshot file loads + runs
+#    + serializes +sanity_record+ to +expected_output(mode)+.
 #
 # This file iterates +FIXTURES × MODES+; in S2.1 the corpus is one
 # +shallow_generic+ × one +:json+ row. S3 onwards extend +MODES+ and the
@@ -70,14 +74,26 @@ RSpec.describe "Generator snapshot corpus" do
           end
 
           it "SerializersCodeGen.dump write equals the snapshot" do
-            if descriptor.associations.any?
-              skip "Multi-file fan-out for nested / recursive Descriptors lands in S15.5"
-            end
+            if descriptor.associations.empty?
+              Dir.mktmpdir do |tmpdir|
+                target = File.join(tmpdir, snapshot_filename)
+                SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
+                expect(File.read(target)).to match_snapshot(snapshot_filename)
+              end
+            else
+              expected_files = SerializersCodeGen::Generators::Fanout.emit_files(
+                descriptor, output: mode, config: config
+              )
+              Dir.mktmpdir do |tmpdir|
+                outer = expected_files.find { |f| f[:descriptor].equal?(descriptor) }
+                target = File.join(tmpdir, outer[:basename])
+                SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
 
-            Dir.mktmpdir do |tmpdir|
-              target = File.join(tmpdir, snapshot_filename)
-              SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
-              expect(File.read(target)).to match_snapshot(snapshot_filename)
+                expected_files.each do |file|
+                  written = File.join(tmpdir, file[:basename])
+                  expect(File.read(written)).to match_snapshot(file[:basename])
+                end
+              end
             end
           end
 

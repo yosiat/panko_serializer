@@ -43,8 +43,6 @@ module SerializersCodeGen
         builder.to_s + "\n"
       end
 
-      private
-
       # Emits one +<Name>_Hash+ class shell with constructor + public
       # entries + the chosen +RecordAccess+ strategy's helpers. Strategy
       # choice is per-Descriptor and keyed off +descriptor.models.nil?+
@@ -52,6 +50,12 @@ module SerializersCodeGen
       # +RecordAccess::Generic+ (Hash + PORO via the +_to_hash_hash+ /
       # +_to_hash_object+ split); set → +RecordAccess::Specialized+
       # (single +_to_hash+ body, no Hash branch).
+      #
+      # Public so the multi-file fan-out path
+      # ({Generators::Fanout}) can compose one class per file —
+      # without re-running {#emit}'s tree-walk for every per-file emit.
+      # The single-file {#emit} path appends the same per-class bytes
+      # in tree post-order to one buffer.
       #
       # @param descriptor [SerializersCodeGen::Descriptor]
       # @param config [SerializersCodeGen::Config]
@@ -87,6 +91,8 @@ module SerializersCodeGen
         end
         builder.line "end"
       end
+
+      private
 
       # Emits the +initialize(descriptor:)+ constructor. Hoists each
       # Method Attribute's Callable body into a per-Field +@cb_<name>+

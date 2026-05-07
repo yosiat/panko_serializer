@@ -46,8 +46,6 @@ module SerializersCodeGen
         builder.to_s + "\n"
       end
 
-      private
-
       # Emits one +<Name>_JSON+ class shell with constructor + public
       # entries + the chosen +RecordAccess+ strategy's helpers.
       # Strategy choice is per-Descriptor and keyed off
@@ -56,6 +54,12 @@ module SerializersCodeGen
       # +_write_one_hash+ / +_write_one_object+ split); set →
       # +RecordAccess::Specialized+ (single +_write_one+ body, no Hash
       # branch).
+      #
+      # Public so the multi-file fan-out path
+      # ({Generators::Fanout}) can compose one class per file —
+      # without re-running {#emit}'s tree-walk for every per-file emit.
+      # The single-file {#emit} path appends the same per-class bytes
+      # in tree post-order to one buffer.
       #
       # @param descriptor [SerializersCodeGen::Descriptor]
       # @param config [SerializersCodeGen::Config]
@@ -94,6 +98,8 @@ module SerializersCodeGen
         end
         builder.line "end"
       end
+
+      private
 
       # Returns the literal +WritersPool+ subclass name to bake into the
       # emitted +POOL = ...+ constant. Selected once at +Compile+ time —
