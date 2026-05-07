@@ -89,8 +89,7 @@ module SerializersCodeGen
         Banner.emit(builder, descriptor, output: output, config: config)
         deps = ordered_dependencies(descriptor)
         deps.each do |dep|
-          require_basename = basename_for(dep, output).sub(/\.rb\z/, "")
-          builder.line %(require_relative "#{require_basename}")
+          builder.line %(require_relative "#{snake_case(dep.name)}_#{output}")
         end
         builder.blank if deps.any?
         per_mode_emitter(output).emit_class(descriptor, config, builder, cyclic_ids)
