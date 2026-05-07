@@ -37,6 +37,7 @@ module SerializersCodeGen
         builder = CodeBuilder.new
         builder.line "# frozen_string_literal: true"
         builder.blank
+        Banner.emit(builder, descriptor, output: :json, config: config)
         cyclic_ids = CycleMembership.cyclic_descriptor_ids(descriptor)
         DescriptorWalk.in_emit_order(descriptor).each_with_index do |desc, i|
           builder.blank if i > 0
