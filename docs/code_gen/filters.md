@@ -45,7 +45,10 @@ serializer.serialize_one(
 
 - `:only` and `:except` at the same level are **mutually exclusive**. Supplying both is a
   caller error and raises `ArgumentError` at the first `_write_one` / `_to_hash` entry on
-  that level. (Matches Panko's behavior.)
+  that level. (Note: Panko 0.8.5's behavior is bifurcated — field-level filters apply
+  `only` XOR `except`; attribute-level filters apply both sequentially. scg's uniform
+  raise is stricter than either Panko path; the merge-time reconciliation is tracked in
+  [`merging-into-panko-open-questions.md`](merging-into-panko-open-questions.md) § Q8.)
 - Names in `:only` / `:except` reference the node's **name** (the output key), not its
   **Source**. Child-filter keys reference the **Association**'s **Source** (which defaults to
   the **name** unless explicitly overridden).
