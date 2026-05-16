@@ -28,10 +28,6 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     SerializersCodeGen::MethodAttribute.new(name: name, body: body)
   end
 
-  def has_many(name, descriptor)
-    SerializersCodeGen::Association.new(name: name, kind: :has_many, descriptor: descriptor)
-  end
-
   def descriptor_with(name:, parent_class:, attributes: [], method_attributes: [], associations: [], models: nil)
     SerializersCodeGen::Descriptor.new(
       name: name,
@@ -69,11 +65,8 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
           )
           generated = compile(descriptor, mode)
           result = generated.serialize_one({"id" => 1})
-          if mode == :json
-            expect(Oj.load(result)).to eq("id" => 1, "greeting" => "hello world")
-          else
-            expect(result).to eq("id" => 1, "greeting" => "hello world")
-          end
+          parsed = (mode == :json) ? Oj.load(result) : result
+          expect(parsed).to eq("id" => 1, "greeting" => "hello world")
         end
       end
     end
