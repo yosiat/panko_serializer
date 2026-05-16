@@ -11,6 +11,21 @@ module SerializersCodeGen
       # branch once on +record.is_a?(Hash)+ so each helper stays monomorphic
       # end-to-end (every +record["id"]+ / +record.id+ call site sees one
       # receiver class). The Specialized counterpart lands in S6.
+      #
+      # When +descriptor.parent_class+ is non-+nil+ (S18.3), the
+      # +_write_one+ / +_to_hash+ *dispatchers* are prepended with three
+      # +@object = record; @context = context; @scope = scope+ lines so
+      # a user-defined method on the parent class can read those ivars
+      # on +self+ — the Panko-shape contract from
+      # +docs/merging-into-panko.md § Generated Class subclasses the
+      # user's Panko serializer+. The per-shape helpers
+      # (+_write_one_hash+ / +_write_one_object+ / +_to_hash_hash+ /
+      # +_to_hash_object+) stay *un-prepended* — they're invoked from
+      # the dispatcher which already set the ivars, so a Symbol-body
+      # method called from inside any helper sees the correct
+      # +@object+. See {emit_parent_class_ivar_writes} for the
+      # rationale. Bare descriptors (no +parent_class:+) stay byte-
+      # identical to pre-S18 emit.
       module Generic
         # Emits the JSON-mode +_write_one+ dispatcher plus the two helpers
         # under +builder+. Field emit inside each helper is delegated to
