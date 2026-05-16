@@ -36,8 +36,9 @@ module SerializersCodeGen
   class UnknownSourceError < CompileError; end
 
   # Raised when a Callable (MethodAttribute +body+ or Association
-  # +if:+) has an arity outside +{0, 1, 2}+. Variadic Callables
-  # (+arity == -1+, +-2+) also raise. The allowed arities are pinned
-  # in +docs/descriptor.md § Callable arity+.
+  # +if:+) has an arity outside +{0, 1, 2, 3}+. Variadic Callables
+  # (any negative arity — +-1+, +-2+, +-3+, ...) also raise. The
+  # allowed arities are pinned in +docs/descriptor.md § Callable
+  # arity+.
   class ArityError < CompileError; end
 end
