@@ -137,16 +137,14 @@ module SerializersCodeGen
         #   named +:greeting+; +"@cb_full_title.call(record, context)"+
         #   for an arity-2 Callable body on a Field named +:full_title+
         def self.call_expression(method_attribute)
-          if method_attribute.body.is_a?(Symbol)
-            method_attribute.body.to_s
-          else
-            ivar = ivar_name(method_attribute)
-            case method_attribute.body.arity
-            when 0 then "#{ivar}.call"
-            when 1 then "#{ivar}.call(record)"
-            when 2 then "#{ivar}.call(record, context)"
-            else "#{ivar}.call(record, context, scope)"
-            end
+          body = method_attribute.body
+          return body.to_s if body.is_a?(Symbol)
+          ivar = ivar_name(method_attribute)
+          case body.arity
+          when 0 then "#{ivar}.call"
+          when 1 then "#{ivar}.call(record)"
+          when 2 then "#{ivar}.call(record, context)"
+          else "#{ivar}.call(record, context, scope)"
           end
         end
 
