@@ -30,21 +30,62 @@ module SerializersCodeGen
       raise DescriptorError, "#{field}: must be a Symbol; got #{value.inspect}:#{value.class}"
     end
 
-    # Raises +DescriptorError+ when +value+ is not a Callable — specifically
-    # when it does not respond to +.call+ or is an +UnboundMethod+ (which
-    # must be bound before inclusion, per +docs/descriptor.md § MethodAttribute+).
+    # Raises +DescriptorError+ when +value+ is neither a +Symbol+ nor a
+    # Callable. Widened in S18.1 to accept +Symbol+ unconditionally — the
+    # legitimacy check for Symbol bodies ("Symbol body requires the
+    # owning +Descriptor+'s +parent_class:+ to be set") cannot live here
+    # because +MethodAttribute.new+ has no view of the owning
+    # +Descriptor+'s +parent_class:+. +Validators::SymbolBodyDispatch+
+    # (S18.2) walks the +Descriptor+ tree at +Compile+ time and raises
+    # +SymbolBodyError+ when a Symbol body appears under
+    # +parent_class: nil+.
+    #
+    # In practice the Symbol axis only surfaces on +MethodAttribute#body+
+    # (the emitter Symbol-vs-Callable branch lives there per S18.3);
+    # +Association#if+ also routes through this helper but is documented
+    # as Callable-only — a Symbol +if:+ would pass this check but blow up
+    # at +CallableArity+ (no +Symbol#arity+) and is contract-misuse
+    # rather than a supported shape.
+    #
+    # +UnboundMethod+ is rejected — it +respond_to?(:call)+ but cannot be
+    # invoked without binding first, per +docs/descriptor.md § MethodAttribute+.
     #
     # @param field [String] qualified name like +"MethodAttribute#body"+
-    # @param value [Object] the value to Callable-check
+    # @param value [Symbol, #call] the value to type-check
     # @return [void]
-    # @raise [DescriptorError] when +value+ does not respond to +.call+ or
-    #   is an +UnboundMethod+
+    # @raise [DescriptorError] when +value+ is not a +Symbol+, does not
+    #   respond to +.call+, or is an +UnboundMethod+
     def validate_callable!(field, value)
+      return if value.is_a?(Symbol)
       if value.is_a?(UnboundMethod)
         raise DescriptorError, "#{field}: must be a bound Callable, not an UnboundMethod; got #{value.inspect}:#{value.class}"
       end
       return if value.respond_to?(:call)
       raise DescriptorError, "#{field}: must respond to #call; got #{value.inspect}:#{value.class}"
+    end
+
+    # Raises +DescriptorError+ when +value+ is neither +nil+ nor a +Class+.
+    # Used for +Descriptor#parent_class+ — the optional parent class the
+    # Generated Class inherits from when set. +nil+ keeps today's emit
+    # shape (bare +class <Name>_<Mode>+, implicit +Object+ parent); a
+    # +Class+ flips +emit_class+ into the +< <parent_class.name>+ branch
+    # so the emitted class subclasses the user-supplied class per
+    # +docs/merging-into-panko.md § Generated Class subclasses the user's
+    # Panko serializer+.
+    #
+    # Modules (other than +Class+) are rejected — Ruby class inheritance
+    # requires a +Class+, and accepting a bare +Module+ here would push
+    # the error to +module_eval+ time with a confusing message.
+    #
+    # @param field [String] qualified name; expected to be
+    #   +"Descriptor#parent_class"+
+    # @param value [Class, nil] the value to type-check
+    # @return [void]
+    # @raise [DescriptorError] when +value+ is non-nil and not a +Class+
+    def validate_class!(field, value)
+      return if value.nil?
+      return if value.is_a?(Class)
+      raise DescriptorError, "#{field}: must be a Class or nil; got #{value.inspect}:#{value.class}"
     end
 
     # Raises +DescriptorError+ when +value+ is not a non-empty +String+. Used
@@ -150,21 +191,33 @@ module SerializersCodeGen
     end
   end
 
-  # A Field whose value is computed by invoking a Callable with
-  # +(record, context)+; the Callable may return +SKIP+ to omit the Field.
-  # +body+ must respond to +.call+ and must not be an +UnboundMethod+ (must
-  # be bound before inclusion, per +docs/descriptor.md § MethodAttribute+).
-  # Arity validation is semantic and lands in S4 (+ArityError+); this slice
-  # only enforces shape. Frozen on construction.
+  # A Field whose value is computed either by invoking a Callable with
+  # +(record, context, scope)+ — the Callable may return +SKIP+ to omit
+  # the Field — or, as of S18, by dispatching to a Symbol-named method on
+  # +self+ when the owning +Descriptor+ has a non-nil +parent_class+ (the
+  # Symbol-body shape that drives Panko's direct-dispatch method
+  # contract per +docs/merging-into-panko.md § Generated Class subclasses
+  # the user's Panko serializer+).
+  #
+  # +body+ structurally accepts either a Callable (must respond to
+  # +.call+, must not be an +UnboundMethod+) or a +Symbol+. The Symbol
+  # legitimacy check (Symbol body requires the owning Descriptor's
+  # +parent_class+ to be set) is semantic and lands in S18.2 via
+  # +Validators::SymbolBodyDispatch+; arity validation (Callables only)
+  # lands in S4 via +Validators::CallableArity+, widened in S18.2 to
+  # skip Symbol bodies. Frozen on construction.
   MethodAttribute = Data.define(:name, :body) do
-    # Validates +name+ is a Symbol and +body+ is a non-+UnboundMethod+
-    # Callable.
+    # Validates +name+ is a Symbol and +body+ is a +Symbol+ or a
+    # non-+UnboundMethod+ Callable.
     #
     # @param name [Symbol] output key
-    # @param body [#call] the Callable invoked as +body.call(record, context)+
+    # @param body [Symbol, #call] either a Symbol naming a method on the
+    #   +parent_class+ (S18 Symbol-body dispatch) or a Callable invoked
+    #   as +body.call(record, context, scope)+
     # @return [void]
-    # @raise [DescriptorError] when +name+ is not a Symbol, +body+ does not
-    #   respond to +.call+, or +body+ is an +UnboundMethod+
+    # @raise [DescriptorError] when +name+ is not a Symbol; when +body+
+    #   is neither a Symbol nor responds to +.call+; or when +body+ is
+    #   an +UnboundMethod+
     def initialize(name:, body:)
       StructuralValidation.validate_symbol!("MethodAttribute#name", name)
       StructuralValidation.validate_callable!("MethodAttribute#body", body)
@@ -224,16 +277,19 @@ module SerializersCodeGen
   # The input to Compile — an immutable, normalized description of one
   # serializer (per +docs/descriptor.md § Descriptor+). Carries the
   # human-readable identifier, the optional Models hint that unlocks
-  # compile-time specialization, and the three Field-kind arrays
-  # (+attributes+, +method_attributes+, +associations+). Frozen on
+  # compile-time specialization, the three Field-kind arrays
+  # (+attributes+, +method_attributes+, +associations+), and the optional
+  # +parent_class+ that flips the Generated Class into the
+  # +< <parent_class.name>+ subclass shape per S18 / +docs/merging-into-panko.md
+  # § Generated Class subclasses the user's Panko serializer+. Frozen on
   # construction; structural validation runs once at +.new+ and raises
   # +DescriptorError+ on shape violations. Children are validated at their
   # own +.new+ — Descriptor only enforces array-element type, not the inner
   # Field shape.
-  Descriptor = Data.define(:name, :models, :attributes, :method_attributes, :associations) do
+  Descriptor = Data.define(:name, :models, :attributes, :method_attributes, :associations, :parent_class) do
     # Validates +name+ is a non-empty String, +models+ is +nil+ or an
-    # +Array<Class>+, and the three Field-kind arrays contain only their
-    # corresponding +Data+ types.
+    # +Array<Class>+, the three Field-kind arrays contain only their
+    # corresponding +Data+ types, and +parent_class+ is +nil+ or a +Class+.
     #
     # @param name [String] human-readable identifier; non-empty
     # @param models [Array<Class>, nil] Record class hint; +nil+ uses the
@@ -241,14 +297,18 @@ module SerializersCodeGen
     # @param attributes [Array<Attribute>] direct-read Fields
     # @param method_attributes [Array<MethodAttribute>] Callable-driven Fields
     # @param associations [Array<Association>] nested-Descriptor Fields
+    # @param parent_class [Class, nil] optional user-supplied parent class
+    #   the emitted Generated Class subclasses; +nil+ (default) keeps the
+    #   bare +class <Name>_<Mode>+ shape (byte-identical to pre-S18 emit)
     # @return [void]
     # @raise [DescriptorError] on any structural rule violation
-    def initialize(name:, models:, attributes:, method_attributes:, associations:)
+    def initialize(name:, models:, attributes:, method_attributes:, associations:, parent_class: nil)
       StructuralValidation.validate_non_empty_string!("Descriptor#name", name)
       StructuralValidation.validate_models!("Descriptor#models", models)
       StructuralValidation.validate_array_of!("Descriptor#attributes", attributes, Attribute, "Attribute")
       StructuralValidation.validate_array_of!("Descriptor#method_attributes", method_attributes, MethodAttribute, "MethodAttribute")
       StructuralValidation.validate_array_of!("Descriptor#associations", associations, Association, "Association")
+      StructuralValidation.validate_class!("Descriptor#parent_class", parent_class)
       super
     end
   end

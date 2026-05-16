@@ -170,6 +170,44 @@ RSpec.describe "Compile-time errors" do
           )
         }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#associations/)
       end
+
+      it "S18.1 parent_class: defaults to nil when the kwarg is omitted" do
+        desc = SerializersCodeGen::Descriptor.new(
+          name: "X", models: nil, attributes: [], method_attributes: [], associations: []
+        )
+        expect(desc.parent_class).to be_nil
+      end
+
+      it "S18.1 parent_class: accepts an explicit nil" do
+        desc = SerializersCodeGen::Descriptor.new(
+          name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: nil
+        )
+        expect(desc.parent_class).to be_nil
+      end
+
+      it "S18.1 parent_class: accepts a Class" do
+        desc = SerializersCodeGen::Descriptor.new(
+          name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: String
+        )
+        expect(desc.parent_class).to equal(String)
+      end
+
+      it "S18.1 parent_class: raises when parent_class is not a Class" do
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: "Object"
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#parent_class/)
+      end
+
+      it "S18.1 parent_class: raises when parent_class is a Module that is not a Class" do
+        mod = Module.new
+        expect {
+          SerializersCodeGen::Descriptor.new(
+            name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: mod
+          )
+        }.to raise_error(SerializersCodeGen::DescriptorError, /Descriptor#parent_class/)
+      end
     end
 
     describe "Attribute (S1.3)" do
@@ -224,6 +262,12 @@ RSpec.describe "Compile-time errors" do
         expect {
           SerializersCodeGen::MethodAttribute.new(name: :x, body: unbound)
         }.to raise_error(SerializersCodeGen::DescriptorError)
+      end
+
+      it "accepts a Symbol body without raising at structural validation (S18.1)" do
+        ma = SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting)
+        expect(ma).to be_frozen
+        expect(ma.body).to eq(:greeting)
       end
     end
 
