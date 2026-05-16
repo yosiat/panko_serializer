@@ -73,7 +73,7 @@ module SerializersCodeGen
       # @return [void]
       def emit_class(descriptor, config, builder, cyclic_ids)
         field_index = FieldIndex.build(descriptor)
-        builder.line "class #{descriptor.name}_JSON"
+        builder.line class_line(descriptor, "JSON")
         builder.indent do
           builder.line "FIELD_INDEX = #{FieldIndex.to_hash_literal(field_index)}.freeze"
           if config.pool_writer
@@ -100,6 +100,34 @@ module SerializersCodeGen
       end
 
       private
+
+      # Returns the +class <Name>_JSON+ header line for +descriptor+,
+      # branching on +descriptor.parent_class+:
+      #
+      # - +nil+ → bare +class <Name>_JSON+ (implicit +Object+ parent,
+      #   byte-identical to pre-S18 emit so existing snapshots with
+      #   +parent_class+ unset stay green).
+      # - +Class+ → +class <Name>_JSON < <parent_class.name>+ (the
+      #   subclass-dispatch shape from +docs/merging-into-panko.md
+      #   § Generated Class subclasses the user's Panko serializer+).
+      #   The parent's fully-qualified name is spliced verbatim via
+      #   +parent_class.name+ so namespaced parents
+      #   (+Outer::Inner::Base+) resolve correctly at +module_eval+
+      #   time. Anonymous parents are out of scope for S18 — Panko's
+      #   converter always sets a named class.
+      #
+      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param suffix [String] +"JSON"+ — the per-mode Generated Class
+      #   suffix; threaded as a parameter to keep this helper's shape
+      #   identical to {HashMode#class_line}, which passes +"Hash"+
+      # @return [String] one Ruby source line, no trailing newline
+      def class_line(descriptor, suffix)
+        if descriptor.parent_class.nil?
+          "class #{descriptor.name}_#{suffix}"
+        else
+          "class #{descriptor.name}_#{suffix} < #{descriptor.parent_class.name}"
+        end
+      end
 
       # Returns the literal +WritersPool+ subclass name to bake into the
       # emitted +POOL = ...+ constant. Selected once at +Compile+ time —
