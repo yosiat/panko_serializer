@@ -213,6 +213,15 @@ module SerializersCodeGen
       # +docs/research/filter_experiments_results.md § 1+) — bit-mask
       # rep when +FIELD_INDEX.size <= 63+, Boolean Array otherwise.
       #
+      # +scope:+ is a sibling kwarg of +context:+ added in S17.2 — the
+      # auth/viewer axis from +docs/merging-into-panko.md § Both `scope`
+      # and `context` survive Panko's public DSL+. Defaults to +nil+,
+      # threaded positionally into +_to_hash+ between +context+ and
+      # +filters+. Arity-3 Callables observe it as the third arg;
+      # arity 0/1/2 Callables ignore it (the +call_expression+ in
+      # +FieldEmitters::MethodAttribute+ / +FieldEmitters::Association+
+      # is specialized per arity).
+      #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # an additional +root_key:+ kwarg (defaulting to +nil+); when
       # truthy, the body wraps the produced Hash in a single-entry
@@ -221,7 +230,9 @@ module SerializersCodeGen
       # must be a non-empty String or +nil+ —
       # +validate_root_key!+ raises +ArgumentError+ on anything else.
       # When +supports_root_key+ is +false+, the kwarg is omitted from
-      # the signature entirely.
+      # the signature entirely. +root_key:+ continues to slot last in
+      # the signature so its position is preserved across the S17.2
+      # +scope:+ widening.
       #
       # @param config [SerializersCodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
@@ -229,17 +240,17 @@ module SerializersCodeGen
       # @return [void]
       def emit_serialize_one(config, builder)
         signature = config.supports_root_key ?
-          "def serialize_one(record, context: nil, filters: nil, root_key: nil)" :
-          "def serialize_one(record, context: nil, filters: nil)"
+          "def serialize_one(record, context: nil, scope: nil, filters: nil, root_key: nil)" :
+          "def serialize_one(record, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
           builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
-            builder.line "result = _to_hash(record, context, filters)"
+            builder.line "result = _to_hash(record, context, scope, filters)"
             builder.line "root_key ? {root_key => result} : result"
           else
-            builder.line "_to_hash(record, context, filters)"
+            builder.line "_to_hash(record, context, scope, filters)"
           end
         end
         builder.line "end"
@@ -269,17 +280,17 @@ module SerializersCodeGen
       # @return [void]
       def emit_serialize_many(config, builder)
         signature = config.supports_root_key ?
-          "def serialize_many(records, context: nil, filters: nil, root_key: nil)" :
-          "def serialize_many(records, context: nil, filters: nil)"
+          "def serialize_many(records, context: nil, scope: nil, filters: nil, root_key: nil)" :
+          "def serialize_many(records, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
           builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
-            builder.line "result = records.map { |r| _to_hash(r, context, filters) }"
+            builder.line "result = records.map { |r| _to_hash(r, context, scope, filters) }"
             builder.line "root_key ? {root_key => result} : result"
           else
-            builder.line "records.map { |r| _to_hash(r, context, filters) }"
+            builder.line "records.map { |r| _to_hash(r, context, scope, filters) }"
           end
         end
         builder.line "end"

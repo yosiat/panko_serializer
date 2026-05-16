@@ -14,13 +14,14 @@ module SerializersCodeGen
       # - *Callable arity* — the call expression is specialized per arity
       #   per +docs/descriptor.md § Callable arity+. Arity is read off the
       #   Callable at +Compile+ time (the +callable_arity+ validator from
-      #   S4.1 has already pre-checked it lies in +{0, 1, 2}+, so no
-      #   validation here):
+      #   S4.1, widened in S17.1 to +0..3+, has already pre-checked it
+      #   lies in +{0, 1, 2, 3}+, so no validation here):
       #   * +0+: +@cb_<name>.call+
       #   * +1+: +@cb_<name>.call(record)+
       #   * +2+: +@cb_<name>.call(record, context)+
+      #   * +3+: +@cb_<name>.call(record, context, scope)+
       #   No splat, no shared helper, no wrapper — the emitted Ruby reads
-      #   exactly as one of the three call forms above per
+      #   exactly as one of the four call forms above per
       #   +docs/code-generation.md § Callable hoisting+.
       #
       # Both entries wrap the call in two nested guards:
@@ -94,19 +95,22 @@ module SerializersCodeGen
         end
 
         # Returns the arity-specialized call expression for one ivar. Pre-
-        # validated by the +callable_arity+ rule (S4.1) — only +0+, +1+,
-        # +2+ ever reach this method. Specialization is per
-        # +docs/descriptor.md § Callable arity+ — no splat / +*args+ / shared
-        # helper.
+        # validated by the +callable_arity+ rule (S4.1, widened to +0..3+
+        # in S17.1) — only +0+, +1+, +2+, +3+ ever reach this method.
+        # Specialization is per +docs/descriptor.md § Callable arity+ —
+        # no splat / +*args+ / shared helper. Arity 3 threads +scope+
+        # positionally as the third argument; arity 2 keeps its
+        # +(record, context)+ meaning (no +scope+ leak).
         #
         # @param ivar_name [String] the +@cb_<name>+ ivar to invoke
-        # @param arity [Integer] +0+, +1+, or +2+
+        # @param arity [Integer] +0+, +1+, +2+, or +3+
         # @return [String] Ruby source like +"@cb_full_title.call(record, context)"+
         def self.call_expression(ivar_name, arity)
           case arity
           when 0 then "#{ivar_name}.call"
           when 1 then "#{ivar_name}.call(record)"
-          else "#{ivar_name}.call(record, context)"
+          when 2 then "#{ivar_name}.call(record, context)"
+          else "#{ivar_name}.call(record, context, scope)"
           end
         end
 

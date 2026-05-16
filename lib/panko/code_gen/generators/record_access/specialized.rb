@@ -66,7 +66,7 @@ module SerializersCodeGen
         def self.emit_json(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
           ar_classes = descriptor.models.select { |m| ar_class?(m) }
-          builder.line "def _write_one(record, writer, context, filters)"
+          builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
@@ -101,7 +101,7 @@ module SerializersCodeGen
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
-          builder.line "def _to_hash(record, context, filters)"
+          builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|

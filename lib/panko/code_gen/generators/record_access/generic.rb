@@ -60,17 +60,21 @@ module SerializersCodeGen
           emit_hash_object_helper(descriptor, config, field_index, builder)
         end
 
-        # Emits the JSON-mode +_write_one+ dispatcher.
+        # Emits the JSON-mode +_write_one+ dispatcher. +scope+ slots
+        # between +context+ and +filters+ in the positional signature
+        # per S17.2 — Field emitters that delegate into nested
+        # Composition thread the same +scope+ unchanged into the inner
+        # +_write_one+.
         #
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_dispatch(builder)
-          builder.line "def _write_one(record, writer, context, filters)"
+          builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
             builder.line "if record.is_a?(Hash)"
-            builder.indent { builder.line "_write_one_hash(record, writer, context, filters)" }
+            builder.indent { builder.line "_write_one_hash(record, writer, context, scope, filters)" }
             builder.line "else"
-            builder.indent { builder.line "_write_one_object(record, writer, context, filters)" }
+            builder.indent { builder.line "_write_one_object(record, writer, context, scope, filters)" }
             builder.line "end"
           end
           builder.line "end"
@@ -89,7 +93,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_hash_helper(descriptor, config, field_index, builder)
-          builder.line "def _write_one_hash(record, writer, context, filters)"
+          builder.line "def _write_one_hash(record, writer, context, scope, filters)"
           builder.indent do
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
@@ -120,7 +124,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_object_helper(descriptor, config, field_index, builder)
-          builder.line "def _write_one_object(record, writer, context, filters)"
+          builder.line "def _write_one_object(record, writer, context, scope, filters)"
           builder.indent do
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
@@ -137,17 +141,19 @@ module SerializersCodeGen
           builder.line "end"
         end
 
-        # Emits the Hash-mode +_to_hash+ dispatcher.
+        # Emits the Hash-mode +_to_hash+ dispatcher. +scope+ slots
+        # between +context+ and +filters+ in the positional signature
+        # per S17.2 — mirrors the JSON-mode dispatcher.
         #
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash_dispatch(builder)
-          builder.line "def _to_hash(record, context, filters)"
+          builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
             builder.line "if record.is_a?(Hash)"
-            builder.indent { builder.line "_to_hash_hash(record, context, filters)" }
+            builder.indent { builder.line "_to_hash_hash(record, context, scope, filters)" }
             builder.line "else"
-            builder.indent { builder.line "_to_hash_object(record, context, filters)" }
+            builder.indent { builder.line "_to_hash_object(record, context, scope, filters)" }
             builder.line "end"
           end
           builder.line "end"
@@ -167,7 +173,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash_hash_helper(descriptor, config, field_index, builder)
-          builder.line "def _to_hash_hash(record, context, filters)"
+          builder.line "def _to_hash_hash(record, context, scope, filters)"
           builder.indent do
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
@@ -208,7 +214,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash_object_helper(descriptor, config, field_index, builder)
-          builder.line "def _to_hash_object(record, context, filters)"
+          builder.line "def _to_hash_object(record, context, scope, filters)"
           builder.indent do
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
