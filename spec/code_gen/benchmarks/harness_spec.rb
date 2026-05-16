@@ -3,10 +3,10 @@
 require "open3"
 require "rspec"
 
-# Smoke spec for the benchmark harness. Spawns benchmarks/simple.rb as a
+# Smoke spec for the benchmark harness. Spawns each covered scenario as a
 # subprocess (matching how `rake bench:all` runs scenarios) under a fast-
-# iteration env so the suite stays under a second per CI run, and asserts the
-# stdout includes one row per target × size. Goal: catch "harness doesn't
+# iteration env so the suite stays under a few seconds per CI run, and asserts
+# the stdout includes one row per target × size. Goal: catch "harness doesn't
 # load", "scenario file syntax-errors", "missing requires", "broken target
 # lookups", "missing oj_serializers dep" — not to validate numbers (per
 # docs/ci.md § Benchmarks in CI, full benchmarks do not run in CI).
@@ -17,7 +17,7 @@ require "rspec"
 # state — every subsequent example in the suite would fail. The bench harness
 # is designed to be a fresh process anyway (per docs/benchmarks.md § Running),
 # so the smoke spec exercises the production-shape path.
-RSpec.describe "benchmarks/simple.rb harness smoke" do
+RSpec.describe "benchmark harness smoke" do
   let(:env) do
     {
       "IPS_TIME" => "0.02",
@@ -25,9 +25,21 @@ RSpec.describe "benchmarks/simple.rb harness smoke" do
       "SIZE" => "50"
     }
   end
-  let(:scenario_path) { File.expand_path("../../benchmarks/simple.rb", __dir__) }
-  let(:expected_rows) do
-    [
+
+  shared_examples "a bench scenario subprocess" do |scenario_file, scenario_label, expected_rows|
+    let(:scenario_path) { File.expand_path("../../benchmarks/#{scenario_file}", __dir__) }
+
+    it "loads, runs, and emits one row per target at SIZE=50" do
+      out, status = Open3.capture2e(env, "bundle", "exec", "ruby", scenario_path)
+      expect(status).to be_success, "scenario subprocess failed:\n#{out}"
+      expected_rows.each do |row|
+        expect(out).to include("#{scenario_label} size=50/#{row}"), "missing row '#{row}' in subprocess stdout:\n#{out}"
+      end
+    end
+  end
+
+  describe "benchmarks/simple.rb" do
+    include_examples "a bench scenario subprocess", "simple.rb", "Simple", [
       "serializers_code_gen/json",
       "serializers_code_gen/hash",
       "panko/json",
@@ -38,11 +50,12 @@ RSpec.describe "benchmarks/simple.rb harness smoke" do
     ]
   end
 
-  it "loads, runs, and emits one row per target at SIZE=50" do
-    out, status = Open3.capture2e(env, "bundle", "exec", "ruby", scenario_path)
-    expect(status).to be_success, "scenario subprocess failed:\n#{out}"
-    expected_rows.each do |row|
-      expect(out).to include("Simple size=50/#{row}"), "missing row '#{row}' in subprocess stdout:\n#{out}"
-    end
+  describe "benchmarks/parent_class_dispatch.rb" do
+    include_examples "a bench scenario subprocess", "parent_class_dispatch.rb", "ParentClassDispatch", [
+      "serializers_code_gen/json[callable_body]",
+      "serializers_code_gen/hash[callable_body]",
+      "serializers_code_gen/json[symbol_body]",
+      "serializers_code_gen/hash[symbol_body]"
+    ]
   end
 end
