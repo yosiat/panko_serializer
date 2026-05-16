@@ -32,6 +32,29 @@ RSpec.describe SerializersCodeGen::CompileCache do
       cache.set(descriptor, klass)
       expect(cache.get(twin)).to be_nil
     end
+
+    # S18.4 row: two Descriptors with the same +name+ / +models+ /
+    # Field arrays but different +parent_class+ values must map to
+    # distinct cache entries. Pinned explicitly to make the cache's
+    # +__id__+-keyed contract visible for the new field — the cache
+    # already keys on Descriptor identity, so any new +Data.define+
+    # field automatically participates; this row guards against a
+    # future regression that, e.g., introduces a structural
+    # +==+/+#hash+ short-circuit on the cache lookup.
+    it "treats two Descriptors differing only by parent_class as distinct keys" do
+      bare_parent = Class.new
+      with_parent = SerializersCodeGen::Descriptor.new(
+        name: "ADescriptor", models: nil,
+        attributes: [], method_attributes: [], associations: [],
+        parent_class: bare_parent
+      )
+      klass_without = Class.new
+      klass_with = Class.new
+      cache.set(descriptor, klass_without)
+      cache.set(with_parent, klass_with)
+      expect(cache.get(descriptor)).to equal(klass_without)
+      expect(cache.get(with_parent)).to equal(klass_with)
+    end
   end
 
   describe "#fetch" do
