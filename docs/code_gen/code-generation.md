@@ -137,6 +137,24 @@ Emitted call site:
 writer.push_value(@cb_full_title.call(record, context))
 ```
 
+The call expression is specialized per **Callable** arity (validated in
+`{0, 1, 2, 3}` by `callable_arity`). The four shapes are:
+
+```ruby
+@cb_<name>.call                            # arity 0
+@cb_<name>.call(record)                    # arity 1
+@cb_<name>.call(record, context)           # arity 2
+@cb_<name>.call(record, context, scope)    # arity 3 (S17.2)
+```
+
+The arity-3 shape was added in S17.2 alongside the `scope:` kwarg on
+`serialize_one` / `serialize_many` — `scope` is threaded positionally
+through `_write_one` / `_to_hash` between `context` and `filters` and
+into every nested **Association** call (`@<name>_serializer._write_one(record, writer, context, scope, child_filter)`).
+Arity 2 keeps its existing `(record, context)` meaning — no `scope`
+leak. Both **Callable** surfaces (**Method Attribute** body and
+**Association** `if:`) share the same per-arity emit shape.
+
 Why ivars (not class constants set via `const_set`):
 
 - **One code path between in-memory compile and Dump.** If class constants were used in

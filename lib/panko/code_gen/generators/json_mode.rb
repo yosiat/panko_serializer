@@ -256,6 +256,16 @@ module SerializersCodeGen
       # +docs/research/filter_experiments_results.md § 1+) — bit-mask
       # rep when +FIELD_INDEX.size <= 63+, Boolean Array otherwise.
       #
+      # +scope:+ is a sibling kwarg of +context:+ added in S17.2 — the
+      # auth/viewer axis from +docs/merging-into-panko.md § Both `scope`
+      # and `context` survive Panko's public DSL+. Defaults to +nil+,
+      # threaded positionally into +_write_one+ between +context+ and
+      # +filters+. Arity-3 Callables observe it as the third arg;
+      # arity 0/1/2 Callables ignore it (the +call_expression+ in
+      # +FieldEmitters::MethodAttribute+ / +FieldEmitters::Association+
+      # is specialized per arity, so a non-arity-3 emit pays zero extra
+      # cost on the call line).
+      #
       # When +Config#supports_root_key+ is +true+, the signature gains
       # an additional +root_key:+ kwarg (defaulting to +nil+) and the
       # body wraps the emit in a +push_object+ / +push_key+ / ... /
@@ -270,7 +280,9 @@ module SerializersCodeGen
       # When +supports_root_key+ is +false+, the kwarg is omitted from
       # the signature entirely so callers passing +root_key:+ get
       # Ruby's own +ArgumentError: unknown keyword+ — zero runtime cost
-      # from the feature being absent per +docs/config.md+.
+      # from the feature being absent per +docs/config.md+. +root_key:+
+      # continues to slot last in the signature so its position is
+      # preserved across the S17.2 +scope:+ widening.
       #
       # @param config [SerializersCodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
@@ -278,8 +290,8 @@ module SerializersCodeGen
       # @return [void]
       def emit_serialize_one(config, builder)
         signature = config.supports_root_key ?
-          "def serialize_one(record, context: nil, filters: nil, root_key: nil)" :
-          "def serialize_one(record, context: nil, filters: nil)"
+          "def serialize_one(record, context: nil, scope: nil, filters: nil, root_key: nil)" :
+          "def serialize_one(record, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
           builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
@@ -326,7 +338,7 @@ module SerializersCodeGen
           end
           builder.line "end"
         end
-        builder.line "_write_one(record, writer, context, filters)"
+        builder.line "_write_one(record, writer, context, scope, filters)"
         builder.line "writer.pop if root_key" if config.supports_root_key
         builder.line "result = writer.to_s"
         builder.line "result.chomp!"
@@ -362,8 +374,8 @@ module SerializersCodeGen
       # @return [void]
       def emit_serialize_many(config, builder)
         signature = config.supports_root_key ?
-          "def serialize_many(records, context: nil, filters: nil, root_key: nil)" :
-          "def serialize_many(records, context: nil, filters: nil)"
+          "def serialize_many(records, context: nil, scope: nil, filters: nil, root_key: nil)" :
+          "def serialize_many(records, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
           builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
@@ -405,7 +417,7 @@ module SerializersCodeGen
         else
           builder.line "writer.push_array"
         end
-        builder.line "records.each { |r| _write_one(r, writer, context, filters) }"
+        builder.line "records.each { |r| _write_one(r, writer, context, scope, filters) }"
         builder.line "writer.pop"
         builder.line "writer.pop if root_key" if config.supports_root_key
         builder.line "result = writer.to_s"

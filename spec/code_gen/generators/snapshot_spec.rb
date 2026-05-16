@@ -17,6 +17,7 @@ require "config/config_json_column_wire_format"
 require "config/config_json_column_html_safe"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_uniform_specialized"
+require "scope_threading"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -52,7 +53,8 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::Config::ConfigJsonColumnWireFormat,
     Fixtures::Config::ConfigJsonColumnHtmlSafe,
     Fixtures::Config::ConfigJsonColumnGenericFallthrough,
-    Fixtures::Config::ConfigJsonColumnNonUniformSpecialized
+    Fixtures::Config::ConfigJsonColumnNonUniformSpecialized,
+    Fixtures::ScopeThreading
   ]
 
   fixtures.each do |fixture|
@@ -102,7 +104,10 @@ RSpec.describe "Generator snapshot corpus" do
             constant_name = "#{descriptor.name}_#{SerializersCodeGen::Compiler::OUTPUT_SUFFIXES.fetch(mode)}"
             generated_class = Object.const_get(constant_name)
             instance = generated_class.new(descriptor: descriptor)
-            expect(instance.serialize_one(fixture.sanity_record)).to eq(fixture.expected_output(mode))
+            kwargs = {}
+            kwargs[:context] = fixture.sanity_context if fixture.respond_to?(:sanity_context)
+            kwargs[:scope] = fixture.sanity_scope if fixture.respond_to?(:sanity_scope)
+            expect(instance.serialize_one(fixture.sanity_record, **kwargs)).to eq(fixture.expected_output(mode))
           end
         end
       end

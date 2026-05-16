@@ -21,11 +21,11 @@ class RecursiveMutualItemSerializer_JSON
     @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
-      _write_one(record, writer, context, filters)
+      _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
@@ -34,12 +34,12 @@ class RecursiveMutualItemSerializer_JSON
     end
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
-      records.each { |r| _write_one(r, writer, context, filters) }
+      records.each { |r| _write_one(r, writer, context, scope, filters) }
       writer.pop
       result = writer.to_s
       result.chomp!
@@ -49,15 +49,15 @@ class RecursiveMutualItemSerializer_JSON
     end
   end
 
-  def _write_one(record, writer, context, filters)
+  def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, filters)
+      _write_one_hash(record, writer, context, scope, filters)
     else
-      _write_one_object(record, writer, context, filters)
+      _write_one_object(record, writer, context, scope, filters)
     end
   end
 
-  def _write_one_hash(record, writer, context, filters)
+  def _write_one_hash(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record["id"], "id")
@@ -71,13 +71,13 @@ class RecursiveMutualItemSerializer_JSON
         writer.push_value(nil, "subfolder")
       else
         writer.push_key("subfolder")
-        @subfolder_serializer._write_one(value, writer, context, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
+        @subfolder_serializer._write_one(value, writer, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop
   end
 
-  def _write_one_object(record, writer, context, filters)
+  def _write_one_object(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record.id, "id")
@@ -91,7 +91,7 @@ class RecursiveMutualItemSerializer_JSON
         writer.push_value(nil, "subfolder")
       else
         writer.push_key("subfolder")
-        @subfolder_serializer._write_one(value, writer, context, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
+        @subfolder_serializer._write_one(value, writer, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop

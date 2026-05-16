@@ -64,21 +64,21 @@ module SerializersCodeGen
         #     writer.push_value(nil, "<name>")
         #   else
         #     writer.push_key("<name>")
-        #     @<name>_serializer._write_one(value, writer, context, filters.child(:<source>, <Child>_JSON::FIELD_INDEX))
+        #     @<name>_serializer._write_one(value, writer, context, scope, filters.child(:<source>, <Child>_JSON::FIELD_INDEX))
         #   end
         #
         # +has_one+ — omit-when-nil (+null_for_missing_has_one: false+) emits:
         #   value = <source_read_expr>
         #   unless value.nil?
         #     writer.push_key("<name>")
-        #     @<name>_serializer._write_one(value, writer, context, filters.child(:<source>, <Child>_JSON::FIELD_INDEX))
+        #     @<name>_serializer._write_one(value, writer, context, scope, filters.child(:<source>, <Child>_JSON::FIELD_INDEX))
         #   end
         #
         # +has_many+ emits (config-independent — empty collection → +[]+):
         #   child_filter = filters.child(:<source>, <Child>_JSON::FIELD_INDEX)
         #   writer.push_array("<name>")
         #   <source_read_expr>.each do |element|
-        #     @<name>_serializer._write_one(element, writer, context, child_filter)
+        #     @<name>_serializer._write_one(element, writer, context, scope, child_filter)
         #   end
         #   writer.pop
         #
@@ -176,17 +176,17 @@ module SerializersCodeGen
         #   result[<key>] = if value.nil?
         #     nil
         #   else
-        #     @<name>_serializer._to_hash(value, context, filters)
+        #     @<name>_serializer._to_hash(value, context, scope, filters)
         #   end
         #
         # +has_one+ — omit-when-nil (+null_for_missing_has_one: false+) emits:
         #   value = <source_read_expr>
         #   unless value.nil?
-        #     result[<key>] = @<name>_serializer._to_hash(value, context, filters)
+        #     result[<key>] = @<name>_serializer._to_hash(value, context, scope, filters)
         #   end
         #
         # +has_many+ emits (config-independent — empty collection → +[]+):
-        #   result[<key>] = <source_read_expr>.map { |element| @<name>_serializer._to_hash(element, context, filters) }
+        #   result[<key>] = <source_read_expr>.map { |element| @<name>_serializer._to_hash(element, context, scope, filters) }
         #
         # @param association [SerializersCodeGen::Association] the Field node
         # @param source_read_expr [String] Ruby source for fetching the
@@ -265,7 +265,7 @@ module SerializersCodeGen
           builder.line "else"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, #{child_filter_expr(association, "JSON")})"
+            builder.line "@#{association.name}_serializer._write_one(value, writer, context, scope, #{child_filter_expr(association, "JSON")})"
           end
           builder.line "end"
         end
@@ -290,7 +290,7 @@ module SerializersCodeGen
           builder.line "unless value.nil?"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, #{child_filter_expr(association, "JSON")})"
+            builder.line "@#{association.name}_serializer._write_one(value, writer, context, scope, #{child_filter_expr(association, "JSON")})"
           end
           builder.line "end"
         end
@@ -310,7 +310,7 @@ module SerializersCodeGen
           builder.indent { builder.line "nil" }
           builder.line "else"
           builder.indent do
-            builder.line "@#{association.name}_serializer._to_hash(value, context, #{child_filter_expr(association, "Hash")})"
+            builder.line "@#{association.name}_serializer._to_hash(value, context, scope, #{child_filter_expr(association, "Hash")})"
           end
           builder.line "end"
         end
@@ -328,7 +328,7 @@ module SerializersCodeGen
         def self.emit_hash_has_one_omit(association, key_lit, builder)
           builder.line "unless value.nil?"
           builder.indent do
-            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, #{child_filter_expr(association, "Hash")})"
+            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, scope, #{child_filter_expr(association, "Hash")})"
           end
           builder.line "end"
         end
@@ -359,7 +359,7 @@ module SerializersCodeGen
           builder.line %(writer.push_array("#{association.name}"))
           builder.line "#{source_read_expr}.each do |element|"
           builder.indent do
-            builder.line "@#{association.name}_serializer._write_one(element, writer, context, child_filter)"
+            builder.line "@#{association.name}_serializer._write_one(element, writer, context, scope, child_filter)"
           end
           builder.line "end"
           builder.line "writer.pop"
@@ -386,7 +386,7 @@ module SerializersCodeGen
           builder.line "child_filter = #{child_filter_expr(association, "Hash")}"
           builder.line(
             "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
-              "@#{association.name}_serializer._to_hash(element, context, child_filter) }"
+              "@#{association.name}_serializer._to_hash(element, context, scope, child_filter) }"
           )
         end
 
@@ -425,21 +425,25 @@ module SerializersCodeGen
         end
 
         # Returns the arity-specialized call expression for one ivar.
-        # Pre-validated by the +callable_arity+ rule (S4.1) — only +0+,
-        # +1+, +2+ ever reach this method. Mirrors the same arity-axis
-        # rule applied to +MethodAttribute#body+ via
+        # Pre-validated by the +callable_arity+ rule (S4.1, widened to
+        # +0..3+ in S17.1) — only +0+, +1+, +2+, +3+ ever reach this
+        # method. Mirrors the same arity-axis rule applied to
+        # +MethodAttribute#body+ via
         # +FieldEmitters::MethodAttribute.call_expression+ — both Callable
         # surfaces share the per-arity emit shape per
-        # +docs/descriptor.md § Callable arity+.
+        # +docs/descriptor.md § Callable arity+. Arity 3 threads +scope+
+        # positionally as the third argument; arity 2 keeps its
+        # +(record, context)+ meaning (no +scope+ leak).
         #
         # @param ivar_name [String] the +@cb_if_<name>+ ivar to invoke
-        # @param arity [Integer] +0+, +1+, or +2+
+        # @param arity [Integer] +0+, +1+, +2+, or +3+
         # @return [String] Ruby source like +"@cb_if_author.call(record, context)"+
         def self.call_expression(ivar_name, arity)
           case arity
           when 0 then "#{ivar_name}.call"
           when 1 then "#{ivar_name}.call(record)"
-          else "#{ivar_name}.call(record, context)"
+          when 2 then "#{ivar_name}.call(record, context)"
+          else "#{ivar_name}.call(record, context, scope)"
           end
         end
       end

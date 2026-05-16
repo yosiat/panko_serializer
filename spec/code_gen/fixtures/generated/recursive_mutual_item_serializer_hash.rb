@@ -20,25 +20,25 @@ class RecursiveMutualItemSerializer_Hash
     @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    _to_hash(record, context, filters)
+    _to_hash(record, context, scope, filters)
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    records.map { |r| _to_hash(r, context, filters) }
+    records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
-  def _to_hash(record, context, filters)
+  def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, filters)
+      _to_hash_hash(record, context, scope, filters)
     else
-      _to_hash_object(record, context, filters)
+      _to_hash_object(record, context, scope, filters)
     end
   end
 
-  def _to_hash_hash(record, context, filters)
+  def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record["id"]
@@ -51,13 +51,13 @@ class RecursiveMutualItemSerializer_Hash
       result["subfolder"] = if value.nil?
         nil
       else
-        @subfolder_serializer._to_hash(value, context, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+        @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
       end
     end
     result
   end
 
-  def _to_hash_object(record, context, filters)
+  def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record.id
@@ -70,7 +70,7 @@ class RecursiveMutualItemSerializer_Hash
       result["subfolder"] = if value.nil?
         nil
       else
-        @subfolder_serializer._to_hash(value, context, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+        @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
       end
     end
     result
