@@ -31,7 +31,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
-          emit_json_dispatch(builder)
+          emit_json_dispatch(descriptor, builder)
           builder.blank
           emit_json_hash_helper(descriptor, config, field_index, builder)
           builder.blank
@@ -53,7 +53,7 @@ module SerializersCodeGen
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
-          emit_hash_dispatch(builder)
+          emit_hash_dispatch(descriptor, builder)
           builder.blank
           emit_hash_hash_helper(descriptor, config, field_index, builder)
           builder.blank
@@ -66,11 +66,28 @@ module SerializersCodeGen
         # Composition thread the same +scope+ unchanged into the inner
         # +_write_one+.
         #
+        # When +descriptor.parent_class+ is non-+nil+ (S18.3), prepends
+        # +@object = record; @context = context; @scope = scope+ at the
+        # top of the dispatcher body so a user-defined +def+ on the
+        # parent class can read those ivars on +self+ regardless of
+        # which shape-specific helper the +is_a?(Hash)+ branch routes
+        # into. The two per-shape helpers
+        # ({emit_json_hash_helper} / {emit_json_object_helper}) stay
+        # *un-prepended* — they inherit the ivars from this dispatcher
+        # which already set them. The dispatcher is the only
+        # serialization-time entry from {JsonMode#emit_serialize_one} /
+        # {JsonMode#emit_serialize_many} and from nested-Composition
+        # call sites in +FieldEmitters::Association+, so prepending
+        # there covers every reachable path while keeping the helper
+        # bodies allocation-free.
+        #
+        # @param descriptor [SerializersCodeGen::Descriptor]
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_json_dispatch(builder)
+        def self.emit_json_dispatch(descriptor, builder)
           builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
             builder.indent { builder.line "_write_one_hash(record, writer, context, scope, filters)" }
             builder.line "else"
@@ -145,11 +162,20 @@ module SerializersCodeGen
         # between +context+ and +filters+ in the positional signature
         # per S17.2 — mirrors the JSON-mode dispatcher.
         #
+        # When +descriptor.parent_class+ is non-+nil+ (S18.3), prepends
+        # +@object = record; @context = context; @scope = scope+ at the
+        # top of the dispatcher body — mirror of
+        # {emit_json_dispatch}. The per-shape +_to_hash_hash+ /
+        # +_to_hash_object+ helpers stay un-prepended; they inherit the
+        # ivars from the dispatcher.
+        #
+        # @param descriptor [SerializersCodeGen::Descriptor]
         # @param builder [SerializersCodeGen::CodeBuilder] target buffer
         # @return [void]
-        def self.emit_hash_dispatch(builder)
+        def self.emit_hash_dispatch(descriptor, builder)
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
             builder.indent { builder.line "_to_hash_hash(record, context, scope, filters)" }
             builder.line "else"
@@ -242,6 +268,36 @@ module SerializersCodeGen
             builder.line "result"
           end
           builder.line "end"
+        end
+
+        # Prepends per-record +@object+ / +@context+ / +@scope+ ivar
+        # writes at the top of the +_write_one+ / +_to_hash+
+        # *dispatchers* when +descriptor.parent_class+ is non-+nil+ —
+        # the S18.3 wire-up that lets a user-defined +def+ on the
+        # parent class read those ivars naturally on +self+. The
+        # dispatcher is the only entry point into the per-shape helpers
+        # (and the only call site from
+        # {JsonMode#emit_serialize_one} / +serialize_many+ + nested
+        # Composition), so prepending there covers every reachable
+        # path — the +_write_one_hash+ / +_write_one_object+ /
+        # +_to_hash_hash+ / +_to_hash_object+ helpers stay
+        # un-prepended; they inherit the ivars from the dispatcher.
+        #
+        # No-op when +parent_class+ is +nil+ — bare descriptors stay
+        # byte-identical to pre-S18 emit so every existing snapshot
+        # remains pinned. Unconditional on the +parent_class+ axis (not
+        # gated on a Symbol-body Method Attribute being present) per
+        # the PRD rationale shared with
+        # {Specialized.emit_parent_class_ivar_writes}.
+        #
+        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_parent_class_ivar_writes(descriptor, builder)
+          return if descriptor.parent_class.nil?
+          builder.line "@object = record"
+          builder.line "@context = context"
+          builder.line "@scope = scope"
         end
 
         # Returns the Hash-record read expression for one Source name,

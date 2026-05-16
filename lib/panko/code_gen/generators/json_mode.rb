@@ -167,12 +167,16 @@ module SerializersCodeGen
       # Emits the +initialize(descriptor:)+ constructor. Hoists each
       # Method Attribute's Callable body into a per-Field +@cb_<name>+
       # ivar in declaration order per
-      # +docs/code-generation.md § Callable hoisting+, then per Association
-      # hoists the optional +if:+ Callable into +@cb_if_<name>+ (only when
-      # +assoc.if+ is non-+nil+ — unguarded Associations pay zero
-      # construction cost) and assigns +@<name>_serializer = <Inner>_JSON
-      # .new(descriptor: descriptor.associations[<i>].descriptor)+ — the
-      # Composition wiring from
+      # +docs/code-generation.md § Callable hoisting+, *skipping*
+      # Method Attributes whose +body+ is a +Symbol+ (S18.3 — no
+      # Callable to bind; Symbol bodies dispatch as +value =
+      # <method_name>+ on +self+ at the emit site instead). Then per
+      # Association hoists the optional +if:+ Callable into
+      # +@cb_if_<name>+ (only when +assoc.if+ is non-+nil+ — unguarded
+      # Associations pay zero construction cost) and assigns
+      # +@<name>_serializer = <Inner>_JSON .new(descriptor:
+      # descriptor.associations[<i>].descriptor)+ — the Composition
+      # wiring from
       # +docs/compilation.md § Composition of nested Associations+.
       #
       # When an Association's nested Descriptor is the parent itself
@@ -219,6 +223,7 @@ module SerializersCodeGen
         builder.indent do
           builder.line "_construct_cache[descriptor.__id__] = self" if cyclic_self
           descriptor.method_attributes.each_with_index do |method_attribute, index|
+            next if method_attribute.body.is_a?(Symbol)
             ivar = FieldEmitters::MethodAttribute.ivar_name(method_attribute)
             builder.line "#{ivar} = descriptor.method_attributes[#{index}].body"
           end

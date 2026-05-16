@@ -4,18 +4,33 @@ module SerializersCodeGen
   module Generators
     module FieldEmitters
       # Emits the per-mode write for one +MethodAttribute+ inside a
-      # +_write_one_*+ / +_to_hash_*+ helper. Two axes of variation:
+      # +_write_one_*+ / +_to_hash_*+ helper. Three axes of variation:
       #
       # - *Output Mode* — JSON emits +writer.push_value(value, "<name>")+
       #   (the 2-arg form collapses +push_key+ + +push_value+ into one
       #   C-extension dispatch — byte-identical output, fewer dispatches);
       #   Hash emits +result[<key>] = value+. One module, one entry per mode,
       #   per +docs/output-modes.md § Composition across modes+.
-      # - *Callable arity* — the call expression is specialized per arity
-      #   per +docs/descriptor.md § Callable arity+. Arity is read off the
+      # - *Body kind* — the call expression branches on
+      #   +method_attribute.body.is_a?(Symbol)+ per S18.3 /
+      #   +docs/merging-into-panko.md § Generated Class subclasses the
+      #   user's Panko serializer+:
+      #   * Symbol → +value = <method_name>+ (direct method dispatch on
+      #     +self+, reachable because the owning Descriptor's
+      #     +parent_class+ pushes the Generated Class into a subclass of
+      #     the user-supplied class — semantic legitimacy enforced by
+      #     +Validators::SymbolBodyDispatch+ in S18.2, runtime errors are
+      #     Ruby-native).
+      #   * Callable → today's arity-specialized
+      #     +@cb_<name>.call(record, context, scope)+ — unchanged from
+      #     pre-S18 emit, byte-identical for every existing snapshot.
+      # - *Callable arity* — when the body is a Callable, the call
+      #   expression is specialized per arity per
+      #   +docs/descriptor.md § Callable arity+. Arity is read off the
       #   Callable at +Compile+ time (the +callable_arity+ validator from
-      #   S4.1, widened in S17.1 to +0..3+, has already pre-checked it
-      #   lies in +{0, 1, 2, 3}+, so no validation here):
+      #   S4.1, widened in S17.1 to +0..3+ and widened in S18.2 to skip
+      #   Symbol bodies, has already pre-checked it lies in +{0, 1, 2,
+      #   3}+, so no validation here):
       #   * +0+: +@cb_<name>.call+
       #   * +1+: +@cb_<name>.call(record)+
       #   * +2+: +@cb_<name>.call(record, context)+
@@ -29,12 +44,21 @@ module SerializersCodeGen
       # 1. +unless filters.drops?(<index>) ... end+ — the codegen-time
       #    Filter wrapper per +docs/filters.md § Threading through
       #    Composition+. A filter-dropped Method Attribute never invokes
-      #    its Callable, so the Callable + +equal?(SKIP)+ pair is
-      #    completely elided when the Filter says no.
+      #    its body, so the dispatch + +equal?(SKIP)+ pair is completely
+      #    elided when the Filter says no.
       # 2. Inside it, +unless value.equal?(SerializersCodeGen::SKIP)+.
       #    The +equal?+ check is load-bearing — +==+ would let an
       #    +==+-overriding object accidentally collide with +SKIP+ per
       #    +docs/descriptor.md § SKIP sentinel+.
+      #
+      # Per-record +@object+ / +@context+ / +@scope+ ivars are reachable
+      # from a Symbol-body method on +self+ because +RecordAccess+'s
+      # dispatch sites prepend them at the top of +_write_one+ /
+      # +_to_hash+ (Specialized) or the +_write_one+ / +_to_hash+
+      # dispatchers (Generic) when +descriptor.parent_class+ is non-nil
+      # per S18.3 — a deliberate deviation from the "GC ivars are
+      # init-time constants" pattern in +docs/code-generation.md+,
+      # bench-validated as a same-ish-noise-level delta.
       module MethodAttribute
         # Emits the JSON-mode write for one +MethodAttribute+. Two
         # nested guards: outer +unless filters.drops?(<index>) ... end+
@@ -52,7 +76,7 @@ module SerializersCodeGen
         def self.emit_json(method_attribute, index, builder)
           builder.line "unless filters.drops?(#{index})"
           builder.indent do
-            builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
+            builder.line "value = #{call_expression(method_attribute)}"
             builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
             builder.indent do
               builder.line %(writer.push_value(value, "#{method_attribute.name}"))
@@ -84,7 +108,7 @@ module SerializersCodeGen
           end
           builder.line "unless filters.drops?(#{index})"
           builder.indent do
-            builder.line "value = #{call_expression(ivar_name(method_attribute), method_attribute.body.arity)}"
+            builder.line "value = #{call_expression(method_attribute)}"
             builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
             builder.indent do
               builder.line "result[#{key_lit}] = value"
@@ -94,23 +118,33 @@ module SerializersCodeGen
           builder.line "end"
         end
 
-        # Returns the arity-specialized call expression for one ivar. Pre-
-        # validated by the +callable_arity+ rule (S4.1, widened to +0..3+
-        # in S17.1) — only +0+, +1+, +2+, +3+ ever reach this method.
+        # Returns the body-kind-specialized call expression for one
+        # +MethodAttribute+. Branches on +body.is_a?(Symbol)+ per S18.3:
+        # Symbol bodies emit a bare +<method_name>+ (direct method
+        # dispatch on +self+, no Callable indirection); Callable bodies
+        # emit today's arity-specialized +@cb_<name>.call(...)+, pre-
+        # validated by the +callable_arity+ rule (S4.1, widened to
+        # +0..3+ in S17.1, widened in S18.2 to skip Symbol bodies) so
+        # only arities +0+, +1+, +2+, +3+ ever reach this method.
         # Specialization is per +docs/descriptor.md § Callable arity+ —
         # no splat / +*args+ / shared helper. Arity 3 threads +scope+
         # positionally as the third argument; arity 2 keeps its
         # +(record, context)+ meaning (no +scope+ leak).
         #
-        # @param ivar_name [String] the +@cb_<name>+ ivar to invoke
-        # @param arity [Integer] +0+, +1+, +2+, or +3+
-        # @return [String] Ruby source like +"@cb_full_title.call(record, context)"+
-        def self.call_expression(ivar_name, arity)
-          case arity
-          when 0 then "#{ivar_name}.call"
-          when 1 then "#{ivar_name}.call(record)"
-          when 2 then "#{ivar_name}.call(record, context)"
-          else "#{ivar_name}.call(record, context, scope)"
+        # @param method_attribute [SerializersCodeGen::MethodAttribute]
+        #   the Field node; +#body+ is either a +Symbol+ or a Callable
+        # @return [String] Ruby source — +"greeting"+ for a Symbol body
+        #   named +:greeting+; +"@cb_full_title.call(record, context)"+
+        #   for an arity-2 Callable body on a Field named +:full_title+
+        def self.call_expression(method_attribute)
+          body = method_attribute.body
+          return body.to_s if body.is_a?(Symbol)
+          ivar = ivar_name(method_attribute)
+          case body.arity
+          when 0 then "#{ivar}.call"
+          when 1 then "#{ivar}.call(record)"
+          when 2 then "#{ivar}.call(record, context)"
+          else "#{ivar}.call(record, context, scope)"
           end
         end
 
