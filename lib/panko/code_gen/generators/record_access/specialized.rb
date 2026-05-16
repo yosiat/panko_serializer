@@ -5,9 +5,10 @@ module SerializersCodeGen
     module RecordAccess
       # Specialized-path Record-access emitter — used when a Descriptor's
       # +Models+ field is set per +docs/compilation.md § Specialized path+.
-      # Emits a single +_write_one(record, writer, context, filters)+ (JSON)
-      # or +_to_hash(record, context, filters)+ (Hash) — no +is_a?(Hash)+
-      # dispatch and no +_write_one_hash+ / +_write_one_object+ split.
+      # Emits a single +_write_one(record, writer, context, scope, filters)+
+      # (JSON) or +_to_hash(record, context, scope, filters)+ (Hash) — no
+      # +is_a?(Hash)+ dispatch and no +_write_one_hash+ / +_write_one_object+
+      # split.
       # The +Models+ contract assumes Records are instances of the declared
       # classes (or their subclasses), so every per-Attribute access form
       # is monomorphic at emit time.
