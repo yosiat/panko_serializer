@@ -19,6 +19,10 @@ RSpec.describe "Compile-time errors" do
       expect(SerializersCodeGen::UnknownSourceError.superclass).to eq(SerializersCodeGen::CompileError)
       expect(SerializersCodeGen::ArityError.superclass).to eq(SerializersCodeGen::CompileError)
     end
+
+    it "SymbolBodyError subclasses CompileError (S18.2)" do
+      expect(SerializersCodeGen::SymbolBodyError.superclass).to eq(SerializersCodeGen::CompileError)
+    end
   end
 
   describe "DescriptorError — structural, at Data.new" do
@@ -696,6 +700,64 @@ RSpec.describe "Compile-time errors" do
         end
       end
     end
+
+    describe "SymbolBodyError (S18.2)" do
+      # Symbol-body emit lands in S18.3 — until then, the emitter still
+      # routes through the Callable arm (+@cb_<n>.call+) and crashes on
+      # +.arity+ for Symbols. This block therefore only exercises the
+      # raise-paths (Symbol-body + +parent_class: nil+) and the unchanged
+      # Callable-body acceptance paths via full +SerializersCodeGen.compile+;
+      # the Symbol-body + +parent_class+ acceptance contract is asserted
+      # at the validator level in
+      # +spec/validators/symbol_body_dispatch_spec.rb+.
+      def descriptor_with_symbol_body(name:, parent_class:)
+        SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor",
+          models: nil,
+          attributes: [],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: name, body: name)],
+          associations: [],
+          parent_class: parent_class
+        )
+      end
+
+      it "raises when a Symbol-body MethodAttribute sits in a Descriptor with parent_class: nil" do
+        descriptor = descriptor_with_symbol_body(name: :greeting, parent_class: nil)
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.to raise_error(
+          SerializersCodeGen::SymbolBodyError,
+          "PostDescriptor#greeting: MethodAttribute#body is a Symbol but Descriptor#parent_class is nil; " \
+          "Symbol-body requires a parent class to dispatch against."
+        )
+      end
+
+      it "compiles when a Callable-body MethodAttribute sits in a Descriptor with parent_class: nil" do
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :computed, body: ->(_r) { :ok })],
+          associations: [],
+          parent_class: nil
+        )
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+
+      it "compiles when a Callable-body MethodAttribute sits in a Descriptor with parent_class set" do
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :computed, body: ->(_r) { :ok })],
+          associations: [],
+          parent_class: Object
+        )
+        expect {
+          SerializersCodeGen.compile(descriptor, output: :json)
+        }.not_to raise_error
+      end
+    end
   end
 
   describe "Message convention" do
@@ -768,6 +830,24 @@ RSpec.describe "Compile-time errors" do
         "PostDescriptor#likes_count: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3."
       )
     end
+
+    it "SymbolBodyError names the Descriptor, Field name, rule, and parent_class state (S18.2)" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: nil,
+        attributes: [],
+        method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
+        associations: [],
+        parent_class: nil
+      )
+      expect {
+        SerializersCodeGen.compile(descriptor, output: :json)
+      }.to raise_error(
+        SerializersCodeGen::SymbolBodyError,
+        "PostDescriptor#greeting: MethodAttribute#body is a Symbol but Descriptor#parent_class is nil; " \
+        "Symbol-body requires a parent class to dispatch against."
+      )
+    end
   end
 
   describe "SKIP singleton (S1.3)" do
@@ -829,6 +909,28 @@ RSpec.describe "Compile-time errors" do
         }.to raise_error(
           SerializersCodeGen::NameCollisionError,
           "PostDescriptor#id: Attribute and Attribute share name; every Field at the same level must have a unique name."
+        )
+        expect(Dir.children(dir)).to be_empty
+      end
+    end
+
+    it "SymbolBodyError parity — Dump raises the same class as Compile (S18.2)" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor",
+        models: nil,
+        attributes: [],
+        method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
+        associations: [],
+        parent_class: nil
+      )
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "post_descriptor_json.rb")
+        expect {
+          SerializersCodeGen.dump(descriptor, output: :json, path: target)
+        }.to raise_error(
+          SerializersCodeGen::SymbolBodyError,
+          "PostDescriptor#greeting: MethodAttribute#body is a Symbol but Descriptor#parent_class is nil; " \
+          "Symbol-body requires a parent class to dispatch against."
         )
         expect(Dir.children(dir)).to be_empty
       end
@@ -925,6 +1027,23 @@ RSpec.describe "Compile-time errors" do
           expect {
             SerializersCodeGen.compile(descriptor, output: mode)
           }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 4/)
+        end
+
+        it "SymbolBodyError raises before Generator emit (S18.2)" do
+          descriptor = SerializersCodeGen::Descriptor.new(
+            name: "PostDescriptor",
+            models: nil,
+            attributes: [],
+            method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
+            associations: [],
+            parent_class: nil
+          )
+          expect {
+            SerializersCodeGen.compile(descriptor, output: mode)
+          }.to raise_error(
+            SerializersCodeGen::SymbolBodyError,
+            /MethodAttribute#body is a Symbol but Descriptor#parent_class is nil/
+          )
         end
       end
     end

@@ -50,6 +50,19 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
         )
       end
     end
+
+    it "skips Symbol-body MethodAttributes (no .arity call on Symbol) — S18.2" do
+      descriptor = SerializersCodeGen::Descriptor.new(
+        name: "PostDescriptor", models: nil,
+        attributes: [],
+        method_attributes: [method_attribute(:greeting, :greeting)],
+        associations: [],
+        parent_class: Object
+      )
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
   end
 
   describe ".validate — Association#if arity" do

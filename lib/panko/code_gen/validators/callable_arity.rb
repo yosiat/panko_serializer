@@ -48,6 +48,11 @@ module SerializersCodeGen
         # +docs/descriptor.md § Recursive Descriptors+ ("Recursion is
         # detected via Ruby object identity").
         #
+        # Symbol-body +MethodAttribute+s (S18) are skipped — Symbols have
+        # no +#arity+, and the legitimacy check ("Symbol body requires a
+        # +parent_class+") lives in +Validators::SymbolBodyDispatch+.
+        # Association +#if+ stays Callable-only and is checked as before.
+        #
         # @param descriptor [SerializersCodeGen::Descriptor]
         # @param seen [Hash{Integer => true}] identity-keyed visit set
         # @return [void]
@@ -55,6 +60,7 @@ module SerializersCodeGen
           return if seen[descriptor.__id__]
           seen[descriptor.__id__] = true
           descriptor.method_attributes.each do |ma|
+            next if ma.body.is_a?(Symbol)
             check_arity!(descriptor.name, ma.name, "MethodAttribute#body", ma.body.arity)
           end
           descriptor.associations.each do |assoc|
