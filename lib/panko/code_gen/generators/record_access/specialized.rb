@@ -9,6 +9,14 @@ module SerializersCodeGen
       # (JSON) or +_to_hash(record, context, scope, filters)+ (Hash) — no
       # +is_a?(Hash)+ dispatch and no +_write_one_hash+ / +_write_one_object+
       # split.
+      #
+      # When +descriptor.parent_class+ is non-+nil+ (S18.3), the single
+      # body is prepended with three +@object = record; @context =
+      # context; @scope = scope+ lines so a user-defined method on the
+      # parent class can read those ivars on +self+ — the Panko-shape
+      # contract from +docs/merging-into-panko.md § Generated Class
+      # subclasses the user's Panko serializer+. See
+      # {emit_parent_class_ivar_writes} for the rationale.
       # The +Models+ contract assumes Records are instances of the declared
       # classes (or their subclasses), so every per-Attribute access form
       # is monomorphic at emit time.
@@ -69,6 +77,7 @@ module SerializersCodeGen
           ar_classes = descriptor.models.select { |m| ar_class?(m) }
           builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
               if json_column_attribute?(attribute, ar_classes)
@@ -104,6 +113,7 @@ module SerializersCodeGen
           ensure_attribute_methods!(descriptor)
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
               FieldEmitters::Attribute.emit_hash(
@@ -130,6 +140,44 @@ module SerializersCodeGen
             builder.line "result"
           end
           builder.line "end"
+        end
+
+        # Prepends per-record +@object+ / +@context+ / +@scope+ ivar
+        # writes at the top of the single +_write_one+ (JSON) /
+        # +_to_hash+ (Hash) body when +descriptor.parent_class+ is
+        # non-+nil+ — the S18.3 wire-up that lets a user-defined +def+
+        # on the parent class read +@object+ / +@context+ / +@scope+
+        # naturally instead of taking an explicit +(record, context,
+        # scope)+ tuple (the Panko-shape contract from
+        # +docs/merging-into-panko.md § Generated Class subclasses the
+        # user's Panko serializer+).
+        #
+        # No-op when +parent_class+ is +nil+ — the bare descriptor stays
+        # byte-identical to pre-S18 emit so every existing snapshot
+        # remains pinned. Unconditional on the +parent_class+ axis
+        # rather than gated on a Symbol-body Method Attribute being
+        # present per the PRD rationale: user +def+s reachable on the
+        # parent class can call helpers reading +@object+ even without
+        # a declared Symbol-body, and +Panko::Serializer+ exposes
+        # +attr_reader :object, :context, :scope+ as user-facing surface
+        # for any +parent_class:+ Descriptor. Bench-validated as a
+        # same-ish-noise-level delta (PRD § "Per-record ivar writes",
+        # +/tmp/k1_ivar_bench/bench.rb+, ~29 ns within ±8.7% error,
+        # allocations identical).
+        #
+        # Deviation from the "GC ivars are init-time constants" pattern
+        # in +docs/code-generation.md+ — documented at the field-emitter
+        # +call_expression+ boundary; the full doc-page update lands in
+        # S18.4.
+        #
+        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_parent_class_ivar_writes(descriptor, builder)
+          return if descriptor.parent_class.nil?
+          builder.line "@object = record"
+          builder.line "@context = context"
+          builder.line "@scope = scope"
         end
 
         # Returns the read expression for one Attribute in the Specialized
