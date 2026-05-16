@@ -710,19 +710,14 @@ RSpec.describe "Compile-time errors" do
       # the Symbol-body + +parent_class+ acceptance contract is asserted
       # at the validator level in
       # +spec/validators/symbol_body_dispatch_spec.rb+.
-      def descriptor_with_symbol_body(name:, parent_class:)
-        SerializersCodeGen::Descriptor.new(
-          name: "PostDescriptor",
-          models: nil,
-          attributes: [],
-          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: name, body: name)],
-          associations: [],
-          parent_class: parent_class
-        )
-      end
-
       it "raises when a Symbol-body MethodAttribute sits in a Descriptor with parent_class: nil" do
-        descriptor = descriptor_with_symbol_body(name: :greeting, parent_class: nil)
+        descriptor = SerializersCodeGen::Descriptor.new(
+          name: "PostDescriptor", models: nil,
+          attributes: [],
+          method_attributes: [SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
+          associations: [],
+          parent_class: nil
+        )
         expect {
           SerializersCodeGen.compile(descriptor, output: :json)
         }.to raise_error(

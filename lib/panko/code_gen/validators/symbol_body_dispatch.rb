@@ -65,8 +65,9 @@ module SerializersCodeGen
         # Scans +descriptor.method_attributes+ for Symbol-body entries
         # and raises +SymbolBodyError+ on the first one when the
         # Descriptor's +parent_class+ is +nil+. Callable bodies are
-        # ignored (handled by +CallableArity+); non-Symbol +parent_class+
-        # state is the legitimate Symbol-body shape from S18.
+        # ignored (handled by +CallableArity+); a non-nil +parent_class+
+        # is the legitimate Symbol-body shape from S18 and short-circuits
+        # the scan entirely.
         #
         # @param descriptor [SerializersCodeGen::Descriptor]
         # @return [void]
