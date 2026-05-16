@@ -18,6 +18,9 @@ require "config/config_json_column_html_safe"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_uniform_specialized"
 require "scope_threading"
+require "parent_class_specialized"
+require "parent_class_generic"
+require "parent_class_recursive_self"
 
 # Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
 # +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
@@ -54,7 +57,10 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::Config::ConfigJsonColumnHtmlSafe,
     Fixtures::Config::ConfigJsonColumnGenericFallthrough,
     Fixtures::Config::ConfigJsonColumnNonUniformSpecialized,
-    Fixtures::ScopeThreading
+    Fixtures::ScopeThreading,
+    Fixtures::ParentClassSpecialized,
+    Fixtures::ParentClassGeneric,
+    Fixtures::ParentClassRecursiveSelf
   ]
 
   fixtures.each do |fixture|
