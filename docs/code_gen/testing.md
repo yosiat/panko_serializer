@@ -519,15 +519,15 @@ under `CompileError`.
 - **`UnknownSourceError`** — `Models: [AR]` with source neither column nor instance
   method; `Models: [Class1, Class2]` mixed with non-uniform backing; `Models: nil` does
   **not** raise at Compile (defers to runtime `NoMethodError`).
-- **`ArityError`** — MethodAttribute body or Association `if:` with arity 3 / -1 / -2
-  raises; arity 0 / 1 / 2 compiles successfully (positive cases pin the allowed set,
+- **`ArityError`** — MethodAttribute body or Association `if:` with arity 4 / -1 / -2 / -3
+  raises; arity 0 / 1 / 2 / 3 compiles successfully (positive cases pin the allowed set,
   guarding against false-positive validation).
 
 **Message convention** — a dedicated `describe` block pins the format from errors.md
 ("Message convention") on one representative error per subclass: message includes
 **Descriptor** `name`, **Field** name + kind, the specific rule violated, and the
 observed value. Example to match: `"PostDescriptor#likes_count: MethodAttribute#body has
-arity 3; must be 0, 1, or 2."`
+arity 4; must be 0, 1, 2, or 3."`
 
 **Mode independence** — 6 its: `[NameCollisionError, UnknownSourceError, ArityError]` ×
 `%i[json hash]`. Pins that semantic validation is pre-Generator and mode-independent.

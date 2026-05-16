@@ -62,7 +62,7 @@ debugger:
 Example:
 
 ```
-SerializersCodeGen::ArityError: PostDescriptor#likes_count: MethodAttribute#body has arity 3; must be 0, 1, or 2.
+SerializersCodeGen::ArityError: PostDescriptor#likes_count: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3.
 ```
 
 ## What's not in the hierarchy

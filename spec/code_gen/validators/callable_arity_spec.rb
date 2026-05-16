@@ -23,7 +23,8 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
     {
       0 => -> { :ok },
       1 => ->(_record) { :ok },
-      2 => ->(_record, _context) { :ok }
+      2 => ->(_record, _context) { :ok },
+      3 => ->(_record, _context, _scope) { :ok }
     }.each do |arity, body|
       it "passes for arity #{arity}" do
         descriptor = descriptor_with(method_attributes: [method_attribute(:fld, body)])
@@ -34,9 +35,10 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
     end
 
     {
-      3 => ->(_a, _b, _c) { :ok },
+      4 => ->(_a, _b, _c, _d) { :ok },
       -1 => ->(*_args) { :ok },
-      -2 => ->(_a, *_rest) { :ok }
+      -2 => ->(_a, *_rest) { :ok },
+      -3 => ->(_a, _b, *_rest) { :ok }
     }.each do |arity, body|
       it "raises ArityError for arity #{arity}" do
         descriptor = descriptor_with(method_attributes: [method_attribute(:likes_count, body)])
@@ -44,7 +46,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
           described_class.validate(descriptor, output: :json, config: config)
         }.to raise_error(
           SerializersCodeGen::ArityError,
-          "PostDescriptor#likes_count: MethodAttribute#body has arity #{arity}; must be 0, 1, or 2."
+          "PostDescriptor#likes_count: MethodAttribute#body has arity #{arity}; must be 0, 1, 2, or 3."
         )
       end
     end
@@ -76,16 +78,26 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
       }.not_to raise_error
     end
 
-    it "raises ArityError for arity 3 if:" do
+    it "passes for arity 3 if:" do
       assoc = SerializersCodeGen::Association.new(
-        name: :author, kind: :has_one, descriptor: inner, if: ->(_a, _b, _c) { true }
+        name: :author, kind: :has_one, descriptor: inner, if: ->(_r, _c, _s) { true }
+      )
+      descriptor = descriptor_with(associations: [assoc])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.not_to raise_error
+    end
+
+    it "raises ArityError for arity 4 if:" do
+      assoc = SerializersCodeGen::Association.new(
+        name: :author, kind: :has_one, descriptor: inner, if: ->(_a, _b, _c, _d) { true }
       )
       descriptor = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
         SerializersCodeGen::ArityError,
-        "PostDescriptor#author: Association#if has arity 3; must be 0, 1, or 2."
+        "PostDescriptor#author: Association#if has arity 4; must be 0, 1, 2, or 3."
       )
     end
 
@@ -98,7 +110,20 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
         SerializersCodeGen::ArityError,
-        "PostDescriptor#author: Association#if has arity -1; must be 0, 1, or 2."
+        "PostDescriptor#author: Association#if has arity -1; must be 0, 1, 2, or 3."
+      )
+    end
+
+    it "raises ArityError for arity -3 if: (one required + splat)" do
+      assoc = SerializersCodeGen::Association.new(
+        name: :author, kind: :has_one, descriptor: inner, if: ->(_a, _b, *_rest) { true }
+      )
+      descriptor = descriptor_with(associations: [assoc])
+      expect {
+        described_class.validate(descriptor, output: :json, config: config)
+      }.to raise_error(
+        SerializersCodeGen::ArityError,
+        "PostDescriptor#author: Association#if has arity -3; must be 0, 1, 2, or 3."
       )
     end
   end
@@ -108,7 +133,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
       inner = SerializersCodeGen::Descriptor.new(
         name: "AuthorDescriptor", models: nil,
         attributes: [],
-        method_attributes: [method_attribute(:full_name, ->(_a, _b, _c) { :ok })],
+        method_attributes: [method_attribute(:full_name, ->(_a, _b, _c, _d) { :ok })],
         associations: []
       )
       assoc = SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
@@ -117,7 +142,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
         described_class.validate(outer, output: :json, config: config)
       }.to raise_error(
         SerializersCodeGen::ArityError,
-        "AuthorDescriptor#full_name: MethodAttribute#body has arity 3; must be 0, 1, or 2."
+        "AuthorDescriptor#full_name: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3."
       )
     end
   end
@@ -158,7 +183,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
 
   describe ".validate — no Generated Class produced on raise" do
     it "raises before SerializersCodeGen.compile emits any source" do
-      bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c) { :ok })])
+      bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c, _d) { :ok })])
       generated_class = nil
       expect {
         generated_class = SerializersCodeGen.compile(bad, output: :json, config: config)
@@ -174,10 +199,10 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
     end
 
     it "is invoked by the orchestrator on Compile" do
-      bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c) { :ok })])
+      bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c, _d) { :ok })])
       expect {
         SerializersCodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 3/)
+      }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 4/)
     end
   end
 end

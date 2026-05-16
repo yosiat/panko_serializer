@@ -594,9 +594,10 @@ RSpec.describe "Compile-time errors" do
       end
 
       {
-        3 => ->(_a, _b, _c) { :ok },
+        4 => ->(_a, _b, _c, _d) { :ok },
         -1 => ->(*_args) { :ok },
-        -2 => ->(_a, *_rest) { :ok }
+        -2 => ->(_a, *_rest) { :ok },
+        -3 => ->(_a, _b, *_rest) { :ok }
       }.each do |arity, body|
         it "raises when MethodAttribute body has arity #{arity}" do
           descriptor = descriptor_with_method_attribute(name: :likes_count, body: body)
@@ -607,9 +608,10 @@ RSpec.describe "Compile-time errors" do
       end
 
       {
-        3 => ->(_a, _b, _c) { true },
+        4 => ->(_a, _b, _c, _d) { true },
         -1 => ->(*_args) { true },
-        -2 => ->(_a, *_rest) { true }
+        -2 => ->(_a, *_rest) { true },
+        -3 => ->(_a, _b, *_rest) { true }
       }.each do |arity, body|
         it "raises when Association if: has arity #{arity}" do
           descriptor = descriptor_with_association_if(name: :author, if_callable: body)
@@ -617,7 +619,7 @@ RSpec.describe "Compile-time errors" do
             SerializersCodeGen.compile(descriptor, output: :json)
           }.to raise_error(
             SerializersCodeGen::ArityError,
-            "PostDescriptor#author: Association#if has arity #{arity}; must be 0, 1, or 2."
+            "PostDescriptor#author: Association#if has arity #{arity}; must be 0, 1, 2, or 3."
           )
         end
       end
@@ -625,7 +627,8 @@ RSpec.describe "Compile-time errors" do
       {
         0 => -> { :ok },
         1 => ->(_record) { :ok },
-        2 => ->(_record, _context) { :ok }
+        2 => ->(_record, _context) { :ok },
+        3 => ->(_record, _context, _scope) { :ok }
       }.each do |arity, body|
         it "compiles when MethodAttribute body has arity #{arity}" do
           descriptor = descriptor_with_method_attribute(name: :computed, body: body)
@@ -638,7 +641,8 @@ RSpec.describe "Compile-time errors" do
       {
         0 => -> { true },
         1 => ->(_record) { true },
-        2 => ->(_record, _context) { true }
+        2 => ->(_record, _context) { true },
+        3 => ->(_record, _context, _scope) { true }
       }.each do |arity, body|
         it "compiles when Association if: has arity #{arity}" do
           descriptor = descriptor_with_association_if(name: :author, if_callable: body)
@@ -709,7 +713,7 @@ RSpec.describe "Compile-time errors" do
         models: nil,
         attributes: [],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c) { :ok })
+          SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c, _d) { :ok })
         ],
         associations: []
       )
@@ -717,7 +721,7 @@ RSpec.describe "Compile-time errors" do
         SerializersCodeGen.compile(descriptor, output: :json)
       }.to raise_error(
         SerializersCodeGen::ArityError,
-        "PostDescriptor#likes_count: MethodAttribute#body has arity 3; must be 0, 1, or 2."
+        "PostDescriptor#likes_count: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3."
       )
     end
   end
@@ -747,7 +751,7 @@ RSpec.describe "Compile-time errors" do
         models: nil,
         attributes: [],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c) { :ok })
+          SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c, _d) { :ok })
         ],
         associations: []
       )
@@ -757,7 +761,7 @@ RSpec.describe "Compile-time errors" do
           SerializersCodeGen.dump(descriptor, output: :json, path: target)
         }.to raise_error(
           SerializersCodeGen::ArityError,
-          "PostDescriptor#likes_count: MethodAttribute#body has arity 3; must be 0, 1, or 2."
+          "PostDescriptor#likes_count: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3."
         )
         expect(Dir.children(dir)).to be_empty
       end
@@ -870,13 +874,13 @@ RSpec.describe "Compile-time errors" do
             models: nil,
             attributes: [],
             method_attributes: [
-              SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c) { :ok })
+              SerializersCodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c, _d) { :ok })
             ],
             associations: []
           )
           expect {
             SerializersCodeGen.compile(descriptor, output: mode)
-          }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 3/)
+          }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 4/)
         end
       end
     end

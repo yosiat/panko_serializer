@@ -4,8 +4,8 @@ module SerializersCodeGen
   module Validators
     # Semantic-validation rule: every Callable in a Descriptor tree
     # (+MethodAttribute#body+ and +Association#if+) must declare arity in
-    # +{0, 1, 2}+ per +docs/descriptor.md § Callable arity+. Variadic
-    # arities (+-1+, +-2+, ...) and 3-or-more positional args raise
+    # +{0, 1, 2, 3}+ per +docs/descriptor.md § Callable arity+. Variadic
+    # arities (+-1+, +-2+, ...) and 4-or-more positional args raise
     # +SerializersCodeGen::ArityError+ before any source emit.
     #
     # First concrete rule plugged into the +Validator+ orchestrator from
@@ -15,9 +15,12 @@ module SerializersCodeGen
     module CallableArity
       # Accepted arities for a +Callable+. The +Generator+ emits one
       # specialized call expression per value (+cb.call+, +cb.call(record)+,
-      # +cb.call(record, context)+) — anything outside this set has no
-      # well-defined emit shape, so the validator rejects it at +Compile+.
-      ALLOWED_ARITIES = 0..2
+      # +cb.call(record, context)+, +cb.call(record, context, scope)+) —
+      # anything outside this set has no well-defined emit shape, so the
+      # validator rejects it at +Compile+. Arity 3 was added in S17.1
+      # (#90) as the foundation for first-class +Scope+ threading; arity 2
+      # keeps its existing +(record, context)+ meaning.
+      ALLOWED_ARITIES = 0..3
 
       # Walks +descriptor+ depth-first and raises on the first +Callable+
       # whose arity is outside {ALLOWED_ARITIES}. Uses an identity-keyed
@@ -31,7 +34,7 @@ module SerializersCodeGen
       #   accepted to satisfy the orchestrator interface, ignored here
       # @return [void]
       # @raise [SerializersCodeGen::ArityError] on the first Callable
-      #   whose arity is not 0, 1, or 2
+      #   whose arity is not 0, 1, 2, or 3
       def self.validate(descriptor, output:, config:)
         walk(descriptor, {})
         nil
@@ -62,7 +65,7 @@ module SerializersCodeGen
 
         # Raises +ArityError+ with the +docs/errors.md § Message convention+
         # format: +"<Descriptor>#<Field>: <CallableLabel> has arity <n>;
-        # must be 0, 1, or 2."+.
+        # must be 0, 1, 2, or 3."+.
         #
         # @param descriptor_name [String] +Descriptor#name+
         # @param field_name [Symbol] the offending Field's +name+
@@ -74,7 +77,7 @@ module SerializersCodeGen
         def check_arity!(descriptor_name, field_name, callable_label, arity)
           return if ALLOWED_ARITIES.include?(arity)
           raise ArityError,
-            "#{descriptor_name}##{field_name}: #{callable_label} has arity #{arity}; must be 0, 1, or 2."
+            "#{descriptor_name}##{field_name}: #{callable_label} has arity #{arity}; must be 0, 1, 2, or 3."
         end
       end
     end

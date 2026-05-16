@@ -70,7 +70,7 @@ A **Field** whose value comes from a **Callable**.
 
 - `body` may be any Ruby callable: Proc, Lambda, `Method` object (bound). `UnboundMethod`
   is rejected (must be bound before inclusion in the **Descriptor**).
-- **Arity**: must be `0`, `1`, or `2`. See "Callable arity" below.
+- **Arity**: must be `0`, `1`, `2`, or `3`. See "Callable arity" below.
 - Return value semantics: if the return value is `equal?` to `SerializersCodeGen::SKIP`,
   the field is omitted from the output (no key, no value). Any other value is serialized.
 
@@ -87,10 +87,10 @@ A **Field** that links to another **Descriptor**. The link may be to a different
   model (e.g., output key `:comments`, but method on `Post` is `:public_comments`).
 - `descriptor`: the nested **Descriptor**. May be the same **Descriptor** object as the
   parent (self-recursion) or any **Descriptor** reachable via the tree.
-- `if`: an optional guard **Callable**. Arity `0`, `1`, or `2`; return truthy to include,
-  falsy to omit. When falsy, the key is **omitted entirely** (not written as null). When
-  `nil`, no guard is emitted and no runtime cost is paid. No `unless:` — use `if: ->(r, c) { !... }`
-  for negation.
+- `if`: an optional guard **Callable**. Arity `0`, `1`, `2`, or `3`; return truthy to
+  include, falsy to omit. When falsy, the key is **omitted entirely** (not written as
+  null). When `nil`, no guard is emitted and no runtime cost is paid. No `unless:` —
+  use `if: ->(r, c) { !... }` for negation.
 
 **`if:` contract**:
 
@@ -103,14 +103,15 @@ A **Field** that links to another **Descriptor**. The link may be to a different
 
 ## Callable arity
 
-A **Callable** (Method Attribute `body` or Association `if:`) must declare one of three
+A **Callable** (Method Attribute `body` or Association `if:`) must declare one of four
 arities:
 
-| Arity | Invoked as              | Use case                                                |
-| ----- | ----------------------- | ------------------------------------------------------- |
-| `0`   | `cb.call`               | Global checks (feature flags, env) that ignore the row. |
-| `1`   | `cb.call(record)`       | Derived from the **Record** only.                       |
-| `2`   | `cb.call(record, context)` | Standard — derived from **Record** and **Context**.    |
+| Arity | Invoked as                          | Use case                                                                              |
+| ----- | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| `0`   | `cb.call`                           | Global checks (feature flags, env) that ignore the row.                               |
+| `1`   | `cb.call(record)`                   | Derived from the **Record** only.                                                     |
+| `2`   | `cb.call(record, context)`          | Derived from **Record** and **Context**.                                              |
+| `3`   | `cb.call(record, context, scope)`   | Derived from **Record**, **Context**, and **Scope** (auth/viewer axis, peer of Context). |
 
 Arity is introspected at **Compile** time (`callable.arity`). The **Generator** emits
 the appropriate call expression specialized to that arity — zero runtime dispatch
@@ -118,12 +119,12 @@ overhead, zero unused-arg passing.
 
 **Rejected shapes** (all raise `SerializersCodeGen::ArityError` at **Compile** time):
 
-- Variadic / splatted (`->(*args) {...}`, arity `-1`, `-2`, …).
-- 3-or-more positional args (arity `≥ 3`).
+- Variadic / splatted (`->(*args) {...}`, arity `-1`, `-2`, `-3`, …).
+- 4-or-more positional args (arity `≥ 4`).
 
-Kept simple on purpose. Callers needing flexibility should rewrite to arity `0`, `1`, or
-`2`. This avoids the "I wrote `|*|` and now the library can't tell what I meant" class
-of bug.
+Kept simple on purpose. Callers needing flexibility should rewrite to arity `0`, `1`,
+`2`, or `3`. This avoids the "I wrote `|*|` and now the library can't tell what I meant"
+class of bug.
 
 ## Recursive Descriptors
 
@@ -213,8 +214,8 @@ Walks the tree (with identity-based cycle handling, see "Recursive Descriptors" 
 - **Source validity on the specialized path** — when **Models** is set, every
   **Attribute**'s `source` must be column-backed or an instance method on every class in
   **Models**. Violations raise `UnknownSourceError`.
-- **Callable arity** — every **Callable** has arity `0`, `1`, or `2`. Violations raise
-  `ArityError`. See "Callable arity" above.
+- **Callable arity** — every **Callable** has arity `0`, `1`, `2`, or `3`. Violations
+  raise `ArityError`. See "Callable arity" above.
 
 All semantic errors are subclasses of `SerializersCodeGen::CompileError`.
 
