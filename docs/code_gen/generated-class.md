@@ -20,17 +20,19 @@ divergence).
 
 ## Public methods
 
-### `serialize_one(record, context: nil, filters: nil)`
+### `serialize_one(record, context: nil, scope: nil, filters: nil)`
 
 Serializes a single **Record**.
 
 ```ruby
-serializer.serialize_one(@post, context: current_user, filters: nil)
+serializer.serialize_one(@post, context: request_env, scope: current_user, filters: nil)
 ```
 
 - Returns a **String** in JSON mode, a **Hash** (with string keys by default) in Hash mode.
 - `context:` is arbitrary user data threaded through to every **Callable**. May be `nil`.
   See [Context contract](#context-contract) below.
+- `scope:` is a peer of `context:` — arbitrary user data threaded unmodified through every
+  **Callable**. May be `nil`. See [Scope contract](#scope-contract) below.
 - `filters:` prunes the output tree. See [filters.md](filters.md) for shape and semantics.
 - `record` must be compatible with **Record** access for the **Descriptor** (see
   [compilation.md](compilation.md)).
@@ -38,7 +40,7 @@ serializer.serialize_one(@post, context: current_user, filters: nil)
 When `Config#supports_root_key` is `true`, the signature gains an additional `root_key:` kwarg:
 
 ```ruby
-serializer.serialize_one(@post, root_key: "post", context: ...)
+serializer.serialize_one(@post, root_key: "post", context: ..., scope: ...)
 # => in JSON mode: {"post":{"id":1,...}}
 # => in Hash mode: {"post" => {"id"=>1, ...}}
 ```
@@ -52,12 +54,12 @@ Symbol, or any non-String/non-nil value — raises `ArgumentError` at call time.
 matches filters.md's convention for caller-error shapes (`:only` + `:except` at the same
 level also raises `ArgumentError`).
 
-### `serialize_many(records, context: nil, filters: nil)`
+### `serialize_many(records, context: nil, scope: nil, filters: nil)`
 
 Serializes a collection.
 
 ```ruby
-serializer.serialize_many(@posts, context: current_user)
+serializer.serialize_many(@posts, context: request_env, scope: current_user)
 ```
 
 - `records` must respond to `each` (typically an Array or an ActiveRecord::Relation).
@@ -84,14 +86,40 @@ serializer.serialize_many(@posts, context: current_user)
   `filters:`. This keeps the **Generator**'s contract crisp: filters participate in code
   generation; context does not.
 
+## Scope contract
+
+**Scope** is a peer of **Context** — an arbitrary caller-supplied value threaded
+unmodified through every **Callable** invocation. Byte-identical to **Context** in
+behaviour but distinct in identity. Conventionally used for auth/viewer data
+(e.g., `current_user`), in contrast to **Context** which is conventionally used for
+environment data (e.g., request headers); the library does not enforce or rely on either
+convention.
+
+- **Type**: unconstrained. May be any Ruby value — the library never inspects it.
+- **Default**: `nil`. A **Callable** that requires a non-nil **Scope** is enforcing a
+  caller-side contract; the library passes whatever was supplied.
+- **Reaches**: every **Method Attribute** body and every **Association** `if:` Callable
+  whose declared arity is 3, in positional order `(record, context, scope)`. **Callables**
+  with arity 0/1/2 keep their existing emit shape — `scope` never leaks into a 2-arity
+  Callable's `context` slot.
+- **Identity-preserving through Composition**: an inner **Generated Class** invoked
+  through a nested `has_one` / `has_many` observes the same **Scope** identity
+  (`equal?`) as the outer call. Recursive **Descriptors** (self and mutual) preserve
+  identity at every depth.
+- **Independence from Context**: **Scope** and **Context** are separate channels.
+  Passing one without the other (`scope:` without `context:`, or vice versa) is
+  supported; each defaults to `nil` independently.
+- **Independence from Filter**: same as **Context** — **Scope** participates in
+  **Callable** invocation, never in code generation or pruning decisions.
+
 ## Internal methods
 
-### `_write_one(record, writer, context, filters)` (JSON mode)
+### `_write_one(record, writer, context, scope, filters)` (JSON mode)
 
 Threads the **Writer** through **Composition**. Called by this class's public methods and
 by parent **Generated Classes** during nested serialization. Do not call directly.
 
-### `_to_hash(record, context, filters)` (Hash mode)
+### `_to_hash(record, context, scope, filters)` (Hash mode)
 
 Returns a Hash. Called by this class's public methods and by parent **Generated Classes**
 during nested serialization. Do not call directly.

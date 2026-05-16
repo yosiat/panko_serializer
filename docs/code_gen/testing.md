@@ -90,6 +90,7 @@ spec/
       skip_spec.rb                             # SKIP
       association_if_spec.rb                   # Association if: Callable short-circuit
       root_key_spec.rb                         # Root Key wrapping
+      scope_spec.rb                            # Scope threading contract
 
   fixtures/
     descriptors/                               # Ruby modules — each exports DESCRIPTOR, CONFIG, MODES,
@@ -293,8 +294,8 @@ Feature specs live under `spec/features/` in two parallel subtrees:
   exercise it against the shapes listed in the [Record-shape coverage](#record-shape-coverage)
   table. Config-isolation fixtures are grouped under `config/`.
 - **`spec/features/concerns/`** — one file per cross-cutting behavior:
-  `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`, `root_key_spec.rb`. Each
-  file tests its contract end-to-end across both **Output Modes**.
+  `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`, `root_key_spec.rb`,
+  `scope_spec.rb`. Each file tests its contract end-to-end across both **Output Modes**.
 
 The axes are orthogonal: a reader asking "how do filters behave?" finds one file; a
 reader asking "what's proven for `shallow_generic`?" finds another. Neither file grows
@@ -309,7 +310,7 @@ All test-surface names use the vocabulary from
 
 - Directory names: `descriptors/` (per-**Descriptor** specs), not "fixtures" or "corpus."
 - Concern file names: `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`,
-  `root_key_spec.rb` — each maps 1:1 to a UL term.
+  `root_key_spec.rb`, `scope_spec.rb` — each maps 1:1 to a UL term.
 - `describe` subjects use the UL concept under test — `describe Filter`, `describe SKIP`,
   `describe "Generated Class for a Descriptor with Associations"`.
 - `context` / `it` wording uses UL nouns — `"when the Method Attribute returns SKIP"`,
@@ -492,6 +493,43 @@ default **Config** is the smallest.
 
 - Root-key × Filter / `if:` interactions — wrapping is structurally a post-step around
   whatever the serializer produces; no separate regression surface beyond (1)–(2).
+
+#### `scope_spec.rb`
+
+From [generated-class.md § Scope contract](generated-class.md#scope-contract) and the
+S17 PRD ([implementation-plan.md § S17](implementation-plan.md#s17--first-class-context-and-scope)):
+
+1. `scope:` defaults to `nil` when omitted at `serialize_one` / `serialize_many`.
+2. **Scope is distinct from Context** — an arity-3 **Callable** observes them as separate
+   positional args, in order `(record, context, scope)`.
+3. **Arity-2 Callables ignore Scope** — the emit compiles to today's `(record, context)`
+   form; `scope` never leaks into the second positional. Verified with a strict-arity
+   Lambda that would raise `ArgumentError` on an extra positional.
+4. **Identity-preserving through nested `has_one`** — the inner **Method Attribute**
+   observes the same `scope` identity (`equal?`) as the outer call.
+5. **Identity-preserving through nested `has_many`** — same identity per element.
+6. **Identity-preserving through self-recursive nesting** (Comment → replies chain) —
+   identity preserved at every level.
+7. **Independence from Context** — `scope:` without `context:` and `context:` without
+   `scope:` both work end-to-end; each axis defaults to `nil` independently.
+8. **`scope` reaches Association `if:` arity-3 Callables** — same threading contract as
+   **Method Attribute** bodies; scope-driven inclusion/exclusion works at the
+   **Association** boundary.
+9. JSON/Hash parity on (1)–(8) — **Scope** behavior is mode-agnostic; emitted JSON
+   parses back to the Hash-mode output.
+
+Fixture strategy: inline minimal **Descriptors** for every contract item (mirrors
+`skip_spec.rb` and `association_if_spec.rb`). The `scope_threading` canonical fixture
+pins the emit bytes at the snapshot tier; this file pins the runtime semantics.
+
+**Not tested here (belongs elsewhere):**
+
+- **`ArityError` on rejected arities** (4, `-1`, `-2`, ...) →
+  `spec/compile_errors_spec.rb` + `spec/validators/callable_arity_spec.rb`.
+- **Snapshot-level emit shape** — the widened signature lines and positional `scope`
+  threading at nested call sites are pinned by every existing snapshot under
+  `spec/fixtures/generated/` plus the dedicated `scope_threading_{json,hash}.rb`
+  snapshots.
 
 #### `spec/compile_errors_spec.rb`
 
