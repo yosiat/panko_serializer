@@ -17,25 +17,25 @@ class RecursiveSelfCommentSerializer_Hash
     @replies_serializer = self
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    _to_hash(record, context, filters)
+    _to_hash(record, context, scope, filters)
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    records.map { |r| _to_hash(r, context, filters) }
+    records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
-  def _to_hash(record, context, filters)
+  def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, filters)
+      _to_hash_hash(record, context, scope, filters)
     else
-      _to_hash_object(record, context, filters)
+      _to_hash_object(record, context, scope, filters)
     end
   end
 
-  def _to_hash_hash(record, context, filters)
+  def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record["id"]
@@ -45,12 +45,12 @@ class RecursiveSelfCommentSerializer_Hash
     end
     unless filters.drops?(2)
       child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-      result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, child_filter) }
+      result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
     end
     result
   end
 
-  def _to_hash_object(record, context, filters)
+  def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record.id
@@ -60,7 +60,7 @@ class RecursiveSelfCommentSerializer_Hash
     end
     unless filters.drops?(2)
       child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-      result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, child_filter) }
+      result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
     end
     result
   end

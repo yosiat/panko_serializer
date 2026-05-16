@@ -19,17 +19,17 @@ class ShallowSpecializedSerializer_Hash
     @cb_contextual = descriptor.method_attributes[2].body
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    _to_hash(record, context, filters)
+    _to_hash(record, context, scope, filters)
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    records.map { |r| _to_hash(r, context, filters) }
+    records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
-  def _to_hash(record, context, filters)
+  def _to_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record._read_attribute("id")

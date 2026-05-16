@@ -17,7 +17,7 @@ class ConfigRootKeyOnSerializer_JSON
   def initialize(descriptor:)
   end
 
-  def serialize_one(record, context: nil, filters: nil, root_key: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil, root_key: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = POOL.checkout
@@ -26,7 +26,7 @@ class ConfigRootKeyOnSerializer_JSON
         writer.push_object
         writer.push_key(root_key)
       end
-      _write_one(record, writer, context, filters)
+      _write_one(record, writer, context, scope, filters)
       writer.pop if root_key
       result = writer.to_s
       result.chomp!
@@ -36,14 +36,14 @@ class ConfigRootKeyOnSerializer_JSON
     end
   end
 
-  def serialize_many(records, context: nil, filters: nil, root_key: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil, root_key: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = POOL.checkout
     begin
       writer.push_object if root_key
       writer.push_array(root_key)
-      records.each { |r| _write_one(r, writer, context, filters) }
+      records.each { |r| _write_one(r, writer, context, scope, filters) }
       writer.pop
       writer.pop if root_key
       result = writer.to_s
@@ -54,15 +54,15 @@ class ConfigRootKeyOnSerializer_JSON
     end
   end
 
-  def _write_one(record, writer, context, filters)
+  def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, filters)
+      _write_one_hash(record, writer, context, scope, filters)
     else
-      _write_one_object(record, writer, context, filters)
+      _write_one_object(record, writer, context, scope, filters)
     end
   end
 
-  def _write_one_hash(record, writer, context, filters)
+  def _write_one_hash(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record["id"], "id")
@@ -70,7 +70,7 @@ class ConfigRootKeyOnSerializer_JSON
     writer.pop
   end
 
-  def _write_one_object(record, writer, context, filters)
+  def _write_one_object(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record.id, "id")

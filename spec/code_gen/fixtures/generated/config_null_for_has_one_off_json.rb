@@ -17,11 +17,11 @@ class ConfigNullForHasOneOffInnerSerializer_JSON
   def initialize(descriptor:)
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
-      _write_one(record, writer, context, filters)
+      _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
@@ -30,12 +30,12 @@ class ConfigNullForHasOneOffInnerSerializer_JSON
     end
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
-      records.each { |r| _write_one(r, writer, context, filters) }
+      records.each { |r| _write_one(r, writer, context, scope, filters) }
       writer.pop
       result = writer.to_s
       result.chomp!
@@ -45,15 +45,15 @@ class ConfigNullForHasOneOffInnerSerializer_JSON
     end
   end
 
-  def _write_one(record, writer, context, filters)
+  def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, filters)
+      _write_one_hash(record, writer, context, scope, filters)
     else
-      _write_one_object(record, writer, context, filters)
+      _write_one_object(record, writer, context, scope, filters)
     end
   end
 
-  def _write_one_hash(record, writer, context, filters)
+  def _write_one_hash(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record["id"], "id")
@@ -64,7 +64,7 @@ class ConfigNullForHasOneOffInnerSerializer_JSON
     writer.pop
   end
 
-  def _write_one_object(record, writer, context, filters)
+  def _write_one_object(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record.id, "id")
@@ -84,11 +84,11 @@ class ConfigNullForHasOneOffSerializer_JSON
     @inner_serializer = ConfigNullForHasOneOffInnerSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
-      _write_one(record, writer, context, filters)
+      _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
@@ -97,12 +97,12 @@ class ConfigNullForHasOneOffSerializer_JSON
     end
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
-      records.each { |r| _write_one(r, writer, context, filters) }
+      records.each { |r| _write_one(r, writer, context, scope, filters) }
       writer.pop
       result = writer.to_s
       result.chomp!
@@ -112,15 +112,15 @@ class ConfigNullForHasOneOffSerializer_JSON
     end
   end
 
-  def _write_one(record, writer, context, filters)
+  def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, filters)
+      _write_one_hash(record, writer, context, scope, filters)
     else
-      _write_one_object(record, writer, context, filters)
+      _write_one_object(record, writer, context, scope, filters)
     end
   end
 
-  def _write_one_hash(record, writer, context, filters)
+  def _write_one_hash(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record["id"], "id")
@@ -129,13 +129,13 @@ class ConfigNullForHasOneOffSerializer_JSON
       value = record["inner"]
       unless value.nil?
         writer.push_key("inner")
-        @inner_serializer._write_one(value, writer, context, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
+        @inner_serializer._write_one(value, writer, context, scope, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop
   end
 
-  def _write_one_object(record, writer, context, filters)
+  def _write_one_object(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
       writer.push_value(record.id, "id")
@@ -144,7 +144,7 @@ class ConfigNullForHasOneOffSerializer_JSON
       value = record.inner
       unless value.nil?
         writer.push_key("inner")
-        @inner_serializer._write_one(value, writer, context, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
+        @inner_serializer._write_one(value, writer, context, scope, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
       end
     end
     writer.pop

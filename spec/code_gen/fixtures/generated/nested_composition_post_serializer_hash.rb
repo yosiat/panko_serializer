@@ -22,25 +22,25 @@ class NestedCompositionPostSerializer_Hash
     @comments_serializer = NestedCompositionCommentSerializer_Hash.new(descriptor: descriptor.associations[1].descriptor)
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    _to_hash(record, context, filters)
+    _to_hash(record, context, scope, filters)
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
-    records.map { |r| _to_hash(r, context, filters) }
+    records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
-  def _to_hash(record, context, filters)
+  def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, filters)
+      _to_hash_hash(record, context, scope, filters)
     else
-      _to_hash_object(record, context, filters)
+      _to_hash_object(record, context, scope, filters)
     end
   end
 
-  def _to_hash_hash(record, context, filters)
+  def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record["id"]
@@ -51,18 +51,18 @@ class NestedCompositionPostSerializer_Hash
         result["author"] = if value.nil?
           nil
         else
-          @author_serializer._to_hash(value, context, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
+          @author_serializer._to_hash(value, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
         end
       end
     end
     unless filters.drops?(2)
       child_filter = filters.child(:comments, NestedCompositionCommentSerializer_Hash::FIELD_INDEX)
-      result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, child_filter) }
+      result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
     end
     result
   end
 
-  def _to_hash_object(record, context, filters)
+  def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
       result["id"] = record.id
@@ -73,13 +73,13 @@ class NestedCompositionPostSerializer_Hash
         result["author"] = if value.nil?
           nil
         else
-          @author_serializer._to_hash(value, context, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
+          @author_serializer._to_hash(value, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
         end
       end
     end
     unless filters.drops?(2)
       child_filter = filters.child(:comments, NestedCompositionCommentSerializer_Hash::FIELD_INDEX)
-      result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, child_filter) }
+      result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
     end
     result
   end
