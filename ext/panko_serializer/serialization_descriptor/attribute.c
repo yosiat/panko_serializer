@@ -18,12 +18,24 @@ static void attribute_free(void* ptr) {
   xfree(attribute);
 }
 
-void attribute_mark(Attribute data) {
-  rb_gc_mark(data->name_str);
-  rb_gc_mark(data->alias_name);
-  rb_gc_mark(data->type);
-  rb_gc_mark(data->record_class);
+static void attribute_mark(void *data) {
+  Attribute attribute = data;
+
+  rb_gc_mark(attribute->name_str);
+  rb_gc_mark(attribute->alias_name);
+  rb_gc_mark(attribute->type);
+  rb_gc_mark(attribute->record_class);
 }
+
+static size_t attribute_memsize(const void *data) {
+  return data ? sizeof(struct _Attribute) : 0;
+}
+
+static const rb_data_type_t attribute_data_type = {
+  "Panko::Attribute",
+  {attribute_mark, attribute_free, attribute_memsize,},
+  0, 0, 0,
+};
 
 static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {
   Attribute attribute;
@@ -34,8 +46,8 @@ static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {
     Check_Type(argv[1], T_STRING);
   }
 
-  obj = Data_Make_Struct(cAttribute, struct _Attribute,
-                         attribute_mark, attribute_free, attribute);
+  obj = TypedData_Make_Struct(cAttribute, struct _Attribute,
+                              &attribute_data_type, attribute);
   attribute->name_str = argv[0];
   attribute->name_id = rb_intern_str(attribute->name_str);
   attribute->alias_name = argv[1];
@@ -46,7 +58,11 @@ static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {
 }
 
 Attribute attribute_read(VALUE attribute) {
-  return (Attribute)DATA_PTR(attribute);
+  Attribute ptr;
+
+  TypedData_Get_Struct(attribute, struct _Attribute, &attribute_data_type, ptr);
+
+  return ptr;
 }
 
 void attribute_try_invalidate(Attribute attribute, VALUE new_record_class) {
@@ -74,12 +90,12 @@ void attribute_try_invalidate(Attribute attribute, VALUE new_record_class) {
 }
 
 VALUE attribute_name_ref(VALUE self) {
-  Attribute attribute = (Attribute)DATA_PTR(self);
+  Attribute attribute = attribute_read(self);
   return attribute->name_str;
 }
 
 VALUE attribute_alias_name_ref(VALUE self) {
-  Attribute attribute = (Attribute)DATA_PTR(self);
+  Attribute attribute = attribute_read(self);
   return attribute->alias_name;
 }
 
