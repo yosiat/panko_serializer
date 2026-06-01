@@ -27,21 +27,22 @@ void attribute_mark(Attribute data) {
 
 static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {
   Attribute attribute;
+  VALUE obj;
 
   Check_Type(argv[0], T_STRING);
   if (argv[1] != Qnil) {
     Check_Type(argv[1], T_STRING);
   }
 
-  attribute = ALLOC(struct _Attribute);
+  obj = Data_Make_Struct(cAttribute, struct _Attribute,
+                         attribute_mark, attribute_free, attribute);
   attribute->name_str = argv[0];
   attribute->name_id = rb_intern_str(attribute->name_str);
   attribute->alias_name = argv[1];
   attribute->type = Qnil;
   attribute->record_class = Qnil;
 
-  return Data_Wrap_Struct(cAttribute, attribute_mark, attribute_free,
-                          attribute);
+  return obj;
 }
 
 Attribute attribute_read(VALUE attribute) {

@@ -32,11 +32,13 @@ void association_mark(Association data) {
 
 static VALUE association_new(int argc, VALUE* argv, VALUE self) {
   Association association;
+  VALUE obj;
 
   Check_Type(argv[0], T_SYMBOL);
   Check_Type(argv[1], T_STRING);
 
-  association = ALLOC(struct _Association);
+  obj = Data_Make_Struct(cAssociation, struct _Association,
+                         association_mark, association_free, association);
   association->name_sym = argv[0];
   association->name_str = argv[1];
   association->rb_descriptor = argv[2];
@@ -44,8 +46,7 @@ static VALUE association_new(int argc, VALUE* argv, VALUE self) {
   association->name_id = rb_intern_str(rb_sym2str(association->name_sym));
   association->descriptor = sd_read(association->rb_descriptor);
 
-  return Data_Wrap_Struct(cAssociation, association_mark, association_free,
-                          association);
+  return obj;
 }
 
 Association association_read(VALUE association) {

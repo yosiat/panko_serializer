@@ -29,7 +29,9 @@ void sd_mark(SerializationDescriptor data) {
 }
 
 static VALUE sd_alloc(VALUE klass) {
-  SerializationDescriptor sd = ALLOC(struct _SerializationDescriptor);
+  SerializationDescriptor sd;
+  VALUE obj = Data_Make_Struct(klass, struct _SerializationDescriptor,
+                               sd_mark, sd_free, sd);
 
   sd->serializer = Qnil;
   sd->serializer_type = Qnil;
@@ -41,7 +43,7 @@ static VALUE sd_alloc(VALUE klass) {
 
   sd->attributes_writer = create_empty_attributes_writer();
 
-  return Data_Wrap_Struct(klass, sd_mark, sd_free, sd);
+  return obj;
 }
 
 SerializationDescriptor sd_read(VALUE descriptor) {
