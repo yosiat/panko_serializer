@@ -3,7 +3,9 @@
 static ID object_id;
 static ID sc_id;
 
-static void sd_free(SerializationDescriptor sd) {
+static void sd_free(void* data) {
+  SerializationDescriptor sd = data;
+
   if (!sd) {
     return;
   }
@@ -18,18 +20,38 @@ static void sd_free(SerializationDescriptor sd) {
   xfree(sd);
 }
 
-void sd_mark(SerializationDescriptor data) {
-  rb_gc_mark(data->serializer);
-  rb_gc_mark(data->serializer_type);
-  rb_gc_mark(data->attributes);
-  rb_gc_mark(data->method_fields);
-  rb_gc_mark(data->has_one_associations);
-  rb_gc_mark(data->has_many_associations);
-  rb_gc_mark(data->aliases);
+void sd_mark(void* data) {
+  SerializationDescriptor sd = data;
+
+  rb_gc_mark(sd->serializer);
+  rb_gc_mark(sd->serializer_type);
+  rb_gc_mark(sd->attributes);
+  rb_gc_mark(sd->method_fields);
+  rb_gc_mark(sd->has_one_associations);
+  rb_gc_mark(sd->has_many_associations);
+  rb_gc_mark(sd->aliases);
 }
 
+static size_t sd_memsize(const void* data) {
+  return data ? sizeof(struct _SerializationDescriptor) : 0;
+}
+
+static const rb_data_type_t sd_data_type = {
+    "Panko::SerializationDescriptor",
+    {
+        sd_mark,
+        sd_free,
+        sd_memsize,
+    },
+    0,
+    0,
+    0,
+};
+
 static VALUE sd_alloc(VALUE klass) {
-  SerializationDescriptor sd = ALLOC(struct _SerializationDescriptor);
+  SerializationDescriptor sd;
+  VALUE obj = TypedData_Make_Struct(klass, struct _SerializationDescriptor,
+                                    &sd_data_type, sd);
 
   sd->serializer = Qnil;
   sd->serializer_type = Qnil;
@@ -41,11 +63,16 @@ static VALUE sd_alloc(VALUE klass) {
 
   sd->attributes_writer = create_empty_attributes_writer();
 
-  return Data_Wrap_Struct(klass, sd_mark, sd_free, sd);
+  return obj;
 }
 
 SerializationDescriptor sd_read(VALUE descriptor) {
-  return (SerializationDescriptor)DATA_PTR(descriptor);
+  SerializationDescriptor sd;
+
+  TypedData_Get_Struct(descriptor, struct _SerializationDescriptor,
+                       &sd_data_type, sd);
+
+  return sd;
 }
 
 void sd_set_writer(SerializationDescriptor sd, VALUE object) {
@@ -57,82 +84,82 @@ void sd_set_writer(SerializationDescriptor sd, VALUE object) {
 }
 
 VALUE sd_serializer_set(VALUE self, VALUE serializer) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
 
   sd->serializer = serializer;
   return Qnil;
 }
 
 VALUE sd_serializer_ref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
 
   return sd->serializer;
 }
 
 VALUE sd_attributes_set(VALUE self, VALUE attributes) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
 
   sd->attributes = attributes;
   return Qnil;
 }
 
 VALUE sd_attributes_ref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   return sd->attributes;
 }
 
 VALUE sd_method_fields_set(VALUE self, VALUE method_fields) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   sd->method_fields = method_fields;
   return Qnil;
 }
 
 VALUE sd_method_fields_ref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   return sd->method_fields;
 }
 
 VALUE sd_has_one_associations_set(VALUE self, VALUE has_one_associations) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   sd->has_one_associations = has_one_associations;
   return Qnil;
 }
 
 VALUE sd_has_one_associations_ref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   return sd->has_one_associations;
 }
 
 VALUE sd_has_many_associations_set(VALUE self, VALUE has_many_associations) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   sd->has_many_associations = has_many_associations;
   return Qnil;
 }
 
 VALUE sd_has_many_associations_ref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   return sd->has_many_associations;
 }
 
 VALUE sd_type_set(VALUE self, VALUE type) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   sd->serializer_type = type;
   return Qnil;
 }
 
 VALUE sd_type_aref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   return sd->serializer_type;
 }
 
 VALUE sd_aliases_set(VALUE self, VALUE aliases) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   sd->aliases = aliases;
   return Qnil;
 }
 
 VALUE sd_aliases_aref(VALUE self) {
-  SerializationDescriptor sd = (SerializationDescriptor)DATA_PTR(self);
+  SerializationDescriptor sd = sd_read(self);
   return sd->aliases;
 }
 

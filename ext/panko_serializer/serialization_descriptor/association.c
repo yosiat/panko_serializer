@@ -20,23 +20,43 @@ static void association_free(void* ptr) {
   xfree(association);
 }
 
-void association_mark(Association data) {
-  rb_gc_mark(data->name_str);
-  rb_gc_mark(data->name_sym);
-  rb_gc_mark(data->rb_descriptor);
+static void association_mark(void* data) {
+  Association association = data;
 
-  if (data->descriptor != NULL) {
-    sd_mark(data->descriptor);
+  rb_gc_mark(association->name_str);
+  rb_gc_mark(association->name_sym);
+  rb_gc_mark(association->rb_descriptor);
+
+  if (association->descriptor != NULL) {
+    sd_mark(association->descriptor);
   }
 }
 
+static size_t association_memsize(const void* data) {
+  return data ? sizeof(struct _Association) : 0;
+}
+
+static const rb_data_type_t association_data_type = {
+    "Panko::Association",
+    {
+        association_mark,
+        association_free,
+        association_memsize,
+    },
+    0,
+    0,
+    0,
+};
+
 static VALUE association_new(int argc, VALUE* argv, VALUE self) {
   Association association;
+  VALUE obj;
 
   Check_Type(argv[0], T_SYMBOL);
   Check_Type(argv[1], T_STRING);
 
-  association = ALLOC(struct _Association);
+  obj = TypedData_Make_Struct(cAssociation, struct _Association,
+                              &association_data_type, association);
   association->name_sym = argv[0];
   association->name_str = argv[1];
   association->rb_descriptor = argv[2];
@@ -44,31 +64,35 @@ static VALUE association_new(int argc, VALUE* argv, VALUE self) {
   association->name_id = rb_intern_str(rb_sym2str(association->name_sym));
   association->descriptor = sd_read(association->rb_descriptor);
 
-  return Data_Wrap_Struct(cAssociation, association_mark, association_free,
-                          association);
+  return obj;
 }
 
 Association association_read(VALUE association) {
-  return (Association)DATA_PTR(association);
+  Association ptr;
+
+  TypedData_Get_Struct(association, struct _Association, &association_data_type,
+                       ptr);
+
+  return ptr;
 }
 
 VALUE association_name_sym_ref(VALUE self) {
-  Association association = (Association)DATA_PTR(self);
+  Association association = association_read(self);
   return association->name_sym;
 }
 
 VALUE association_name_str_ref(VALUE self) {
-  Association association = (Association)DATA_PTR(self);
+  Association association = association_read(self);
   return association->name_str;
 }
 
 VALUE association_descriptor_ref(VALUE self) {
-  Association association = (Association)DATA_PTR(self);
+  Association association = association_read(self);
   return association->rb_descriptor;
 }
 
 VALUE association_decriptor_aset(VALUE self, VALUE descriptor) {
-  Association association = (Association)DATA_PTR(self);
+  Association association = association_read(self);
 
   association->rb_descriptor = descriptor;
   association->descriptor = sd_read(descriptor);
