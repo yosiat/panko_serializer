@@ -3,7 +3,7 @@
 static ID object_id;
 static ID sc_id;
 
-static void sd_free(void *data) {
+static void sd_free(void* data) {
   SerializationDescriptor sd = data;
 
   if (!sd) {
@@ -20,7 +20,7 @@ static void sd_free(void *data) {
   xfree(sd);
 }
 
-void sd_mark(void *data) {
+void sd_mark(void* data) {
   SerializationDescriptor sd = data;
 
   rb_gc_mark(sd->serializer);
@@ -32,14 +32,20 @@ void sd_mark(void *data) {
   rb_gc_mark(sd->aliases);
 }
 
-static size_t sd_memsize(const void *data) {
+static size_t sd_memsize(const void* data) {
   return data ? sizeof(struct _SerializationDescriptor) : 0;
 }
 
 static const rb_data_type_t sd_data_type = {
-  "Panko::SerializationDescriptor",
-  {sd_mark, sd_free, sd_memsize,},
-  0, 0, 0,
+    "Panko::SerializationDescriptor",
+    {
+        sd_mark,
+        sd_free,
+        sd_memsize,
+    },
+    0,
+    0,
+    0,
 };
 
 static VALUE sd_alloc(VALUE klass) {

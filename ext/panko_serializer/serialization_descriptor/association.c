@@ -20,7 +20,7 @@ static void association_free(void* ptr) {
   xfree(association);
 }
 
-static void association_mark(void *data) {
+static void association_mark(void* data) {
   Association association = data;
 
   rb_gc_mark(association->name_str);
@@ -32,14 +32,20 @@ static void association_mark(void *data) {
   }
 }
 
-static size_t association_memsize(const void *data) {
+static size_t association_memsize(const void* data) {
   return data ? sizeof(struct _Association) : 0;
 }
 
 static const rb_data_type_t association_data_type = {
-  "Panko::Association",
-  {association_mark, association_free, association_memsize,},
-  0, 0, 0,
+    "Panko::Association",
+    {
+        association_mark,
+        association_free,
+        association_memsize,
+    },
+    0,
+    0,
+    0,
 };
 
 static VALUE association_new(int argc, VALUE* argv, VALUE self) {

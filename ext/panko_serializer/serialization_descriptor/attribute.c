@@ -18,7 +18,7 @@ static void attribute_free(void* ptr) {
   xfree(attribute);
 }
 
-static void attribute_mark(void *data) {
+static void attribute_mark(void* data) {
   Attribute attribute = data;
 
   rb_gc_mark(attribute->name_str);
@@ -27,14 +27,20 @@ static void attribute_mark(void *data) {
   rb_gc_mark(attribute->record_class);
 }
 
-static size_t attribute_memsize(const void *data) {
+static size_t attribute_memsize(const void* data) {
   return data ? sizeof(struct _Attribute) : 0;
 }
 
 static const rb_data_type_t attribute_data_type = {
-  "Panko::Attribute",
-  {attribute_mark, attribute_free, attribute_memsize,},
-  0, 0, 0,
+    "Panko::Attribute",
+    {
+        attribute_mark,
+        attribute_free,
+        attribute_memsize,
+    },
+    0,
+    0,
+    0,
 };
 
 static VALUE attribute_new(int argc, VALUE* argv, VALUE self) {

@@ -23,7 +23,7 @@ typedef struct _SerializationDescriptor {
 
 SerializationDescriptor sd_read(VALUE descriptor);
 
-void sd_mark(void *data);
+void sd_mark(void* data);
 
 void sd_set_writer(SerializationDescriptor sd, VALUE object);
 
