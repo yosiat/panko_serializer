@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rspec/core/formatters/progress_formatter"
 
 # Progress formatter variant that drops the "Pending:" detail block

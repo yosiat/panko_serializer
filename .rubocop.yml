@@ -17,12 +17,18 @@ inherit_gem:
   standard-performance: config/base.yml
 
 AllCops:
-  TargetRubyVersion: 3.1
+  TargetRubyVersion: 3.4
   SuggestExtensions: false
   NewCops: disable
   Exclude:
     - ext/**/*
     - gemfiles/**/*
+    # Generated Class snapshot fixtures are byte-exact Generator output —
+    # linting/auto-correcting them would break the snapshot-match contract.
+    - spec/code_gen/fixtures/generated/**/*
+    # Research/experiment scripts (inherited from serializers-code-gen, which
+    # ignored docs/research/**); not part of the shipped surface.
+    - docs/code_gen/research/**/*
 
 
 Style/FrozenStringLiteralComment:

@@ -8,8 +8,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.2", "3.3", "3.4", "4.0"]
+        ruby: ["3.4", "4.0"]
         rails: ["7.2.0", "8.0.0", "8.1.0"]
+        exclude:
+          # Rails 7.2 predates Ruby 4.0.
+          - ruby: "4.0"
+            rails: "7.2.0"
 
     steps:
       - name: Install deps

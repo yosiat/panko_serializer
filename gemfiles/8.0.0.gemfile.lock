@@ -2,7 +2,7 @@ PATH
   remote: ..
   specs:
     panko_serializer (0.8.5)
-      activesupport
+      activesupport (>= 7.2)
       oj (> 3.11.0, < 4.0.0)
 
 GEM
