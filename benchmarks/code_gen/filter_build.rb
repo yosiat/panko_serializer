@@ -39,10 +39,10 @@ require_relative "support/benchmark"
 # per-`size` records list to pass through.
 
 def make_filter_build_attrs(names)
-  names.map { |n| SerializersCodeGen::Attribute.new(name: n, source: n) }
+  names.map { |n| Panko::CodeGen::Attribute.new(name: n, source: n) }
 end
 
-FILTER_BUILD_FLAT5_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_BUILD_FLAT5_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildFlat5",
   models: nil,
   attributes: make_filter_build_attrs(%i[a b c d e]),
@@ -50,7 +50,7 @@ FILTER_BUILD_FLAT5_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-FILTER_BUILD_FLAT70_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_BUILD_FLAT70_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildFlat70",
   models: nil,
   attributes: make_filter_build_attrs((1..70).map { |i| :"f#{i}" }),
@@ -58,37 +58,37 @@ FILTER_BUILD_FLAT70_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-FILTER_BUILD_GC_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_BUILD_GC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildGrandchild",
   models: nil,
   attributes: make_filter_build_attrs(%i[x y z]),
   method_attributes: [],
   associations: []
 )
-FILTER_BUILD_CHILD_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_BUILD_CHILD_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildChild",
   models: nil,
   attributes: make_filter_build_attrs(%i[p q r]),
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :gc, kind: :has_one, source: :gc, descriptor: FILTER_BUILD_GC_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :gc, kind: :has_one, source: :gc, descriptor: FILTER_BUILD_GC_DESCRIPTOR)
   ]
 )
-FILTER_BUILD_DEEP_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_BUILD_DEEP_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildDeep",
   models: nil,
   attributes: make_filter_build_attrs(%i[a b c]),
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :child, kind: :has_one, source: :child, descriptor: FILTER_BUILD_CHILD_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :child, kind: :has_one, source: :child, descriptor: FILTER_BUILD_CHILD_DESCRIPTOR)
   ]
 )
 
-FILTER_BUILD_FLAT5_FIELD_INDEX = SerializersCodeGen.compile(FILTER_BUILD_FLAT5_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
-FILTER_BUILD_FLAT70_FIELD_INDEX = SerializersCodeGen.compile(FILTER_BUILD_FLAT70_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
-FILTER_BUILD_DEEP_FIELD_INDEX = SerializersCodeGen.compile(FILTER_BUILD_DEEP_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
-FILTER_BUILD_CHILD_FIELD_INDEX = SerializersCodeGen.compile(FILTER_BUILD_CHILD_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
-SerializersCodeGen.compile(FILTER_BUILD_GC_DESCRIPTOR, output: :json) # ensure compiled
+FILTER_BUILD_FLAT5_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_FLAT5_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
+FILTER_BUILD_FLAT70_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_FLAT70_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
+FILTER_BUILD_DEEP_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_DEEP_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
+FILTER_BUILD_CHILD_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_CHILD_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
+Panko::CodeGen.compile(FILTER_BUILD_GC_DESCRIPTOR, output: :json) # ensure compiled
 
 # Frozen filter Hashes — measures pure Filter.wrap work with no
 # caller-side Hash allocation.
@@ -105,50 +105,50 @@ FILTER_BUILD_DEEP_FROZEN = {
 # Pre-built parent with a warm child cache for the cached-lookup row.
 # Built once at file load; every benchmark iteration hits the warm
 # cache, isolating cache-lookup cost from Indexed.build cost.
-FILTER_BUILD_PARENT_WARM = SerializersCodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
+FILTER_BUILD_PARENT_WARM = Panko::CodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
 FILTER_BUILD_PARENT_WARM.child(:child, FILTER_BUILD_CHILD_FIELD_INDEX)
 
 # --- Rows -----------------------------------------------------------------
 
 # NONE singleton — `filters: nil` and `filters: {}` both collapse here.
 benchmark "FilterBuild/NONE/nil" do
-  SerializersCodeGen::Filter.wrap(nil, FILTER_BUILD_FLAT5_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(nil, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
 benchmark "FilterBuild/NONE/empty-hash" do
-  SerializersCodeGen::Filter.wrap(FILTER_BUILD_EMPTY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(FILTER_BUILD_EMPTY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
 # Bits rep (≤ 63 fields) — flat 5-attr Descriptor.
 benchmark "FilterBuild/Bits/5fields/only-2of5/frozen-hash" do
-  SerializersCodeGen::Filter.wrap(FILTER_BUILD_FLAT5_ONLY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT5_ONLY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
 benchmark "FilterBuild/Bits/5fields/only-2of5/fresh-hash" do
-  SerializersCodeGen::Filter.wrap({only: [:a, :b]}, FILTER_BUILD_FLAT5_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap({only: [:a, :b]}, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
 benchmark "FilterBuild/Bits/5fields/except-1of5/frozen-hash" do
-  SerializersCodeGen::Filter.wrap(FILTER_BUILD_FLAT5_EXCEPT_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT5_EXCEPT_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
 # Array rep (> 63 fields) — flat 70-attr Descriptor. Sparse vs dense
 # `:only` lists exercise the same per-Field walk in `Indexed.build`.
 benchmark "FilterBuild/Array/70fields/only-3of70/frozen-hash" do
-  SerializersCodeGen::Filter.wrap(FILTER_BUILD_FLAT70_SPARSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT70_SPARSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
 end
 
 benchmark "FilterBuild/Array/70fields/only-60of70/frozen-hash" do
-  SerializersCodeGen::Filter.wrap(FILTER_BUILD_FLAT70_DENSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT70_DENSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
 end
 
 # Deep nested — child Filters are built lazily on the first `.child(:src)`.
 benchmark "FilterBuild/Deep/3level/wrap-only/frozen-hash" do
-  SerializersCodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
+  Panko::CodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
 end
 
 benchmark "FilterBuild/Deep/3level/wrap+1-child-cold/frozen-hash" do
-  parent = SerializersCodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
+  parent = Panko::CodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
   parent.child(:child, FILTER_BUILD_CHILD_FIELD_INDEX)
 end
 

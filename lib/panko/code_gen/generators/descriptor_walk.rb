@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     # Shared Descriptor-tree traversal used by per-mode emitters
     # (+JsonMode+, +HashMode+) to decide what classes to emit and in
@@ -14,8 +14,8 @@ module SerializersCodeGen
       # post-order (children before parents) so each parent class
       # definition references already-defined nested classes.
       #
-      # @param root [SerializersCodeGen::Descriptor]
-      # @return [Array<SerializersCodeGen::Descriptor>] post-order list
+      # @param root [Panko::CodeGen::Descriptor]
+      # @return [Array<Panko::CodeGen::Descriptor>] post-order list
       def in_emit_order(root)
         order = []
         visit(root, order, {})
@@ -26,8 +26,8 @@ module SerializersCodeGen
       # to the +in_emit_order+ implementation; module-functioned only so
       # the recursion can call back without an instance.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
-      # @param order [Array<SerializersCodeGen::Descriptor>] output buffer
+      # @param descriptor [Panko::CodeGen::Descriptor]
+      # @param order [Array<Panko::CodeGen::Descriptor>] output buffer
       # @param seen [Hash{Integer => true}] identity-key visited set
       # @return [void]
       def visit(descriptor, order, seen)

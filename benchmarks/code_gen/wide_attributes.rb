@@ -18,19 +18,19 @@ require_relative "support/targets"
 # only production bench that does. Bits rep coverage lives in
 # `filter_only.rb` / `filter_except.rb` (5 fields).
 
-WIDE_ATTRIBUTES_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+WIDE_ATTRIBUTES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "WideAttributesPostBenchSerializer",
   models: [Bench::WidePost],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    *WIDE_POST_ATTRIBUTE_NAMES.map { |n| SerializersCodeGen::Attribute.new(name: n.to_sym, source: n.to_sym) }
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    *WIDE_POST_ATTRIBUTE_NAMES.map { |n| Panko::CodeGen::Attribute.new(name: n.to_sym, source: n.to_sym) }
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_JSON_WIDE_ATTRIBUTES = SerializersCodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :json).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
-SCG_HASH_WIDE_ATTRIBUTES = SerializersCodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :hash).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
+SCG_JSON_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :json).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
+SCG_HASH_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :hash).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
 
 WIDE_ATTRIBUTES_PANKO_NAMES = [:id, *WIDE_POST_ATTRIBUTE_NAMES.map(&:to_sym)].freeze
 

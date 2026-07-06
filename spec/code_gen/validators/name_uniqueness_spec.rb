@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
-  let(:config) { SerializersCodeGen::Config.new }
+RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
+  let(:config) { Panko::CodeGen::Config.new }
   let(:inner) {
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: "InnerDescriptor", models: nil,
       attributes: [], method_attributes: [], associations: []
     )
   }
 
   def descriptor_with(name: "PostDescriptor", attributes: [], method_attributes: [], associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: nil,
       attributes: attributes,
@@ -22,15 +22,15 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
   end
 
   def attribute(name)
-    SerializersCodeGen::Attribute.new(name: name)
+    Panko::CodeGen::Attribute.new(name: name)
   end
 
   def method_attribute(name, body = ->(_r) { :ok })
-    SerializersCodeGen::MethodAttribute.new(name: name, body: body)
+    Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
   def association(name, descriptor)
-    SerializersCodeGen::Association.new(name: name, kind: :has_one, descriptor: descriptor)
+    Panko::CodeGen::Association.new(name: name, kind: :has_one, descriptor: descriptor)
   end
 
   describe ".validate — within-kind collisions" do
@@ -39,7 +39,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "PostDescriptor#id: Attribute and Attribute share name; every Field at the same level must have a unique name."
       )
     end
@@ -51,7 +51,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "PostDescriptor#computed: MethodAttribute and MethodAttribute share name; every Field at the same level must have a unique name."
       )
     end
@@ -61,7 +61,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "PostDescriptor#author: Association and Association share name; every Field at the same level must have a unique name."
       )
     end
@@ -76,7 +76,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "PostDescriptor#id: Attribute and MethodAttribute share name; every Field at the same level must have a unique name."
       )
     end
@@ -89,7 +89,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "PostDescriptor#author: Attribute and Association share name; every Field at the same level must have a unique name."
       )
     end
@@ -102,7 +102,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "PostDescriptor#author: MethodAttribute and Association share name; every Field at the same level must have a unique name."
       )
     end
@@ -130,7 +130,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
 
   describe ".validate — cross-level isolation" do
     it "does not raise when the same name appears at parent and nested levels" do
-      nested = SerializersCodeGen::Descriptor.new(
+      nested = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", models: nil,
         attributes: [attribute(:id)],
         method_attributes: [], associations: []
@@ -147,7 +147,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
 
   describe ".validate — nested Descriptor walk" do
     it "raises when the collision is inside a nested Descriptor and names the nested Descriptor" do
-      nested = SerializersCodeGen::Descriptor.new(
+      nested = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", models: nil,
         attributes: [attribute(:name)],
         method_attributes: [],
@@ -157,7 +157,7 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
       expect {
         described_class.validate(outer, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::NameCollisionError,
+        Panko::CodeGen::NameCollisionError,
         "AuthorDescriptor#name: Attribute and Association share name; every Field at the same level must have a unique name."
       )
     end
@@ -165,13 +165,13 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
 
   describe ".validate — cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
-      shared = SerializersCodeGen::Descriptor.new(
+      shared = Panko::CodeGen::Descriptor.new(
         name: "SharedDescriptor", models: nil,
         attributes: [attribute(:id)],
         method_attributes: [], associations: []
       )
-      assoc1 = SerializersCodeGen::Association.new(name: :a, kind: :has_one, descriptor: shared)
-      assoc2 = SerializersCodeGen::Association.new(name: :b, kind: :has_one, descriptor: shared)
+      assoc1 = Panko::CodeGen::Association.new(name: :a, kind: :has_one, descriptor: shared)
+      assoc2 = Panko::CodeGen::Association.new(name: :b, kind: :has_one, descriptor: shared)
       outer = descriptor_with(associations: [assoc1, assoc2])
       expect {
         described_class.validate(outer, output: :json, config: config)
@@ -179,12 +179,12 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
     end
 
     it "does not infinite-loop on a self-referencing Descriptor" do
-      parent = SerializersCodeGen::Descriptor.new(
+      parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor", models: nil,
         attributes: [attribute(:body)],
         method_attributes: [], associations: []
       )
-      parent.associations << SerializersCodeGen::Association.new(
+      parent.associations << Panko::CodeGen::Association.new(
         name: :replies, kind: :has_many, descriptor: parent
       )
       expect {
@@ -194,25 +194,25 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
   end
 
   describe ".validate — no Generated Class produced on raise" do
-    it "raises before SerializersCodeGen.compile emits any source" do
+    it "raises before Panko::CodeGen.compile emits any source" do
       bad = descriptor_with(attributes: [attribute(:id)], method_attributes: [method_attribute(:id)])
       generated_class = nil
       expect {
-        generated_class = SerializersCodeGen.compile(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::NameCollisionError)
+        generated_class = Panko::CodeGen.compile(bad, output: :json, config: config)
+      }.to raise_error(Panko::CodeGen::NameCollisionError)
       expect(generated_class).to be_nil
     end
   end
 
   describe "registration in the Validator orchestrator" do
     it "is included in Validator::DEFAULT_RULES" do
-      expect(SerializersCodeGen::Validators::Validator::DEFAULT_RULES)
+      expect(Panko::CodeGen::Validators::Validator::DEFAULT_RULES)
         .to include(described_class)
     end
 
     it "is registered immediately after SourceResolution" do
-      rules = SerializersCodeGen::Validators::Validator::DEFAULT_RULES
-      source_index = rules.index(SerializersCodeGen::Validators::SourceResolution)
+      rules = Panko::CodeGen::Validators::Validator::DEFAULT_RULES
+      source_index = rules.index(Panko::CodeGen::Validators::SourceResolution)
       uniqueness_index = rules.index(described_class)
       expect(uniqueness_index).to eq(source_index + 1)
     end
@@ -220,8 +220,8 @@ RSpec.describe SerializersCodeGen::Validators::NameUniqueness do
     it "is invoked by the orchestrator on Compile" do
       bad = descriptor_with(attributes: [attribute(:id), attribute(:id)])
       expect {
-        SerializersCodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::NameCollisionError, /Attribute and Attribute share name/)
+        Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
+      }.to raise_error(Panko::CodeGen::NameCollisionError, /Attribute and Attribute share name/)
     end
   end
 end

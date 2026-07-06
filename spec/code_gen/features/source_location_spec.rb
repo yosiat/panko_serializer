@@ -2,7 +2,7 @@
 
 require "spec_helper"
 require "tmpdir"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 
 # Cross-cutting +Method#source_location+ contract — paths enter at
@@ -18,7 +18,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
 
   describe "Compile retains the synthetic path" do
     it "stamps +(serializers-code-gen: ShallowGenericSerializer/json)+ on a JSON-mode instance method" do
-      klass = SerializersCodeGen.compile(descriptor, output: :json, config: config)
+      klass = Panko::CodeGen.compile(descriptor, output: :json, config: config)
       path, line = klass.instance_method(:_write_one).source_location
 
       expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/json)")
@@ -26,7 +26,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
     end
 
     it "stamps +(serializers-code-gen: ShallowGenericSerializer/hash)+ on a Hash-mode instance method" do
-      klass = SerializersCodeGen.compile(descriptor, output: :hash, config: config)
+      klass = Panko::CodeGen.compile(descriptor, output: :hash, config: config)
       path, line = klass.instance_method(:_to_hash).source_location
 
       expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/hash)")
@@ -45,7 +45,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
     it "stamps the real File path on a JSON-mode dumped instance method" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "s15_three_synthetic_path_fixture_json.rb")
-        SerializersCodeGen.dump(dumped_descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(dumped_descriptor, output: :json, config: config, path: target)
 
         require target
         klass = Object.const_get(:S15ThreeSyntheticPathFixture_JSON)
@@ -59,7 +59,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
     it "stamps the real File path on a Hash-mode dumped instance method" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "s15_three_synthetic_path_fixture_hash.rb")
-        SerializersCodeGen.dump(dumped_descriptor, output: :hash, config: config, path: target)
+        Panko::CodeGen.dump(dumped_descriptor, output: :hash, config: config, path: target)
 
         require target
         klass = Object.const_get(:S15ThreeSyntheticPathFixture_Hash)

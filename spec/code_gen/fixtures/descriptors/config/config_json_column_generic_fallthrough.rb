@@ -22,16 +22,16 @@ module Fixtures
     #
     # The snapshot delta vs +ConfigJsonColumnWireFormat+ is the absence of
     # +read_attribute_before_type_cast+ / +Oj.sc_parse+ / +push_json+ /
-    # +SerializersCodeGen::JSON_NOOP_PARSER+ in the body of any helper —
+    # +Panko::CodeGen::JSON_NOOP_PARSER+ in the body of any helper —
     # the regression contract this fixture pins.
     module ConfigJsonColumnGenericFallthrough
-      CONFIG = SerializersCodeGen::Config.new(json_column_emit: :wire_format)
-      DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+      CONFIG = Panko::CodeGen::Config.new(json_column_emit: :wire_format)
+      DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnGenericFallthroughSerializer",
         models: nil,
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :metadata, source: :metadata)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
         ],
         method_attributes: [],
         associations: []

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Narrow emit-shape tests for the S18.1 +Descriptor#parent_class+ parent
 # swap in +JsonMode#emit_class+ / +HashMode#emit_class+. These assert
@@ -16,8 +16,8 @@ require "serializers_code_gen"
 # line into +class <Name>_<Mode> < <ParentClass>+ and leaves every other
 # byte alone.
 RSpec.describe "Generator parent_class emit (S18.1)" do
-  let(:generator) { SerializersCodeGen::Generator.new }
-  let(:config) { SerializersCodeGen::Config.new }
+  let(:generator) { Panko::CodeGen::Generator.new }
+  let(:config) { Panko::CodeGen::Config.new }
   let(:parent_class) {
     parent = Class.new
     stub_const("ParentClassEmitSpecBase", parent)
@@ -25,10 +25,10 @@ RSpec.describe "Generator parent_class emit (S18.1)" do
   }
 
   def descriptor(parent_class:)
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: "DemoSerializer",
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id)],
       method_attributes: [],
       associations: [],
       parent_class: parent_class
@@ -67,27 +67,27 @@ RSpec.describe "Generator parent_class emit (S18.1)" do
         it "produces a Generated Class whose .superclass == the supplied parent_class" do
           parent = Class.new
           stub_const("ParentClassIdentitySpecBase_#{suffix}", parent)
-          desc = SerializersCodeGen::Descriptor.new(
+          desc = Panko::CodeGen::Descriptor.new(
             name: "ParentClassIdentitySerializer_#{suffix}",
             models: nil,
-            attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+            attributes: [Panko::CodeGen::Attribute.new(name: :id)],
             method_attributes: [],
             associations: [],
             parent_class: parent
           )
-          generated = SerializersCodeGen.compile(desc, output: mode)
+          generated = Panko::CodeGen.compile(desc, output: mode)
           expect(generated.superclass).to equal(parent)
         end
 
         it "defaults to Object as the superclass when parent_class is nil" do
-          desc = SerializersCodeGen::Descriptor.new(
+          desc = Panko::CodeGen::Descriptor.new(
             name: "DefaultSuperSerializer_#{suffix}",
             models: nil,
-            attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+            attributes: [Panko::CodeGen::Attribute.new(name: :id)],
             method_attributes: [],
             associations: []
           )
-          generated = SerializersCodeGen.compile(desc, output: mode)
+          generated = Panko::CodeGen.compile(desc, output: mode)
           expect(generated.superclass).to equal(Object)
         end
       end

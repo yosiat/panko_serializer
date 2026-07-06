@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Filter
     # The +indexed x single_path+ cell — verdict from S13's filter
     # experiment per

@@ -15,12 +15,12 @@ module Fixtures
     # +spec/features/concerns/root_key_spec.rb+ which reuses this same
     # Descriptor + Config in both modes (mode-orthogonal).
     module ConfigRootKeyOn
-      CONFIG = SerializersCodeGen::Config.new(supports_root_key: true)
-      DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+      CONFIG = Panko::CodeGen::Config.new(supports_root_key: true)
+      DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigRootKeyOnSerializer",
         models: nil,
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id)
         ],
         method_attributes: [],
         associations: []

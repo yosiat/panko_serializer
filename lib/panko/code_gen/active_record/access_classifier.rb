@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module ActiveRecord
     # Multi-class intersection Source-classification rule for the
     # Specialized path per +docs/compilation.md § STI and mixed class sets+.
@@ -67,7 +67,7 @@ module SerializersCodeGen
       #   on the single class (single-class); +:method+ when uniformly
       #   resolvable as a method, when any class lacks the column-backing,
       #   or when any class user-overrides the reader (multi-class)
-      # @raise [SerializersCodeGen::UnknownSourceError] when at least one
+      # @raise [Panko::CodeGen::UnknownSourceError] when at least one
       #   class lacks both a column and an instance method by +source+'s
       #   name; message names each offending class and the +source+ but
       #   does not include +Descriptor+ / +Field+ context (the

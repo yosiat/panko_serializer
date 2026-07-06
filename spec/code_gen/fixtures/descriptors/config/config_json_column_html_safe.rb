@@ -11,13 +11,13 @@ module Fixtures
     # +Oj.sc_parse+ in the body of +_write_one+ — every JSON-typed
     # Attribute keeps the canonical +push_key+ + +push_value+ pair.
     module ConfigJsonColumnHtmlSafe
-      CONFIG = SerializersCodeGen::Config.new(json_column_emit: :html_safe)
-      DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+      CONFIG = Panko::CodeGen::Config.new(json_column_emit: :html_safe)
+      DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnHtmlSafeSerializer",
         models: [PlainPost],
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :metadata, source: :metadata)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
         ],
         method_attributes: [],
         associations: []

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     # Identity-keyed cycle-membership analysis on a Descriptor tree:
     # returns the set of Descriptor +__id__+s that participate in a
@@ -39,7 +39,7 @@ module SerializersCodeGen
       # ≥ 2). Acyclic Descriptors and Descriptors that participate only
       # in length-1 self-loops are absent from the returned Hash.
       #
-      # @param root [SerializersCodeGen::Descriptor] the tree root
+      # @param root [Panko::CodeGen::Descriptor] the tree root
       # @return [Hash{Integer => true}] identity-keyed set of cyclic
       #   Descriptor +__id__+s; empty Hash when the tree is acyclic
       def cyclic_descriptor_ids(root)
@@ -65,12 +65,12 @@ module SerializersCodeGen
       # the stack; if its size is ≥ 2 (mutual cycle), mark every
       # member as cyclic.
       #
-      # @param v [SerializersCodeGen::Descriptor] the current node
+      # @param v [Panko::CodeGen::Descriptor] the current node
       # @param cyclic [Hash{Integer => true}] accumulator output
       # @param index [Hash{Integer => Integer}] per-node discovery index
       # @param lowlink [Hash{Integer => Integer}] per-node lowlink
       # @param on_stack [Hash{Integer => true}] currently-on-SCC-stack flag
-      # @param scc_stack [Array<SerializersCodeGen::Descriptor>] SCC stack
+      # @param scc_stack [Array<Panko::CodeGen::Descriptor>] SCC stack
       # @param next_index [Array<Integer>] single-element box holding the
       #   monotonically-increasing discovery counter (boxed so recursive
       #   frames share state)

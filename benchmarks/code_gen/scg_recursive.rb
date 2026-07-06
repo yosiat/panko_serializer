@@ -21,12 +21,12 @@ require_relative "support/targets"
 # pattern requires a separate intermediate serializer per level, which
 # isn't shape-parity with scg's self-reference).
 
-SCG_RECURSIVE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SCG_RECURSIVE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgRecursiveCommentBenchSerializer",
   models: [Bench::Comment],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: []
@@ -35,14 +35,14 @@ SCG_RECURSIVE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
 # but Field-kind arrays are not frozen, so post-construction `<<` is the
 # standard idiom for self-recursive Descriptors (mirror of
 # `spec/fixtures/descriptors/recursive_self.rb`).
-SCG_RECURSIVE_DESCRIPTOR.associations << SerializersCodeGen::Association.new(
+SCG_RECURSIVE_DESCRIPTOR.associations << Panko::CodeGen::Association.new(
   name: :replies,
   kind: :has_many,
   descriptor: SCG_RECURSIVE_DESCRIPTOR
 )
 
-SCG_JSON_RECURSIVE = SerializersCodeGen.compile(SCG_RECURSIVE_DESCRIPTOR, output: :json).new(descriptor: SCG_RECURSIVE_DESCRIPTOR)
-SCG_HASH_RECURSIVE = SerializersCodeGen.compile(SCG_RECURSIVE_DESCRIPTOR, output: :hash).new(descriptor: SCG_RECURSIVE_DESCRIPTOR)
+SCG_JSON_RECURSIVE = Panko::CodeGen.compile(SCG_RECURSIVE_DESCRIPTOR, output: :json).new(descriptor: SCG_RECURSIVE_DESCRIPTOR)
+SCG_HASH_RECURSIVE = Panko::CodeGen.compile(SCG_RECURSIVE_DESCRIPTOR, output: :hash).new(descriptor: SCG_RECURSIVE_DESCRIPTOR)
 
 # --- Target registry entries ----------------------------------------------
 # n/a — panko / oj_serializers / plain rows omitted; this scenario measures

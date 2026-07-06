@@ -3,7 +3,7 @@
 # Phase-2 filter-experiment harness — measures the 2x2 cell matrix
 # `{Hash-wrapper, Set-index} x {single-path, dual-path}` against 5 fixtures
 # x a record-count sweep, exercising the real compiled
-# `SerializersCodeGen` Generated Class via per-cell `module_eval` overlays
+# `Panko::CodeGen` Generated Class via per-cell `module_eval` overlays
 # per `docs/filters.md § Experiment design`.
 #
 # Run (YJIT — the production target):
@@ -32,7 +32,7 @@ require "date"
 # Local scg, loaded from the repo's lib/. This script lives at
 # `docs/research/`, so `../../lib` resolves to the gem's `lib/`.
 $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
-require "serializers_code_gen"
+require "panko/code_gen"
 
 RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
@@ -866,9 +866,9 @@ end
 # Compile is a pure function per `docs/compilation.md`, so each cell gets
 # an independent class tree — no method-cache contamination across cells.
 def compile_cell_instance(descriptor, cell_name:, output:)
-  cache = SerializersCodeGen::CompileCache.new
-  config = SerializersCodeGen::Config.new
-  root = SerializersCodeGen::Compiler.new(descriptor, output: output, config: config, cache: cache).compile
+  cache = Panko::CodeGen::CompileCache.new
+  config = Panko::CodeGen::Config.new
+  root = Panko::CodeGen::Compiler.new(descriptor, output: output, config: config, cache: cache).compile
   each_unique_descriptor(descriptor) do |d|
     klass = cache.get(d)
     src = Overlay.emit_for(descriptor: d, cell_name: cell_name, output: output)
@@ -885,7 +885,7 @@ end
 # at zero filter cost (the standard body forwards `filters` to children
 # but never inspects it).
 def compile_reference_instance(descriptor, output:)
-  klass = SerializersCodeGen.compile(descriptor, output: output)
+  klass = Panko::CodeGen.compile(descriptor, output: output)
   src = if output == :json
     "def _serialize_many_ref(records)\n" \
       "  writer = Oj::StringWriter.new(mode: :rails)\n" \
@@ -902,8 +902,8 @@ def compile_reference_instance(descriptor, output:)
   # Apply the helper to every unique class in the tree so any back-edge
   # call (none today, but keeps the shape symmetric with the cell-overlay
   # walk) finds the helper available on each class.
-  cache = SerializersCodeGen::CompileCache.new
-  SerializersCodeGen::Compiler.new(descriptor, output: output, config: SerializersCodeGen::Config.new, cache: cache).compile
+  cache = Panko::CodeGen::CompileCache.new
+  Panko::CodeGen::Compiler.new(descriptor, output: output, config: Panko::CodeGen::Config.new, cache: cache).compile
   each_unique_descriptor(descriptor) do |d|
     cache.get(d).module_eval(src)
   end
@@ -913,35 +913,35 @@ end
 
 # ---- Fixtures --------------------------------------------------------------
 
-WIDE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+WIDE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterExperimentsWidePostSerializer",
   models: [FilterBench::WidePost],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    *WIDE_ATTRIBUTE_NAMES.map { |n| SerializersCodeGen::Attribute.new(name: n.to_sym, source: n.to_sym) }
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    *WIDE_ATTRIBUTE_NAMES.map { |n| Panko::CodeGen::Attribute.new(name: n.to_sym, source: n.to_sym) }
   ],
   method_attributes: [],
   associations: []
 )
 
-GRAPH_AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterExperimentsAuthorSerializer",
   models: [FilterBench::Author],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :name),
-    SerializersCodeGen::Attribute.new(name: :email, source: :email)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :name),
+    Panko::CodeGen::Attribute.new(name: :email, source: :email)
   ],
   method_attributes: [],
   associations: []
 )
 
-GRAPH_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterExperimentsCommentSerializer",
   models: [FilterBench::Comment],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: []
@@ -949,21 +949,21 @@ GRAPH_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
 
 # Medium graph per `docs/filters.md § Matrix`: ~5 Attributes + 2 has_one
 # + 1 has_many (~10 children given 5 comments per post).
-GRAPH_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GRAPH_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterExperimentsPostSerializer",
   models: [FilterBench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: GRAPH_AUTHOR_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: GRAPH_COMMENT_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: GRAPH_AUTHOR_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: GRAPH_COMMENT_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR)
   ]
 )
 

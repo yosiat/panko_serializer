@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Cross-cutting +Scope+ threading contract — the 9-item enumeration from
 # +docs/testing.md § scope_spec.rb+ (and S17.3 / PRD #89). JSON/Hash
@@ -15,7 +15,7 @@ require "serializers_code_gen"
 # are threaded through Composition.
 RSpec.describe "Scope — threading contract for Method Attribute and Association if: Callables" do
   def descriptor_with(name: "ScopeDescriptor", attributes: [], method_attributes: [], associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: nil,
       attributes: attributes,
@@ -25,27 +25,27 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
   end
 
   def attribute(name)
-    SerializersCodeGen::Attribute.new(name: name)
+    Panko::CodeGen::Attribute.new(name: name)
   end
 
   def method_attribute(name, body)
-    SerializersCodeGen::MethodAttribute.new(name: name, body: body)
+    Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
   def has_one(name = :child, descriptor:, if: nil)
-    SerializersCodeGen::Association.new(
+    Panko::CodeGen::Association.new(
       name: name, kind: :has_one, descriptor: descriptor, if: binding.local_variable_get(:if)
     )
   end
 
   def has_many(name = :children, descriptor:, if: nil)
-    SerializersCodeGen::Association.new(
+    Panko::CodeGen::Association.new(
       name: name, kind: :has_many, descriptor: descriptor, if: binding.local_variable_get(:if)
     )
   end
 
   def compile(descriptor, mode)
-    SerializersCodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
+    Panko::CodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
   end
 
   describe "(1) scope: defaults to nil when omitted at serialize_one / serialize_many" do
@@ -213,14 +213,14 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
             observed_scopes << scope
             "ok"
           }
-          comment = SerializersCodeGen::Descriptor.new(
+          comment = Panko::CodeGen::Descriptor.new(
             name: "ScopeRecursiveCommentSerializer_#{mode}",
             models: nil,
             attributes: [attribute(:id)],
             method_attributes: [method_attribute(:tag, body)],
             associations: []
           )
-          comment.associations << SerializersCodeGen::Association.new(
+          comment.associations << Panko::CodeGen::Association.new(
             name: :replies, kind: :has_many, descriptor: comment
           )
           generated = compile(comment, mode)

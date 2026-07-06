@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::Config do
+RSpec.describe Panko::CodeGen::Config do
   describe ".new with no arguments" do
     subject(:config) { described_class.new }
 
@@ -109,25 +109,25 @@ RSpec.describe SerializersCodeGen::Config do
     it "raises DescriptorError when hash_record_key_type is not in {:string, :symbol}" do
       expect {
         described_class.new(hash_record_key_type: :foo)
-      }.to raise_error(SerializersCodeGen::DescriptorError)
+      }.to raise_error(Panko::CodeGen::DescriptorError)
     end
 
     it "raises DescriptorError when hash_output_key_type is not in {:string, :symbol}" do
       expect {
         described_class.new(hash_output_key_type: :foo)
-      }.to raise_error(SerializersCodeGen::DescriptorError)
+      }.to raise_error(Panko::CodeGen::DescriptorError)
     end
 
     it "raises DescriptorError when hash_record_key_type is a String, not a Symbol" do
       expect {
         described_class.new(hash_record_key_type: "string")
-      }.to raise_error(SerializersCodeGen::DescriptorError)
+      }.to raise_error(Panko::CodeGen::DescriptorError)
     end
 
     it "raises DescriptorError when hash_output_key_type is nil" do
       expect {
         described_class.new(hash_output_key_type: nil)
-      }.to raise_error(SerializersCodeGen::DescriptorError)
+      }.to raise_error(Panko::CodeGen::DescriptorError)
     end
 
     it "raises ArgumentError when json_column_emit is not in {:wire_format, :html_safe}" do
@@ -166,7 +166,7 @@ RSpec.describe SerializersCodeGen::Config do
       expect {
         described_class.new(hash_record_key_type: :foo)
       }.to raise_error(
-        SerializersCodeGen::DescriptorError,
+        Panko::CodeGen::DescriptorError,
         "Config#hash_record_key_type: invalid value :foo; must be :string or :symbol."
       )
     end
@@ -175,7 +175,7 @@ RSpec.describe SerializersCodeGen::Config do
       expect {
         described_class.new(hash_output_key_type: "string")
       }.to raise_error(
-        SerializersCodeGen::DescriptorError,
+        Panko::CodeGen::DescriptorError,
         'Config#hash_output_key_type: invalid value "string"; must be :string or :symbol.'
       )
     end

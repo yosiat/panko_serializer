@@ -31,15 +31,15 @@ class BenchParent
   end
 end
 
-PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ParentClassDispatchCallablePostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title)
   ],
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(
+    Panko::CodeGen::MethodAttribute.new(
       name: :body_length,
       body: ->(record, _context) { record.body.length }
     )
@@ -47,21 +47,21 @@ PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ParentClassDispatchSymbolPostBenchSerializer",
   models: [Bench::Post],
   attributes: PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR.attributes,
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(name: :body_length, body: :body_length)
+    Panko::CodeGen::MethodAttribute.new(name: :body_length, body: :body_length)
   ],
   associations: [],
   parent_class: BenchParent
 )
 
-SCG_JSON_PARENT_CLASS_CALLABLE = SerializersCodeGen.compile(PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR, output: :json).new(descriptor: PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR)
-SCG_HASH_PARENT_CLASS_CALLABLE = SerializersCodeGen.compile(PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR, output: :hash).new(descriptor: PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR)
-SCG_JSON_PARENT_CLASS_SYMBOL = SerializersCodeGen.compile(PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR, output: :json).new(descriptor: PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR)
-SCG_HASH_PARENT_CLASS_SYMBOL = SerializersCodeGen.compile(PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR, output: :hash).new(descriptor: PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR)
+SCG_JSON_PARENT_CLASS_CALLABLE = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR, output: :json).new(descriptor: PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR)
+SCG_HASH_PARENT_CLASS_CALLABLE = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR, output: :hash).new(descriptor: PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR)
+SCG_JSON_PARENT_CLASS_SYMBOL = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR, output: :json).new(descriptor: PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR)
+SCG_HASH_PARENT_CLASS_SYMBOL = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR, output: :hash).new(descriptor: PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR)
 
 # --- Target registry entries ----------------------------------------------
 # n/a — panko / oj_serializers / plain rows omitted; this scenario compares

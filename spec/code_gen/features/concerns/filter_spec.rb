@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 require "shallow_specialized"
 require "nested_composition"
@@ -39,7 +39,7 @@ require "nested_composition"
 # from invoking its +if:+ Callable.
 RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-inheritance / Source-keyed / filter-before-if: / nested / recursive" do
   def compile(fixture, mode)
-    SerializersCodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
+    Panko::CodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
       .new(descriptor: fixture::DESCRIPTOR)
   end
 
@@ -160,8 +160,8 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           # this; if a future refactor accidentally allocates a fresh
           # Indexed cell for the empty-Hash path, the +equal?+ assertion
           # below catches it.
-          expect(SerializersCodeGen::Filter.wrap(nil)).to equal(SerializersCodeGen::Filter::NONE)
-          expect(SerializersCodeGen::Filter.wrap({})).to equal(SerializersCodeGen::Filter::NONE)
+          expect(Panko::CodeGen::Filter.wrap(nil)).to equal(Panko::CodeGen::Filter::NONE)
+          expect(Panko::CodeGen::Filter.wrap({})).to equal(Panko::CodeGen::Filter::NONE)
         end
       end
     end
@@ -267,12 +267,12 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     # +docs/filters.md § Threading through Composition+, the +name+ is
     # the output key.
     let(:author_descriptor) do
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "Source7AuthorSerializer",
         models: nil,
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :name, source: :name)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :name, source: :name)
         ],
         method_attributes: [],
         associations: []
@@ -280,17 +280,17 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
 
     let(:post_descriptor) do
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "Source7PostSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [],
         associations: [
           # +name: :writer+ → output key in JSON / Hash is +"writer"+.
           # +source: :author+ → +Source+ is +:author+; the parent reads
           # +record["author"]+ and the child filter is keyed by
           # +:author+, not +:writer+.
-          SerializersCodeGen::Association.new(
+          Panko::CodeGen::Association.new(
             name: :writer, kind: :has_one, descriptor: author_descriptor, source: :author
           )
         ]
@@ -302,7 +302,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "scopes the child filter via the Source key (:author), not the name key (:writer)" do
-          generated = SerializersCodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
+          generated = Panko::CodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
           # Sub-filter keyed by Source +:author+ → restricts the writer
           # child to +:id+ only. If the lookup were keyed by +:name+
           # (the +name+), this sub-hash would silently miss the author
@@ -322,7 +322,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           # ignored per +docs/filters.md § Rules+ ("A key that does not
           # match any node at its level is ignored silently"). The
           # writer child emits unfiltered.
-          generated = SerializersCodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
+          generated = Panko::CodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
           expected = (mode == :json) ?
             '{"id":1,"writer":{"id":7,"name":"alice"}}' :
             {"id" => 1, "writer" => {"id" => 7, "name" => "alice"}}
@@ -352,40 +352,40 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         # +has_one :author+ + +if:+ + +has_many :comments+ shape mirrors
         # +nested_composition+ but parameterized on the spy).
         def build_with_spy(spy)
-          author_d = SerializersCodeGen::Descriptor.new(
+          author_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfAuthorSerializer",
             models: nil,
             attributes: [
-              SerializersCodeGen::Attribute.new(name: :id, source: :id),
-              SerializersCodeGen::Attribute.new(name: :name, source: :name)
+              Panko::CodeGen::Attribute.new(name: :id, source: :id),
+              Panko::CodeGen::Attribute.new(name: :name, source: :name)
             ],
             method_attributes: [],
             associations: []
           )
-          comment_d = SerializersCodeGen::Descriptor.new(
+          comment_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfCommentSerializer",
             models: nil,
             attributes: [
-              SerializersCodeGen::Attribute.new(name: :id, source: :id),
-              SerializersCodeGen::Attribute.new(name: :body, source: :body)
+              Panko::CodeGen::Attribute.new(name: :id, source: :id),
+              Panko::CodeGen::Attribute.new(name: :body, source: :body)
             ],
             method_attributes: [],
             associations: []
           )
-          SerializersCodeGen::Descriptor.new(
+          Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfPostSerializer",
             models: nil,
-            attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+            attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
             method_attributes: [],
             associations: [
-              SerializersCodeGen::Association.new(
+              Panko::CodeGen::Association.new(
                 name: :author, kind: :has_one, descriptor: author_d,
                 if: ->(_record, _context) {
                   spy << :invoked
                   true
                 }
               ),
-              SerializersCodeGen::Association.new(
+              Panko::CodeGen::Association.new(
                 name: :comments, kind: :has_many, descriptor: comment_d
               )
             ]
@@ -403,7 +403,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         it "does not invoke if: when the Association is dropped via :except" do
           spy = []
           d = build_with_spy(spy)
-          generated = SerializersCodeGen.compile(d, output: mode).new(descriptor: d)
+          generated = Panko::CodeGen.compile(d, output: mode).new(descriptor: d)
           generated.serialize_one(record, filters: {except: [:author]})
           expect(spy).to be_empty
         end
@@ -411,7 +411,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         it "does not invoke if: when the Association is omitted from :only" do
           spy = []
           d = build_with_spy(spy)
-          generated = SerializersCodeGen.compile(d, output: mode).new(descriptor: d)
+          generated = Panko::CodeGen.compile(d, output: mode).new(descriptor: d)
           generated.serialize_one(record, filters: {only: [:id, :comments]})
           expect(spy).to be_empty
         end
@@ -423,7 +423,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           # demonstrate filter-induced suppression, not a broken spy.
           spy = []
           d = build_with_spy(spy)
-          generated = SerializersCodeGen.compile(d, output: mode).new(descriptor: d)
+          generated = Panko::CodeGen.compile(d, output: mode).new(descriptor: d)
           generated.serialize_one(record)
           expect(spy.size).to eq(1)
         end
@@ -435,7 +435,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           # +serialize_many+ × N test, but on the filter-dropped path.
           spy = []
           d = build_with_spy(spy)
-          generated = SerializersCodeGen.compile(d, output: mode).new(descriptor: d)
+          generated = Panko::CodeGen.compile(d, output: mode).new(descriptor: d)
           records = [record, record.merge("id" => 2), record.merge("id" => 3)]
           generated.serialize_many(records, filters: {except: [:author]})
           expect(spy).to be_empty

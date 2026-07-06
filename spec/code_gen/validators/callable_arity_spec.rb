@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::Validators::CallableArity do
-  let(:config) { SerializersCodeGen::Config.new }
+RSpec.describe Panko::CodeGen::Validators::CallableArity do
+  let(:config) { Panko::CodeGen::Config.new }
 
   def descriptor_with(name: "PostDescriptor", method_attributes: [], associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: nil,
       attributes: [],
@@ -16,7 +16,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
   end
 
   def method_attribute(name, body)
-    SerializersCodeGen::MethodAttribute.new(name: name, body: body)
+    Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
   describe ".validate — MethodAttribute#body arity" do
@@ -45,14 +45,14 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
         expect {
           described_class.validate(descriptor, output: :json, config: config)
         }.to raise_error(
-          SerializersCodeGen::ArityError,
+          Panko::CodeGen::ArityError,
           "PostDescriptor#likes_count: MethodAttribute#body has arity #{arity}; must be 0, 1, 2, or 3."
         )
       end
     end
 
     it "skips Symbol-body MethodAttributes (no .arity call on Symbol) — S18.2" do
-      descriptor = SerializersCodeGen::Descriptor.new(
+      descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor", models: nil,
         attributes: [],
         method_attributes: [method_attribute(:greeting, :greeting)],
@@ -67,14 +67,14 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
 
   describe ".validate — Association#if arity" do
     let(:inner) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "InnerDescriptor", models: nil,
         attributes: [], method_attributes: [], associations: []
       )
     }
 
     it "passes when if: is nil (no guard)" do
-      assoc = SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
+      assoc = Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
       descriptor = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
@@ -82,7 +82,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
     end
 
     it "passes for arity 2 if:" do
-      assoc = SerializersCodeGen::Association.new(
+      assoc = Panko::CodeGen::Association.new(
         name: :author, kind: :has_one, descriptor: inner, if: ->(_r, _c) { true }
       )
       descriptor = descriptor_with(associations: [assoc])
@@ -92,7 +92,7 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
     end
 
     it "passes for arity 3 if:" do
-      assoc = SerializersCodeGen::Association.new(
+      assoc = Panko::CodeGen::Association.new(
         name: :author, kind: :has_one, descriptor: inner, if: ->(_r, _c, _s) { true }
       )
       descriptor = descriptor_with(associations: [assoc])
@@ -102,40 +102,40 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
     end
 
     it "raises ArityError for arity 4 if:" do
-      assoc = SerializersCodeGen::Association.new(
+      assoc = Panko::CodeGen::Association.new(
         name: :author, kind: :has_one, descriptor: inner, if: ->(_a, _b, _c, _d) { true }
       )
       descriptor = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::ArityError,
+        Panko::CodeGen::ArityError,
         "PostDescriptor#author: Association#if has arity 4; must be 0, 1, 2, or 3."
       )
     end
 
     it "raises ArityError for variadic if: (arity -1)" do
-      assoc = SerializersCodeGen::Association.new(
+      assoc = Panko::CodeGen::Association.new(
         name: :author, kind: :has_one, descriptor: inner, if: ->(*_args) { true }
       )
       descriptor = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::ArityError,
+        Panko::CodeGen::ArityError,
         "PostDescriptor#author: Association#if has arity -1; must be 0, 1, 2, or 3."
       )
     end
 
     it "raises ArityError for arity -3 if: (one required + splat)" do
-      assoc = SerializersCodeGen::Association.new(
+      assoc = Panko::CodeGen::Association.new(
         name: :author, kind: :has_one, descriptor: inner, if: ->(_a, _b, *_rest) { true }
       )
       descriptor = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::ArityError,
+        Panko::CodeGen::ArityError,
         "PostDescriptor#author: Association#if has arity -3; must be 0, 1, 2, or 3."
       )
     end
@@ -143,18 +143,18 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
 
   describe ".validate — nested Descriptor walk" do
     it "raises when a Method Attribute one level deep has bad arity" do
-      inner = SerializersCodeGen::Descriptor.new(
+      inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", models: nil,
         attributes: [],
         method_attributes: [method_attribute(:full_name, ->(_a, _b, _c, _d) { :ok })],
         associations: []
       )
-      assoc = SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
+      assoc = Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
       outer = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(outer, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::ArityError,
+        Panko::CodeGen::ArityError,
         "AuthorDescriptor#full_name: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3."
       )
     end
@@ -162,13 +162,13 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
 
   describe ".validate — cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
-      inner = SerializersCodeGen::Descriptor.new(
+      inner = Panko::CodeGen::Descriptor.new(
         name: "InnerDescriptor", models: nil, attributes: [],
         method_attributes: [method_attribute(:fld, ->(_r) { :ok })],
         associations: []
       )
-      assoc1 = SerializersCodeGen::Association.new(name: :a, kind: :has_one, descriptor: inner)
-      assoc2 = SerializersCodeGen::Association.new(name: :b, kind: :has_one, descriptor: inner)
+      assoc1 = Panko::CodeGen::Association.new(name: :a, kind: :has_one, descriptor: inner)
+      assoc2 = Panko::CodeGen::Association.new(name: :b, kind: :has_one, descriptor: inner)
       outer = descriptor_with(associations: [assoc1, assoc2])
       expect {
         described_class.validate(outer, output: :json, config: config)
@@ -180,12 +180,12 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
       # cache scaffold in S5/S8; here we mutate a (non-frozen) Array
       # post-construction to install the back-reference, then prove the
       # validator's identity-cache short-circuits the cycle.
-      parent = SerializersCodeGen::Descriptor.new(
+      parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor", models: nil, attributes: [],
         method_attributes: [method_attribute(:body, ->(_r) { :ok })],
         associations: []
       )
-      parent.associations << SerializersCodeGen::Association.new(
+      parent.associations << Panko::CodeGen::Association.new(
         name: :replies, kind: :has_many, descriptor: parent
       )
       expect {
@@ -195,27 +195,27 @@ RSpec.describe SerializersCodeGen::Validators::CallableArity do
   end
 
   describe ".validate — no Generated Class produced on raise" do
-    it "raises before SerializersCodeGen.compile emits any source" do
+    it "raises before Panko::CodeGen.compile emits any source" do
       bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c, _d) { :ok })])
       generated_class = nil
       expect {
-        generated_class = SerializersCodeGen.compile(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::ArityError)
+        generated_class = Panko::CodeGen.compile(bad, output: :json, config: config)
+      }.to raise_error(Panko::CodeGen::ArityError)
       expect(generated_class).to be_nil
     end
   end
 
   describe "registration in the Validator orchestrator" do
     it "is included in Validator::DEFAULT_RULES" do
-      expect(SerializersCodeGen::Validators::Validator::DEFAULT_RULES)
+      expect(Panko::CodeGen::Validators::Validator::DEFAULT_RULES)
         .to include(described_class)
     end
 
     it "is invoked by the orchestrator on Compile" do
       bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c, _d) { :ok })])
       expect {
-        SerializersCodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::ArityError, /MethodAttribute#body has arity 4/)
+        Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
+      }.to raise_error(Panko::CodeGen::ArityError, /MethodAttribute#body has arity 4/)
     end
   end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     # Header banner emitter shared by +JsonMode+ and +HashMode+. Produces
     # the per-file comment block that follows +# frozen_string_literal:
@@ -25,20 +25,20 @@ module SerializersCodeGen
       # banner reads as a self-contained header even when the +# To use:+
       # example sits next to the surrounding +class+ source.
       #
-      # @param builder [SerializersCodeGen::CodeBuilder] target buffer at
+      # @param builder [Panko::CodeGen::CodeBuilder] target buffer at
       #   indent level 0; the caller has already appended the
       #   +# frozen_string_literal: true+ pragma followed by one blank
       #   line (the +Layout/EmptyLineAfterMagicComment+ standardrb shape
       #   the snapshot fixtures travel through), so the banner's first
       #   line is the +#+-only separator
-      # @param descriptor [SerializersCodeGen::Descriptor] the root
+      # @param descriptor [Panko::CodeGen::Descriptor] the root
       #   Descriptor for the emit — its +name+ feeds the +Descriptor:+
       #   line, the snake_case +require_relative+ basename, and the
       #   class-name in the +.new(descriptor: ...)+ example
       # @param output [Symbol] +:json+ or +:hash+ — feeds the +Mode:+
       #   line (with leading colon, e.g. +Mode: :json+) and selects the
       #   class-name suffix via {Compiler::OUTPUT_SUFFIXES}
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   every field lands in the +Config:+ line in declaration order
       # @return [void]
       def self.emit(builder, descriptor, output:, config:)
@@ -62,7 +62,7 @@ module SerializersCodeGen
       # +true+ / +false+ — both via +Object#inspect+ which already
       # produces the documented shapes.
       #
-      # @param config [SerializersCodeGen::Config]
+      # @param config [Panko::CodeGen::Config]
       # @return [String] one-line +<key>=<value>, ...+ rendering
       def self.render_config(config)
         config.to_h.map { |k, v| "#{k}=#{v.inspect}" }.join(", ")

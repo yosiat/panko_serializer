@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Generator entry point. Dispatches on +output:+ to the matching per-mode
   # emitter (+JsonMode+ here, +HashMode+ in S3) and returns the source
   # string. Domain-aware: walks the Descriptor tree and decides what to
@@ -19,9 +19,9 @@ module SerializersCodeGen
 
     # Emits source for one (Descriptor, Output Mode, Config) triple.
     #
-    # @param descriptor [SerializersCodeGen::Descriptor] the input
+    # @param descriptor [Panko::CodeGen::Descriptor] the input
     # @param output [Symbol] +:json+ or +:hash+
-    # @param config [SerializersCodeGen::Config] resolved settings
+    # @param config [Panko::CodeGen::Config] resolved settings
     # @return [String] the emitted Ruby source
     # @raise [ArgumentError] when +output+ is not in {OUTPUT_MODES}
     def emit(descriptor, output:, config:)

@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 
 RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:config) { Fixtures::ShallowGeneric::CONFIG }
-  let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :json, config: config) }
+  let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
 
   describe "#serialize_one" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:expected) { Fixtures::ShallowGeneric.expected_output(mode) }
 
         it "serializes a Hash record (string keys)" do
@@ -80,7 +80,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
         it "serializes an Array of Hash records" do
@@ -125,8 +125,8 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
 
   describe ".compile" do
     it "returns a fresh, independent class on each call" do
-      first = SerializersCodeGen.compile(descriptor, output: :json, config: config)
-      second = SerializersCodeGen.compile(descriptor, output: :json, config: config)
+      first = Panko::CodeGen.compile(descriptor, output: :json, config: config)
+      second = Panko::CodeGen.compile(descriptor, output: :json, config: config)
       expect(first).not_to equal(second)
     end
 
@@ -135,7 +135,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
     end
 
     it "returns a Hash-mode class whose instances respond to serialize_one" do
-      hash_class = SerializersCodeGen.compile(descriptor, output: :hash, config: config)
+      hash_class = Panko::CodeGen.compile(descriptor, output: :hash, config: config)
       expect(hash_class.new(descriptor: descriptor)).to respond_to(:serialize_one)
     end
   end
@@ -149,7 +149,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
     end
 
     it "stamps the Hash-mode synthetic path (.../hash) on a Hash-mode instance method" do
-      hash_class = SerializersCodeGen.compile(descriptor, output: :hash, config: config)
+      hash_class = Panko::CodeGen.compile(descriptor, output: :hash, config: config)
       method = hash_class.instance_method(:_to_hash)
       path, line = method.source_location
       expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/hash)")
@@ -160,7 +160,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   describe "frozen-string-literal pragma" do
     %i[json hash].each do |mode|
       it "is the first line of the Generator emit output in #{mode} Output Mode" do
-        source = SerializersCodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+        source = Panko::CodeGen::Generator.new.emit(descriptor, output: mode, config: config)
         expect(source.lines.first.chomp).to eq("# frozen_string_literal: true")
       end
     end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Append-only buffer of indented Ruby source lines, used by the Generator
   # to produce a single string consumed identically by Compile (+module_eval+)
   # and Dump (+File.write+).

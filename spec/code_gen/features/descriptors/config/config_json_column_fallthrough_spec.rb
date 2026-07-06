@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_uniform_specialized"
 
@@ -9,7 +9,7 @@ require "config/config_json_column_non_uniform_specialized"
 # #61. Pins intent (the JSON-column fast-path emit must not fire), not
 # just bytes — even when the snapshot diff for an unrelated emitter
 # change happens to keep the +push_value+ shape, the +push_json+ /
-# +Oj.sc_parse+ / +SerializersCodeGen::JSON_NOOP_PARSER+ tokens must
+# +Oj.sc_parse+ / +Panko::CodeGen::JSON_NOOP_PARSER+ tokens must
 # stay absent. The snapshot tier in +spec/generators/snapshot_spec.rb+
 # pins exact bytes; this file pins the negative tokens.
 #
@@ -22,7 +22,7 @@ require "config/config_json_column_non_uniform_specialized"
 #   :wire_format+ knob is silently ignored on +Models: nil+ Descriptors.
 # - Non-uniform-Specialized path. With +Models: [PlainPost, PlainNote]+
 #   the +ar_classes.all? { ... json_typed?(klass, source) }+ guard in
-#   {SerializersCodeGen::Generators::RecordAccess::Specialized.json_column_attribute?}
+#   {Panko::CodeGen::Generators::RecordAccess::Specialized.json_column_attribute?}
 #   (+lib/serializers_code_gen/generators/record_access/specialized.rb+
 #   +json_column_attribute?+) returns +false+ because +PlainNote+'s
 #   +metadata+ resolves to +Type::String+, not +Type::Json+. The
@@ -32,7 +32,7 @@ RSpec.describe "JSON-column emit fallthrough — source token regression" do
     let(:fixture) { Fixtures::Config::ConfigJsonColumnGenericFallthrough }
 
     it "emits push_value (not push_json) even with json_column_emit: :wire_format" do
-      source = SerializersCodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.new.emit(
         fixture::DESCRIPTOR,
         output: :json,
         config: fixture::CONFIG
@@ -51,7 +51,7 @@ RSpec.describe "JSON-column emit fallthrough — source token regression" do
     let(:fixture) { Fixtures::Config::ConfigJsonColumnNonUniformSpecialized }
 
     it "emits push_value (not push_json) because ar_classes.all? rejects" do
-      source = SerializersCodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.new.emit(
         fixture::DESCRIPTOR,
         output: :json,
         config: fixture::CONFIG

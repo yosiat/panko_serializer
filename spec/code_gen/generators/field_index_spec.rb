@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 require "recursive_self"
 require "recursive_mutual"
@@ -25,83 +25,83 @@ require_relative "../support/field_index_parity_matcher"
 # pinning Field-kind combinations not represented as named fixtures
 # (Attributes + MethodAttributes only; Attributes + Associations only;
 # the full mix Attributes + MethodAttributes + Associations).
-RSpec.describe SerializersCodeGen::Generators::FieldIndex do
+RSpec.describe Panko::CodeGen::Generators::FieldIndex do
   describe "field-index parity invariant" do
-    config = SerializersCodeGen::Config.new
+    config = Panko::CodeGen::Config.new
 
-    leaf = SerializersCodeGen::Descriptor.new(
+    leaf = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityLeafSerializer",
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
     )
 
-    leaf_many = SerializersCodeGen::Descriptor.new(
+    leaf_many = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityLeafManySerializer",
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
     )
 
-    attributes_and_method_attributes = SerializersCodeGen::Descriptor.new(
+    attributes_and_method_attributes = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityAttrsAndMethodAttrsSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :title, source: :title)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :title, source: :title)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(name: :slug, body: ->(record) { record["title"] }),
-        SerializersCodeGen::MethodAttribute.new(name: :computed, body: -> { 42 })
+        Panko::CodeGen::MethodAttribute.new(name: :slug, body: ->(record) { record["title"] }),
+        Panko::CodeGen::MethodAttribute.new(name: :computed, body: -> { 42 })
       ],
       associations: []
     )
 
-    attributes_and_associations = SerializersCodeGen::Descriptor.new(
+    attributes_and_associations = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityAttrsAndAssocsSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :title, source: :title)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :title, source: :title)
       ],
       method_attributes: [],
       associations: [
-        SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: leaf),
-        SerializersCodeGen::Association.new(name: :tags, kind: :has_many, descriptor: leaf_many)
+        Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: leaf),
+        Panko::CodeGen::Association.new(name: :tags, kind: :has_many, descriptor: leaf_many)
       ]
     )
 
-    full_mix_leaf = SerializersCodeGen::Descriptor.new(
+    full_mix_leaf = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityFullMixLeafSerializer",
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
     )
 
-    full_mix_leaf_many = SerializersCodeGen::Descriptor.new(
+    full_mix_leaf_many = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityFullMixLeafManySerializer",
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
     )
 
-    full_mix = SerializersCodeGen::Descriptor.new(
+    full_mix = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityFullMixSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :title, source: :title)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :title, source: :title)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(name: :slug, body: ->(record) { record["title"] })
+        Panko::CodeGen::MethodAttribute.new(name: :slug, body: ->(record) { record["title"] })
       ],
       associations: [
-        SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: full_mix_leaf),
-        SerializersCodeGen::Association.new(name: :tags, kind: :has_many, descriptor: full_mix_leaf_many)
+        Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: full_mix_leaf),
+        Panko::CodeGen::Association.new(name: :tags, kind: :has_many, descriptor: full_mix_leaf_many)
       ]
     )
 
@@ -118,7 +118,7 @@ RSpec.describe SerializersCodeGen::Generators::FieldIndex do
       %i[json hash].each do |mode|
         context "with #{label} (#{mode} mode)" do
           it "every `unless filters.drops?(N)` wrapper's N matches FIELD_INDEX[name]" do
-            source = SerializersCodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+            source = Panko::CodeGen::Generator.new.emit(descriptor, output: mode, config: config)
             expect(source).to have_field_index_parity
           end
         end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Cross-cutting +parent_class+ dispatch contract — the 9-item
 # enumeration from the parent S18 PRD (#95) / +docs/merging-into-panko.md
@@ -21,15 +21,15 @@ require "serializers_code_gen"
 RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract" do
   # ----- shared helpers -----
   def attribute(name, source = name)
-    SerializersCodeGen::Attribute.new(name: name, source: source)
+    Panko::CodeGen::Attribute.new(name: name, source: source)
   end
 
   def method_attribute(name, body)
-    SerializersCodeGen::MethodAttribute.new(name: name, body: body)
+    Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
   def descriptor_with(name:, parent_class:, attributes: [], method_attributes: [], associations: [], models: nil)
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: models,
       parent_class: parent_class,
@@ -40,7 +40,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
   end
 
   def compile(descriptor, mode)
-    SerializersCodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
+    Panko::CodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
   end
 
   describe "(1) Symbol-body resolves via direct method dispatch on self — basic correctness" do
@@ -285,7 +285,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
             end
           })
 
-          comment = SerializersCodeGen::Descriptor.new(
+          comment = Panko::CodeGen::Descriptor.new(
             name: "ParentClassDispatchSpec_RecursiveSerializer_#{mode}",
             models: nil,
             parent_class: ParentClassDispatchSpec_RecursiveBase,
@@ -293,7 +293,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
             method_attributes: [method_attribute(:tag, :tag)],
             associations: []
           )
-          comment.associations << SerializersCodeGen::Association.new(
+          comment.associations << Panko::CodeGen::Association.new(
             name: :replies, kind: :has_many, descriptor: comment
           )
           generated = compile(comment, mode)

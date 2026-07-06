@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::ActiveRecord::DefineAttributeMethods do
+RSpec.describe Panko::CodeGen::ActiveRecord::DefineAttributeMethods do
   describe ".ensure!" do
     it "calls #define_attribute_methods when #attribute_methods_generated? is false" do
       define_calls = 0

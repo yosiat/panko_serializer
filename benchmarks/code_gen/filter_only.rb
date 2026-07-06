@@ -26,22 +26,22 @@ require_relative "support/targets"
 #
 # Note: plain/* rows are omitted — plain has no filter primitive.
 
-FILTER_ONLY_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_ONLY_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterOnlyPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_JSON_FILTER_ONLY = SerializersCodeGen.compile(FILTER_ONLY_DESCRIPTOR, output: :json).new(descriptor: FILTER_ONLY_DESCRIPTOR)
-SCG_HASH_FILTER_ONLY = SerializersCodeGen.compile(FILTER_ONLY_DESCRIPTOR, output: :hash).new(descriptor: FILTER_ONLY_DESCRIPTOR)
+SCG_JSON_FILTER_ONLY = Panko::CodeGen.compile(FILTER_ONLY_DESCRIPTOR, output: :json).new(descriptor: FILTER_ONLY_DESCRIPTOR)
+SCG_HASH_FILTER_ONLY = Panko::CodeGen.compile(FILTER_ONLY_DESCRIPTOR, output: :hash).new(descriptor: FILTER_ONLY_DESCRIPTOR)
 
 class FilterOnlyPostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body, :views, :published

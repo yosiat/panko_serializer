@@ -9,21 +9,21 @@ require_relative "support/targets"
 # specialized path on the scg row for an apples-to-apples comparison
 # against panko/{json,object}.
 
-ALIASES_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+ALIASES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "AliasesPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :title),
-    SerializersCodeGen::Attribute.new(name: :content, source: :body),
-    SerializersCodeGen::Attribute.new(name: :hits, source: :views)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :title),
+    Panko::CodeGen::Attribute.new(name: :content, source: :body),
+    Panko::CodeGen::Attribute.new(name: :hits, source: :views)
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_JSON_ALIASES = SerializersCodeGen.compile(ALIASES_DESCRIPTOR, output: :json).new(descriptor: ALIASES_DESCRIPTOR)
-SCG_HASH_ALIASES = SerializersCodeGen.compile(ALIASES_DESCRIPTOR, output: :hash).new(descriptor: ALIASES_DESCRIPTOR)
+SCG_JSON_ALIASES = Panko::CodeGen.compile(ALIASES_DESCRIPTOR, output: :json).new(descriptor: ALIASES_DESCRIPTOR)
+SCG_HASH_ALIASES = Panko::CodeGen.compile(ALIASES_DESCRIPTOR, output: :hash).new(descriptor: ALIASES_DESCRIPTOR)
 
 class AliasesPostPankoSerializer < Panko::Serializer
   attributes :id

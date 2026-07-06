@@ -14,7 +14,7 @@ require_relative "recursive_mutual_folder_serializer_json"
 
 class RecursiveMutualItemSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1, subfolder: 2}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__RecursiveMutualItemSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__RecursiveMutualItemSerializer_JSON)
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
@@ -22,7 +22,7 @@ class RecursiveMutualItemSerializer_JSON
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -35,7 +35,7 @@ class RecursiveMutualItemSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array

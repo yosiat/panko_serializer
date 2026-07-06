@@ -3,7 +3,7 @@
 require_relative "filters/none"
 require_relative "filters/indexed"
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Public-facing namespace for the +Filter+ family per
   # +docs/filters.md+. {Filter.wrap} is the single entry point used at
   # the top of every Generated Class's +serialize_one+ /

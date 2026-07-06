@@ -2,7 +2,7 @@
 
 require "spec_helper"
 require "tmpdir"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 require "nested_composition"
 require "shallow_specialized"
@@ -29,7 +29,7 @@ require "parent_class_recursive_self"
 # 1. +Generator#emit+ bytes equal the on-disk +<fixture>_<mode>.rb+
 #    snapshot (the single-file concatenated form Compile evaluates via
 #    +module_eval+).
-# 2. +SerializersCodeGen.dump(...)+ writes one or more files whose
+# 2. +Panko::CodeGen.dump(...)+ writes one or more files whose
 #    bytes equal the on-disk per-Generated-Class snapshots (one
 #    +<descriptor_snake>_<mode>.rb+ snapshot per +Generated Class+
 #    in the tree). Flat fixtures land in S15.4; nested + Recursive
@@ -77,25 +77,25 @@ RSpec.describe "Generator snapshot corpus" do
           let(:snapshot_filename) { "#{basename}_#{mode}.rb" }
 
           it "Generator#emit bytes equal the committed snapshot" do
-            source = SerializersCodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+            source = Panko::CodeGen::Generator.new.emit(descriptor, output: mode, config: config)
             expect(source).to match_snapshot(snapshot_filename)
           end
 
-          it "SerializersCodeGen.dump write equals the snapshot" do
+          it "Panko::CodeGen.dump write equals the snapshot" do
             if descriptor.associations.empty?
               Dir.mktmpdir do |tmpdir|
                 target = File.join(tmpdir, snapshot_filename)
-                SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
+                Panko::CodeGen.dump(descriptor, output: mode, config: config, path: target)
                 expect(File.read(target)).to match_snapshot(snapshot_filename)
               end
             else
-              expected_files = SerializersCodeGen::Generators::Fanout.emit_files(
+              expected_files = Panko::CodeGen::Generators::Fanout.emit_files(
                 descriptor, output: mode, config: config
               )
               Dir.mktmpdir do |tmpdir|
                 outer = expected_files.find { |f| f[:descriptor].equal?(descriptor) }
                 target = File.join(tmpdir, outer[:basename])
-                SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
+                Panko::CodeGen.dump(descriptor, output: mode, config: config, path: target)
 
                 expected_files.each do |file|
                   written = File.join(tmpdir, file[:basename])
@@ -107,7 +107,7 @@ RSpec.describe "Generator snapshot corpus" do
 
           it "snapshot file loads + runs + serializes sanity_record to expected_output" do
             require snapshot_filename.sub(/\.rb\z/, "")
-            constant_name = "#{descriptor.name}_#{SerializersCodeGen::Compiler::OUTPUT_SUFFIXES.fetch(mode)}"
+            constant_name = "#{descriptor.name}_#{Panko::CodeGen::Compiler::OUTPUT_SUFFIXES.fetch(mode)}"
             generated_class = Object.const_get(constant_name)
             instance = generated_class.new(descriptor: descriptor)
             kwargs = {}

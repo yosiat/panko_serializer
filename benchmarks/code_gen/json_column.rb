@@ -11,19 +11,19 @@ require_relative "support/targets"
 # specialized path so the scg row goes through the same model-aware fast
 # path as panko/{json,object}.
 
-JSON_COLUMN_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+JSON_COLUMN_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "JsonColumnPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :metadata, source: :metadata)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_JSON_JSON_COLUMN = SerializersCodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :json).new(descriptor: JSON_COLUMN_DESCRIPTOR)
-SCG_HASH_JSON_COLUMN = SerializersCodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :hash).new(descriptor: JSON_COLUMN_DESCRIPTOR)
+SCG_JSON_JSON_COLUMN = Panko::CodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :json).new(descriptor: JSON_COLUMN_DESCRIPTOR)
+SCG_HASH_JSON_COLUMN = Panko::CodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :hash).new(descriptor: JSON_COLUMN_DESCRIPTOR)
 
 class JsonColumnPostPankoSerializer < Panko::Serializer
   attributes :id, :metadata

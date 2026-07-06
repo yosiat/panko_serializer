@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "config/config_root_key_on"
 
 # Per-fixture record-shape coverage for the +config_root_key_on+
@@ -20,7 +20,7 @@ RSpec.describe "Generated Class for Fixtures::Config::ConfigRootKeyOn" do
   describe "#serialize_one" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:expected_unwrapped) { Fixtures::Config::ConfigRootKeyOn.expected_output(mode) }
 
         it "serializes a Hash record (string keys) without root_key" do
@@ -46,7 +46,7 @@ RSpec.describe "Generated Class for Fixtures::Config::ConfigRootKeyOn" do
   describe "#serialize_many" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
         it "serializes an Array of Hash records without root_key" do

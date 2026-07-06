@@ -2,19 +2,19 @@
 
 module Fixtures
   module ShallowSpecialized
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ShallowSpecializedSerializer",
       models: [Post],
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :title, source: :title),
-        SerializersCodeGen::Attribute.new(name: :headline, source: :headline)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :title, source: :title),
+        Panko::CodeGen::Attribute.new(name: :headline, source: :headline)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(name: :static, body: -> { 42 }),
-        SerializersCodeGen::MethodAttribute.new(name: :hidden, body: ->(_record) { SerializersCodeGen::SKIP }),
-        SerializersCodeGen::MethodAttribute.new(name: :contextual, body: ->(_record, context) { context })
+        Panko::CodeGen::MethodAttribute.new(name: :static, body: -> { 42 }),
+        Panko::CodeGen::MethodAttribute.new(name: :hidden, body: ->(_record) { Panko::CodeGen::SKIP }),
+        Panko::CodeGen::MethodAttribute.new(name: :contextual, body: ->(_record, context) { context })
       ],
       associations: []
     )

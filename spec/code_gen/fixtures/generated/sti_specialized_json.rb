@@ -12,13 +12,13 @@
 
 class StiSpecializedSerializer_JSON
   FIELD_INDEX = {vin: 0, make: 1}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__StiSpecializedSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__StiSpecializedSerializer_JSON)
 
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -31,7 +31,7 @@ class StiSpecializedSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array

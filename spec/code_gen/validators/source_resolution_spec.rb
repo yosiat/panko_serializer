@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::Validators::SourceResolution do
-  let(:config) { SerializersCodeGen::Config.new }
+RSpec.describe Panko::CodeGen::Validators::SourceResolution do
+  let(:config) { Panko::CodeGen::Config.new }
 
   # Minimal AR-like fake: anything responding to +#columns_hash+,
   # +#method_defined?+, +#attribute_methods_generated?+, and
@@ -23,7 +23,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
   end
 
   def descriptor_with(name: "PostDescriptor", models: nil, attributes: [], associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: models,
       attributes: attributes,
@@ -33,7 +33,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
   end
 
   def attribute(name, source: name)
-    SerializersCodeGen::Attribute.new(name: name, source: source)
+    Panko::CodeGen::Attribute.new(name: name, source: source)
   end
 
   describe ".validate — column outcome" do
@@ -74,7 +74,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::UnknownSourceError,
+        Panko::CodeGen::UnknownSourceError,
         "PostDescriptor#missing: Attribute#source :missing is not a column or instance method on Post."
       )
     end
@@ -88,7 +88,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::UnknownSourceError,
+        Panko::CodeGen::UnknownSourceError,
         "PostDescriptor#title: Attribute#source :raw_title is not a column or instance method on Post."
       )
     end
@@ -153,7 +153,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::UnknownSourceError,
+        Panko::CodeGen::UnknownSourceError,
         "PostDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Car."
       )
     end
@@ -166,7 +166,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::UnknownSourceError,
+        Panko::CodeGen::UnknownSourceError,
         "PostDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Vehicle, Car, Truck."
       )
     end
@@ -218,7 +218,7 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::UnknownSourceError,
+        Panko::CodeGen::UnknownSourceError,
         "PostDescriptor#title: Attribute#source :title is not a column or instance method on Post."
       )
     end
@@ -247,19 +247,19 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
   describe ".validate — nested Descriptor walk" do
     it "raises when a nested Descriptor has an unresolved Source" do
       inner_klass = fake_ar_class(name: "Author", columns: ["id"])
-      inner = SerializersCodeGen::Descriptor.new(
+      inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor",
         models: [inner_klass],
         attributes: [attribute(:missing)],
         method_attributes: [],
         associations: []
       )
-      assoc = SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
+      assoc = Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)
       outer = descriptor_with(associations: [assoc])
       expect {
         described_class.validate(outer, output: :json, config: config)
       }.to raise_error(
-        SerializersCodeGen::UnknownSourceError,
+        Panko::CodeGen::UnknownSourceError,
         "AuthorDescriptor#missing: Attribute#source :missing is not a column or instance method on Author."
       )
     end
@@ -268,15 +268,15 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
   describe ".validate — cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       inner_klass = fake_ar_class(name: "Author", columns: ["id"])
-      inner = SerializersCodeGen::Descriptor.new(
+      inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor",
         models: [inner_klass],
         attributes: [attribute(:id)],
         method_attributes: [],
         associations: []
       )
-      assoc1 = SerializersCodeGen::Association.new(name: :a, kind: :has_one, descriptor: inner)
-      assoc2 = SerializersCodeGen::Association.new(name: :b, kind: :has_one, descriptor: inner)
+      assoc1 = Panko::CodeGen::Association.new(name: :a, kind: :has_one, descriptor: inner)
+      assoc2 = Panko::CodeGen::Association.new(name: :b, kind: :has_one, descriptor: inner)
       outer = descriptor_with(associations: [assoc1, assoc2])
       expect {
         described_class.validate(outer, output: :json, config: config)
@@ -285,14 +285,14 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
 
     it "does not infinite-loop on a self-referencing Descriptor" do
       parent_klass = fake_ar_class(name: "Comment", columns: ["id", "body"])
-      parent = SerializersCodeGen::Descriptor.new(
+      parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor",
         models: [parent_klass],
         attributes: [attribute(:body)],
         method_attributes: [],
         associations: []
       )
-      parent.associations << SerializersCodeGen::Association.new(
+      parent.associations << Panko::CodeGen::Association.new(
         name: :replies, kind: :has_many, descriptor: parent
       )
       expect {
@@ -302,26 +302,26 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
   end
 
   describe ".validate — no Generated Class produced on raise" do
-    it "raises before SerializersCodeGen.compile emits any source" do
+    it "raises before Panko::CodeGen.compile emits any source" do
       klass = fake_ar_class(name: "Post", columns: ["id"])
       bad = descriptor_with(models: [klass], attributes: [attribute(:bad)])
       generated_class = nil
       expect {
-        generated_class = SerializersCodeGen.compile(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::UnknownSourceError)
+        generated_class = Panko::CodeGen.compile(bad, output: :json, config: config)
+      }.to raise_error(Panko::CodeGen::UnknownSourceError)
       expect(generated_class).to be_nil
     end
   end
 
   describe "registration in the Validator orchestrator" do
     it "is included in Validator::DEFAULT_RULES" do
-      expect(SerializersCodeGen::Validators::Validator::DEFAULT_RULES)
+      expect(Panko::CodeGen::Validators::Validator::DEFAULT_RULES)
         .to include(described_class)
     end
 
     it "is registered immediately after CallableArity" do
-      rules = SerializersCodeGen::Validators::Validator::DEFAULT_RULES
-      arity_index = rules.index(SerializersCodeGen::Validators::CallableArity)
+      rules = Panko::CodeGen::Validators::Validator::DEFAULT_RULES
+      arity_index = rules.index(Panko::CodeGen::Validators::CallableArity)
       source_index = rules.index(described_class)
       expect(source_index).to eq(arity_index + 1)
     end
@@ -330,8 +330,8 @@ RSpec.describe SerializersCodeGen::Validators::SourceResolution do
       klass = fake_ar_class(name: "Post", columns: ["id"])
       bad = descriptor_with(models: [klass], attributes: [attribute(:missing)])
       expect {
-        SerializersCodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
-      }.to raise_error(SerializersCodeGen::UnknownSourceError, /not a column or instance method on Post/)
+        Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
+      }.to raise_error(Panko::CodeGen::UnknownSourceError, /not a column or instance method on Post/)
     end
   end
 end

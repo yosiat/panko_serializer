@@ -18,12 +18,12 @@ class ParentClassSpecializedSerializer_Hash < ParentClassSpecializedBase
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     _to_hash(record, context, scope, filters)
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
@@ -40,13 +40,13 @@ class ParentClassSpecializedSerializer_Hash < ParentClassSpecializedBase
     end
     unless filters.drops?(2)
       value = greeting
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["greeting"] = value
       end
     end
     unless filters.drops?(3)
       value = @cb_static.call
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["static"] = value
       end
     end

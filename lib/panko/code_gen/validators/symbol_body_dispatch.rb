@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Validators
     # Semantic-validation rule: a +MethodAttribute+ whose +body+ is a
     # +Symbol+ may only appear in a +Descriptor+ whose +parent_class+ is
@@ -28,14 +28,14 @@ module SerializersCodeGen
       # set so a shared inner Descriptor (or a self-referential one) is
       # walked exactly once.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] root of the walk
+      # @param descriptor [Panko::CodeGen::Descriptor] root of the walk
       # @param output [Symbol] resolved Output Mode; accepted to satisfy
       #   the orchestrator interface, ignored here (Symbol-body
       #   legitimacy is mode-agnostic)
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   accepted to satisfy the orchestrator interface, ignored here
       # @return [void]
-      # @raise [SerializersCodeGen::SymbolBodyError] on the first Symbol-
+      # @raise [Panko::CodeGen::SymbolBodyError] on the first Symbol-
       #   body MethodAttribute under a +parent_class: nil+ Descriptor
       def self.validate(descriptor, output:, config:)
         walk(descriptor, {})
@@ -52,7 +52,7 @@ module SerializersCodeGen
         # established by +CallableArity+ / +SourceResolution+ /
         # +NameUniqueness+.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @param seen [Hash{Integer => true}] identity-keyed visit set
         # @return [void]
         def walk(descriptor, seen)
@@ -69,9 +69,9 @@ module SerializersCodeGen
         # is the legitimate Symbol-body shape from S18 and short-circuits
         # the scan entirely.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @return [void]
-        # @raise [SerializersCodeGen::SymbolBodyError] per +docs/errors.md
+        # @raise [Panko::CodeGen::SymbolBodyError] per +docs/errors.md
         #   § Message convention+
         def check_method_attributes!(descriptor)
           return unless descriptor.parent_class.nil?

@@ -9,28 +9,28 @@ require_relative "support/targets"
 # goes through the same model-aware fast path as panko/{json,object} for an
 # apples-to-apples comparison.
 
-HAS_ONE_AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+HAS_ONE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasOneAuthorBenchSerializer",
   models: [Bench::Author],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :name)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :name)
   ],
   method_attributes: [],
   associations: []
 )
 
-HAS_ONE_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+HAS_ONE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasOnePostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(
+    Panko::CodeGen::Association.new(
       name: :author,
       kind: :has_one,
       descriptor: HAS_ONE_AUTHOR_DESCRIPTOR
@@ -38,8 +38,8 @@ HAS_ONE_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   ]
 )
 
-SCG_JSON_HAS_ONE = SerializersCodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :json).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
-SCG_HASH_HAS_ONE = SerializersCodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :hash).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
+SCG_JSON_HAS_ONE = Panko::CodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :json).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
+SCG_HASH_HAS_ONE = Panko::CodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :hash).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
 
 class HasOneAuthorPankoSerializer < Panko::Serializer
   attributes :id, :name

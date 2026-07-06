@@ -40,49 +40,49 @@ class Bench::Post
   end
 end
 
-GRAPH_AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphAuthorBenchSerializer",
   models: [Bench::Author],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :name)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :name)
   ],
   method_attributes: [],
   associations: []
 )
 
-GRAPH_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphCommentBenchSerializer",
   models: [Bench::Comment],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: []
 )
 
-GRAPH_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: GRAPH_AUTHOR_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: GRAPH_COMMENT_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :recent_comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: GRAPH_AUTHOR_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: GRAPH_COMMENT_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :recent_comments, kind: :has_many, descriptor: GRAPH_COMMENT_DESCRIPTOR)
   ]
 )
 
-SCG_JSON_GRAPH = SerializersCodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: GRAPH_POST_DESCRIPTOR)
-SCG_HASH_GRAPH = SerializersCodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: GRAPH_POST_DESCRIPTOR)
+SCG_JSON_GRAPH = Panko::CodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: GRAPH_POST_DESCRIPTOR)
+SCG_HASH_GRAPH = Panko::CodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: GRAPH_POST_DESCRIPTOR)
 
 class GraphAuthorPankoSerializer < Panko::Serializer
   attributes :id, :name

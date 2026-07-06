@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Validators
     # Semantic-validation rule: every +Attribute+ on a +Descriptor+ with
     # +models:+ set must resolve to either a column or an instance method
@@ -34,14 +34,14 @@ module SerializersCodeGen
       # visit set so a shared inner Descriptor (or a recursive one — full
       # recursion lands in S8) is walked exactly once.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] root of the walk
+      # @param descriptor [Panko::CodeGen::Descriptor] root of the walk
       # @param output [Symbol] resolved Output Mode; accepted to satisfy
       #   the orchestrator interface, ignored here (Source resolution is
       #   mode-agnostic)
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   accepted to satisfy the orchestrator interface, ignored here
       # @return [void]
-      # @raise [SerializersCodeGen::UnknownSourceError] on the first
+      # @raise [Panko::CodeGen::UnknownSourceError] on the first
       #   Attribute whose +source+ is neither a column nor an instance
       #   method on its declared AR Model
       def self.validate(descriptor, output:, config:)
@@ -58,7 +58,7 @@ module SerializersCodeGen
         # detected via Ruby object identity") and the convention
         # established by +CallableArity+.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @param seen [Hash{Integer => true}] identity-keyed visit set
         # @return [void]
         def walk(descriptor, seen)
@@ -83,10 +83,10 @@ module SerializersCodeGen
         # for non-AR classes per +docs/compilation.md § Non-AR class in
         # `models`+.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] a Descriptor
+        # @param descriptor [Panko::CodeGen::Descriptor] a Descriptor
         #   with +models:+ set (caller already gated)
         # @return [void]
-        # @raise [SerializersCodeGen::UnknownSourceError] re-raised with
+        # @raise [Panko::CodeGen::UnknownSourceError] re-raised with
         #   +Descriptor+ / +Field+ context per +docs/errors.md § Message
         #   convention+
         def classify_attributes!(descriptor)
@@ -108,12 +108,12 @@ module SerializersCodeGen
         #
         # @param klasses [Array<Class>] AR-class subset of
         #   +descriptor.models+
-        # @param attribute [SerializersCodeGen::Attribute] the Field
+        # @param attribute [Panko::CodeGen::Attribute] the Field
         #   whose +source+ is being classified
         # @param descriptor_name [String] +Descriptor#name+ for the
         #   message prefix
         # @return [void]
-        # @raise [SerializersCodeGen::UnknownSourceError] when the
+        # @raise [Panko::CodeGen::UnknownSourceError] when the
         #   classifier rejects +attribute.source+
         def classify_or_raise!(klasses, attribute, descriptor_name)
           ActiveRecord::AccessClassifier.classify(klasses, attribute.source)
@@ -133,7 +133,7 @@ module SerializersCodeGen
         # message verbatim ("on Post") and naturally extending to
         # multi-class ("on Truck, Motorcycle").
         #
-        # @param error [SerializersCodeGen::UnknownSourceError] the
+        # @param error [Panko::CodeGen::UnknownSourceError] the
         #   classifier's raise
         # @return [String] e.g. +"Post"+ or +"Truck, Motorcycle"+
         def missing_class_names(error)

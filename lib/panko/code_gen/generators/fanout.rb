@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     # Multi-file fan-out emitter for {Dump} per
     # +docs/dumping.md § Nested Descriptor dumps+: walks the
@@ -34,9 +34,9 @@ module SerializersCodeGen
       # +Array#flat_map(&:source)+ if a future caller wants
       # the same byte stream Compile evaluates.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] tree root
+      # @param descriptor [Panko::CodeGen::Descriptor] tree root
       # @param output [Symbol] +:json+ or +:hash+
-      # @param config [SerializersCodeGen::Config] resolved settings
+      # @param config [Panko::CodeGen::Config] resolved settings
       # @return [Array<Hash>] each entry has +:descriptor+
       #   (the +Descriptor+ for this file), +:basename+ (filename
       #   without directory, including +.rb+) and +:source+ (the
@@ -58,7 +58,7 @@ module SerializersCodeGen
       # +Descriptor+ + +Output Mode+ resolve to the same file path
       # (the determinism guarantee in the slice acceptance).
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param descriptor [Panko::CodeGen::Descriptor]
       # @param output [Symbol] +:json+ or +:hash+
       # @return [String] e.g. +"nested_composition_post_serializer_json.rb"+
       def basename_for(descriptor, output)
@@ -77,9 +77,9 @@ module SerializersCodeGen
       # the slice's acceptance guarantees), then the single
       # +<Name>_<Suffix>+ class body via the per-mode emitter.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param descriptor [Panko::CodeGen::Descriptor]
       # @param output [Symbol]
-      # @param config [SerializersCodeGen::Config]
+      # @param config [Panko::CodeGen::Config]
       # @param cyclic_ids [Hash{Integer => true}]
       # @return [String]
       def build_file(descriptor, output, config, cyclic_ids)
@@ -106,8 +106,8 @@ module SerializersCodeGen
       # +require_relative+s back, which Ruby tolerates because
       # the cycle is resolved at instantiation, not at load.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
-      # @return [Array<SerializersCodeGen::Descriptor>]
+      # @param descriptor [Panko::CodeGen::Descriptor]
+      # @return [Array<Panko::CodeGen::Descriptor>]
       def ordered_dependencies(descriptor)
         seen = {descriptor.__id__ => true}
         deps = []

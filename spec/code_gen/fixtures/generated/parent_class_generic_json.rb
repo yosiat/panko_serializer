@@ -12,14 +12,14 @@
 
 class ParentClassGenericSerializer_JSON < ParentClassGenericBase
   FIELD_INDEX = {id: 0, name: 1, greeting: 2, static: 3}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ParentClassGenericSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ParentClassGenericSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_static = descriptor.method_attributes[1].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -32,7 +32,7 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
@@ -67,13 +67,13 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
     end
     unless filters.drops?(2)
       value = greeting
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "greeting")
       end
     end
     unless filters.drops?(3)
       value = @cb_static.call
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "static")
       end
     end
@@ -90,13 +90,13 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
     end
     unless filters.drops?(2)
       value = greeting
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "greeting")
       end
     end
     unless filters.drops?(3)
       value = @cb_static.call
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "static")
       end
     end

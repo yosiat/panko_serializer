@@ -9,6 +9,8 @@ $LOAD_PATH.unshift File.expand_path("fixtures/descriptors", __dir__)
 
 ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
 
+require "panko/code_gen"
+
 require_relative "support/schema"
 require_relative "support/models"
 require_relative "support/snapshot_matcher"

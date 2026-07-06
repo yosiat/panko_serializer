@@ -2,13 +2,13 @@
 
 module Fixtures
   module ConfigHashOutputKeySymbol
-    CONFIG = SerializersCodeGen::Config.new(hash_output_key_type: :symbol)
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new(hash_output_key_type: :symbol)
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ConfigHashOutputKeySymbolSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :name, source: :name)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :name, source: :name)
       ],
       method_attributes: [],
       associations: []

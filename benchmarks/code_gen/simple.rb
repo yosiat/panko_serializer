@@ -9,22 +9,22 @@ require_relative "support/targets"
 # comparison against panko/object and panko/json (which always go through
 # their own model-aware fast path).
 
-SIMPLE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SIMPLE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SimplePostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_JSON_SIMPLE = SerializersCodeGen.compile(SIMPLE_DESCRIPTOR, output: :json).new(descriptor: SIMPLE_DESCRIPTOR)
-SCG_HASH_SIMPLE = SerializersCodeGen.compile(SIMPLE_DESCRIPTOR, output: :hash).new(descriptor: SIMPLE_DESCRIPTOR)
+SCG_JSON_SIMPLE = Panko::CodeGen.compile(SIMPLE_DESCRIPTOR, output: :json).new(descriptor: SIMPLE_DESCRIPTOR)
+SCG_HASH_SIMPLE = Panko::CodeGen.compile(SIMPLE_DESCRIPTOR, output: :hash).new(descriptor: SIMPLE_DESCRIPTOR)
 
 class SimplePostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body, :views, :published

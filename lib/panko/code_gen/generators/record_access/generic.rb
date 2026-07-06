@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     module RecordAccess
       # Generic-path Record-access emitter — used when a Descriptor's
@@ -32,9 +32,9 @@ module SerializersCodeGen
         # the per-Field-kind emitters: +Attribute+, and +Association+
         # (+has_one+ landed in S5.1; +has_many+ in S5.2).
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         #   being compiled
-        # @param config [SerializersCodeGen::Config] resolved compile-time
+        # @param config [Panko::CodeGen::Config] resolved compile-time
         #   settings; +hash_record_key_type+ selects between
         #   +record["id"]+ and +record[:id]+
         # @param field_index [Hash{Symbol => Integer}] codegen-time
@@ -43,7 +43,7 @@ module SerializersCodeGen
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
         #   per-Field literal at codegen time
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
           emit_json_dispatch(descriptor, builder)
@@ -59,13 +59,13 @@ module SerializersCodeGen
         # +Config#hash_record_key_type+ — two orthogonal axes per
         # +docs/config.md+.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         #   being compiled
-        # @param config [SerializersCodeGen::Config] resolved settings
+        # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map; threaded into each
         #   +FieldEmitters::*.emit_*+ call (mirror of {emit_json})
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
           emit_hash_dispatch(descriptor, builder)
@@ -96,8 +96,8 @@ module SerializersCodeGen
         # there covers every reachable path while keeping the helper
         # bodies allocation-free.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_dispatch(descriptor, builder)
           builder.line "def _write_one(record, writer, context, scope, filters)"
@@ -118,11 +118,11 @@ module SerializersCodeGen
         # Only the default branch is exercised in this slice; the +:symbol+
         # branch is exercised by the S10 config-isolation fixture.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
-        # @param config [SerializersCodeGen::Config] resolved settings
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_hash_helper(descriptor, config, field_index, builder)
           builder.line "def _write_one_hash(record, writer, context, scope, filters)"
@@ -146,14 +146,14 @@ module SerializersCodeGen
         # Works for ActiveRecord instances, POROs, and anything responding
         # to the Source method.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
-        # @param config [SerializersCodeGen::Config] resolved settings;
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings;
         #   threaded through to per-Field emitters whose source choices
         #   depend on it (e.g. +Association#emit_json+ branches on
         #   +null_for_missing_has_one+)
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_object_helper(descriptor, config, field_index, builder)
           builder.line "def _write_one_object(record, writer, context, scope, filters)"
@@ -184,8 +184,8 @@ module SerializersCodeGen
         # +_to_hash_object+ helpers stay un-prepended; they inherit the
         # ivars from the dispatcher.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash_dispatch(descriptor, builder)
           builder.line "def _to_hash(record, context, scope, filters)"
@@ -207,11 +207,11 @@ module SerializersCodeGen
         # record-side lookup from +Config#hash_record_key_type+; both
         # default to +:string+ in this slice.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
-        # @param config [SerializersCodeGen::Config] resolved settings
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash_hash_helper(descriptor, config, field_index, builder)
           builder.line "def _to_hash_hash(record, context, scope, filters)"
@@ -248,11 +248,11 @@ module SerializersCodeGen
         # Works for ActiveRecord instances, POROs, and anything responding
         # to the Source method.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
-        # @param config [SerializersCodeGen::Config] resolved settings
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash_object_helper(descriptor, config, field_index, builder)
           builder.line "def _to_hash_object(record, context, scope, filters)"
@@ -305,8 +305,8 @@ module SerializersCodeGen
         # the PRD rationale shared with
         # {Specialized.emit_parent_class_ivar_writes}.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_parent_class_ivar_writes(descriptor, builder)
           return if descriptor.parent_class.nil?
@@ -324,7 +324,7 @@ module SerializersCodeGen
         #
         # @param source_name [Symbol] the Source method name (Attribute's
         #   or Association's +source+)
-        # @param config [SerializersCodeGen::Config] resolved settings
+        # @param config [Panko::CodeGen::Config] resolved settings
         # @return [String] Ruby source like +"record[\"id\"]"+ or
         #   +"record[:id]"+
         def self.hash_read_expr(source_name, config)

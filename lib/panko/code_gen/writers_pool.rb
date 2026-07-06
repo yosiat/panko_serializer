@@ -2,7 +2,7 @@
 
 require "oj"
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Per-Generated-Class fiber-local LIFO stack of +Oj::StringWriter+
   # instances reused across top-level +serialize_one+ / +serialize_many+
   # calls. Constructed once per Generated Class at +Compile+ time and

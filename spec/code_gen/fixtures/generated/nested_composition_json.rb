@@ -12,13 +12,13 @@
 
 class NestedCompositionAuthorSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionAuthorSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionAuthorSerializer_JSON)
 
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -31,7 +31,7 @@ class NestedCompositionAuthorSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
@@ -78,13 +78,13 @@ end
 
 class NestedCompositionCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionCommentSerializer_JSON)
 
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -97,7 +97,7 @@ class NestedCompositionCommentSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
@@ -144,7 +144,7 @@ end
 
 class NestedCompositionPostSerializer_JSON
   FIELD_INDEX = {id: 0, author: 1, comments: 2}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionPostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionPostSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_if_author = descriptor.associations[0].if
@@ -153,7 +153,7 @@ class NestedCompositionPostSerializer_JSON
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -166,7 +166,7 @@ class NestedCompositionPostSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array

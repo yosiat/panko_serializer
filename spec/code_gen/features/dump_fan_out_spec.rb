@@ -2,7 +2,7 @@
 
 require "spec_helper"
 require "tmpdir"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "nested_composition"
 require "recursive_self"
 require "recursive_mutual"
@@ -16,7 +16,7 @@ require "recursive_mutual"
 # +require_relative+ wiring, and that the dumped tree round-trips
 # +require+ → +.new(descriptor: ...)+ → +serialize_one+ to the
 # expected output.
-RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
+RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
   describe "Fixtures::NestedComposition — one file per Generated Class" do
     let(:descriptor) { Fixtures::NestedComposition::DESCRIPTOR }
     let(:config) { Fixtures::NestedComposition::CONFIG }
@@ -25,7 +25,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "writes 3 files to the same directory under deterministic basenames" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "nested_composition_post_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         expect(Dir.children(dir).sort).to eq(%w[
           nested_composition_author_serializer_json.rb
@@ -38,7 +38,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "emits require_relative directives in the outer file pointing at sibling basenames" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "nested_composition_post_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         outer_source = File.read(target)
         expect(outer_source).to include(%(require_relative "nested_composition_author_serializer_json"))
@@ -49,7 +49,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "puts frozen_string_literal: true at line 1 of every dumped file" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "nested_composition_post_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         Dir.children(dir).each do |basename|
           first_line = File.open(File.join(dir, basename), &:readline)
@@ -62,31 +62,31 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
       # Rename every Descriptor in the tree so the require'd dumped
       # tree's constants do not collide with the snapshot tier's load
       # of +nested_composition_json.rb+ (same process).
-      author = SerializersCodeGen::Descriptor.new(
+      author = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedAuthor",
         models: nil,
         attributes: Fixtures::NestedComposition::AUTHOR_DESCRIPTOR.attributes,
         method_attributes: [],
         associations: []
       )
-      comment = SerializersCodeGen::Descriptor.new(
+      comment = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedComment",
         models: nil,
         attributes: Fixtures::NestedComposition::COMMENT_DESCRIPTOR.attributes,
         method_attributes: [],
         associations: []
       )
-      renamed = SerializersCodeGen::Descriptor.new(
+      renamed = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedPost",
         models: nil,
         attributes: descriptor.attributes,
         method_attributes: [],
         associations: [
-          SerializersCodeGen::Association.new(
+          Panko::CodeGen::Association.new(
             name: :author, kind: :has_one, descriptor: author,
             if: ->(_record, _context) { true }
           ),
-          SerializersCodeGen::Association.new(
+          Panko::CodeGen::Association.new(
             name: :comments, kind: :has_many, descriptor: comment
           )
         ]
@@ -94,7 +94,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
 
       Dir.mktmpdir do |dir|
         outer_path = File.join(dir, "s15_five_nested_post_json.rb")
-        SerializersCodeGen.dump(renamed, output: :json, config: config, path: outer_path)
+        Panko::CodeGen.dump(renamed, output: :json, config: config, path: outer_path)
         require outer_path
         klass = Object.const_get(:S15FiveNestedPost_JSON)
         instance = klass.new(descriptor: renamed)
@@ -105,12 +105,12 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "two successive dumps to fresh dirs produce byte-identical files (deterministic)" do
       first = Dir.mktmpdir do |dir|
         target = File.join(dir, "nested_composition_post_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
         Dir.children(dir).sort.to_h { |b| [b, File.read(File.join(dir, b))] }
       end
       second = Dir.mktmpdir do |dir|
         target = File.join(dir, "nested_composition_post_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
         Dir.children(dir).sort.to_h { |b| [b, File.read(File.join(dir, b))] }
       end
       expect(first).to eq(second)
@@ -124,7 +124,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "writes exactly one file" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "recursive_self_comment_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
         expect(Dir.children(dir)).to eq(%w[recursive_self_comment_serializer_json.rb])
       end
     end
@@ -132,7 +132,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "emits no executable require_relative directives (self-loop handled by @<n>_serializer = self)" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "recursive_self_comment_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         executable_lines = File.read(target).each_line.reject { |l| l.lstrip.start_with?("#") }
         expect(executable_lines.grep(/^\s*require_relative\b/)).to be_empty
@@ -148,7 +148,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "writes 2 files, one per Generated Class" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "recursive_mutual_folder_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         expect(Dir.children(dir).sort).to eq(%w[
           recursive_mutual_folder_serializer_json.rb
@@ -160,7 +160,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "emits require_relative pointing at the peer in each file" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "recursive_mutual_folder_serializer_json.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         folder = File.read(File.join(dir, "recursive_mutual_folder_serializer_json.rb"))
         item = File.read(File.join(dir, "recursive_mutual_item_serializer_json.rb"))
@@ -178,29 +178,29 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
         # Rename both peers so const collisions with the snapshot tier
         # (which loads recursive_mutual_json.rb's combined form) cannot
         # occur in the same process.
-        renamed_item = SerializersCodeGen::Descriptor.new(
+        renamed_item = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualItem",
           models: nil,
           attributes: Fixtures::RecursiveMutual::ITEM_DESCRIPTOR.attributes,
           method_attributes: [],
           associations: []
         )
-        renamed_folder = SerializersCodeGen::Descriptor.new(
+        renamed_folder = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualFolder",
           models: nil,
           attributes: Fixtures::RecursiveMutual::FOLDER_DESCRIPTOR.attributes,
           method_attributes: [],
           associations: []
         )
-        renamed_folder.associations << SerializersCodeGen::Association.new(
+        renamed_folder.associations << Panko::CodeGen::Association.new(
           name: :items, kind: :has_many, descriptor: renamed_item
         )
-        renamed_item.associations << SerializersCodeGen::Association.new(
+        renamed_item.associations << Panko::CodeGen::Association.new(
           name: :subfolder, kind: :has_one, descriptor: renamed_folder
         )
 
         target = File.join(dir, "s15_five_mutual_folder_json.rb")
-        SerializersCodeGen.dump(renamed_folder, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(renamed_folder, output: :json, config: config, path: target)
 
         # Mutual +require_relative+ trips Ruby's "circular require
         # considered harmful" warning by design — both files name each
@@ -228,7 +228,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "writes the outer Generated Class to the caller-supplied path: even when it doesn't follow the snake_case convention" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "an_arbitrary_name.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         expect(File).to exist(target)
         expect(File.read(target)).to include("class NestedCompositionPostSerializer_JSON")
@@ -238,7 +238,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "places sibling inner files in the same directory regardless of the outer file's basename" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "an_arbitrary_name.rb")
-        SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
 
         expect(Dir.children(dir).sort).to eq(%w[
           an_arbitrary_name.rb
@@ -251,7 +251,7 @@ RSpec.describe "SerializersCodeGen.dump (multi-file fan-out)" do
     it "returns the caller-supplied path: from #dump" do
       Dir.mktmpdir do |dir|
         target = File.join(dir, "explicit_outer.rb")
-        result = SerializersCodeGen.dump(descriptor, output: :json, config: config, path: target)
+        result = Panko::CodeGen.dump(descriptor, output: :json, config: config, path: target)
         expect(result).to eq(target)
       end
     end

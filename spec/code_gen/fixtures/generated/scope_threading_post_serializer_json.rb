@@ -15,7 +15,7 @@ require_relative "scope_threading_comment_serializer_json"
 
 class ScopeThreadingPostSerializer_JSON
   FIELD_INDEX = {id: 0, legacy_label: 1, viewer_label: 2, author: 3, comments: 4}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ScopeThreadingPostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ScopeThreadingPostSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_legacy_label = descriptor.method_attributes[0].body
@@ -26,7 +26,7 @@ class ScopeThreadingPostSerializer_JSON
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -39,7 +39,7 @@ class ScopeThreadingPostSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
@@ -87,13 +87,13 @@ class ScopeThreadingPostSerializer_JSON
     end
     unless filters.drops?(1)
       value = @cb_legacy_label.call(record, context)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "legacy_label")
       end
     end
     unless filters.drops?(2)
       value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "viewer_label")
       end
     end
@@ -126,13 +126,13 @@ class ScopeThreadingPostSerializer_JSON
     end
     unless filters.drops?(1)
       value = @cb_legacy_label.call(record, context)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "legacy_label")
       end
     end
     unless filters.drops?(2)
       value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "viewer_label")
       end
     end

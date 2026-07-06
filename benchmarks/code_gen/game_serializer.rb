@@ -64,16 +64,16 @@ GAME = Game.includes(:best_player, :players).find(GAME_ID)
 
 # --- SCG ------------------------------------------------------------------
 
-PLAYER_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+PLAYER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "PlayerSerializer",
   models: [Player],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :first_name, source: :first_name),
-    SerializersCodeGen::Attribute.new(name: :last_name, source: :last_name)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :first_name, source: :first_name),
+    Panko::CodeGen::Attribute.new(name: :last_name, source: :last_name)
   ],
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(
+    Panko::CodeGen::MethodAttribute.new(
       name: :full_name,
       body: ->(record, _ctx) { record.full_name }
     )
@@ -81,42 +81,42 @@ PLAYER_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-SCORES_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SCORES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScoresSerializer",
   models: [Game],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :high_score, source: :high_score),
-    SerializersCodeGen::Attribute.new(name: :score, source: :score)
+    Panko::CodeGen::Attribute.new(name: :high_score, source: :high_score),
+    Panko::CodeGen::Attribute.new(name: :score, source: :score)
   ],
   method_attributes: [],
   associations: []
 )
 
-GAME_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GAME_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GameSerializer",
   models: [Game],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :name)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :name)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :scores, kind: :has_one, descriptor: SCORES_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :best_player, kind: :has_one, descriptor: PLAYER_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :players, kind: :has_many, descriptor: PLAYER_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :scores, kind: :has_one, descriptor: SCORES_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :best_player, kind: :has_one, descriptor: PLAYER_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :players, kind: :has_many, descriptor: PLAYER_DESCRIPTOR)
   ]
 )
 
-SCG_JSON = SerializersCodeGen.compile(GAME_DESCRIPTOR, output: :json).new(descriptor: GAME_DESCRIPTOR)
+SCG_JSON = Panko::CodeGen.compile(GAME_DESCRIPTOR, output: :json).new(descriptor: GAME_DESCRIPTOR)
 # Symbol keys for the hash row: Symbol#hash is cached, so Hash construction
 # is ~9–11% faster than with String keys (see docs/deferred.md § Hash-mode
 # default key type). The parity check below normalizes both rows through
 # Oj.load(mode: :strict), which coerces Symbol/String keys to Strings, so
 # the byte-parity assertion still holds.
-SCG_HASH = SerializersCodeGen.compile(
+SCG_HASH = Panko::CodeGen.compile(
   GAME_DESCRIPTOR,
   output: :hash,
-  config: SerializersCodeGen::Config.new(hash_output_key_type: :symbol)
+  config: Panko::CodeGen::Config.new(hash_output_key_type: :symbol)
 ).new(descriptor: GAME_DESCRIPTOR)
 
 # --- SCG parent_class dispatch -------------------------------------------
@@ -137,34 +137,34 @@ class PlayerSerializerBase
   end
 end
 
-PLAYER_PARENT_CLASS_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+PLAYER_PARENT_CLASS_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "PlayerParentClassSerializer",
   models: [Player],
   parent_class: PlayerSerializerBase,
   attributes: PLAYER_DESCRIPTOR.attributes,
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(name: :full_name, body: :full_name)
+    Panko::CodeGen::MethodAttribute.new(name: :full_name, body: :full_name)
   ],
   associations: []
 )
 
-GAME_PARENT_CLASS_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+GAME_PARENT_CLASS_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GameParentClassSerializer",
   models: [Game],
   attributes: GAME_DESCRIPTOR.attributes,
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :scores, kind: :has_one, descriptor: SCORES_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :best_player, kind: :has_one, descriptor: PLAYER_PARENT_CLASS_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :players, kind: :has_many, descriptor: PLAYER_PARENT_CLASS_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :scores, kind: :has_one, descriptor: SCORES_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :best_player, kind: :has_one, descriptor: PLAYER_PARENT_CLASS_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :players, kind: :has_many, descriptor: PLAYER_PARENT_CLASS_DESCRIPTOR)
   ]
 )
 
-SCG_JSON_PARENT_CLASS = SerializersCodeGen.compile(GAME_PARENT_CLASS_DESCRIPTOR, output: :json).new(descriptor: GAME_PARENT_CLASS_DESCRIPTOR)
-SCG_HASH_PARENT_CLASS = SerializersCodeGen.compile(
+SCG_JSON_PARENT_CLASS = Panko::CodeGen.compile(GAME_PARENT_CLASS_DESCRIPTOR, output: :json).new(descriptor: GAME_PARENT_CLASS_DESCRIPTOR)
+SCG_HASH_PARENT_CLASS = Panko::CodeGen.compile(
   GAME_PARENT_CLASS_DESCRIPTOR,
   output: :hash,
-  config: SerializersCodeGen::Config.new(hash_output_key_type: :symbol)
+  config: Panko::CodeGen::Config.new(hash_output_key_type: :symbol)
 ).new(descriptor: GAME_PARENT_CLASS_DESCRIPTOR)
 
 # --- Panko ----------------------------------------------------------------

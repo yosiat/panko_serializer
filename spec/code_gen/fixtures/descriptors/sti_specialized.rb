@@ -24,13 +24,13 @@ module Fixtures
   # +Vehicle+ and +Car+ instances through the same Generated Class to
   # pin both halves of the rule end-to-end.
   module StiSpecialized
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "StiSpecializedSerializer",
       models: [Vehicle, Car],
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :vin, source: :vin),
-        SerializersCodeGen::Attribute.new(name: :make, source: :make)
+        Panko::CodeGen::Attribute.new(name: :vin, source: :vin),
+        Panko::CodeGen::Attribute.new(name: :make, source: :make)
       ],
       method_attributes: [],
       associations: []

@@ -43,21 +43,21 @@ end
 
 module Fixtures
   module ParentClassRecursiveSelf
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ParentClassRecursiveSelfCommentSerializer",
       models: nil,
       parent_class: ParentClassRecursiveBase,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :body, source: :body)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :body, source: :body)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(name: :viewer_tag, body: :viewer_tag)
+        Panko::CodeGen::MethodAttribute.new(name: :viewer_tag, body: :viewer_tag)
       ],
       associations: []
     )
-    DESCRIPTOR.associations << SerializersCodeGen::Association.new(
+    DESCRIPTOR.associations << Panko::CodeGen::Association.new(
       name: :replies,
       kind: :has_many,
       descriptor: DESCRIPTOR

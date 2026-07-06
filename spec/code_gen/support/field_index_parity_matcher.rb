@@ -2,7 +2,7 @@
 
 require "rspec/expectations"
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Spec
     # Pins the +Field-index parity+ contract from
     # +docs/filters.md § Threading through Composition+: every
@@ -18,7 +18,7 @@ module SerializersCodeGen
     # fetch, one of the per-class assertions fails.
     #
     # The matcher takes the full source string emitted by
-    # {SerializersCodeGen::Generator#emit} (one or more top-level
+    # {Panko::CodeGen::Generator#emit} (one or more top-level
     # +class <Name>_<Suffix>+ blocks) and walks every class block
     # independently. For each block it parses +FIELD_INDEX+ from the
     # literal, scans every +unless filters.drops?(N)+ wrapper, derives
@@ -172,7 +172,7 @@ end
 
 RSpec::Matchers.define :have_field_index_parity do
   match do |source|
-    @failures = SerializersCodeGen::Spec::FieldIndexParity.failures(source)
+    @failures = Panko::CodeGen::Spec::FieldIndexParity.failures(source)
     @failures.empty?
   end
 

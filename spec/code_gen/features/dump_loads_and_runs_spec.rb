@@ -2,7 +2,7 @@
 
 require "spec_helper"
 require "tmpdir"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 require "shallow_specialized"
 require "sti_specialized"
@@ -20,7 +20,7 @@ require "config/config_json_column_non_uniform_specialized"
 
 # Environment loads-and-runs tier per +docs/dumping.md § Contract:
 # the dumped file is runnable with a Descriptor at construction+. For
-# every (fixture, mode), {SerializersCodeGen.dump} writes a +.rb+ file
+# every (fixture, mode), {Panko::CodeGen.dump} writes a +.rb+ file
 # tree to a tmp dir, the spec +require+s the outer file, instantiates
 # the resulting +Generated Class+ with the fixture's structural shape,
 # and asserts +serialize_one(sanity_record)+ matches +expected_output(mode)+.
@@ -34,7 +34,7 @@ require "config/config_json_column_non_uniform_specialized"
 # +spec/fixtures/generated/+. Renaming preserves the structural shape
 # (Models, Attributes, MethodAttributes, Associations, +if:+ guards)
 # verbatim, so the serialized output stays equal to +expected_output(mode)+.
-RSpec.describe "SerializersCodeGen.dump (Environment loads + runs)" do
+RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
   fixtures = [
     Fixtures::ShallowGeneric,
     Fixtures::NestedComposition,
@@ -61,7 +61,7 @@ RSpec.describe "SerializersCodeGen.dump (Environment loads + runs)" do
     cached = cache[descriptor.__id__]
     next cached if cached
 
-    renamed = SerializersCodeGen::Descriptor.new(
+    renamed = Panko::CodeGen::Descriptor.new(
       name: "#{prefix}#{descriptor.name}",
       models: descriptor.models,
       attributes: descriptor.attributes,
@@ -72,7 +72,7 @@ RSpec.describe "SerializersCodeGen.dump (Environment loads + runs)" do
 
     descriptor.associations.each do |assoc|
       target = rename_tree.call(assoc.descriptor, prefix, cache)
-      renamed.associations << SerializersCodeGen::Association.new(
+      renamed.associations << Panko::CodeGen::Association.new(
         name: assoc.name, kind: assoc.kind,
         descriptor: target, source: assoc.source, if: assoc.if
       )
@@ -88,12 +88,12 @@ RSpec.describe "SerializersCodeGen.dump (Environment loads + runs)" do
           let(:config) { fixture::CONFIG }
 
           it "dump → require → .new(descriptor:) → serialize_one matches expected_output" do
-            outer_basename = SerializersCodeGen::Generators::Fanout.basename_for(descriptor, mode)
-            constant_name = "#{descriptor.name}_#{SerializersCodeGen::Compiler::OUTPUT_SUFFIXES.fetch(mode)}"
+            outer_basename = Panko::CodeGen::Generators::Fanout.basename_for(descriptor, mode)
+            constant_name = "#{descriptor.name}_#{Panko::CodeGen::Compiler::OUTPUT_SUFFIXES.fetch(mode)}"
 
             Dir.mktmpdir do |dir|
               target = File.join(dir, outer_basename)
-              SerializersCodeGen.dump(descriptor, output: mode, config: config, path: target)
+              Panko::CodeGen.dump(descriptor, output: mode, config: config, path: target)
 
               # Mutual-recursion fixtures wire +require_relative+
               # both ways across the cycle peers; Ruby's "circular

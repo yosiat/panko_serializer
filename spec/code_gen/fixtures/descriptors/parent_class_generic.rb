@@ -31,18 +31,18 @@ end
 
 module Fixtures
   module ParentClassGeneric
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ParentClassGenericSerializer",
       models: nil,
       parent_class: ParentClassGenericBase,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :name, source: :name)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :name, source: :name)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting),
-        SerializersCodeGen::MethodAttribute.new(name: :static, body: -> { 42 })
+        Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting),
+        Panko::CodeGen::MethodAttribute.new(name: :static, body: -> { 42 })
       ],
       associations: []
     )

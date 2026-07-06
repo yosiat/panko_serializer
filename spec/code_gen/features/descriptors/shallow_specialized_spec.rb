@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_specialized"
 
 RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
@@ -11,7 +11,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
   describe "#serialize_one — AR Records via the Specialized path" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
         it "reads column-backed Attributes via _read_attribute, bypassing the user-defined reader override" do
@@ -97,12 +97,12 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
     end
 
     def non_ar_descriptor
-      @non_ar_descriptor ||= SerializersCodeGen::Descriptor.new(
+      @non_ar_descriptor ||= Panko::CodeGen::Descriptor.new(
         name: "NonArShallowSerializer",
         models: [non_ar_record_class],
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :title, source: :title)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :title, source: :title)
         ],
         method_attributes: [],
         associations: []
@@ -111,7 +111,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(non_ar_descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(non_ar_descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: non_ar_descriptor) }
 
         it "serializes a non-AR Struct Record via method dispatch (no Hash branch, no _read_attribute)" do
@@ -128,7 +128,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
 
   describe ".compile — Specialized path emits a single _write_one / _to_hash without the Hash branch" do
     it "JSON mode: instance methods include _write_one but not _write_one_hash / _write_one_object" do
-      generated_class = SerializersCodeGen.compile(descriptor, output: :json, config: config)
+      generated_class = Panko::CodeGen.compile(descriptor, output: :json, config: config)
       method_names = generated_class.instance_methods(false)
       expect(method_names).to include(:_write_one)
       expect(method_names).not_to include(:_write_one_hash)
@@ -136,7 +136,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
     end
 
     it "Hash mode: instance methods include _to_hash but not _to_hash_hash / _to_hash_object" do
-      generated_class = SerializersCodeGen.compile(descriptor, output: :hash, config: config)
+      generated_class = Panko::CodeGen.compile(descriptor, output: :hash, config: config)
       method_names = generated_class.instance_methods(false)
       expect(method_names).to include(:_to_hash)
       expect(method_names).not_to include(:_to_hash_hash)

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 
 # JSON-mode emit shape tests for the +Config#pool_writer+ knob (S16.2).
@@ -12,10 +12,10 @@ require "shallow_generic"
 # unpooled emit tier surfaces here, before snapshots are regenerated.
 RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
-  let(:generator) { SerializersCodeGen::Generator.new }
+  let(:generator) { Panko::CodeGen::Generator.new }
 
   describe "with Config#pool_writer: true" do
-    let(:config) { SerializersCodeGen::Config.new(pool_writer: true) }
+    let(:config) { Panko::CodeGen::Config.new(pool_writer: true) }
 
     context "when ActiveSupport::IsolatedExecutionState is defined at Compile time" do
       before { stub_const("ActiveSupport::IsolatedExecutionState", Module.new) }
@@ -24,7 +24,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the IsolatedExecutionState subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ShallowGenericSerializer_JSON)"
+          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ShallowGenericSerializer_JSON)"
         )
       end
 
@@ -48,7 +48,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the ThreadLocal subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = SerializersCodeGen::WritersPool::ThreadLocal.new(:_scg_writer__ShallowGenericSerializer_JSON)"
+          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_scg_writer__ShallowGenericSerializer_JSON)"
         )
       end
 
@@ -83,7 +83,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
   end
 
   describe "with Config#pool_writer: false" do
-    let(:config) { SerializersCodeGen::Config.new(pool_writer: false) }
+    let(:config) { Panko::CodeGen::Config.new(pool_writer: false) }
 
     it "emits no POOL constant" do
       source = generator.emit(descriptor, output: :json, config: config)
@@ -127,7 +127,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
           end
 
           def serialize_one(record, context: nil, scope: nil, filters: nil)
-            filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+            filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
             writer = Oj::StringWriter.new(mode: :rails)
             _write_one(record, writer, context, scope, filters)
             result = writer.to_s
@@ -136,7 +136,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
           end
 
           def serialize_many(records, context: nil, scope: nil, filters: nil)
-            filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+            filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
             writer = Oj::StringWriter.new(mode: :rails)
             writer.push_array
             records.each { |r| _write_one(r, writer, context, scope, filters) }

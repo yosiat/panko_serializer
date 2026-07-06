@@ -12,14 +12,14 @@
 
 class ScopeThreadingCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ScopeThreadingCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ScopeThreadingCommentSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_viewer_tag = descriptor.method_attributes[0].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -32,7 +32,7 @@ class ScopeThreadingCommentSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
@@ -64,7 +64,7 @@ class ScopeThreadingCommentSerializer_JSON
     end
     unless filters.drops?(2)
       value = @cb_viewer_tag.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "viewer_tag")
       end
     end
@@ -81,7 +81,7 @@ class ScopeThreadingCommentSerializer_JSON
     end
     unless filters.drops?(2)
       value = @cb_viewer_tag.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "viewer_tag")
       end
     end

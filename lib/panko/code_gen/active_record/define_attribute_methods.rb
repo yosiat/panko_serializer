@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module ActiveRecord
     # Defensive idempotent wrapper around +ActiveRecord::Base.define_attribute_methods+.
     # AR generates column readers lazily on first use; the +Specialized

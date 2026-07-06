@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
+RSpec.describe Panko::CodeGen::ActiveRecord::AccessClassifier do
   # A minimal AR-like fake: anything responding to +#columns_hash+ +
   # +#method_defined?+. Mirrors the duck-type the classifier relies on
   # so unit coverage runs without booting a real ActiveRecord stack.
@@ -39,14 +39,14 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
       klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
       expect {
         described_class.classify([klass], :missing)
-      }.to raise_error(SerializersCodeGen::UnknownSourceError)
+      }.to raise_error(Panko::CodeGen::UnknownSourceError)
     end
 
     it "names the class and source in the raised message" do
       klass = fake_ar_class(name: "Post", columns: ["id"], methods: [])
       expect {
         described_class.classify([klass], :missing)
-      }.to raise_error(SerializersCodeGen::UnknownSourceError, /Post/) { |err|
+      }.to raise_error(Panko::CodeGen::UnknownSourceError, /Post/) { |err|
         expect(err.message).to include(":missing")
       }
     end
@@ -86,7 +86,7 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
         c = fake_ar_class(name: "Car", columns: ["vin"], methods: %i[wheels])
         expect {
           described_class.classify([v, c], :wheels)
-        }.to raise_error(SerializersCodeGen::UnknownSourceError)
+        }.to raise_error(Panko::CodeGen::UnknownSourceError)
       end
 
       it "names the offending class in the raised message when only one class lacks the source" do
@@ -94,7 +94,7 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
         c = fake_ar_class(name: "Car", columns: ["vin"])
         expect {
           described_class.classify([v, c], :wheels)
-        }.to raise_error(SerializersCodeGen::UnknownSourceError) { |err|
+        }.to raise_error(Panko::CodeGen::UnknownSourceError) { |err|
           expect(err.message).to include("Car")
           expect(err.message).to include(":wheels")
         }
@@ -116,7 +116,7 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
         t = fake_ar_class(name: "Truck", columns: ["vin"])
         expect {
           described_class.classify([v, c, t], :wheels)
-        }.to raise_error(SerializersCodeGen::UnknownSourceError) { |err|
+        }.to raise_error(Panko::CodeGen::UnknownSourceError) { |err|
           expect(err.message).to include("Vehicle")
           expect(err.message).to include("Car")
           expect(err.message).to include("Truck")
@@ -137,7 +137,7 @@ RSpec.describe SerializersCodeGen::ActiveRecord::AccessClassifier do
         expect {
           described_class.classify([v, c, t], :wheels)
         }.to raise_error(
-          SerializersCodeGen::UnknownSourceError,
+          Panko::CodeGen::UnknownSourceError,
           "Vehicle, Truck: source :wheels is not a column or instance method."
         )
       end

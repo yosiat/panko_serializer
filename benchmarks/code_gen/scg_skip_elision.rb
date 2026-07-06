@@ -5,10 +5,10 @@ require_relative "support/targets"
 
 # --- ScgSkipElision — scg-only --------------------------------------------
 # Two Descriptors with identical shape — one MethodAttribute returning
-# `SerializersCodeGen::SKIP` for half the records (id-even), and one
+# `Panko::CodeGen::SKIP` for half the records (id-even), and one
 # control returning the same value unconditionally. Comparing the two
 # pins the cost of the SKIP-handling guard
-# (`unless value.equal?(SerializersCodeGen::SKIP)`) versus the cost of
+# (`unless value.equal?(Panko::CodeGen::SKIP)`) versus the cost of
 # always emitting, so SKIP overhead is no longer buried in the
 # method_attribute.rb scenario average.
 #
@@ -16,28 +16,28 @@ require_relative "support/targets"
 # equivalent of SKIP (panko's idiom is conditional `if:` on attributes,
 # which is a different precedence-ladder shape).
 
-SCG_SKIP_FIRES_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SCG_SKIP_FIRES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgSkipFiresPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title)
   ],
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(
+    Panko::CodeGen::MethodAttribute.new(
       name: :computed_value,
-      body: ->(record, _context) { record.id.even? ? SerializersCodeGen::SKIP : record.body.length }
+      body: ->(record, _context) { record.id.even? ? Panko::CodeGen::SKIP : record.body.length }
     )
   ],
   associations: []
 )
 
-SCG_SKIP_NEVER_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SCG_SKIP_NEVER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgSkipNeverPostBenchSerializer",
   models: [Bench::Post],
   attributes: SCG_SKIP_FIRES_DESCRIPTOR.attributes,
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(
+    Panko::CodeGen::MethodAttribute.new(
       name: :computed_value,
       body: ->(record, _context) { record.body.length }
     )
@@ -45,10 +45,10 @@ SCG_SKIP_NEVER_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_SKIP_FIRES = SerializersCodeGen.compile(SCG_SKIP_FIRES_DESCRIPTOR, output: :json).new(descriptor: SCG_SKIP_FIRES_DESCRIPTOR)
-SCG_HASH_SKIP_FIRES = SerializersCodeGen.compile(SCG_SKIP_FIRES_DESCRIPTOR, output: :hash).new(descriptor: SCG_SKIP_FIRES_DESCRIPTOR)
-SCG_JSON_SKIP_NEVER = SerializersCodeGen.compile(SCG_SKIP_NEVER_DESCRIPTOR, output: :json).new(descriptor: SCG_SKIP_NEVER_DESCRIPTOR)
-SCG_HASH_SKIP_NEVER = SerializersCodeGen.compile(SCG_SKIP_NEVER_DESCRIPTOR, output: :hash).new(descriptor: SCG_SKIP_NEVER_DESCRIPTOR)
+SCG_JSON_SKIP_FIRES = Panko::CodeGen.compile(SCG_SKIP_FIRES_DESCRIPTOR, output: :json).new(descriptor: SCG_SKIP_FIRES_DESCRIPTOR)
+SCG_HASH_SKIP_FIRES = Panko::CodeGen.compile(SCG_SKIP_FIRES_DESCRIPTOR, output: :hash).new(descriptor: SCG_SKIP_FIRES_DESCRIPTOR)
+SCG_JSON_SKIP_NEVER = Panko::CodeGen.compile(SCG_SKIP_NEVER_DESCRIPTOR, output: :json).new(descriptor: SCG_SKIP_NEVER_DESCRIPTOR)
+SCG_HASH_SKIP_NEVER = Panko::CodeGen.compile(SCG_SKIP_NEVER_DESCRIPTOR, output: :hash).new(descriptor: SCG_SKIP_NEVER_DESCRIPTOR)
 
 # --- Target registry entries ----------------------------------------------
 # n/a — panko / oj_serializers / plain rows omitted; this scenario compares

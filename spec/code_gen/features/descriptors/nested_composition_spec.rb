@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "nested_composition"
 
 RSpec.describe "Generated Class for Fixtures::NestedComposition" do
@@ -11,7 +11,7 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
   describe "#serialize_one — AR Records via the Generic path's _write_one_object" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
         it "serializes a Post with an associated Author and Comments as nested object + array" do
@@ -68,7 +68,7 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
   end
 
   describe "Composition wiring" do
-    let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :json, config: config) }
+    let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
 
     it "hoists @author_serializer once at construction; the same instance is reused across serialize_one calls" do
       generated = generated_class.new(descriptor: descriptor)
@@ -104,30 +104,30 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
 
   describe "Compiler recursive descent — identity-keyed compile cache" do
     let(:inner) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "InnerSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
       )
     }
     let(:diamond) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "DiamondSerializer",
         models: nil,
         attributes: [],
         method_attributes: [],
         associations: [
-          SerializersCodeGen::Association.new(name: :first, kind: :has_one, descriptor: inner),
-          SerializersCodeGen::Association.new(name: :second, kind: :has_one, descriptor: inner)
+          Panko::CodeGen::Association.new(name: :first, kind: :has_one, descriptor: inner),
+          Panko::CodeGen::Association.new(name: :second, kind: :has_one, descriptor: inner)
         ]
       )
     }
 
     %i[json hash].each do |mode|
       it "yields one Generated Class per unique nested Descriptor in #{mode} mode (shared inner deduped)" do
-        diamond_class = SerializersCodeGen.compile(diamond, output: mode, config: config)
+        diamond_class = Panko::CodeGen.compile(diamond, output: mode, config: config)
         instance = diamond_class.new(descriptor: diamond)
         first = instance.instance_variable_get(:@first_serializer)
         second = instance.instance_variable_get(:@second_serializer)

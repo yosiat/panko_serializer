@@ -23,7 +23,7 @@ module Fixtures
     # +docs/research/json_column_emit_plan.md § 11+. The snapshot delta vs
     # {ConfigJsonColumnWireFormat} is the absence of
     # +read_attribute_before_type_cast+ / +Oj.sc_parse+ / +push_json+ /
-    # +SerializersCodeGen::JSON_NOOP_PARSER+ tokens in the body of
+    # +Panko::CodeGen::JSON_NOOP_PARSER+ tokens in the body of
     # +_write_one+.
     #
     # +sanity_record+ returns a +PlainPost+ instance (one of the two
@@ -33,13 +33,13 @@ module Fixtures
     # — runtime instances of either class flow through the same monomorphic
     # body.
     module ConfigJsonColumnNonUniformSpecialized
-      CONFIG = SerializersCodeGen::Config.new(json_column_emit: :wire_format)
-      DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+      CONFIG = Panko::CodeGen::Config.new(json_column_emit: :wire_format)
+      DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnNonUniformSpecializedSerializer",
         models: [PlainPost, PlainNote],
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :metadata, source: :metadata)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
         ],
         method_attributes: [],
         associations: []

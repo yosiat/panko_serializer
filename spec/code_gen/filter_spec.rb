@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::Filter do
+RSpec.describe Panko::CodeGen::Filter do
   describe ".wrap" do
     it "returns Filter::NONE for nil" do
-      expect(described_class.wrap(nil)).to equal(SerializersCodeGen::Filter::NONE)
+      expect(described_class.wrap(nil)).to equal(Panko::CodeGen::Filter::NONE)
     end
 
     it "returns Filter::NONE for an empty Hash" do
-      expect(described_class.wrap({})).to equal(SerializersCodeGen::Filter::NONE)
+      expect(described_class.wrap({})).to equal(Panko::CodeGen::Filter::NONE)
     end
 
     it "returns Filter::NONE for nil even when a +field_index+ is supplied" do
-      expect(described_class.wrap(nil, {id: 0})).to equal(SerializersCodeGen::Filter::NONE)
+      expect(described_class.wrap(nil, {id: 0})).to equal(Panko::CodeGen::Filter::NONE)
     end
 
     it "returns a Filter::Indexed for a non-empty Hash" do
       indexed = described_class.wrap({only: [:id]}, {id: 0, title: 1})
-      expect(indexed).to be_a(SerializersCodeGen::Filter::Indexed::Bits)
+      expect(indexed).to be_a(Panko::CodeGen::Filter::Indexed::Bits)
     end
 
     it "raises ArgumentError when a non-empty Hash is wrapped without a +field_index+" do
@@ -89,14 +89,14 @@ RSpec.describe SerializersCodeGen::Filter do
   end
 
   describe "::NONE" do
-    let(:none) { SerializersCodeGen::Filter::NONE }
+    let(:none) { Panko::CodeGen::Filter::NONE }
 
     it "is frozen" do
       expect(none).to be_frozen
     end
 
     it "is a stable singleton via #equal?" do
-      expect(none).to equal(SerializersCodeGen::Filter::NONE)
+      expect(none).to equal(Panko::CodeGen::Filter::NONE)
     end
 
     it "drops? returns false for any integer index" do
@@ -116,22 +116,22 @@ RSpec.describe SerializersCodeGen::Filter do
 
   describe "::Indexed" do
     it "exposes INDEXED_BITS_THRESHOLD = 63 (Integer#[] tagged-Fixnum boundary)" do
-      expect(SerializersCodeGen::Filter::Indexed::INDEXED_BITS_THRESHOLD).to eq(63)
+      expect(Panko::CodeGen::Filter::Indexed::INDEXED_BITS_THRESHOLD).to eq(63)
     end
 
     describe ".build" do
       it "picks the Bits representation when FIELD_INDEX.size <= 63" do
         field_index = (0..62).each_with_object({}) { |i, h| h[:"f#{i}"] = i }
         expect(field_index.size).to eq(63)
-        filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-        expect(filter).to be_a(SerializersCodeGen::Filter::Indexed::Bits)
+        filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
+        expect(filter).to be_a(Panko::CodeGen::Filter::Indexed::Bits)
       end
 
       it "picks the Array representation when FIELD_INDEX.size > 63" do
         field_index = (0..63).each_with_object({}) { |i, h| h[:"f#{i}"] = i }
         expect(field_index.size).to eq(64)
-        filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-        expect(filter).to be_a(SerializersCodeGen::Filter::Indexed::Array)
+        filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
+        expect(filter).to be_a(Panko::CodeGen::Filter::Indexed::Array)
       end
     end
 
@@ -142,7 +142,7 @@ RSpec.describe SerializersCodeGen::Filter do
 
       describe "#drops?" do
         it "drops every Field except the listed +only:+ names" do
-          filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0, :f3]}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0, :f3]}, field_index)
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
           expect(filter.drops?(2)).to be(true)
@@ -150,21 +150,21 @@ RSpec.describe SerializersCodeGen::Filter do
         end
 
         it "keeps every Field except the listed +except:+ names" do
-          filter = SerializersCodeGen::Filter::Indexed.build({except: [:f1]}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({except: [:f1]}, field_index)
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
           expect(filter.drops?(2)).to be(false)
         end
 
         it "drops nothing when neither +only:+ nor +except:+ is supplied" do
-          filter = SerializersCodeGen::Filter::Indexed.build({comments: {only: [:id]}}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({comments: {only: [:id]}}, field_index)
           field_count.times do |i|
             expect(filter.drops?(i)).to be(false)
           end
         end
 
         it "ignores names in +only:+ that do not appear in field_index" do
-          filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0, :unknown]}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0, :unknown]}, field_index)
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
         end
@@ -176,7 +176,7 @@ RSpec.describe SerializersCodeGen::Filter do
           # below ("+:only+ wins") is the documented fallback. Pinned
           # so a refactor that moves validation downstream still
           # preserves the resolution rule it bypasses.
-          filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0], except: [:f1]}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0], except: [:f1]}, field_index)
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
           expect(filter.drops?(2)).to be(true)
@@ -185,7 +185,7 @@ RSpec.describe SerializersCodeGen::Filter do
 
       describe "#none?" do
         it "returns false" do
-          filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
           expect(filter.none?).to be(false)
         end
       end
@@ -201,34 +201,34 @@ RSpec.describe SerializersCodeGen::Filter do
         let(:child_field_index) { {id: 0, name: 1} }
 
         it "returns the same cached object on repeated calls within one call" do
-          filter = SerializersCodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
           first = filter.child(:author, child_field_index)
           second = filter.child(:author, child_field_index)
           expect(first).to equal(second)
         end
 
         it "materializes a real child Indexed cell when the sub-hash is non-empty" do
-          filter = SerializersCodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
+          filter = Panko::CodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
           child = filter.child(:author, child_field_index)
-          expect(child).to be_a(SerializersCodeGen::Filter::Indexed::Bits)
+          expect(child).to be_a(Panko::CodeGen::Filter::Indexed::Bits)
           expect(child.drops?(0)).to be(false) # :id kept by :only
           expect(child.drops?(1)).to be(true)  # :name dropped by :only
         end
 
         it "returns Filter::NONE for a Source not present in the caller hash" do
-          filter = SerializersCodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-          expect(filter.child(:author, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
+          filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
+          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
         end
 
         it "returns Filter::NONE for a Source whose sub-hash is empty" do
-          filter = SerializersCodeGen::Filter::Indexed.build({author: {}}, field_index)
-          expect(filter.child(:author, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
+          filter = Panko::CodeGen::Filter::Indexed.build({author: {}}, field_index)
+          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
         end
 
         it "returns Filter::NONE for a Source whose value is non-Hash (silently ignored)" do
-          filter = SerializersCodeGen::Filter::Indexed.build({author: 123, comments: nil}, field_index)
-          expect(filter.child(:author, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
-          expect(filter.child(:comments, child_field_index)).to equal(SerializersCodeGen::Filter::NONE)
+          filter = Panko::CodeGen::Filter::Indexed.build({author: 123, comments: nil}, field_index)
+          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
+          expect(filter.child(:comments, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
         end
       end
     end
@@ -244,10 +244,10 @@ RSpec.describe SerializersCodeGen::Filter do
 
   describe "end-to-end via Generated Class" do
     def descriptor_with_attribute_names(names)
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "FilterEndToEnd_#{names.size}",
         models: nil,
-        attributes: names.map { |n| SerializersCodeGen::Attribute.new(name: n, source: n) },
+        attributes: names.map { |n| Panko::CodeGen::Attribute.new(name: n, source: n) },
         method_attributes: [],
         associations: []
       )
@@ -255,14 +255,14 @@ RSpec.describe SerializersCodeGen::Filter do
 
     it "serializes only the +only:+ Fields on a small Descriptor (Bits rep)" do
       descriptor = descriptor_with_attribute_names([:id, :title, :body])
-      generated = SerializersCodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
+      generated = Panko::CodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
       record = {"id" => 1, "title" => "hi", "body" => "long"}
       expect(generated.serialize_one(record, filters: {only: [:id]})).to eq('{"id":1}')
     end
 
     it "omits the +except:+ Fields on a small Descriptor (Bits rep)" do
       descriptor = descriptor_with_attribute_names([:id, :title, :body])
-      generated = SerializersCodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
+      generated = Panko::CodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
       record = {"id" => 1, "title" => "hi", "body" => "long"}
       expect(generated.serialize_one(record, filters: {except: [:body]})).to eq('{"id":1,"title":"hi"}')
     end
@@ -270,7 +270,7 @@ RSpec.describe SerializersCodeGen::Filter do
     it "exercises the Array representation on a Descriptor with > 63 Fields" do
       names = (1..70).map { |i| :"f#{i}" }
       descriptor = descriptor_with_attribute_names(names)
-      generated = SerializersCodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
+      generated = Panko::CodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
       record = names.each_with_object({}) { |n, h| h[n.to_s] = n.to_s }
       output = generated.serialize_one(record, filters: {only: [:f1, :f70]})
       expect(output).to eq('{"f1":"f1","f70":"f70"}')
@@ -279,7 +279,7 @@ RSpec.describe SerializersCodeGen::Filter do
     it "exercises the Array representation in :hash mode on a > 63-Field Descriptor" do
       names = (1..70).map { |i| :"f#{i}" }
       descriptor = descriptor_with_attribute_names(names)
-      generated = SerializersCodeGen.compile(descriptor, output: :hash).new(descriptor: descriptor)
+      generated = Panko::CodeGen.compile(descriptor, output: :hash).new(descriptor: descriptor)
       record = names.each_with_object({}) { |n, h| h[n.to_s] = n.to_s }
       output = generated.serialize_one(record, filters: {except: [:f1]})
       expect(output).not_to have_key("f1")

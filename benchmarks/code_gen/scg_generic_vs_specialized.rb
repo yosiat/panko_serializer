@@ -17,21 +17,21 @@ require_relative "support/targets"
 # against panko / oj_serializers / plain (per
 # docs/benchmarks.md § Directory layout).
 
-SCG_GENERIC_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SCG_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgGenericPostBenchSerializer",
   models: nil,
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_SPECIALIZED_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SCG_SPECIALIZED_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgSpecializedPostBenchSerializer",
   models: [Bench::Post],
   attributes: SCG_GENERIC_DESCRIPTOR.attributes,
@@ -39,10 +39,10 @@ SCG_SPECIALIZED_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_GENERIC = SerializersCodeGen.compile(SCG_GENERIC_DESCRIPTOR, output: :json).new(descriptor: SCG_GENERIC_DESCRIPTOR)
-SCG_HASH_GENERIC = SerializersCodeGen.compile(SCG_GENERIC_DESCRIPTOR, output: :hash).new(descriptor: SCG_GENERIC_DESCRIPTOR)
-SCG_JSON_SPECIALIZED = SerializersCodeGen.compile(SCG_SPECIALIZED_DESCRIPTOR, output: :json).new(descriptor: SCG_SPECIALIZED_DESCRIPTOR)
-SCG_HASH_SPECIALIZED = SerializersCodeGen.compile(SCG_SPECIALIZED_DESCRIPTOR, output: :hash).new(descriptor: SCG_SPECIALIZED_DESCRIPTOR)
+SCG_JSON_GENERIC = Panko::CodeGen.compile(SCG_GENERIC_DESCRIPTOR, output: :json).new(descriptor: SCG_GENERIC_DESCRIPTOR)
+SCG_HASH_GENERIC = Panko::CodeGen.compile(SCG_GENERIC_DESCRIPTOR, output: :hash).new(descriptor: SCG_GENERIC_DESCRIPTOR)
+SCG_JSON_SPECIALIZED = Panko::CodeGen.compile(SCG_SPECIALIZED_DESCRIPTOR, output: :json).new(descriptor: SCG_SPECIALIZED_DESCRIPTOR)
+SCG_HASH_SPECIALIZED = Panko::CodeGen.compile(SCG_SPECIALIZED_DESCRIPTOR, output: :hash).new(descriptor: SCG_SPECIALIZED_DESCRIPTOR)
 
 # --- Target registry entries ----------------------------------------------
 # n/a — panko / oj_serializers / plain rows omitted; this scenario compares

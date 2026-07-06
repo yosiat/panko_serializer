@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Orchestrates one +Dump+ call per +docs/dumping.md § Dump to file+:
   # validates the caller-supplied +path:+, runs the same semantic
   # validator stack as +Compiler+, and writes one +.rb+ file per
@@ -19,9 +19,9 @@ module SerializersCodeGen
   # the materialization layer's responsibility and lives in
   # {Generators::Fanout}.
   class Dump
-    # @param descriptor [SerializersCodeGen::Descriptor] the input
+    # @param descriptor [Panko::CodeGen::Descriptor] the input
     # @param output [Symbol] +:json+ or +:hash+
-    # @param config [SerializersCodeGen::Config] resolved settings
+    # @param config [Panko::CodeGen::Config] resolved settings
     # @param path [String] the on-disk target file path; required, must
     #   be a non-empty +String+ — anything else fails fast at {#dump}
     #   per +docs/dumping.md § Dumping API+ before any side effect.
@@ -63,7 +63,7 @@ module SerializersCodeGen
     #   not a String
     # @raise [ArgumentError] when +output:+ is not one of
     #   {Generator::OUTPUT_MODES}
-    # @raise [SerializersCodeGen::CompileError] when a registered
+    # @raise [Panko::CodeGen::CompileError] when a registered
     #   semantic rule rejects the input
     def dump
       validate_path!

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "memory_profiler"
 
 # End-to-end behavior + regression spec for the S12.5 JSON-column emit path
@@ -32,12 +32,12 @@ require "memory_profiler"
 #   inherited from Panko 0.8.5.
 RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   let(:descriptor) do
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: "JsonColumnEmitSpecSerializer",
       models: [PlainPost],
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :metadata, source: :metadata)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
       ],
       method_attributes: [],
       associations: []
@@ -45,29 +45,29 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   def compile_for(mode)
-    config = SerializersCodeGen::Config.new(json_column_emit: mode)
-    SerializersCodeGen.compile(descriptor, output: :json, config: config).new(descriptor: descriptor)
+    config = Panko::CodeGen::Config.new(json_column_emit: mode)
+    Panko::CodeGen.compile(descriptor, output: :json, config: config).new(descriptor: descriptor)
   end
 
   describe "generated source — :wire_format" do
     it "contains push_json and Oj.sc_parse with mode: :strict" do
-      source = SerializersCodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.new.emit(
         descriptor,
         output: :json,
-        config: SerializersCodeGen::Config.new(json_column_emit: :wire_format)
+        config: Panko::CodeGen::Config.new(json_column_emit: :wire_format)
       )
       expect(source).to include('writer.push_json(raw, "metadata")')
-      expect(source).to include("Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw, mode: :strict)")
+      expect(source).to include("Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, mode: :strict)")
       expect(source).to include("rescue Oj::ParseError, EncodingError")
     end
   end
 
   describe "generated source — :html_safe" do
     it "contains push_value (today's shape) and does not contain push_json" do
-      source = SerializersCodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.new.emit(
         descriptor,
         output: :json,
-        config: SerializersCodeGen::Config.new(json_column_emit: :html_safe)
+        config: Panko::CodeGen::Config.new(json_column_emit: :html_safe)
       )
       expect(source).to include('writer.push_value(record._read_attribute("metadata"), "metadata")')
       expect(source).not_to include("push_json")
@@ -99,12 +99,12 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     # non-JSON-column Attributes. Both modes must agree on the key
     # because a Descriptor's user-facing key is +name+, not +source+.
     let(:aliased_descriptor) do
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "AliasedJsonColumnSerializer",
         models: [PlainPost],
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :extra, source: :metadata)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :extra, source: :metadata)
         ],
         method_attributes: [],
         associations: []
@@ -112,8 +112,8 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
 
     def compile_aliased(mode)
-      config = SerializersCodeGen::Config.new(json_column_emit: mode)
-      SerializersCodeGen.compile(aliased_descriptor, output: :json, config: config).new(descriptor: aliased_descriptor)
+      config = Panko::CodeGen::Config.new(json_column_emit: mode)
+      Panko::CodeGen.compile(aliased_descriptor, output: :json, config: config).new(descriptor: aliased_descriptor)
     end
 
     it ":wire_format emits the alias name as the JSON key (saved record fast path)" do

@@ -66,49 +66,49 @@ class Bench::Post
   end
 end
 
-MEDIUM_GRAPH_AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+MEDIUM_GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphAuthorBenchSerializer",
   models: [Bench::Author],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :name),
-    SerializersCodeGen::Attribute.new(name: :email, source: :email)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :name),
+    Panko::CodeGen::Attribute.new(name: :email, source: :email)
   ],
   method_attributes: [],
   associations: []
 )
 
-MEDIUM_GRAPH_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+MEDIUM_GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphCommentBenchSerializer",
   models: [Bench::Comment],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: []
 )
 
-MEDIUM_GRAPH_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+MEDIUM_GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: MEDIUM_GRAPH_AUTHOR_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: MEDIUM_GRAPH_COMMENT_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :comments, kind: :has_many, descriptor: MEDIUM_GRAPH_COMMENT_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: MEDIUM_GRAPH_AUTHOR_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :first_comment, kind: :has_one, descriptor: MEDIUM_GRAPH_COMMENT_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :comments, kind: :has_many, descriptor: MEDIUM_GRAPH_COMMENT_DESCRIPTOR)
   ]
 )
 
-SCG_JSON_MEDIUM_GRAPH = SerializersCodeGen.compile(MEDIUM_GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: MEDIUM_GRAPH_POST_DESCRIPTOR)
-SCG_HASH_MEDIUM_GRAPH = SerializersCodeGen.compile(MEDIUM_GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: MEDIUM_GRAPH_POST_DESCRIPTOR)
+SCG_JSON_MEDIUM_GRAPH = Panko::CodeGen.compile(MEDIUM_GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: MEDIUM_GRAPH_POST_DESCRIPTOR)
+SCG_HASH_MEDIUM_GRAPH = Panko::CodeGen.compile(MEDIUM_GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: MEDIUM_GRAPH_POST_DESCRIPTOR)
 
 class MediumGraphAuthorPankoSerializer < Panko::Serializer
   attributes :id, :name, :email

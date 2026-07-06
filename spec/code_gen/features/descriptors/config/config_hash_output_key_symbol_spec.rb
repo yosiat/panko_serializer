@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "config/config_hash_output_key_symbol"
 
 # Feature spec for the +config_hash_output_key_symbol+ config-isolation
@@ -16,7 +16,7 @@ require "config/config_hash_output_key_symbol"
 RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
   let(:descriptor) { Fixtures::ConfigHashOutputKeySymbol::DESCRIPTOR }
   let(:config) { Fixtures::ConfigHashOutputKeySymbol::CONFIG }
-  let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :hash, config: config) }
+  let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :hash, config: config) }
   let(:generated) { generated_class.new(descriptor: descriptor) }
 
   describe "#serialize_one with hash_output_key_type: :symbol" do
@@ -48,8 +48,8 @@ RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
   end
 
   describe "default String-key form is unaffected by this fixture" do
-    let(:default_config) { SerializersCodeGen::Config.new }
-    let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :hash, config: default_config) }
+    let(:default_config) { Panko::CodeGen::Config.new }
+    let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :hash, config: default_config) }
     let(:generated) { generated_class.new(descriptor: descriptor) }
 
     it "emits String-keyed output when compiled with the default Config" do
@@ -66,29 +66,29 @@ RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
     # +Compile+ threads the same +Config+ to every nested Generated
     # Class it emits per +docs/config.md+.
     it "emits Symbol keys at every depth (has_one and has_many)" do
-      inner = SerializersCodeGen::Descriptor.new(
+      inner = Panko::CodeGen::Descriptor.new(
         name: "ConfigHashOutputKeySymbolInnerSerializer",
         models: nil,
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :body, source: :body)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :body, source: :body)
         ],
         method_attributes: [],
         associations: []
       )
-      outer = SerializersCodeGen::Descriptor.new(
+      outer = Panko::CodeGen::Descriptor.new(
         name: "ConfigHashOutputKeySymbolOuterSerializer",
         models: nil,
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id)
         ],
         method_attributes: [],
         associations: [
-          SerializersCodeGen::Association.new(name: :inner, kind: :has_one, descriptor: inner),
-          SerializersCodeGen::Association.new(name: :items, kind: :has_many, descriptor: inner)
+          Panko::CodeGen::Association.new(name: :inner, kind: :has_one, descriptor: inner),
+          Panko::CodeGen::Association.new(name: :items, kind: :has_many, descriptor: inner)
         ]
       )
-      generated = SerializersCodeGen.compile(outer, output: :hash, config: config).new(descriptor: outer)
+      generated = Panko::CodeGen.compile(outer, output: :hash, config: config).new(descriptor: outer)
       record = {
         "id" => 1,
         "inner" => {"id" => 7, "body" => "hi"},

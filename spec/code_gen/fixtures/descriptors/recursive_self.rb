@@ -15,18 +15,18 @@
 # in +spec/validators/callable_arity_spec.rb+'s self-recursion it).
 module Fixtures
   module RecursiveSelf
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "RecursiveSelfCommentSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :body, source: :body)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :body, source: :body)
       ],
       method_attributes: [],
       associations: []
     )
-    DESCRIPTOR.associations << SerializersCodeGen::Association.new(
+    DESCRIPTOR.associations << Panko::CodeGen::Association.new(
       name: :replies,
       kind: :has_many,
       descriptor: DESCRIPTOR

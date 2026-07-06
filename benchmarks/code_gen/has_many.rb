@@ -9,27 +9,27 @@ require_relative "support/targets"
 # goes through the same model-aware fast path as panko/{json,object} for an
 # apples-to-apples comparison.
 
-HAS_MANY_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+HAS_MANY_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyCommentBenchSerializer",
   models: [Bench::Comment],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: []
 )
 
-HAS_MANY_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+HAS_MANY_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(
+    Panko::CodeGen::Association.new(
       name: :comments,
       kind: :has_many,
       descriptor: HAS_MANY_COMMENT_DESCRIPTOR
@@ -37,8 +37,8 @@ HAS_MANY_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   ]
 )
 
-SCG_JSON_HAS_MANY = SerializersCodeGen.compile(HAS_MANY_POST_DESCRIPTOR, output: :json).new(descriptor: HAS_MANY_POST_DESCRIPTOR)
-SCG_HASH_HAS_MANY = SerializersCodeGen.compile(HAS_MANY_POST_DESCRIPTOR, output: :hash).new(descriptor: HAS_MANY_POST_DESCRIPTOR)
+SCG_JSON_HAS_MANY = Panko::CodeGen.compile(HAS_MANY_POST_DESCRIPTOR, output: :json).new(descriptor: HAS_MANY_POST_DESCRIPTOR)
+SCG_HASH_HAS_MANY = Panko::CodeGen.compile(HAS_MANY_POST_DESCRIPTOR, output: :hash).new(descriptor: HAS_MANY_POST_DESCRIPTOR)
 
 class HasManyCommentPankoSerializer < Panko::Serializer
   attributes :id, :body

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Narrow emit-shape tests for the S18.3 +parent_class+ dispatch wiring:
 # the +FieldEmitters::MethodAttribute+ Symbol-vs-Callable branch and the
@@ -18,8 +18,8 @@ require "serializers_code_gen"
 # +parent_class:+ to a +Class+ flips on the ivar writes and the
 # Symbol-body branch leaves no +@cb_<name>+ traces.
 RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
-  let(:generator) { SerializersCodeGen::Generator.new }
-  let(:config) { SerializersCodeGen::Config.new }
+  let(:generator) { Panko::CodeGen::Generator.new }
+  let(:config) { Panko::CodeGen::Config.new }
   let(:parent_class) {
     parent = Class.new
     stub_const("ParentClassDispatchSpecBase", parent)
@@ -28,13 +28,13 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
 
   describe "FieldEmitters::MethodAttribute Symbol-vs-Callable branch" do
     let(:descriptor) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "MixedBodySerializer",
         models: nil,
         attributes: [],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(name: :static_via_callable, body: -> { 1 }),
-          SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting)
+          Panko::CodeGen::MethodAttribute.new(name: :static_via_callable, body: -> { 1 }),
+          Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)
         ],
         associations: [],
         parent_class: parent_class
@@ -66,10 +66,10 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
 
   describe "per-record ivar writes on Specialized path" do
     let(:descriptor) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "SpecializedParentSerializer",
         models: [Post],
-        attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: [],
         parent_class: parent_class
@@ -95,10 +95,10 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
 
   describe "per-record ivar writes on Generic path — dispatchers only" do
     let(:descriptor) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "GenericParentSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: [],
         parent_class: parent_class
@@ -158,19 +158,19 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
 
   describe "parent_class: nil — no ivar writes prepended (byte-identical to pre-S18)" do
     let(:specialized_descriptor) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "NoParentSpecializedSerializer",
         models: [Post],
-        attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
       )
     }
     let(:generic_descriptor) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "NoParentGenericSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
       )
@@ -222,15 +222,15 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
       parent
     }
     let(:descriptor) {
-      SerializersCodeGen::Descriptor.new(
+      Panko::CodeGen::Descriptor.new(
         name: "SymbolBodyEndToEndSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(name: :static, body: -> { 99 }),
-          SerializersCodeGen::MethodAttribute.new(name: :greeting, body: :greeting),
-          SerializersCodeGen::MethodAttribute.new(name: :ctx_label, body: :ctx_label),
-          SerializersCodeGen::MethodAttribute.new(name: :scope_label, body: :scope_label)
+          Panko::CodeGen::MethodAttribute.new(name: :static, body: -> { 99 }),
+          Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting),
+          Panko::CodeGen::MethodAttribute.new(name: :ctx_label, body: :ctx_label),
+          Panko::CodeGen::MethodAttribute.new(name: :scope_label, body: :scope_label)
         ],
         associations: [],
         parent_class: parent_class_with_methods
@@ -238,11 +238,11 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     }
 
     def compile(descriptor, mode)
-      SerializersCodeGen::Compiler.new(
+      Panko::CodeGen::Compiler.new(
         descriptor,
         output: mode,
         config: config,
-        validator: SerializersCodeGen::Validators::Validator.new(rules: [])
+        validator: Panko::CodeGen::Validators::Validator.new(rules: [])
       ).compile
     end
 
@@ -281,12 +281,12 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
       # natural Ruby class here is +NameError+. The contract that
       # matters is "no scg-specific error" + "no Compile-time check"
       # — both pinned here; the runtime error stays Ruby-native.
-      descriptor_missing = SerializersCodeGen::Descriptor.new(
+      descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",
         models: nil,
         attributes: [],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(name: :nope, body: :nope_does_not_exist)
+          Panko::CodeGen::MethodAttribute.new(name: :nope, body: :nope_does_not_exist)
         ],
         associations: [],
         parent_class: parent_class_with_methods

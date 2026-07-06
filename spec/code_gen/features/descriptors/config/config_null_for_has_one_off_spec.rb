@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "config/config_null_for_has_one_off"
 
 RSpec.describe "Generated Class for Fixtures::ConfigNullForHasOneOff" do
@@ -25,7 +25,7 @@ RSpec.describe "Generated Class for Fixtures::ConfigNullForHasOneOff" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
         it "emits the key with the nested object when the Source returns a non-nil Record (Hash)" do

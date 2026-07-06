@@ -12,13 +12,13 @@
 
 class ConfigRootKeyOnSerializer_JSON
   FIELD_INDEX = {id: 0}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ConfigRootKeyOnSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ConfigRootKeyOnSerializer_JSON)
 
   def initialize(descriptor:)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil, root_key: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = POOL.checkout
     begin
@@ -37,7 +37,7 @@ class ConfigRootKeyOnSerializer_JSON
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil, root_key: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = POOL.checkout
     begin

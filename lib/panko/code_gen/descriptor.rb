@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Sentinel a Method Attribute body returns to omit its Field from the
   # output. Identity-compared via +equal?+ at runtime so it never collides
   # with caller data; module-level + frozen so the identity is stable across

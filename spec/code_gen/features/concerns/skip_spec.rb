@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Cross-cutting +SKIP+ contract — the 7-item enumeration from
 # +docs/testing.md § skip_spec.rb+. JSON/Hash parity is iterated at the
@@ -11,7 +11,7 @@ require "serializers_code_gen"
 # pins the runtime semantics.
 RSpec.describe "SKIP — Method Attribute identity-compare elision" do
   def descriptor_with(name: "SkipDescriptor", attributes: [], method_attributes: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: nil,
       attributes: attributes,
@@ -21,15 +21,15 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
   end
 
   def attribute(name)
-    SerializersCodeGen::Attribute.new(name: name)
+    Panko::CodeGen::Attribute.new(name: name)
   end
 
   def method_attribute(name, body)
-    SerializersCodeGen::MethodAttribute.new(name: name, body: body)
+    Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
   def compile(descriptor, mode)
-    SerializersCodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
+    Panko::CodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
   end
 
   describe "(1) returning SKIP omits the Field entirely" do
@@ -38,7 +38,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
         it "drops the key and the value" do
           descriptor = descriptor_with(
             method_attributes: [
-              method_attribute(:hidden, ->(_record, _context) { SerializersCodeGen::SKIP })
+              method_attribute(:hidden, ->(_record, _context) { Panko::CodeGen::SKIP })
             ]
           )
           generated = compile(descriptor, mode)
@@ -91,9 +91,9 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
 
   describe "(3) works across Method Attribute arities 0, 1, 2" do
     bodies = {
-      0 => -> { SerializersCodeGen::SKIP },
-      1 => ->(_record) { SerializersCodeGen::SKIP },
-      2 => ->(_record, _context) { SerializersCodeGen::SKIP }
+      0 => -> { Panko::CodeGen::SKIP },
+      1 => ->(_record) { Panko::CodeGen::SKIP },
+      2 => ->(_record, _context) { Panko::CodeGen::SKIP }
     }
 
     %i[json hash].each do |mode|
@@ -119,7 +119,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
           descriptor = descriptor_with(
             attributes: [attribute(:before)],
             method_attributes: [
-              method_attribute(:hidden, ->(_record, _context) { SerializersCodeGen::SKIP }),
+              method_attribute(:hidden, ->(_record, _context) { Panko::CodeGen::SKIP }),
               method_attribute(:after, ->(_record, _context) { "present" })
             ]
           )
@@ -138,9 +138,9 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
         it "omits all SKIPping Fields and keeps the surviving ones" do
           descriptor = descriptor_with(
             method_attributes: [
-              method_attribute(:s1, ->(_record, _context) { SerializersCodeGen::SKIP }),
+              method_attribute(:s1, ->(_record, _context) { Panko::CodeGen::SKIP }),
               method_attribute(:keep, ->(_record, _context) { "yes" }),
-              method_attribute(:s2, ->(_record, _context) { SerializersCodeGen::SKIP })
+              method_attribute(:s2, ->(_record, _context) { Panko::CodeGen::SKIP })
             ]
           )
           generated = compile(descriptor, mode)
@@ -151,17 +151,17 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
     end
   end
 
-  describe "(6) singleton identity — SerializersCodeGen::SKIP is frozen and equal? to itself" do
+  describe "(6) singleton identity — Panko::CodeGen::SKIP is frozen and equal? to itself" do
     it "is frozen" do
-      expect(SerializersCodeGen::SKIP).to be_frozen
+      expect(Panko::CodeGen::SKIP).to be_frozen
     end
 
     it "is equal? to itself across module references (single object identity)" do
-      expect(SerializersCodeGen::SKIP).to equal(SerializersCodeGen::SKIP)
+      expect(Panko::CodeGen::SKIP).to equal(Panko::CodeGen::SKIP)
     end
 
     it "is not equal? to a different frozen Object.new (separate identity)" do
-      expect(SerializersCodeGen::SKIP).not_to equal(Object.new.freeze)
+      expect(Panko::CodeGen::SKIP).not_to equal(Object.new.freeze)
     end
   end
 end

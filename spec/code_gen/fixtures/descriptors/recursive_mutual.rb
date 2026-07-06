@@ -18,31 +18,31 @@
 # frozen, so post-construction +<<+ is safe.
 module Fixtures
   module RecursiveMutual
-    CONFIG = SerializersCodeGen::Config.new
-    FOLDER_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    FOLDER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "RecursiveMutualFolderSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :name, source: :name)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :name, source: :name)
       ],
       method_attributes: [],
       associations: []
     )
-    ITEM_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    ITEM_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "RecursiveMutualItemSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :name, source: :name)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :name, source: :name)
       ],
       method_attributes: [],
       associations: []
     )
-    FOLDER_DESCRIPTOR.associations << SerializersCodeGen::Association.new(
+    FOLDER_DESCRIPTOR.associations << Panko::CodeGen::Association.new(
       name: :items, kind: :has_many, descriptor: ITEM_DESCRIPTOR
     )
-    ITEM_DESCRIPTOR.associations << SerializersCodeGen::Association.new(
+    ITEM_DESCRIPTOR.associations << Panko::CodeGen::Association.new(
       name: :subfolder, kind: :has_one, descriptor: FOLDER_DESCRIPTOR
     )
     DESCRIPTOR = FOLDER_DESCRIPTOR

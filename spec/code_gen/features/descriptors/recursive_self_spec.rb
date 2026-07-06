@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "recursive_self"
 
 RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
@@ -11,7 +11,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
   describe "#serialize_one — finite Comment tree" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        let(:generated_class) { SerializersCodeGen.compile(descriptor, output: mode, config: config) }
+        let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
         it "compiles + constructs without infinite recursion (self-recursion shortcut wired)" do
@@ -54,7 +54,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
   end
 
   describe "Self-recursion wiring — @<name>_serializer = self" do
-    let(:generated_class) { SerializersCodeGen.compile(descriptor, output: :json, config: config) }
+    let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
     let(:generated) { generated_class.new(descriptor: descriptor) }
 
     it "@replies_serializer is the parent serializer instance itself (one Generated Class instance per unique Descriptor)" do

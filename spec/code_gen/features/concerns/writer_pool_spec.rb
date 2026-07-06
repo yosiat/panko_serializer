@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 require "nested_composition"
 
@@ -35,7 +35,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     # storage produces +N × M+ correct outputs.
     it "produces correct output across 8 threads × 1000 calls each" do
       descriptor = Fixtures::ShallowGeneric::DESCRIPTOR
-      generated = SerializersCodeGen.compile(descriptor, output: :json, config: Fixtures::ShallowGeneric::CONFIG)
+      generated = Panko::CodeGen.compile(descriptor, output: :json, config: Fixtures::ShallowGeneric::CONFIG)
         .new(descriptor: descriptor)
       record = Fixtures::ShallowGeneric.sanity_record
       expected = Fixtures::ShallowGeneric.expected_output(:json)
@@ -63,12 +63,12 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     end
 
     it "two Fibers yielding mid-emit each produce correct output" do
-      yielding_descriptor = SerializersCodeGen::Descriptor.new(
+      yielding_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolFiberYieldSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(
+          Panko::CodeGen::MethodAttribute.new(
             name: :name,
             body: ->(record, _context) {
               Fiber.yield
@@ -78,7 +78,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
         ],
         associations: []
       )
-      generated = SerializersCodeGen.compile(yielding_descriptor, output: :json)
+      generated = Panko::CodeGen.compile(yielding_descriptor, output: :json)
         .new(descriptor: yielding_descriptor)
 
       result_a = nil
@@ -103,32 +103,32 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     # the outer's Writer state survives the nested call; both outputs
     # are correct.
     it "outer + inner outputs are correct when an outer Method Attribute calls a different Generated Class's serialize_one" do
-      inner_descriptor = SerializersCodeGen::Descriptor.new(
+      inner_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassInnerSerializer",
         models: nil,
         attributes: [
-          SerializersCodeGen::Attribute.new(name: :id, source: :id),
-          SerializersCodeGen::Attribute.new(name: :tag, source: :tag)
+          Panko::CodeGen::Attribute.new(name: :id, source: :id),
+          Panko::CodeGen::Attribute.new(name: :tag, source: :tag)
         ],
         method_attributes: [],
         associations: []
       )
-      inner = SerializersCodeGen.compile(inner_descriptor, output: :json)
+      inner = Panko::CodeGen.compile(inner_descriptor, output: :json)
         .new(descriptor: inner_descriptor)
 
-      outer_descriptor = SerializersCodeGen::Descriptor.new(
+      outer_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassOuterSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(
+          Panko::CodeGen::MethodAttribute.new(
             name: :embedded,
             body: ->(record, _context) { inner.serialize_one(record["embedded"]) }
           )
         ],
         associations: []
       )
-      outer = SerializersCodeGen.compile(outer_descriptor, output: :json)
+      outer = Panko::CodeGen.compile(outer_descriptor, output: :json)
         .new(descriptor: outer_descriptor)
 
       record = {"id" => 1, "embedded" => {"id" => 99, "tag" => "x"}}
@@ -148,12 +148,12 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     it "allocates exactly 2 Oj::StringWriter instances across 1000 reentrant cycles" do
       depth = 0
       generated = nil
-      reentrant_descriptor = SerializersCodeGen::Descriptor.new(
+      reentrant_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolSameClassReentrantSerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(
+          Panko::CodeGen::MethodAttribute.new(
             name: :child,
             body: ->(record, _context) {
               if depth >= 1
@@ -171,7 +171,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
         ],
         associations: []
       )
-      generated = SerializersCodeGen.compile(reentrant_descriptor, output: :json)
+      generated = Panko::CodeGen.compile(reentrant_descriptor, output: :json)
         .new(descriptor: reentrant_descriptor)
 
       call_count = 0
@@ -196,12 +196,12 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     # produces correct output.
     it "next serialize_one after a mid-emit raise produces correct output" do
       should_raise = true
-      raising_descriptor = SerializersCodeGen::Descriptor.new(
+      raising_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolExceptionRecoverySerializer",
         models: nil,
-        attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
-          SerializersCodeGen::MethodAttribute.new(
+          Panko::CodeGen::MethodAttribute.new(
             name: :name,
             body: ->(record, _context) {
               raise "boom" if should_raise
@@ -211,7 +211,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
         ],
         associations: []
       )
-      generated = SerializersCodeGen.compile(raising_descriptor, output: :json)
+      generated = Panko::CodeGen.compile(raising_descriptor, output: :json)
         .new(descriptor: raising_descriptor)
 
       expect {
@@ -236,12 +236,12 @@ RSpec.describe "WritersPool — feature-level pool contract" do
 
     fixture_samples.each do |fixture, record|
       it "produces byte-identical JSON for #{fixture.name} under pool_writer: true vs false" do
-        pooled_config = SerializersCodeGen::Config.new(**fixture::CONFIG.to_h.merge(pool_writer: true))
-        unpooled_config = SerializersCodeGen::Config.new(**fixture::CONFIG.to_h.merge(pool_writer: false))
+        pooled_config = Panko::CodeGen::Config.new(**fixture::CONFIG.to_h.merge(pool_writer: true))
+        unpooled_config = Panko::CodeGen::Config.new(**fixture::CONFIG.to_h.merge(pool_writer: false))
 
-        pooled = SerializersCodeGen.compile(fixture::DESCRIPTOR, output: :json, config: pooled_config)
+        pooled = Panko::CodeGen.compile(fixture::DESCRIPTOR, output: :json, config: pooled_config)
           .new(descriptor: fixture::DESCRIPTOR)
-        unpooled = SerializersCodeGen.compile(fixture::DESCRIPTOR, output: :json, config: unpooled_config)
+        unpooled = Panko::CodeGen.compile(fixture::DESCRIPTOR, output: :json, config: unpooled_config)
           .new(descriptor: fixture::DESCRIPTOR)
 
         pooled_one = pooled.serialize_one(record)

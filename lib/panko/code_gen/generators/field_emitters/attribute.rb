@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     module FieldEmitters
       # Emits the per-mode write for one +Attribute+ inside a
@@ -35,12 +35,12 @@ module SerializersCodeGen
         # pair into a single C-extension dispatch (byte-identical output,
         # identical allocations, fewer dispatches per Field).
         #
-        # @param attribute [SerializersCodeGen::Attribute] the Field node
+        # @param attribute [Panko::CodeGen::Attribute] the Field node
         # @param read_expr [String] Ruby source for fetching the value
         #   (e.g. +"record[\"id\"]"+ or +"record.id"+)
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(attribute, read_expr, index, builder)
           builder.line "unless filters.drops?(#{index})"
@@ -76,13 +76,13 @@ module SerializersCodeGen
         # see +RecordAccess::Specialized+. Generic-path Descriptors keep
         # today's +emit_json+ shape regardless of the column type.
         #
-        # @param attribute [SerializersCodeGen::Attribute] the Field node;
+        # @param attribute [Panko::CodeGen::Attribute] the Field node;
         #   must be column-backed on the Specialized path
-        # @param config [SerializersCodeGen::Config] resolved compile-time
+        # @param config [Panko::CodeGen::Config] resolved compile-time
         #   settings; +json_column_emit+ selects the emit shape
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json_column(attribute, config, index, builder)
           if config.json_column_emit == :html_safe
@@ -96,7 +96,7 @@ module SerializersCodeGen
             builder.line %(raw = record.read_attribute_before_type_cast(#{source_lit}))
             builder.line "if raw.is_a?(String) && !raw.empty? && (begin"
             builder.indent do
-              builder.line "Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw, mode: :strict)"
+              builder.line "Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, mode: :strict)"
               builder.line "true"
             end
             builder.line "rescue Oj::ParseError, EncodingError"
@@ -124,14 +124,14 @@ module SerializersCodeGen
         # exercised in S3.1; the +:symbol+ branch is pinned by S10's
         # +config_hash_output_key_symbol+ fixture.
         #
-        # @param attribute [SerializersCodeGen::Attribute] the Field node
+        # @param attribute [Panko::CodeGen::Attribute] the Field node
         # @param read_expr [String] Ruby source for fetching the value
         #   (e.g. +"record[\"id\"]"+ or +"record.id"+)
         # @param output_key_type [Symbol] +:string+ or +:symbol+ — the
         #   pre-validated value of +Config#hash_output_key_type+
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(attribute, read_expr, output_key_type, index, builder)
           key_lit = case output_key_type

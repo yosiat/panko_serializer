@@ -10,15 +10,15 @@ require_relative "support/targets"
 # goes through the same model-aware fast path as panko/{json,object} for
 # an apples-to-apples comparison.
 
-METHOD_ATTRIBUTE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+METHOD_ATTRIBUTE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MethodAttributePostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title)
   ],
   method_attributes: [
-    SerializersCodeGen::MethodAttribute.new(
+    Panko::CodeGen::MethodAttribute.new(
       name: :body_length,
       body: ->(record, _context) { record.body.length }
     )
@@ -26,8 +26,8 @@ METHOD_ATTRIBUTE_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_METHOD_ATTRIBUTE = SerializersCodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :json).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
-SCG_HASH_METHOD_ATTRIBUTE = SerializersCodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :hash).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
+SCG_JSON_METHOD_ATTRIBUTE = Panko::CodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :json).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
+SCG_HASH_METHOD_ATTRIBUTE = Panko::CodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :hash).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
 
 class MethodAttributePostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body_length

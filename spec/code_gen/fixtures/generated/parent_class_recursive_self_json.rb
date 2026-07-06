@@ -12,14 +12,14 @@
 
 class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2, replies: 3}.freeze
-  POOL = SerializersCodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ParentClassRecursiveSelfCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ParentClassRecursiveSelfCommentSerializer_JSON)
 
   def initialize(descriptor:)
     @replies_serializer = self
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       _write_one(record, writer, context, scope, filters)
@@ -32,7 +32,7 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
     begin
       writer.push_array
@@ -75,7 +75,7 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
     end
     unless filters.drops?(2)
       value = viewer_tag
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "viewer_tag")
       end
     end
@@ -100,7 +100,7 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
     end
     unless filters.drops?(2)
       value = viewer_tag
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "viewer_tag")
       end
     end

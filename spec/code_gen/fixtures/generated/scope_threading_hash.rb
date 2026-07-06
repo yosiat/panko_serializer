@@ -17,12 +17,12 @@ class ScopeThreadingAuthorSerializer_Hash
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     _to_hash(record, context, scope, filters)
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
@@ -65,12 +65,12 @@ class ScopeThreadingCommentSerializer_Hash
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     _to_hash(record, context, scope, filters)
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
@@ -92,7 +92,7 @@ class ScopeThreadingCommentSerializer_Hash
     end
     unless filters.drops?(2)
       value = @cb_viewer_tag.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["viewer_tag"] = value
       end
     end
@@ -109,7 +109,7 @@ class ScopeThreadingCommentSerializer_Hash
     end
     unless filters.drops?(2)
       value = @cb_viewer_tag.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["viewer_tag"] = value
       end
     end
@@ -129,12 +129,12 @@ class ScopeThreadingPostSerializer_Hash
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     _to_hash(record, context, scope, filters)
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
@@ -167,13 +167,13 @@ class ScopeThreadingPostSerializer_Hash
     end
     unless filters.drops?(1)
       value = @cb_legacy_label.call(record, context)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["legacy_label"] = value
       end
     end
     unless filters.drops?(2)
       value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["viewer_label"] = value
       end
     end
@@ -201,13 +201,13 @@ class ScopeThreadingPostSerializer_Hash
     end
     unless filters.drops?(1)
       value = @cb_legacy_label.call(record, context)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["legacy_label"] = value
       end
     end
     unless filters.drops?(2)
       value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["viewer_label"] = value
       end
     end

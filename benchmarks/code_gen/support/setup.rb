@@ -32,7 +32,7 @@ require "active_support/core_ext/string/starts_ends_with"
 require "oj_serializers"
 
 $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # YJIT auto-enable per docs/phase-1-bar.md — phase-1 numbers are YJIT-on. No
 # env knob to override; the production target is YJIT and we don't measure

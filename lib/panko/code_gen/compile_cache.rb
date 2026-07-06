@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Identity-keyed map of Descriptor → Generated Class, threaded through
   # +Compiler+'s recursive descent so each unique Descriptor in a tree
   # produces exactly one Generated Class (per
@@ -27,7 +27,7 @@ module SerializersCodeGen
     # Returns the cached Generated Class for +descriptor+, or +nil+ if
     # the descriptor has not been seen yet.
     #
-    # @param descriptor [SerializersCodeGen::Descriptor] the lookup key
+    # @param descriptor [Panko::CodeGen::Descriptor] the lookup key
     # @return [Class, nil] the cached class, or +nil+ on miss
     def get(descriptor)
       @store[descriptor.__id__]
@@ -36,7 +36,7 @@ module SerializersCodeGen
     # Inserts +generated_class+ under +descriptor+'s identity. Returns
     # the inserted class so callers can chain +cache.set(d, klass)+.
     #
-    # @param descriptor [SerializersCodeGen::Descriptor] the key
+    # @param descriptor [Panko::CodeGen::Descriptor] the key
     # @param generated_class [Class] the class to cache
     # @return [Class] the inserted class
     def set(descriptor, generated_class)
@@ -47,7 +47,7 @@ module SerializersCodeGen
     # build + cache + return one. The build block is called at most once
     # per descriptor identity per cache.
     #
-    # @param descriptor [SerializersCodeGen::Descriptor] the key
+    # @param descriptor [Panko::CodeGen::Descriptor] the key
     # @yield invoked on cache miss; the return value is cached + returned
     # @yieldreturn [Class] the class to cache for +descriptor+
     # @return [Class] the cached or freshly-built class
@@ -81,7 +81,7 @@ module SerializersCodeGen
     # parent-first order and back-edges find their target on the first
     # +#get+.
     #
-    # @param descriptor [SerializersCodeGen::Descriptor] the key
+    # @param descriptor [Panko::CodeGen::Descriptor] the key
     # @yield invoked on cache miss; expected to call
     #   +#set(descriptor, klass)+ on +self+ before any recursive
     #   +#lookup_or_compile+ on +descriptor+ identity

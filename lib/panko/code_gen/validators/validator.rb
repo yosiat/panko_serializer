@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Validators
     # Orchestrator for semantic validation. Holds an ordered list of
     # rule modules and runs them against the (Descriptor, Output Mode,
@@ -18,7 +18,7 @@ module SerializersCodeGen
     class Validator
       # Library-default rule list. Iterated in declaration order; the
       # first rule that raises short-circuits the rest. Each rule slice
-      # adds its own require in +lib/serializers_code_gen.rb+ + an entry
+      # adds its own require in +lib/panko/code_gen.rb+ + an entry
       # to this constant.
       DEFAULT_RULES = [CallableArity, SourceResolution, NameUniqueness, SymbolBodyDispatch].freeze
 
@@ -32,11 +32,11 @@ module SerializersCodeGen
       # Runs every registered rule against the input triple. Returns
       # +nil+ on success; raises on the first rule that raises.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] the input
+      # @param descriptor [Panko::CodeGen::Descriptor] the input
       # @param output [Symbol] resolved Output Mode
-      # @param config [SerializersCodeGen::Config] resolved settings
+      # @param config [Panko::CodeGen::Config] resolved settings
       # @return [void]
-      # @raise [SerializersCodeGen::CompileError] on the first rule
+      # @raise [Panko::CodeGen::CompileError] on the first rule
       #   violation; the raising rule decides the concrete subclass.
       def validate(descriptor, output:, config:)
         @rules.each { |rule| rule.validate(descriptor, output: output, config: config) }

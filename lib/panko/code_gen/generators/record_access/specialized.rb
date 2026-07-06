@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     module RecordAccess
       # Specialized-path Record-access emitter — used when a Descriptor's
@@ -57,10 +57,10 @@ module SerializersCodeGen
         # +FieldEmitters::MethodAttribute+ — same per-Field shape as the
         # Generic path; only the per-Attribute read expression differs.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         #   being compiled; +#models+ must be non-+nil+ (caller already
         #   gated)
-        # @param config [SerializersCodeGen::Config] resolved compile-time
+        # @param config [Panko::CodeGen::Config] resolved compile-time
         #   settings; threaded through to per-Field emitters whose source
         #   choices depend on it (e.g. +Association#emit_json+ branches on
         #   +null_for_missing_has_one+)
@@ -70,7 +70,7 @@ module SerializersCodeGen
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
         #   per-Field literal at codegen time
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
@@ -103,11 +103,11 @@ module SerializersCodeGen
         # keys come from +Config#hash_output_key_type+; per-Attribute
         # reads use the Specialized 3-step rule.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor] the Descriptor
-        # @param config [SerializersCodeGen::Config] resolved settings
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map (mirror of {emit_json})
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
@@ -170,8 +170,8 @@ module SerializersCodeGen
         # +call_expression+ boundary; the full doc-page update lands in
         # S18.4.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_parent_class_ivar_writes(descriptor, builder)
           return if descriptor.parent_class.nil?
@@ -193,8 +193,8 @@ module SerializersCodeGen
         # +models:+" case from +docs/compilation.md § Non-AR class in
         # `models`+.
         #
-        # @param attribute [SerializersCodeGen::Attribute]
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param attribute [Panko::CodeGen::Attribute]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @return [String] Ruby source like +'record._read_attribute("title")'+
         #   or +"record.headline"+
         def self.attribute_read_expr(attribute, descriptor)
@@ -216,7 +216,7 @@ module SerializersCodeGen
         # "Generator calls +DefineAttributeMethods.ensure!+ ... before any
         # classification".
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @return [void]
         def self.ensure_attribute_methods!(descriptor)
           descriptor.models.each do |klass|
@@ -249,7 +249,7 @@ module SerializersCodeGen
         # that path falls through to method dispatch on every Attribute and
         # is irrelevant to the JSON-column optimization.
         #
-        # @param attribute [SerializersCodeGen::Attribute] the Field node
+        # @param attribute [Panko::CodeGen::Attribute] the Field node
         # @param ar_classes [Array<Class>] AR-class subset of
         #   +descriptor.models+
         # @return [Boolean]

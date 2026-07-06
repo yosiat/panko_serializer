@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Compile-time settings baked into a Generated Class. A frozen
   # +Data.define+ value with sensible defaults — most callers can omit
-  # +config:+ on +SerializersCodeGen.compile+ entirely. See
+  # +config:+ on +Panko::CodeGen.compile+ entirely. See
   # +docs/config.md § Shape+ for the documented fields and defaults.
   #
   # Field defaults applied at +.new+ time:

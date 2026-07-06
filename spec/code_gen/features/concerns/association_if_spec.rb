@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Cross-cutting +Association#if+ contract — the 10-item enumeration from
 # +docs/testing.md § association_if_spec.rb+. JSON/Hash parity is iterated
@@ -29,39 +29,39 @@ require "serializers_code_gen"
 # (3b) at both config values — is item (3) of the contract.
 RSpec.describe "Association if: — Callable guard contract" do
   def inner_descriptor
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: "InnerSerializer",
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
     )
   end
 
   def descriptor_with(name: "ParentSerializer", associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name,
       models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: associations
     )
   end
 
   def has_one(name = :child, descriptor: inner_descriptor, if: nil)
-    SerializersCodeGen::Association.new(
+    Panko::CodeGen::Association.new(
       name: name, kind: :has_one, descriptor: descriptor, if: binding.local_variable_get(:if)
     )
   end
 
   def has_many(name = :children, descriptor: inner_descriptor, if: nil)
-    SerializersCodeGen::Association.new(
+    Panko::CodeGen::Association.new(
       name: name, kind: :has_many, descriptor: descriptor, if: binding.local_variable_get(:if)
     )
   end
 
-  def compile(descriptor, mode, config: SerializersCodeGen::Config.new)
-    SerializersCodeGen.compile(descriptor, output: mode, config: config).new(descriptor: descriptor)
+  def compile(descriptor, mode, config: Panko::CodeGen::Config.new)
+    Panko::CodeGen.compile(descriptor, output: mode, config: config).new(descriptor: descriptor)
   end
 
   describe "(1) Truthy return → Association included (non-boolean truthy values count)" do
@@ -109,7 +109,7 @@ RSpec.describe "Association if: — Callable guard contract" do
       %i[json hash].each do |mode|
         context "with null_for_missing_has_one: #{null_for_missing} in #{mode} mode" do
           it "omits the key (not null) when if: is falsy — orthogonal omission paths" do
-            config = SerializersCodeGen::Config.new(null_for_missing_has_one: null_for_missing)
+            config = Panko::CodeGen::Config.new(null_for_missing_has_one: null_for_missing)
             descriptor = descriptor_with(associations: [has_one(:child, if: ->(_r, _c) { false })])
             generated = compile(descriptor, mode, config: config)
             # Record carries a real child — Source would emit it if not for the if: gate.

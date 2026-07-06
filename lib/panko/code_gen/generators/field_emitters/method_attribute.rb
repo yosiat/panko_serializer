@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     module FieldEmitters
       # Emits the per-mode write for one +MethodAttribute+ inside a
@@ -46,7 +46,7 @@ module SerializersCodeGen
       #    Composition+. A filter-dropped Method Attribute never invokes
       #    its body, so the dispatch + +equal?(SKIP)+ pair is completely
       #    elided when the Filter says no.
-      # 2. Inside it, +unless value.equal?(SerializersCodeGen::SKIP)+.
+      # 2. Inside it, +unless value.equal?(Panko::CodeGen::SKIP)+.
       #    The +equal?+ check is load-bearing — +==+ would let an
       #    +==+-overriding object accidentally collide with +SKIP+ per
       #    +docs/descriptor.md § SKIP sentinel+.
@@ -62,22 +62,22 @@ module SerializersCodeGen
       module MethodAttribute
         # Emits the JSON-mode write for one +MethodAttribute+. Two
         # nested guards: outer +unless filters.drops?(<index>) ... end+
-        # (filter-side); inner +unless value.equal?(SerializersCodeGen::SKIP)+
+        # (filter-side); inner +unless value.equal?(Panko::CodeGen::SKIP)+
         # (SKIP-side, after the Callable runs). Inside the inner guard
         # one line: +writer.push_value(value, "<name>")+ — the 2-arg form
         # collapses the +push_key+ + +push_value+ pair into a single
         # C-extension dispatch (byte-identical output, fewer dispatches).
         #
-        # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
+        # @param method_attribute [Panko::CodeGen::MethodAttribute] the Field node
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(method_attribute, index, builder)
           builder.line "unless filters.drops?(#{index})"
           builder.indent do
             builder.line "value = #{call_expression(method_attribute)}"
-            builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
+            builder.line "unless value.equal?(Panko::CodeGen::SKIP)"
             builder.indent do
               builder.line %(writer.push_value(value, "#{method_attribute.name}"))
             end
@@ -89,17 +89,17 @@ module SerializersCodeGen
         # Emits the Hash-mode write for one +MethodAttribute+. Two
         # nested guards parallel to {.emit_json}: outer
         # +unless filters.drops?(<index>) ... end+; inner
-        # +unless value.equal?(SerializersCodeGen::SKIP)+. Inside the
+        # +unless value.equal?(Panko::CodeGen::SKIP)+. Inside the
         # inner guard one line: +result[<key>] = value+. The output-key
         # shape comes from +output_key_type+ — +:string+ (default) emits
         # +result["<name>"]+, +:symbol+ emits +result[:<name>]+.
         #
-        # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
+        # @param method_attribute [Panko::CodeGen::MethodAttribute] the Field node
         # @param output_key_type [Symbol] +:string+ or +:symbol+ — the
         #   pre-validated value of +Config#hash_output_key_type+
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(method_attribute, output_key_type, index, builder)
           key_lit = case output_key_type
@@ -109,7 +109,7 @@ module SerializersCodeGen
           builder.line "unless filters.drops?(#{index})"
           builder.indent do
             builder.line "value = #{call_expression(method_attribute)}"
-            builder.line "unless value.equal?(SerializersCodeGen::SKIP)"
+            builder.line "unless value.equal?(Panko::CodeGen::SKIP)"
             builder.indent do
               builder.line "result[#{key_lit}] = value"
             end
@@ -131,7 +131,7 @@ module SerializersCodeGen
         # positionally as the third argument; arity 2 keeps its
         # +(record, context)+ meaning (no +scope+ leak).
         #
-        # @param method_attribute [SerializersCodeGen::MethodAttribute]
+        # @param method_attribute [Panko::CodeGen::MethodAttribute]
         #   the Field node; +#body+ is either a +Symbol+ or a Callable
         # @return [String] Ruby source — +"greeting"+ for a Symbol body
         #   named +:greeting+; +"@cb_full_title.call(record, context)"+
@@ -152,7 +152,7 @@ module SerializersCodeGen
         # constructor hoisting and call-site invocation. Pinned at one
         # place so the constructor and the field emitter can't drift.
         #
-        # @param method_attribute [SerializersCodeGen::MethodAttribute] the Field node
+        # @param method_attribute [Panko::CodeGen::MethodAttribute] the Field node
         # @return [String] the ivar token, e.g. +"@cb_full_title"+
         def self.ivar_name(method_attribute)
           "@cb_#{method_attribute.name}"

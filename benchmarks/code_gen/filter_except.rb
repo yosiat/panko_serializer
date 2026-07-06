@@ -26,22 +26,22 @@ require_relative "support/targets"
 #
 # Note: plain/* rows are omitted — plain has no filter primitive.
 
-FILTER_EXCEPT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+FILTER_EXCEPT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterExceptPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: []
 )
 
-SCG_JSON_FILTER_EXCEPT = SerializersCodeGen.compile(FILTER_EXCEPT_DESCRIPTOR, output: :json).new(descriptor: FILTER_EXCEPT_DESCRIPTOR)
-SCG_HASH_FILTER_EXCEPT = SerializersCodeGen.compile(FILTER_EXCEPT_DESCRIPTOR, output: :hash).new(descriptor: FILTER_EXCEPT_DESCRIPTOR)
+SCG_JSON_FILTER_EXCEPT = Panko::CodeGen.compile(FILTER_EXCEPT_DESCRIPTOR, output: :json).new(descriptor: FILTER_EXCEPT_DESCRIPTOR)
+SCG_HASH_FILTER_EXCEPT = Panko::CodeGen.compile(FILTER_EXCEPT_DESCRIPTOR, output: :hash).new(descriptor: FILTER_EXCEPT_DESCRIPTOR)
 
 class FilterExceptPostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body, :views, :published

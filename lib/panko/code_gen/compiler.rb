@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Orchestrates one +Compile+ call per +docs/compilation.md § What
   # Compile does internally+: runs semantic validation, asks the
   # +Generator+ for source bytes, materializes them into a fresh
@@ -25,9 +25,9 @@ module SerializersCodeGen
     # the docs verbatim.
     OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
 
-    # @param descriptor [SerializersCodeGen::Descriptor] the input
+    # @param descriptor [Panko::CodeGen::Descriptor] the input
     # @param output [Symbol] +:json+ or +:hash+
-    # @param config [SerializersCodeGen::Config] resolved settings
+    # @param config [Panko::CodeGen::Config] resolved settings
     # @param validator [Validators::Validator] semantic-validation
     #   orchestrator; defaults to a fresh empty-rule-list instance
     # @param generator [Generator] source-emission entry; defaults to a
@@ -57,7 +57,7 @@ module SerializersCodeGen
     # +<Inner>_<Suffix>+ class resolves at module_eval time.
     #
     # @return [Class] the freshly-built root Generated Class
-    # @raise [SerializersCodeGen::CompileError] when a registered
+    # @raise [Panko::CodeGen::CompileError] when a registered
     #   semantic rule rejects the input
     # @raise [ArgumentError] when +output:+ is not one of
     #   {Generator::OUTPUT_MODES}
@@ -93,7 +93,7 @@ module SerializersCodeGen
     # descent (S8.1 self-recursion; S8.2 mutual recursion uses the
     # same shape at construction time).
     #
-    # @param descriptor [SerializersCodeGen::Descriptor]
+    # @param descriptor [Panko::CodeGen::Descriptor]
     # @param namespace [Class] the anonymous outer that received the
     #   tree's emitted source via +module_eval+
     # @return [void]

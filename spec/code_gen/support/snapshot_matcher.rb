@@ -3,7 +3,7 @@
 require "fileutils"
 require "rspec/expectations"
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Spec
     SNAPSHOTS_DIR = File.expand_path("../fixtures/generated", __dir__)
   end
@@ -11,7 +11,7 @@ end
 
 RSpec::Matchers.define :match_snapshot do |filename|
   match do |actual|
-    @path = File.join(SerializersCodeGen::Spec::SNAPSHOTS_DIR, filename)
+    @path = File.join(Panko::CodeGen::Spec::SNAPSHOTS_DIR, filename)
     @missing = !File.exist?(@path)
     @expected = File.read(@path) unless @missing
     update = ENV["UPDATE_SNAPSHOTS"]

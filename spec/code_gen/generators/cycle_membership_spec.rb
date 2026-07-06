@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::Generators::CycleMembership do
+RSpec.describe Panko::CodeGen::Generators::CycleMembership do
   def descriptor(name, associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name, models: nil,
       attributes: [], method_attributes: [], associations: associations
     )
   end
 
   def has_many(target, name: :children)
-    SerializersCodeGen::Association.new(name: name, kind: :has_many, descriptor: target)
+    Panko::CodeGen::Association.new(name: name, kind: :has_many, descriptor: target)
   end
 
   describe ".cyclic_descriptor_ids" do

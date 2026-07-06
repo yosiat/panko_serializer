@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
 # Unit-tier coverage for the file-list shape +Generators::Fanout+
 # returns. The end-to-end on-disk wiring is covered by
@@ -9,20 +9,20 @@ require "serializers_code_gen"
 # pins the +require_relative+ deduplication, self-loop suppression,
 # and post-order guarantees on edge-case Descriptor shapes the
 # fixture corpus does not exercise.
-RSpec.describe SerializersCodeGen::Generators::Fanout do
+RSpec.describe Panko::CodeGen::Generators::Fanout do
   def descriptor(name, associations: [])
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: name, models: nil,
-      attributes: [SerializersCodeGen::Attribute.new(name: :id, source: :id)],
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [], associations: associations
     )
   end
 
   def has_one(target, name:)
-    SerializersCodeGen::Association.new(name: name, kind: :has_one, descriptor: target)
+    Panko::CodeGen::Association.new(name: name, kind: :has_one, descriptor: target)
   end
 
-  let(:config) { SerializersCodeGen::Config.new }
+  let(:config) { Panko::CodeGen::Config.new }
 
   describe ".basename_for" do
     it "snake_cases the Descriptor name and joins it to the Output Mode + .rb" do

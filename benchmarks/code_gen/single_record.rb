@@ -22,47 +22,47 @@ RECORD = DATASETS.fetch(:posts).first
 
 # --- SCG ------------------------------------------------------------------
 
-SINGLE_AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SINGLE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordAuthorBenchSerializer",
   models: [Bench::Author],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :name, source: :name)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :name, source: :name)
   ],
   method_attributes: [],
   associations: []
 )
 
-SINGLE_COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SINGLE_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordCommentBenchSerializer",
   models: [Bench::Comment],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body)
   ],
   method_attributes: [],
   associations: []
 )
 
-SINGLE_POST_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+SINGLE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordPostBenchSerializer",
   models: [Bench::Post],
   attributes: [
-    SerializersCodeGen::Attribute.new(name: :id, source: :id),
-    SerializersCodeGen::Attribute.new(name: :title, source: :title),
-    SerializersCodeGen::Attribute.new(name: :body, source: :body),
-    SerializersCodeGen::Attribute.new(name: :views, source: :views),
-    SerializersCodeGen::Attribute.new(name: :published, source: :published)
+    Panko::CodeGen::Attribute.new(name: :id, source: :id),
+    Panko::CodeGen::Attribute.new(name: :title, source: :title),
+    Panko::CodeGen::Attribute.new(name: :body, source: :body),
+    Panko::CodeGen::Attribute.new(name: :views, source: :views),
+    Panko::CodeGen::Attribute.new(name: :published, source: :published)
   ],
   method_attributes: [],
   associations: [
-    SerializersCodeGen::Association.new(name: :author, kind: :has_one, descriptor: SINGLE_AUTHOR_DESCRIPTOR),
-    SerializersCodeGen::Association.new(name: :comments, kind: :has_many, descriptor: SINGLE_COMMENT_DESCRIPTOR)
+    Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: SINGLE_AUTHOR_DESCRIPTOR),
+    Panko::CodeGen::Association.new(name: :comments, kind: :has_many, descriptor: SINGLE_COMMENT_DESCRIPTOR)
   ]
 )
 
-SCG_JSON_SINGLE = SerializersCodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :json).new(descriptor: SINGLE_POST_DESCRIPTOR)
-SCG_HASH_SINGLE = SerializersCodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :hash).new(descriptor: SINGLE_POST_DESCRIPTOR)
+SCG_JSON_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :json).new(descriptor: SINGLE_POST_DESCRIPTOR)
+SCG_HASH_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :hash).new(descriptor: SINGLE_POST_DESCRIPTOR)
 
 # --- Panko ----------------------------------------------------------------
 

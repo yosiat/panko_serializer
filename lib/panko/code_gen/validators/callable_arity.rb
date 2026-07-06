@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Validators
     # Semantic-validation rule: every Callable in a Descriptor tree
     # (+MethodAttribute#body+ and +Association#if+) must declare arity in
     # +{0, 1, 2, 3}+ per +docs/descriptor.md § Callable arity+. Variadic
     # arities (+-1+, +-2+, ...) and 4-or-more positional args raise
-    # +SerializersCodeGen::ArityError+ before any source emit.
+    # +Panko::CodeGen::ArityError+ before any source emit.
     #
     # First concrete rule plugged into the +Validator+ orchestrator from
     # S2; the module shape (single +.validate(descriptor, output:, config:)+
@@ -27,13 +27,13 @@ module SerializersCodeGen
       # visit set so a shared inner Descriptor (or a recursive one — full
       # recursion lands in S8) is walked exactly once.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] root of the walk
+      # @param descriptor [Panko::CodeGen::Descriptor] root of the walk
       # @param output [Symbol] resolved Output Mode; accepted to satisfy
       #   the orchestrator interface, ignored here (arity is mode-agnostic)
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   accepted to satisfy the orchestrator interface, ignored here
       # @return [void]
-      # @raise [SerializersCodeGen::ArityError] on the first Callable
+      # @raise [Panko::CodeGen::ArityError] on the first Callable
       #   whose arity is not 0, 1, 2, or 3
       def self.validate(descriptor, output:, config:)
         walk(descriptor, {})
@@ -53,7 +53,7 @@ module SerializersCodeGen
         # +parent_class+") lives in +Validators::SymbolBodyDispatch+.
         # Association +#if+ stays Callable-only and is checked as before.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @param seen [Hash{Integer => true}] identity-keyed visit set
         # @return [void]
         def walk(descriptor, seen)
@@ -78,7 +78,7 @@ module SerializersCodeGen
         # @param callable_label [String] e.g. +"MethodAttribute#body"+
         # @param arity [Integer] the observed arity
         # @return [void]
-        # @raise [SerializersCodeGen::ArityError] when +arity+ is not in
+        # @raise [Panko::CodeGen::ArityError] when +arity+ is not in
         #   {ALLOWED_ARITIES}
         def check_arity!(descriptor_name, field_name, callable_label, arity)
           return if ALLOWED_ARITIES.include?(arity)

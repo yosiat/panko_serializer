@@ -20,12 +20,12 @@ class ShallowSpecializedSerializer_Hash
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     _to_hash(record, context, scope, filters)
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
-    filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)
+    filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
@@ -42,19 +42,19 @@ class ShallowSpecializedSerializer_Hash
     end
     unless filters.drops?(3)
       value = @cb_static.call
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["static"] = value
       end
     end
     unless filters.drops?(4)
       value = @cb_hidden.call(record)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["hidden"] = value
       end
     end
     unless filters.drops?(5)
       value = @cb_contextual.call(record, context)
-      unless value.equal?(SerializersCodeGen::SKIP)
+      unless value.equal?(Panko::CodeGen::SKIP)
         result["contextual"] = value
       end
     end

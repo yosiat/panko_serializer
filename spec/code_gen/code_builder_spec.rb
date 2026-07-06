@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "serializers_code_gen/code_builder"
+require "panko/code_gen/code_builder"
 
-RSpec.describe SerializersCodeGen::CodeBuilder do
+RSpec.describe Panko::CodeGen::CodeBuilder do
   subject(:builder) { described_class.new }
 
   describe "#to_s" do

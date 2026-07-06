@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 
-RSpec.describe SerializersCodeGen::CompileCache do
+RSpec.describe Panko::CodeGen::CompileCache do
   let(:cache) { described_class.new }
   let(:descriptor) {
-    SerializersCodeGen::Descriptor.new(
+    Panko::CodeGen::Descriptor.new(
       name: "ADescriptor", models: nil,
       attributes: [], method_attributes: [], associations: []
     )
@@ -24,7 +24,7 @@ RSpec.describe SerializersCodeGen::CompileCache do
     end
 
     it "treats structurally-equal-but-distinct Descriptors as distinct keys" do
-      twin = SerializersCodeGen::Descriptor.new(
+      twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", models: nil,
         attributes: [], method_attributes: [], associations: []
       )
@@ -43,7 +43,7 @@ RSpec.describe SerializersCodeGen::CompileCache do
     # +==+/+#hash+ short-circuit on the cache lookup.
     it "treats two Descriptors differing only by parent_class as distinct keys" do
       bare_parent = Class.new
-      with_parent = SerializersCodeGen::Descriptor.new(
+      with_parent = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", models: nil,
         attributes: [], method_attributes: [], associations: [],
         parent_class: bare_parent
@@ -99,7 +99,7 @@ RSpec.describe SerializersCodeGen::CompileCache do
     end
 
     it "is identity-keyed — two distinct Descriptor instances each get their own block invocation" do
-      twin = SerializersCodeGen::Descriptor.new(
+      twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", models: nil,
         attributes: [], method_attributes: [], associations: []
       )

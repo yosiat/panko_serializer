@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen/writers_pool"
+require "panko/code_gen/writers_pool"
 
-RSpec.describe SerializersCodeGen::WritersPool do
+RSpec.describe Panko::CodeGen::WritersPool do
   describe "abstract base" do
     it "raises NotImplementedError on checkout, since #storage is unimplemented" do
       expect { described_class.new(:_scg_writer_abstract_base_test).checkout }
@@ -11,7 +11,7 @@ RSpec.describe SerializersCodeGen::WritersPool do
     end
   end
 
-  describe SerializersCodeGen::WritersPool::ThreadLocal do
+  describe Panko::CodeGen::WritersPool::ThreadLocal do
     subject(:pool) { described_class.new(storage_key) }
 
     let(:storage_key) { :"_scg_writer_test_#{object_id}" }
@@ -174,7 +174,7 @@ RSpec.describe SerializersCodeGen::WritersPool do
     end
   end
 
-  describe SerializersCodeGen::WritersPool::IsolatedExecutionState do
+  describe Panko::CodeGen::WritersPool::IsolatedExecutionState do
     subject(:pool) { described_class.new(storage_key) }
 
     let(:storage_key) { :"_scg_writer_ies_test_#{object_id}" }

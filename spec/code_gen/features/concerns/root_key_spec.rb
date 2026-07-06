@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "serializers_code_gen"
+require "panko/code_gen"
 require "shallow_generic"
 require "config/config_root_key_on"
 
@@ -23,7 +23,7 @@ require "config/config_root_key_on"
 #   signature.
 RSpec.describe "Root Key — supports_root_key + per-call kwarg contract" do
   def compile_with(fixture, mode)
-    SerializersCodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
+    Panko::CodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
       .new(descriptor: fixture::DESCRIPTOR)
   end
 

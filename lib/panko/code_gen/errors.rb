@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   # Root of the library exception hierarchy. All errors raised by
   # +serializers-code-gen+ inherit from this class — callers may rescue
-  # +SerializersCodeGen::Error+ as a catch-all or rescue the specific
+  # +Panko::CodeGen::Error+ as a catch-all or rescue the specific
   # subclass they care about. Ruby built-ins originating from user code
   # (Callable bodies, Record access) are not wrapped; see
   # +docs/errors.md § What's not in the hierarchy+.

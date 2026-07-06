@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     # Builds the per-Generated-Class +FIELD_INDEX+ map. Codegen-time
     # +Symbol → Integer+ assignment over a +Descriptor+'s Fields in the
@@ -34,7 +34,7 @@ module SerializersCodeGen
       # between this map and the wrappers is name-keyed, not
       # order-keyed. Pinned by +spec/generators/field_index_spec.rb+.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param descriptor [Panko::CodeGen::Descriptor]
       # @return [Hash{Symbol => Integer}]
       def build(descriptor)
         index = {}

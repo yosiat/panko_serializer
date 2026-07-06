@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     # Top-level Hash-mode emitter. Walks the Descriptor tree and produces a
     # source string containing one +<Name>_Hash+ class per unique Descriptor
@@ -27,8 +27,8 @@ module SerializersCodeGen
       # before parents (post-order). The byte payload feeds both
       # +Compiler+ (+module_eval+) and +Dump+ (+File.write+).
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] the root input
-      # @param config [SerializersCodeGen::Config] resolved settings
+      # @param descriptor [Panko::CodeGen::Descriptor] the root input
+      # @param config [Panko::CodeGen::Config] resolved settings
       # @return [String] the emitted Ruby source
       def emit(descriptor, config)
         builder = CodeBuilder.new
@@ -57,9 +57,9 @@ module SerializersCodeGen
       # The single-file {#emit} path appends the same per-class bytes
       # in tree post-order to one buffer.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
-      # @param config [SerializersCodeGen::Config]
-      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @param descriptor [Panko::CodeGen::Descriptor]
+      # @param config [Panko::CodeGen::Config]
+      # @param builder [Panko::CodeGen::CodeBuilder] target buffer
       # @param cyclic_ids [Hash{Integer => true}] identity-keyed set of
       #   Descriptor +__id__+s that participate in a mutual-recursion
       #   cycle (per {CycleMembership.cyclic_descriptor_ids}); the
@@ -109,7 +109,7 @@ module SerializersCodeGen
       #   time. Anonymous parents are out of scope for S18 — Panko's
       #   converter always sets a named class.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
+      # @param descriptor [Panko::CodeGen::Descriptor]
       # @param suffix [String] +"Hash"+ — the per-mode Generated Class
       #   suffix; threaded as a parameter to keep this helper's shape
       #   identical to {JsonMode#class_line}, which passes +"JSON"+
@@ -169,8 +169,8 @@ module SerializersCodeGen
       # Body is empty when the Descriptor has neither Method Attributes
       # nor Associations (the +shallow_generic+ case).
       #
-      # @param descriptor [SerializersCodeGen::Descriptor]
-      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @param descriptor [Panko::CodeGen::Descriptor]
+      # @param builder [Panko::CodeGen::CodeBuilder] target buffer
       # @param cyclic_ids [Hash{Integer => true}] identity-keyed set of
       #   cyclic Descriptor +__id__+s for the whole tree
       # @return [void]
@@ -213,8 +213,8 @@ module SerializersCodeGen
       # cycle passes through it, so cache threading would be a kwarg
       # mismatch with no benefit.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] the parent
-      # @param assoc [SerializersCodeGen::Association] the Association
+      # @param descriptor [Panko::CodeGen::Descriptor] the parent
+      # @param assoc [Panko::CodeGen::Association] the Association
       # @param i [Integer] the Association's index in
       #   +descriptor.associations+
       # @param suffix [String] +"JSON"+ or +"Hash"+ — the per-mode
@@ -239,7 +239,7 @@ module SerializersCodeGen
       # keep the public signature locked (per
       # +docs/filters.md § Phase-1 behavior+); the body's first line
       # normalizes it via
-      # +SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)+. +nil+
+      # +Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)+. +nil+
       # and +{}+ collapse to +Filter::NONE+ (allocation-free,
       # +FIELD_INDEX+ is unread on that path); a non-empty Hash routes
       # to the +Filter::Indexed+ cell from S13's verdict (S14.2,
@@ -267,9 +267,9 @@ module SerializersCodeGen
       # the signature so its position is preserved across the S17.2
       # +scope:+ widening.
       #
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
-      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @param builder [Panko::CodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_serialize_one(config, builder)
         signature = config.supports_root_key ?
@@ -277,7 +277,7 @@ module SerializersCodeGen
           "def serialize_one(record, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
+          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
             builder.line "result = _to_hash(record, context, scope, filters)"
@@ -296,7 +296,7 @@ module SerializersCodeGen
       # accepted from day 1 to keep the public signature locked (per
       # +docs/filters.md § Phase-1 behavior+); the body's first line
       # normalizes it via
-      # +SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)+ —
+      # +Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)+ —
       # +nil+ / +{}+ → +Filter::NONE+; a non-empty Hash routes to the
       # +Filter::Indexed+ cell against +FIELD_INDEX+ per S14.2.
       #
@@ -307,9 +307,9 @@ module SerializersCodeGen
       # array, never +nil+, never omitted) per
       # +docs/testing.md § root_key_spec.rb+ (case 6).
       #
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
-      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @param builder [Panko::CodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_serialize_many(config, builder)
         signature = config.supports_root_key ?
@@ -317,7 +317,7 @@ module SerializersCodeGen
           "def serialize_many(records, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "filters = SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)"
+          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
             builder.line "result = records.map { |r| _to_hash(r, context, scope, filters) }"
@@ -339,7 +339,7 @@ module SerializersCodeGen
       # default-config emit pays zero source-bytes / zero method-table
       # cost from this feature being absent.
       #
-      # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+      # @param builder [Panko::CodeGen::CodeBuilder] target buffer
       # @return [void]
       def emit_validate_root_key(builder)
         builder.line "private def validate_root_key!(root_key)"

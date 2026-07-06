@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Validators
     # Semantic-validation rule: every +Field+ on a +Descriptor+ must have a
     # +name+ that is unique among the Fields at the same level. Duplicates
@@ -26,14 +26,14 @@ module SerializersCodeGen
       # shared inner Descriptor (or a self-referential one) is walked
       # exactly once.
       #
-      # @param descriptor [SerializersCodeGen::Descriptor] root of the walk
+      # @param descriptor [Panko::CodeGen::Descriptor] root of the walk
       # @param output [Symbol] resolved Output Mode; accepted to satisfy
       #   the orchestrator interface, ignored here (name uniqueness is
       #   structural and mode-agnostic)
-      # @param config [SerializersCodeGen::Config] resolved settings;
+      # @param config [Panko::CodeGen::Config] resolved settings;
       #   accepted to satisfy the orchestrator interface, ignored here
       # @return [void]
-      # @raise [SerializersCodeGen::NameCollisionError] on the first pair
+      # @raise [Panko::CodeGen::NameCollisionError] on the first pair
       #   of Fields at the same level that share a +name+
       def self.validate(descriptor, output:, config:)
         walk(descriptor, {})
@@ -49,7 +49,7 @@ module SerializersCodeGen
         # is detected via Ruby object identity") and the convention
         # established by +CallableArity+ / +SourceResolution+.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @param seen_descriptors [Hash{Integer => true}] identity-keyed
         #   visit set across the whole walk
         # @return [void]
@@ -66,9 +66,9 @@ module SerializersCodeGen
         # +seen_names+ map — same-name across different levels never
         # interacts.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @return [void]
-        # @raise [SerializersCodeGen::NameCollisionError] on the first
+        # @raise [Panko::CodeGen::NameCollisionError] on the first
         #   pair of Fields sharing a +name+ at this level
         def check_level!(descriptor)
           seen_names = {}
@@ -90,7 +90,7 @@ module SerializersCodeGen
         # order-independent (first duplicate wins) but a stable scan
         # order keeps the error message deterministic.
         #
-        # @param descriptor [SerializersCodeGen::Descriptor]
+        # @param descriptor [Panko::CodeGen::Descriptor]
         # @return [Array<Array(Object, String)>] +[field, kind_label]+
         #   pairs
         def fields_with_kinds(descriptor)

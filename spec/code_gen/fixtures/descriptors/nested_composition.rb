@@ -2,44 +2,44 @@
 
 module Fixtures
   module NestedComposition
-    AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "NestedCompositionAuthorSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :name, source: :name)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :name, source: :name)
       ],
       method_attributes: [],
       associations: []
     )
 
-    COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "NestedCompositionCommentSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :body, source: :body)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :body, source: :body)
       ],
       method_attributes: [],
       associations: []
     )
 
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "NestedCompositionPostSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id)
       ],
       method_attributes: [],
       associations: [
-        SerializersCodeGen::Association.new(
+        Panko::CodeGen::Association.new(
           name: :author,
           kind: :has_one,
           descriptor: AUTHOR_DESCRIPTOR,
           if: ->(_record, _context) { true }
         ),
-        SerializersCodeGen::Association.new(
+        Panko::CodeGen::Association.new(
           name: :comments,
           kind: :has_many,
           descriptor: COMMENT_DESCRIPTOR

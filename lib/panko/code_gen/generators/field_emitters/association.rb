@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Generators
     module FieldEmitters
       # Emits the per-mode write for one +Association+ inside a
@@ -93,15 +93,15 @@ module SerializersCodeGen
         # the +_write_one+ contract (a keyed-+_write_one+ variant or an
         # +_emit_fields+ helper that doesn't open its own frame).
         #
-        # @param association [SerializersCodeGen::Association] the Field node
+        # @param association [Panko::CodeGen::Association] the Field node
         # @param source_read_expr [String] Ruby source for fetching the
         #   related Record(s) (e.g. +"record[\"author\"]"+ or
         #   +"record.comments"+)
-        # @param config [SerializersCodeGen::Config] resolved settings;
+        # @param config [Panko::CodeGen::Config] resolved settings;
         #   +null_for_missing_has_one+ selects the +has_one+ emit branch
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(association, source_read_expr, config, index, builder)
           builder.line "unless filters.drops?(#{index})"
@@ -133,7 +133,7 @@ module SerializersCodeGen
         # constant resolution happens at method-execution time, by which
         # point the class is fully defined).
         #
-        # @param association [SerializersCodeGen::Association] the Field node
+        # @param association [Panko::CodeGen::Association] the Field node
         # @param suffix [String] +"JSON"+ or +"Hash"+ — the per-mode
         #   Generated Class suffix for the nested class
         # @return [String] Ruby source like
@@ -146,10 +146,10 @@ module SerializersCodeGen
         # emit shape used inside the optional +if @cb_if_<name>.call(...)+
         # guard (or directly when no guard is configured).
         #
-        # @param association [SerializersCodeGen::Association]
+        # @param association [Panko::CodeGen::Association]
         # @param source_read_expr [String]
-        # @param config [SerializersCodeGen::Config]
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param config [Panko::CodeGen::Config]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_body(association, source_read_expr, config, builder)
           case association.kind
@@ -188,16 +188,16 @@ module SerializersCodeGen
         # +has_many+ emits (config-independent — empty collection → +[]+):
         #   result[<key>] = <source_read_expr>.map { |element| @<name>_serializer._to_hash(element, context, scope, filters) }
         #
-        # @param association [SerializersCodeGen::Association] the Field node
+        # @param association [Panko::CodeGen::Association] the Field node
         # @param source_read_expr [String] Ruby source for fetching the
         #   related Record(s)
         # @param output_key_type [Symbol] +:string+ or +:symbol+ — the
         #   pre-validated value of +Config#hash_output_key_type+
-        # @param config [SerializersCodeGen::Config] resolved settings;
+        # @param config [Panko::CodeGen::Config] resolved settings;
         #   +null_for_missing_has_one+ selects the +has_one+ emit branch
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
-        # @param builder [SerializersCodeGen::CodeBuilder] target buffer
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(association, source_read_expr, output_key_type, config, index, builder)
           key_lit = case output_key_type
@@ -217,12 +217,12 @@ module SerializersCodeGen
         # emit shape used inside the optional +if @cb_if_<name>.call(...)+
         # guard (or directly when no guard is configured).
         #
-        # @param association [SerializersCodeGen::Association]
+        # @param association [Panko::CodeGen::Association]
         # @param source_read_expr [String]
         # @param key_lit [String] pre-rendered Ruby literal for the output
         #   key
-        # @param config [SerializersCodeGen::Config]
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param config [Panko::CodeGen::Config]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_hash_body(association, source_read_expr, key_lit, config, builder)
           case association.kind
@@ -256,8 +256,8 @@ module SerializersCodeGen
         # repeated +#child+ lookups but the inline form keeps the
         # snapshot diff minimal vs hoisting to a local).
         #
-        # @param association [SerializersCodeGen::Association]
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param association [Panko::CodeGen::Association]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_one_default(association, builder)
           builder.line "if value.nil?"
@@ -283,8 +283,8 @@ module SerializersCodeGen
         # Threads +filters.child(:<source>)+ for the same reason as
         # {.emit_json_has_one_default}.
         #
-        # @param association [SerializersCodeGen::Association]
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param association [Panko::CodeGen::Association]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_one_omit(association, builder)
           builder.line "unless value.nil?"
@@ -300,10 +300,10 @@ module SerializersCodeGen
         # idiom. Threads +filters.child(:<source>)+ on the non-nil arm
         # per +docs/filters.md § Threading through Composition+.
         #
-        # @param association [SerializersCodeGen::Association]
+        # @param association [Panko::CodeGen::Association]
         # @param key_lit [String] pre-rendered Ruby literal for the
         #   output key (e.g. +'"author"'+ or +':author'+)
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_hash_has_one_default(association, key_lit, builder)
           builder.line "result[#{key_lit}] = if value.nil?"
@@ -320,10 +320,10 @@ module SerializersCodeGen
         # Source returns +nil+. Threads +filters.child(:<source>)+ on
         # the non-nil arm.
         #
-        # @param association [SerializersCodeGen::Association]
+        # @param association [Panko::CodeGen::Association]
         # @param key_lit [String] pre-rendered Ruby literal for the
         #   output key
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_hash_has_one_omit(association, key_lit, builder)
           builder.line "unless value.nil?"
@@ -348,11 +348,11 @@ module SerializersCodeGen
         # single_path+ winning cell from
         # +docs/research/filter_experiments_bench.rb+ (lines 586–595).
         #
-        # @param association [SerializersCodeGen::Association]
+        # @param association [Panko::CodeGen::Association]
         # @param source_read_expr [String] Ruby source for the parent
         #   Record's collection-returning Source (inlined into the
         #   +.each+ — no per-element local needed)
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_json_has_many(association, source_read_expr, builder)
           builder.line "child_filter = #{child_filter_expr(association, "JSON")}"
@@ -375,12 +375,12 @@ module SerializersCodeGen
         # Hoists +child_filter = filters.child(:<source>)+ above the
         # +.map+ — same rationale as {.emit_json_has_many}.
         #
-        # @param association [SerializersCodeGen::Association]
+        # @param association [Panko::CodeGen::Association]
         # @param source_read_expr [String] Ruby source for the parent
         #   Record's collection-returning Source
         # @param key_lit [String] pre-rendered Ruby literal for the
         #   output key
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @return [void]
         def self.emit_hash_has_many(association, source_read_expr, key_lit, builder)
           builder.line "child_filter = #{child_filter_expr(association, "Hash")}"
@@ -400,8 +400,8 @@ module SerializersCodeGen
         # +docs/descriptor.md § Callable arity+ via
         # {.call_expression}.
         #
-        # @param association [SerializersCodeGen::Association]
-        # @param builder [SerializersCodeGen::CodeBuilder]
+        # @param association [Panko::CodeGen::Association]
+        # @param builder [Panko::CodeGen::CodeBuilder]
         # @yield emits the per-Kind body inside the guard
         # @return [void]
         def self.with_if_guard(association, builder)
@@ -418,7 +418,7 @@ module SerializersCodeGen
         # constructor hoisting and the guard call site. Pinned at one
         # place so the constructor and the field emitter can't drift.
         #
-        # @param association [SerializersCodeGen::Association] the Field node
+        # @param association [Panko::CodeGen::Association] the Field node
         # @return [String] the ivar token, e.g. +"@cb_if_author"+
         def self.ivar_name(association)
           "@cb_if_#{association.name}"

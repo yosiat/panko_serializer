@@ -21,26 +21,26 @@
 # byte-equality.
 module Fixtures
   module ScopeThreading
-    AUTHOR_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingAuthorSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :name, source: :name)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :name, source: :name)
       ],
       method_attributes: [],
       associations: []
     )
 
-    COMMENT_DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingCommentSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id),
-        SerializersCodeGen::Attribute.new(name: :body, source: :body)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id),
+        Panko::CodeGen::Attribute.new(name: :body, source: :body)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(
+        Panko::CodeGen::MethodAttribute.new(
           name: :viewer_tag,
           body: ->(record, _context, scope) { "#{scope}:#{record["body"]}" }
         )
@@ -48,31 +48,31 @@ module Fixtures
       associations: []
     )
 
-    CONFIG = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingPostSerializer",
       models: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id, source: :id)
+        Panko::CodeGen::Attribute.new(name: :id, source: :id)
       ],
       method_attributes: [
-        SerializersCodeGen::MethodAttribute.new(
+        Panko::CodeGen::MethodAttribute.new(
           name: :legacy_label,
           body: ->(record, context) { "#{context}:#{record["id"]}" }
         ),
-        SerializersCodeGen::MethodAttribute.new(
+        Panko::CodeGen::MethodAttribute.new(
           name: :viewer_label,
           body: ->(record, _context, scope) { "#{scope}:#{record["id"]}" }
         )
       ],
       associations: [
-        SerializersCodeGen::Association.new(
+        Panko::CodeGen::Association.new(
           name: :author,
           kind: :has_one,
           descriptor: AUTHOR_DESCRIPTOR,
           if: ->(_record, _context, scope) { !scope.nil? }
         ),
-        SerializersCodeGen::Association.new(
+        Panko::CodeGen::Association.new(
           name: :comments,
           kind: :has_many,
           descriptor: COMMENT_DESCRIPTOR

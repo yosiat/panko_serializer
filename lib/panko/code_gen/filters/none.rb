@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SerializersCodeGen
+module Panko::CodeGen
   module Filter
     # No-filter singleton — the common-case fast path per
     # +docs/filters.md § No-filter fast path+. Every Generated Class
