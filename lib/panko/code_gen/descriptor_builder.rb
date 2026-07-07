@@ -34,6 +34,22 @@ module Panko
         serializer_class.name || "PankoSerializer#{serializer_class.object_id}"
       end
 
+      # Rebuilds the tree so every Descriptor has a unique +name+. Panko snapshots
+      # a self-referential association one level deep (a distinct Descriptor of
+      # the same serializer class as its parent), so two Descriptors can share a
+      # name — and the engine emits one Generated Class per Descriptor, keyed on
+      # +name+, so a shared name reopens the same class and corrupts it. Walks
+      # post-order (children first) and suffixes the 2nd+ occurrence of each name.
+      def uniquify_names(descriptor, seen = Hash.new(0))
+        associations = descriptor.associations.map do |association|
+          association.with(descriptor: uniquify_names(association.descriptor, seen))
+        end
+        seen[descriptor.name] += 1
+        count = seen[descriptor.name]
+        name = (count == 1) ? descriptor.name : "#{descriptor.name}_#{count}"
+        descriptor.with(name: name, associations: associations)
+      end
+
       # Narrows a nested Descriptor by a statically-declared association filter
       # (+has_many :x, only: [...]+ / +except: [...]+). Reuses {FilterAdapter} to
       # normalize Panko's filter shape, then drops the Fields the engine Filter
