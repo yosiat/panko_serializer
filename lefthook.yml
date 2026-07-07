@@ -18,7 +18,11 @@ pre-commit:
   jobs:
     - name: lint
       glob: "*.rb"
-      run: bundle exec rubocop --autocorrect {staged_files}
+      # --force-exclusion so rubocop honors .rubocop.yml's AllCops/Exclude even
+      # for explicitly-passed {staged_files} (e.g. the byte-exact generated
+      # snapshot fixtures under spec/code_gen/fixtures/generated, which carry
+      # intentional non-CamelCase class names).
+      run: bundle exec rubocop --autocorrect --force-exclusion {staged_files}
       stage_fixed: true
     - name: panko-specs
       glob: "*.rb"
