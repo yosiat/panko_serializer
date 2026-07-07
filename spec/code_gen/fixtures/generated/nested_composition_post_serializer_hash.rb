@@ -43,7 +43,7 @@ class NestedCompositionPostSerializer_Hash
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(1)
       if @cb_if_author.call(record, context)
@@ -65,7 +65,7 @@ class NestedCompositionPostSerializer_Hash
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
       if @cb_if_author.call(record, context)

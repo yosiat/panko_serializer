@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "serialization_descriptor"
+require_relative "code_gen/runtime"
 require "oj"
 
 class SerializationContext
@@ -32,7 +33,9 @@ end
 
 module Panko
   class Serializer
-    SKIP = Object.new.freeze
+    # Unified with the engine's sentinel so a method field returning SKIP is
+    # recognized by the generated code's `value.equal?(Panko::CodeGen::SKIP)` check.
+    SKIP = Panko::CodeGen::SKIP
 
     class << self
       def inherited(base)
@@ -107,40 +110,32 @@ module Panko
     end
 
     def initialize(options = {})
-      # this "_skip_init" trick is so I can create serializers from serialization descriptor
+      # +_skip_init+ builds a bare instance for descriptor duplication
+      # (see SerializationDescriptor.duplicate).
       return if options[:_skip_init]
 
-      @serialization_context = SerializationContext.create(options)
-      @descriptor = Panko::SerializationDescriptor.build(self.class, options, @serialization_context)
-      @used = false
+      @context = options[:context]
+      @scope = options[:scope]
+      @only = options[:only]
+      @except = options[:except]
     end
 
-    def context
-      @serialization_context.context
-    end
-
-    def scope
-      @serialization_context.scope
-    end
-
+    # The generated +_write_one+ (parent_class dispatch) sets @object /
+    # @context / @scope on itself per record, so a user method field reads
+    # them off the generated instance it runs on.
+    attr_reader :object, :context, :scope
     attr_writer :serialization_context
-    attr_reader :object
 
     def serialize(object)
-      serialize_with_writer(object, Panko::ObjectWriter.new).output
+      Panko::CodeGen::Runtime.serialize_one(
+        self.class, object, output: :hash, context: @context, scope: @scope, only: @only, except: @except
+      )
     end
 
     def serialize_to_json(object)
-      serialize_with_writer(object, Oj::StringWriter.new(mode: :rails)).to_s
-    end
-
-    private
-
-    def serialize_with_writer(object, writer)
-      raise ArgumentError.new("Panko::Serializer instances are single-use") if @used
-      Panko.serialize_object(object, writer, @descriptor)
-      @used = true
-      writer
+      Panko::CodeGen::Runtime.serialize_one(
+        self.class, object, output: :json, context: @context, scope: @scope, only: @only, except: @except
+      )
     end
   end
 end

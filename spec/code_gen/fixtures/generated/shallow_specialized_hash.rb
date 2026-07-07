@@ -32,30 +32,30 @@ class ShallowSpecializedSerializer_Hash
   def _to_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record._read_attribute("id")
+      result["id"] = Panko::CodeGen.cast_datetime(record._read_attribute("id"))
     end
     unless filters.drops?(1)
-      result["title"] = record._read_attribute("title")
+      result["title"] = Panko::CodeGen.cast_datetime(record._read_attribute("title"))
     end
     unless filters.drops?(2)
-      result["headline"] = record.headline
+      result["headline"] = Panko::CodeGen.cast_datetime(record.headline)
     end
     unless filters.drops?(3)
       value = @cb_static.call
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["static"] = value
+        result["static"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     unless filters.drops?(4)
       value = @cb_hidden.call(record)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["hidden"] = value
+        result["hidden"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     unless filters.drops?(5)
       value = @cb_contextual.call(record, context)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["contextual"] = value
+        result["contextual"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result

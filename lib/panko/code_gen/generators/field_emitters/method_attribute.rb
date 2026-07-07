@@ -90,7 +90,10 @@ module Panko::CodeGen
         # nested guards parallel to {.emit_json}: outer
         # +unless filters.drops?(<index>) ... end+; inner
         # +unless value.equal?(Panko::CodeGen::SKIP)+. Inside the
-        # inner guard one line: +result[<key>] = value+. The output-key
+        # inner guard one line:
+        # +result[<key>] = Panko::CodeGen.cast_datetime(value)+ — the cast
+        # reproduces Panko's C-ext datetime→ISO-8601 String formatting for Hash
+        # mode (a no-op for non-datetime values). The output-key
         # shape comes from +output_key_type+ — +:string+ (default) emits
         # +result["<name>"]+, +:symbol+ emits +result[:<name>]+.
         #
@@ -111,7 +114,7 @@ module Panko::CodeGen
             builder.line "value = #{call_expression(method_attribute)}"
             builder.line "unless value.equal?(Panko::CodeGen::SKIP)"
             builder.indent do
-              builder.line "result[#{key_lit}] = value"
+              builder.line "result[#{key_lit}] = Panko::CodeGen.cast_datetime(value)"
             end
             builder.line "end"
           end

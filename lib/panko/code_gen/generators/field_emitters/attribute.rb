@@ -118,7 +118,9 @@ module Panko::CodeGen
 
         # Emits the Hash-mode write for one Attribute. Inside the
         # +unless filters.drops?(<index>)+ wrapper, one line:
-        # +result[<key>] = <read_expr>+. The output-key shape comes from
+        # +result[<key>] = Panko::CodeGen.cast_datetime(<read_expr>)+ — the
+        # cast reproduces Panko's C-ext datetime→ISO-8601 String formatting for
+        # Hash mode (a no-op for non-datetime values). The output-key shape comes from
         # +output_key_type+ — +:string+ (default) emits +result["id"]+,
         # +:symbol+ emits +result[:id]+. Only the +:string+ branch is
         # exercised in S3.1; the +:symbol+ branch is pinned by S10's
@@ -140,7 +142,7 @@ module Panko::CodeGen
           end
           builder.line "unless filters.drops?(#{index})"
           builder.indent do
-            builder.line "result[#{key_lit}] = #{read_expr}"
+            builder.line "result[#{key_lit}] = Panko::CodeGen.cast_datetime(#{read_expr})"
           end
           builder.line "end"
         end

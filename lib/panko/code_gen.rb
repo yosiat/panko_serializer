@@ -94,4 +94,21 @@ module Panko::CodeGen
   def self.dump(descriptor, output:, path:, config: Config.new)
     Dump.new(descriptor, output: output, config: config, path: path).dump
   end
+
+  # Casts a Hash-mode attribute value to match Panko's C extension: datetime
+  # types render as their ISO-8601 String (+#as_json+ — millisecond precision,
+  # offset preserved, UTC as +Z+), everything else passes through untouched.
+  # Emitted only into Hash-mode field writes; JSON mode leaves values raw
+  # because Oj (+mode: :rails+) already formats these types identically on
+  # write, so wrapping there would double-format. Only the datetime classes are
+  # converted — a blanket +#as_json+ would also stringify Symbol/BigDecimal and
+  # change Hash mode's raw pass-through for them. +TimeWithZone+ is +defined?+-
+  # guarded so the engine stays loadable in bundles without ActiveSupport.
+  def self.cast_datetime(value)
+    case value
+    when Time, Date then value.as_json
+    else
+      (defined?(ActiveSupport::TimeWithZone) && value.is_a?(ActiveSupport::TimeWithZone)) ? value.as_json : value
+    end
+  end
 end

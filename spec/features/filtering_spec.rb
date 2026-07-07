@@ -89,13 +89,13 @@ describe "Filtering Serialization" do
     end
 
     it "filters association attributes" do
-      class FoosHolderForFilterTestSerializer < Panko::Serializer
+      class FoosHolderNestedFilterTestSerializer < Panko::Serializer
         attributes :name
 
         has_many :foos, serializer: FooSerializer
       end
 
-      serializer_factory = -> { FoosHolderForFilterTestSerializer.new(only: {foos: [:name]}) }
+      serializer_factory = -> { FoosHolderNestedFilterTestSerializer.new(only: {foos: [:name]}) }
 
       foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)

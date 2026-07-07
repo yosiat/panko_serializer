@@ -143,18 +143,14 @@ describe Panko::Serializer do
         expect(serializer.scope).to eq(scope)
       end
 
-      it "builds descriptor with options and context" do
-        serializer = serializer_class.new(only: [:name])
+      it "skips option processing when _skip_init is true" do
+        context = {user_id: 123}
+        scope = "admin"
 
-        expect(serializer.instance_variable_get(:@descriptor)).not_to be_nil
-        expect(serializer.instance_variable_get(:@used)).to eq(false)
-      end
+        serializer = serializer_class.new(_skip_init: true, context: context, scope: scope)
 
-      it "skips initialization when _skip_init is true" do
-        serializer = serializer_class.new(_skip_init: true)
-
-        expect(serializer.instance_variable_get(:@descriptor)).to be_nil
-        expect(serializer.instance_variable_get(:@used)).to be_nil
+        expect(serializer.context).to be_nil
+        expect(serializer.scope).to be_nil
       end
     end
 
@@ -174,22 +170,6 @@ describe Panko::Serializer do
 
         expect(serializer.context).to eq(context)
         expect(serializer.scope).to eq(scope)
-      end
-    end
-
-    describe "single-use enforcement" do
-      it "raises error on second use" do
-        serializer = serializer_class.new
-        mock_object = double("object")
-
-        # Mock the Panko.serialize_object call to avoid dependencies
-        allow(Panko).to receive(:serialize_object)
-
-        # First call should work
-        expect { serializer.serialize(mock_object) }.not_to raise_error
-
-        # Second call should raise error
-        expect { serializer.serialize(mock_object) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
       end
     end
   end

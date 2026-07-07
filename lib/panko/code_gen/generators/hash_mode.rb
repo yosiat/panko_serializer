@@ -117,8 +117,10 @@ module Panko::CodeGen
       def class_line(descriptor, suffix)
         if descriptor.parent_class.nil?
           "class #{descriptor.name}_#{suffix}"
-        else
+        elsif descriptor.parent_class.name
           "class #{descriptor.name}_#{suffix} < #{descriptor.parent_class.name}"
+        else
+          "class #{descriptor.name}_#{suffix} < ANON_PARENTS.fetch(#{descriptor.name.inspect})"
         end
       end
 

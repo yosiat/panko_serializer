@@ -225,7 +225,9 @@ describe "Attributes Serialization" do
     end
 
     it "can skip fields" do
-      class FooSkipSerializer < FooSerializer
+      class FooSkipSerializer < Panko::Serializer
+        attributes :name, :address
+
         def address
           object.address || SKIP
         end
@@ -236,30 +238,6 @@ describe "Attributes Serialization" do
 
       foo = Foo.create(name: Faker::Lorem.word, address: nil)
       expect(foo).to serialized_as(FooSkipSerializer, "name" => foo.name)
-    end
-  end
-
-  context "serializer reuse" do
-    before do
-      Temping.create(:foo) do
-        with_columns do |t|
-          t.string :name
-          t.string :address
-        end
-      end
-    end
-
-    it "raises an error when reusing serializer instances" do
-      class FooSerializer < Panko::Serializer
-        attributes :name, :address
-      end
-
-      serializer = FooSerializer.new
-      foo_a = Foo.create
-      foo_b = Foo.create
-
-      expect { serializer.serialize(foo_a) }.not_to raise_error
-      expect { serializer.serialize(foo_b) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
     end
   end
 end

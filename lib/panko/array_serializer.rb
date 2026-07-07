@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "code_gen/runtime"
+
 module Panko
   class ArraySerializer
     attr_accessor :subjects
@@ -15,38 +17,32 @@ Please pass valid each_serializer to ArraySerializer, for example:
         }
       end
 
-      serializer_options = {
-        only: options.fetch(:only, []),
-        except: options.fetch(:except, []),
-        context: options[:context],
-        scope: options[:scope]
-      }
-
-      @serialization_context = SerializationContext.create(options)
-      @descriptor = Panko::SerializationDescriptor.build(@each_serializer, serializer_options, @serialization_context)
+      @context = options[:context]
+      @scope = options[:scope]
+      @only = options[:only]
+      @except = options[:except]
     end
 
     def to_json
-      serialize_to_json @subjects
+      serialize_to_json(@subjects)
     end
 
     def serialize(subjects)
-      serialize_with_writer(subjects, Panko::ObjectWriter.new).output
+      Panko::CodeGen::Runtime.serialize_many(
+        @each_serializer, subjects.to_a, output: :hash,
+        context: @context, scope: @scope, only: @only, except: @except
+      )
     end
 
     def to_a
-      serialize_with_writer(@subjects, Panko::ObjectWriter.new).output
+      serialize(@subjects)
     end
 
     def serialize_to_json(subjects)
-      serialize_with_writer(subjects, Oj::StringWriter.new(mode: :rails)).to_s
-    end
-
-    private
-
-    def serialize_with_writer(subjects, writer)
-      Panko.serialize_objects(subjects.to_a, writer, @descriptor)
-      writer
+      Panko::CodeGen::Runtime.serialize_many(
+        @each_serializer, subjects.to_a, output: :json,
+        context: @context, scope: @scope, only: @only, except: @except
+      )
     end
   end
 end
