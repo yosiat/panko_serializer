@@ -6,32 +6,33 @@ Panko is a fast Ruby/Rails serializer. Its public DSL — `Panko::Serializer`,
 `Panko::ArraySerializer`, `scope:` / `context:`, `#serialize` /
 `#serialize_to_json` — is stable and unchanged.
 
-### Read this first: transitional state
+### Read this first: current state
 
-This branch (`merge-scg`) is partway through replacing Panko's C extension with
-a pure-Ruby code-generation engine, `Panko::CodeGen` (formerly the standalone
-`serializers-code-gen` gem, merged in with its full history). **Two engines
-currently coexist:**
+This branch (`merge-scg`) has **replaced Panko's C extension with a pure-Ruby
+code-generation engine**, `Panko::CodeGen` (formerly the standalone
+`serializers-code-gen` gem, merged in with its full history). `Panko::CodeGen`
+is now the **only** engine behind every `serialize` / `serialize_to_json` call:
 
-- The **C extension** (`ext/panko_serializer/`) is still the *active* engine
-  behind every `serialize` / `to_json` call.
-- **`Panko::CodeGen`** (`lib/panko/code_gen/`) has landed with its full test
-  suite but is **not yet wired into the runtime** — it runs only via its own
-  specs.
+- The DSL (`Panko::Serializer`) accumulates its declarations and builds an
+  immutable `Panko::CodeGen::Descriptor` directly (via
+  `lib/panko/code_gen/descriptor_builder.rb`); `serialize` routes through
+  `Panko::CodeGen::Runtime`, which compiles once per class (cached) and applies
+  `only`/`except` at runtime through the engine's `Filter` (`FilterAdapter`).
+- The **C extension has been deleted** — `ext/` is gone and there is no native
+  extension to compile. `Panko::SerializationDescriptor` and the C
+  `Attribute`/`Association` classes no longer exist.
 
-The swap follows a phased plan: Phase 1 (land side-by-side) is **done**; Phase 2
-replaces the C ext with codegen, Phase 3 collapses the descriptor layer, Phase 4
-hardens. **Until Phase 2 lands, the C extension is the source of truth for
-runtime behavior** — don't assume `Panko::CodeGen` is reachable from the DSL yet.
+Remaining before the branch merges to `master`: **Phase 4 hardening** —
+`pool_writer` default, benchmark parity/dedup, version bump + CHANGELOG, plus a
+small dead-code cleanup (`Panko::ObjectWriter` is now unused).
 
 ## Repo layout
 
 | Path | What |
 |---|---|
-| `lib/panko/` | Panko's DSL & C-ext bindings (`serializer.rb`, `association.rb`, `serialization_descriptor.rb`, …) |
-| `lib/panko/code_gen.rb`, `lib/panko/code_gen/` | the code-gen engine — turns an immutable `Descriptor` into a Generated Class emitting JSON or a Hash. Internal; no user DSL. |
-| `ext/panko_serializer/` | the C extension (current engine; slated for deletion in Phase 2.6) |
-| `spec/features/`, `spec/unit/` | Panko's specs — run against the C ext |
+| `lib/panko/` | Panko's DSL (`serializer.rb`, `array_serializer.rb`, `response.rb`, `serializer_resolver.rb`, …) |
+| `lib/panko/code_gen.rb`, `lib/panko/code_gen/` | the code-gen engine — turns an immutable `Descriptor` into a Generated Class emitting JSON or a Hash. Now also home to the runtime seam (`runtime.rb`, `descriptor_builder.rb`, `serializer_cache.rb`, `filter_adapter.rb`). |
+| `spec/features/`, `spec/unit/` | Panko's specs — run against the `Panko::CodeGen` engine |
 | `spec/code_gen/` | the engine's specs — self-contained, with its own `spec_helper.rb` |
 | `docs/code_gen/` | engine design docs (compilation, descriptor, filters, dumping, output-modes, …) |
 | `benchmarks/`, `benchmarks/code_gen/` | Panko's and the engine's benchmarks (dedup deferred to Phase 4) |
@@ -43,12 +44,11 @@ runtime behavior** — don't assume `Panko::CodeGen` is reachable from the DSL y
 - **Appraisal** drives the Rails matrix via `gemfiles/{7.2.0,8.0.0,8.1.0}.gemfile`.
   Panko's *default* `Gemfile` carries **no `activerecord`**, so tests run under an
   appraisal gemfile.
-- The **C extension must be compiled** before Panko's specs run:
-  `bundle exec rake compile`. The compiled `.bundle` is Ruby-version-specific —
-  recompile after switching Ruby.
+- **No native extension** — the engine is pure Ruby; there is nothing to
+  compile (`bundle exec rake` just runs the two spec suites).
 - **lefthook** pre-commit hooks: `bundle exec lefthook install`
-  (standardrb autofix + both spec lanes; no pre-push hook).
-- Lint: **standardrb** (`bundle exec standardrb`).
+  (rubocop autofix + both spec lanes; no pre-push hook).
+- Lint: **rubocop** (`bundle exec rubocop`), config in `.rubocop.yml`.
 
 ## Running the tests (two lanes)
 
@@ -56,7 +56,7 @@ The repo carries **two spec suites with separate `spec_helper.rb`s**; run them a
 separate invocations under an appraisal gemfile:
 
 ```bash
-# Panko's specs (C-ext engine)
+# Panko's specs (codegen engine)
 BUNDLE_GEMFILE=gemfiles/8.0.0.gemfile bundle exec rspec spec/features spec/unit
 
 # code_gen engine specs (loads spec/code_gen/spec_helper.rb explicitly)
@@ -76,6 +76,6 @@ connection and clobbers the engine suite's in-memory schema).
 - **Public API is frozen** through the merge. Preserve the `Panko::Serializer` /
   `Panko::ArraySerializer` surface, including `scope:` and `context:`.
 - `Panko::CodeGen` is **internal**, not part of Panko's public surface.
-- Comments explain *why*, not *what*. Keep the tree standardrb-clean.
+- Comments explain *why*, not *what*. Keep the tree rubocop-clean.
 - Commits are **local only** — the maintainer runs all `git push` / release
   steps. Never push, tag-push, or open PRs on their behalf.
