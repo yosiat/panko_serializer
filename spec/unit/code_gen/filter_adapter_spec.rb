@@ -71,6 +71,16 @@ describe Panko::CodeGen::FilterAdapter do
     end
   end
 
+  describe "invalid filter types" do
+    it "raises ArgumentError for a non-Array/Hash only" do
+      expect { adapt("nope", nil) }.to raise_error(ArgumentError, /Array or Hash/)
+    end
+
+    it "raises ArgumentError for a non-Array/Hash except" do
+      expect { adapt(nil, 123) }.to raise_error(ArgumentError, /Array or Hash/)
+    end
+  end
+
   describe "only and except spanning different keys" do
     it "merges association keys from both only and except" do
       only = {instance: [:name], posts: [:title]}

@@ -48,7 +48,8 @@ module Panko
         case filter
         when nil then [[], {}]
         when ::Array then [filter, {}]
-        else [Array(filter[:instance]), filter.except(:instance)]
+        when ::Hash then [Array(filter[:instance]), filter.except(:instance)]
+        else raise ArgumentError, "filters must be an Array or Hash, got #{filter.class}"
         end
       end
 

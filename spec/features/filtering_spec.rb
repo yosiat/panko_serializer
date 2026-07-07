@@ -537,16 +537,14 @@ describe "Filtering Serialization" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(only: "invalid").serialize(foo)
-      end.to raise_error(NoMethodError)
-      # TODO: change the error to be ArgumentError
+      end.to raise_error(ArgumentError, /must be an Array or Hash/)
     end
 
     it "raises error for non-Array/Hash except filters" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(except: 123).serialize(foo)
-      end.to raise_error(NoMethodError)
-      # TODO: change the error to be ArgumentError
+      end.to raise_error(ArgumentError, /must be an Array or Hash/)
     end
 
     it "handles filters on non-existent attributes" do

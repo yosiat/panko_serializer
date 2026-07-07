@@ -3,6 +3,7 @@
 require_relative "../code_gen"
 require_relative "descriptor_builder"
 require_relative "serializer_cache"
+require_relative "filter_adapter"
 
 module Panko
   module CodeGen
@@ -11,27 +12,30 @@ module Panko
     # unchanged, but +serialize+ / +serialize_to_json+ route here instead of
     # into +Panko.serialize_object+ / +Panko.serialize_objects+.
     #
-    # Unfiltered calls use the compiled class from {SerializerCache}. Filtered
-    # calls (constructor +only+/+except+ or a +filters_for+ class method) still
-    # go through Panko's existing +SerializationDescriptor.build+ — which
-    # applies the filters by narrowing the descriptor — and compile that
-    # narrowed descriptor per call. Moving filters onto the engine's runtime
-    # +Filter+ (so filtered calls hit the cache too) is Phase 3.2; Phase 2 is a
-    # correctness milestone, so the per-call compile for filtered calls is
-    # accepted for now.
+    # Every call — filtered or not — uses the compiled class from
+    # {SerializerCache}. Constructor +only+/+except+ (and a +filters_for+ class
+    # method) are translated by {FilterAdapter} into the engine's runtime
+    # +Filter+ shape and passed as +filters:+, so a filtered serialization reuses
+    # the cached Generated Class instead of recompiling a narrowed descriptor
+    # (plan slice 3.1). Statically-declared association filters (+has_many :x,
+    # only: [...]+) stay baked into the cached Descriptor at DSL time.
     module Runtime
       module_function
 
       # @return [String, Hash] JSON string for output: :json, a Hash for :hash
       def serialize_one(serializer_class, record, output:, context: nil, scope: nil, only: nil, except: nil)
-        generated(serializer_class, output, context, scope, only, except)
-          .serialize_one(record, context: context, scope: scope, filters: nil)
+        cached(serializer_class, output).serialize_one(
+          record, context: context, scope: scope,
+          filters: runtime_filters(serializer_class, context, scope, only, except)
+        )
       end
 
       # @return [String, Array<Hash>] JSON array string for :json, Array for :hash
       def serialize_many(serializer_class, records, output:, context: nil, scope: nil, only: nil, except: nil)
-        generated(serializer_class, output, context, scope, only, except)
-          .serialize_many(records, context: context, scope: scope, filters: nil)
+        cached(serializer_class, output).serialize_many(
+          records, context: context, scope: scope,
+          filters: runtime_filters(serializer_class, context, scope, only, except)
+        )
       end
 
       # Returns a fresh generated-class instance ready to serialize. A fresh
@@ -39,27 +43,27 @@ module Panko
       # by +_write_one+) isolated across concurrent serializations. The
       # constructor needs the Descriptor to build child serializers for
       # associations, so it is threaded through from the cache.
-      def generated(serializer_class, output, context, scope, only, except)
-        if unfiltered?(serializer_class, only, except)
-          SerializerCache.fetch(serializer_class, output: output)
-            .new(descriptor: SerializerCache.descriptor_for(serializer_class))
-        else
-          descriptor = build_filtered_descriptor(serializer_class, context, scope, only, except)
-          Panko::CodeGen.compile(descriptor, output: output, config: Config.new).new(descriptor: descriptor)
-        end
+      def cached(serializer_class, output)
+        SerializerCache.fetch(serializer_class, output: output)
+          .new(descriptor: SerializerCache.descriptor_for(serializer_class))
       end
 
-      def unfiltered?(serializer_class, only, except)
-        blank?(only) && blank?(except) && !serializer_class.respond_to?(:filters_for)
+      # Resolves the effective +only+/+except+ and translates them into the
+      # engine's runtime +Filter+ shape. A serializer's +filters_for(context,
+      # scope)+ overrides the constructor filters per key (matching Panko's
+      # +options.merge!(filters_for(...))+). Returns +nil+ when nothing is
+      # filtered so the Generated Class takes +Filter::NONE+'s allocation-free
+      # path.
+      def runtime_filters(serializer_class, context, scope, only, except)
+        only, except = with_filters_for(serializer_class, context, scope, only, except)
+        return nil if blank?(only) && blank?(except)
+        FilterAdapter.to_engine_filters(blank?(only) ? nil : only, blank?(except) ? nil : except)
       end
 
-      def build_filtered_descriptor(serializer_class, context, scope, only, except)
-        options = {context: context, scope: scope}
-        options[:only] = only unless blank?(only)
-        options[:except] = except unless blank?(except)
-        DescriptorBuilder.from_panko_descriptor(
-          Panko::SerializationDescriptor.build(serializer_class, options)
-        )
+      def with_filters_for(serializer_class, context, scope, only, except)
+        return [only, except] unless serializer_class.respond_to?(:filters_for)
+        overrides = serializer_class.filters_for(context, scope) || {}
+        [overrides.fetch(:only, only), overrides.fetch(:except, except)]
       end
 
       def blank?(filter)
