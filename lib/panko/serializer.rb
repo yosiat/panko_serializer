@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "serialization_descriptor"
+require_relative "code_gen"
+require_relative "code_gen/descriptor_builder"
 require_relative "code_gen/runtime"
 require "oj"
 
@@ -37,81 +38,78 @@ module Panko
     # recognized by the generated code's `value.equal?(Panko::CodeGen::SKIP)` check.
     SKIP = Panko::CodeGen::SKIP
 
+    # A has_one / has_many declaration captured at class-definition time. Its
+    # +descriptor+ is the nested Panko::CodeGen::Descriptor, built (and any
+    # static only/except narrowed) eagerly when the association is declared.
+    AssociationDecl = Struct.new(:name_sym, :name_str, :kind, :descriptor)
+
     class << self
+      # Each serializer accumulates its Fields as the engine's own value
+      # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
+      # on first use. A subclass inherits a copy so its DSL edits stay local.
+      attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations
+
       def inherited(base)
-        if _descriptor.nil?
-          base._descriptor = Panko::SerializationDescriptor.new
-
-          base._descriptor.attributes = []
-          base._descriptor.aliases = {}
-
-          base._descriptor.method_fields = []
-
-          base._descriptor.has_many_associations = []
-          base._descriptor.has_one_associations = []
-        else
-          base._descriptor = Panko::SerializationDescriptor.duplicate(_descriptor)
-        end
-        base._descriptor.type = base
+        base._cg_attributes = (_cg_attributes || []).dup
+        base._cg_method_attributes = (_cg_method_attributes || []).dup
+        base._cg_associations = (_cg_associations || []).dup
       end
 
-      attr_accessor :_descriptor
-
       def attributes(*attrs)
-        @_descriptor.attributes.push(*attrs.map { |attr| Attribute.create(attr) }).uniq!
+        attrs.each { |attr| add_attribute(attr.to_sym, attr.to_sym) }
       end
 
       def aliases(aliases = {})
-        aliases.each do |attr, alias_name|
-          @_descriptor.attributes << Attribute.create(attr, alias_name: alias_name)
-        end
+        aliases.each { |source, output| add_attribute(source.to_sym, output.to_sym) }
       end
 
+      # A user-defined method whose name matches a declared attribute turns that
+      # attribute into a Symbol-body method field (dispatched on the generated
+      # subclass of this serializer), preserving its output key.
       def method_added(method)
         super
-
-        return if @_descriptor.nil?
-
-        deleted_attr = @_descriptor.attributes.delete(method)
-        @_descriptor.method_fields << Attribute.create(deleted_attr.name, alias_name: deleted_attr.alias_name) unless deleted_attr.nil?
+        return if _cg_attributes.nil?
+        index = _cg_attributes.index { |attribute| attribute.source == method }
+        return if index.nil?
+        attribute = _cg_attributes.delete_at(index)
+        _cg_method_attributes << Panko::CodeGen::MethodAttribute.new(name: attribute.name, body: method)
       end
 
       def has_one(name, options = {})
-        serializer_const = options[:serializer]
-        if serializer_const.is_a?(String)
-          serializer_const = Panko::SerializerResolver.resolve(serializer_const, self)
-        end
-        serializer_const ||= Panko::SerializerResolver.resolve(name.to_s, self)
-
-        raise "Can't find serializer for #{self.name}.#{name} has_one relationship." if serializer_const.nil?
-
-        @_descriptor.has_one_associations << Panko::Association.new(
-          name,
-          options.fetch(:name, name).to_s,
-          Panko::SerializationDescriptor.build(serializer_const, options)
-        )
+        add_association(:has_one, name, options)
       end
 
       def has_many(name, options = {})
-        serializer_const = options[:serializer] || options[:each_serializer]
-        if serializer_const.is_a?(String)
-          serializer_const = Panko::SerializerResolver.resolve(serializer_const, self)
-        end
-        serializer_const ||= Panko::SerializerResolver.resolve(name.to_s, self)
+        add_association(:has_many, name, options)
+      end
 
-        raise "Can't find serializer for #{self.name}.#{name} has_many relationship." if serializer_const.nil?
+      private
 
-        @_descriptor.has_many_associations << Panko::Association.new(
-          name,
-          options.fetch(:name, name).to_s,
-          Panko::SerializationDescriptor.build(serializer_const, options)
-        )
+      # De-duplicates by Source (the read method), keeping the first declaration
+      # — matching Panko's +attributes(...).uniq!+.
+      def add_attribute(source, output)
+        return if _cg_attributes.any? { |attribute| attribute.source == source }
+        _cg_attributes << Panko::CodeGen::Attribute.new(name: output, source: source)
+      end
+
+      def add_association(kind, name, options)
+        serializer = resolve_association_serializer(name, options, kind)
+        descriptor = Panko::CodeGen::DescriptorBuilder.build(serializer)
+        descriptor = Panko::CodeGen::DescriptorBuilder.narrow(descriptor, options[:only], options[:except])
+        _cg_associations << AssociationDecl.new(name.to_sym, options.fetch(:name, name).to_s, kind, descriptor)
+      end
+
+      def resolve_association_serializer(name, options, kind)
+        serializer = options[:serializer] || options[:each_serializer]
+        serializer = Panko::SerializerResolver.resolve(serializer, self) if serializer.is_a?(String)
+        serializer ||= Panko::SerializerResolver.resolve(name.to_s, self)
+        raise "Can't find serializer for #{self.name}.#{name} #{kind} relationship." if serializer.nil?
+        serializer
       end
     end
 
     def initialize(options = {})
-      # +_skip_init+ builds a bare instance for descriptor duplication
-      # (see SerializationDescriptor.duplicate).
+      # +_skip_init+ builds a bare instance for descriptor duplication.
       return if options[:_skip_init]
 
       @context = options[:context]
@@ -124,7 +122,6 @@ module Panko
     # @context / @scope on itself per record, so a user method field reads
     # them off the generated instance it runs on.
     attr_reader :object, :context, :scope
-    attr_writer :serialization_context
 
     def serialize(object)
       Panko::CodeGen::Runtime.serialize_one(

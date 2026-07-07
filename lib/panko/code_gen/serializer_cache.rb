@@ -72,7 +72,7 @@ module Panko
           cached = serializer_class.instance_variable_get(DESCRIPTOR_IVAR)
           return cached if cached
 
-          descriptor = DescriptorBuilder.from_panko_descriptor(serializer_class._descriptor)
+          descriptor = DescriptorBuilder.build(serializer_class)
           serializer_class.instance_variable_set(DESCRIPTOR_IVAR, descriptor)
           descriptor
         end

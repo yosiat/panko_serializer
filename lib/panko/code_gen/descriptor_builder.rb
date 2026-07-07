@@ -1,87 +1,83 @@
 # frozen_string_literal: true
 
 require_relative "../code_gen"
+require_relative "filter_adapter"
 
 module Panko
   module CodeGen
-    # Adapter that converts a +Panko::SerializationDescriptor+ (the class-time
-    # DSL accumulation, backed by the C extension) into the immutable
-    # +Panko::CodeGen::Descriptor+ the engine compiles.
-    #
-    # Two invariants come from the merge plan (docs/merging-into-panko.md):
-    #
-    # - +models: nil+ always. Panko's DSL never declares the record class, so
-    #   the engine runs on the generic path (see § AR scope).
-    # - +parent_class:+ is the user's serializer class, so method fields
-    #   dispatch as Symbol bodies directly on +self+ and +#object+/+#context+/
-    #   +#scope+ resolve against the ivars the generated +_write_one+ sets
-    #   (see § Generated Class subclasses the user's Panko serializer).
-    #
-    # The converter is filter-agnostic: filters translate to a runtime
-    # +Filter+ elsewhere (Q8/Q9), never into the compiled descriptor.
+    # Assembles an immutable +Panko::CodeGen::Descriptor+ from a
+    # +Panko::Serializer+ class's accumulated DSL declarations (its
+    # +_cg_attributes+ / +_cg_method_attributes+ / +_cg_associations+). The DSL
+    # already stores Fields as the engine's own +Attribute+ / +MethodAttribute+
+    # value objects and builds each Association's nested Descriptor eagerly when
+    # the association is declared (see +Panko::Serializer.has_one+/+has_many+),
+    # snapshotting the target serializer as it stands then — matching Panko's
+    # finite, one-level self-recursion — so this assembly never recurses.
     module DescriptorBuilder
       module_function
 
-      # @param panko_desc [Panko::SerializationDescriptor] the class descriptor
-      # @param path [Hash] internal DFS guard keyed by descriptor object id
+      # @param serializer_class [Class] a Panko::Serializer subclass
       # @return [Panko::CodeGen::Descriptor]
-      def from_panko_descriptor(panko_desc, path = {})
-        oid = panko_desc.object_id
-        # Panko builds a fresh (finite) descriptor per association, so this only
-        # trips on a genuine cycle — surfaced loudly rather than as a stack overflow.
-        raise DescriptorError, "cyclic Panko descriptor for #{panko_desc.type}" if path[oid]
-        path[oid] = true
-
-        type = panko_desc.type
+      def build(serializer_class)
         Descriptor.new(
-          name: descriptor_name(type),
+          name: descriptor_name(serializer_class),
           models: nil,
-          attributes: panko_desc.attributes.map { |attr| build_attribute(attr) },
-          method_attributes: panko_desc.method_fields.map { |field| build_method_attribute(field) },
-          associations: build_associations(panko_desc, path),
-          parent_class: type
+          attributes: serializer_class._cg_attributes.dup,
+          method_attributes: serializer_class._cg_method_attributes.dup,
+          associations: serializer_class._cg_associations.map { |decl| to_association(decl) },
+          parent_class: serializer_class
         )
-      ensure
-        path.delete(oid)
-      end
-
-      # Panko's +alias_name+ is the output key override; its +name+ is the
-      # record method. Maps to the engine's +name+ (output) / +source+ (reader).
-      def build_attribute(panko_attr)
-        Attribute.new(name: output_key(panko_attr), source: panko_attr.name.to_sym)
-      end
-
-      # A method field dispatches to a same-named method on the serializer, so
-      # the body is the method Symbol; +alias_name+ still overrides the output key.
-      def build_method_attribute(panko_attr)
-        MethodAttribute.new(name: output_key(panko_attr), body: panko_attr.name.to_sym)
-      end
-
-      def build_associations(panko_desc, path)
-        panko_desc.has_one_associations.map { |assoc| build_association(assoc, :has_one, path) } +
-          panko_desc.has_many_associations.map { |assoc| build_association(assoc, :has_many, path) }
-      end
-
-      # +name_str+ is the output key (Panko's +options[:name]+ or the reader
-      # name); +name_sym+ is the reader Panko calls on the record. This is the
-      # axis Panko and the engine disagree on — do not swap them.
-      def build_association(panko_assoc, kind, path)
-        Association.new(
-          name: panko_assoc.name_str.to_sym,
-          kind: kind,
-          descriptor: from_panko_descriptor(panko_assoc.descriptor, path),
-          source: panko_assoc.name_sym
-        )
-      end
-
-      def output_key(panko_attr)
-        (panko_attr.alias_name || panko_attr.name).to_sym
       end
 
       # Anonymous serializers still need a unique, valid generated-class stem.
-      def descriptor_name(type)
-        type.name || "PankoSerializer#{type.object_id}"
+      def descriptor_name(serializer_class)
+        serializer_class.name || "PankoSerializer#{serializer_class.object_id}"
       end
+
+      # Narrows a nested Descriptor by a statically-declared association filter
+      # (+has_many :x, only: [...]+ / +except: [...]+). Reuses {FilterAdapter} to
+      # normalize Panko's filter shape, then drops the Fields the engine Filter
+      # would drop — baking the static filter into the cached Descriptor.
+      def narrow(descriptor, only, except)
+        return descriptor if blank?(only) && blank?(except)
+        narrow_by(descriptor, FilterAdapter.to_engine_filters(only, except))
+      end
+
+      # @param decl [Panko::Serializer::AssociationDecl]
+      def to_association(decl)
+        Association.new(name: decl.name_str.to_sym, kind: decl.kind, descriptor: decl.descriptor, source: decl.name_sym)
+      end
+      private_class_method :to_association
+
+      def narrow_by(descriptor, engine)
+        only_set = engine[:only]&.to_set
+        except_set = engine[:except]&.to_set
+        descriptor.with(
+          attributes: descriptor.attributes.reject { |a| drop?(a.name, only_set, except_set) },
+          method_attributes: descriptor.method_attributes.reject { |m| drop?(m.name, only_set, except_set) },
+          associations: descriptor.associations.reject { |as| drop?(as.name, only_set, except_set) }.map do |as|
+            sub = engine[as.source]
+            (sub.is_a?(Hash) && !sub.empty?) ? as.with(descriptor: narrow_by(as.descriptor, sub)) : as
+          end
+        )
+      end
+      private_class_method :narrow_by
+
+      def drop?(name, only_set, except_set)
+        if only_set
+          !only_set.include?(name)
+        elsif except_set
+          except_set.include?(name)
+        else
+          false
+        end
+      end
+      private_class_method :drop?
+
+      def blank?(filter)
+        filter.nil? || (filter.respond_to?(:empty?) && filter.empty?)
+      end
+      private_class_method :blank?
     end
   end
 end
