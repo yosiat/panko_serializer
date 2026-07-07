@@ -16,11 +16,6 @@ jobs:
             rails: "7.2.0"
 
     steps:
-      - name: Install deps
-        run: |
-          sudo apt update -y
-          sudo apt install -y libsqlite3-dev
-
       - uses: actions/checkout@v7
       - name: Set up Ruby ${{ matrix.ruby }}
         uses: ruby/setup-ruby@v1
@@ -31,7 +26,7 @@ jobs:
         env:
           BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
 
-      - name: Compile & test
+      - name: Test
         env:
           BUNDLE_GEMFILE: gemfiles/${{ matrix.rails }}.gemfile
         run: |
