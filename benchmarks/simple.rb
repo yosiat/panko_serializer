@@ -30,6 +30,11 @@ class SimplePostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body, :views, :published
 end
 
+class SimplePostPankoModelsSerializer < Panko::Serializer
+  models [Bench::Post]
+  attributes :id, :title, :body, :views, :published
+end
+
 class SimplePostOjSerializer < OjSerializers::Serializer
   default_format :json
   attributes :id, :title, :body, :views, :published
@@ -41,6 +46,8 @@ Targets::SCG_JSON[:simple] = ->(records) { SCG_JSON_SIMPLE.serialize_many(record
 Targets::SCG_HASH[:simple] = ->(records) { SCG_HASH_SIMPLE.serialize_many(records) }
 Targets::PANKO_JSON[:simple] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:simple] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoSerializer).to_a }
+Targets::PANKO_JSON[:simple_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoModelsSerializer).to_json }
+Targets::PANKO_OBJECT[:simple_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoModelsSerializer).to_a }
 Targets::OJ_JSON[:simple] = ->(records) { SimplePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:simple] = ->(records) { records.map(&:as_json).to_json }
 Targets::PLAIN_HASH[:simple] = ->(records) { records.map(&:as_json) }
@@ -53,6 +60,8 @@ benchmark_scenario "Simple", type: :posts do |records|
     "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:simple].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:simple].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:simple].call(records) },
+    "panko/json[models]" => -> { Targets::PANKO_JSON[:simple_models].call(records) },
+    "panko/object[models]" => -> { Targets::PANKO_OBJECT[:simple_models].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:simple].call(records) },
     "plain/json" => -> { Targets::PLAIN_JSON[:simple].call(records) },
     "plain/hash" => -> { Targets::PLAIN_HASH[:simple].call(records) }

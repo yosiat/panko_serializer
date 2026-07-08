@@ -37,6 +37,15 @@ class MethodAttributePostPankoSerializer < Panko::Serializer
   end
 end
 
+class MethodAttributePostPankoModelsSerializer < Panko::Serializer
+  models [Bench::Post]
+  attributes :id, :title, :body_length
+
+  def body_length
+    object.body.length
+  end
+end
+
 class MethodAttributePostOjSerializer < OjSerializers::Serializer
   default_format :json
   attributes :id, :title
@@ -53,6 +62,8 @@ Targets::SCG_JSON[:method_attribute] = ->(records) { SCG_JSON_METHOD_ATTRIBUTE.s
 Targets::SCG_HASH[:method_attribute] = ->(records) { SCG_HASH_METHOD_ATTRIBUTE.serialize_many(records) }
 Targets::PANKO_JSON[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_a }
+Targets::PANKO_JSON[:method_attribute_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoModelsSerializer).to_json }
+Targets::PANKO_OBJECT[:method_attribute_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoModelsSerializer).to_a }
 Targets::OJ_JSON[:method_attribute] = ->(records) { MethodAttributePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:method_attribute] = ->(records) { records.map { |r| {id: r.id, title: r.title, body_length: r.body.length} }.to_json }
 Targets::PLAIN_HASH[:method_attribute] = ->(records) { records.map { |r| {id: r.id, title: r.title, body_length: r.body.length} } }
@@ -65,6 +76,8 @@ benchmark_scenario "MethodAttribute", type: :posts do |records|
     "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:method_attribute].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:method_attribute].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:method_attribute].call(records) },
+    "panko/json[models]" => -> { Targets::PANKO_JSON[:method_attribute_models].call(records) },
+    "panko/object[models]" => -> { Targets::PANKO_OBJECT[:method_attribute_models].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:method_attribute].call(records) },
     "plain/json" => -> { Targets::PLAIN_JSON[:method_attribute].call(records) },
     "plain/hash" => -> { Targets::PLAIN_HASH[:method_attribute].call(records) }

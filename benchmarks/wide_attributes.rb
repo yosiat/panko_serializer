@@ -44,6 +44,11 @@ class WideAttributesPostPankoSerializer < Panko::Serializer
   attributes(*WIDE_ATTRIBUTES_PANKO_NAMES)
 end
 
+class WideAttributesPostPankoModelsSerializer < Panko::Serializer
+  models [Bench::WidePost]
+  attributes(*WIDE_ATTRIBUTES_PANKO_NAMES)
+end
+
 class WideAttributesPostOjSerializer < OjSerializers::Serializer
   default_format :json
   attributes(*WIDE_ATTRIBUTES_PANKO_NAMES)
@@ -59,6 +64,8 @@ Targets::SCG_JSON[:wide_attributes_with_except] = ->(records) { SCG_JSON_WIDE_AT
 Targets::SCG_HASH[:wide_attributes_with_except] = ->(records) { SCG_HASH_WIDE_ATTRIBUTES.serialize_many(records, filters: {except: WIDE_ATTRIBUTES_EXCEPT_KEYS}) }
 Targets::PANKO_JSON[:wide_attributes] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:wide_attributes] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoSerializer).to_a }
+Targets::PANKO_JSON[:wide_attributes_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoModelsSerializer).to_json }
+Targets::PANKO_OBJECT[:wide_attributes_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoModelsSerializer).to_a }
 Targets::OJ_JSON[:wide_attributes] = ->(records) { WideAttributesPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:wide_attributes] = ->(records) { records.map(&:as_json).to_json }
 Targets::PLAIN_HASH[:wide_attributes] = ->(records) { records.map(&:as_json) }
@@ -75,6 +82,8 @@ benchmark_scenario "WideAttributes", type: :wide_posts do |records|
     "serializers_code_gen/hash[with-except]" => -> { Targets::SCG_HASH[:wide_attributes_with_except].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:wide_attributes].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:wide_attributes].call(records) },
+    "panko/json[models]" => -> { Targets::PANKO_JSON[:wide_attributes_models].call(records) },
+    "panko/object[models]" => -> { Targets::PANKO_OBJECT[:wide_attributes_models].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:wide_attributes].call(records) },
     "plain/json" => -> { Targets::PLAIN_JSON[:wide_attributes].call(records) },
     "plain/hash" => -> { Targets::PLAIN_HASH[:wide_attributes].call(records) }
