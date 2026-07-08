@@ -15,8 +15,9 @@ end
 describe Panko::CodeGen::SerializerCache do
   before do
     [SerializerCacheFooSerializer, SerializerCacheBarSerializer].each do |klass|
-      klass.instance_variable_set(:@_compiled_json, nil)
-      klass.instance_variable_set(:@_compiled_hash, nil)
+      klass._cg_compiled_json = nil
+      klass._cg_compiled_hash = nil
+      klass._cg_descriptor = nil
     end
   end
 
@@ -46,10 +47,10 @@ describe Panko::CodeGen::SerializerCache do
       .not_to be(fetch(SerializerCacheBarSerializer, :json))
   end
 
-  it "stores the compiled class on the serializer's per-mode ivar" do
+  it "stores the compiled class on the serializer's per-mode slot" do
     compiled = fetch(SerializerCacheFooSerializer, :json)
 
-    expect(SerializerCacheFooSerializer.instance_variable_get(:@_compiled_json)).to be(compiled)
+    expect(SerializerCacheFooSerializer._cg_compiled_json).to be(compiled)
   end
 
   it "subclasses the user serializer (parent_class dispatch)" do
@@ -57,6 +58,6 @@ describe Panko::CodeGen::SerializerCache do
   end
 
   it "raises on an unknown output mode" do
-    expect { fetch(SerializerCacheFooSerializer, :xml) }.to raise_error(KeyError)
+    expect { fetch(SerializerCacheFooSerializer, :xml) }.to raise_error(ArgumentError, /unknown output mode/)
   end
 end

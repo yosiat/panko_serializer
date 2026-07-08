@@ -49,6 +49,13 @@ module Panko
       # on first use. A subclass inherits a copy so its DSL edits stay local.
       attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations, :_cg_models
 
+      # Per-class compile cache: the converted Descriptor and the compiled
+      # Generated Class per output mode. Direct class-ivar slots (read on every
+      # serialize) so SerializerCache never reaches in reflectively. Not copied
+      # on inheritance — each class compiles its own; a Zeitwerk reload mints a
+      # fresh class object with empty slots, so the cache self-heals.
+      attr_accessor :_cg_descriptor, :_cg_compiled_json, :_cg_compiled_hash
+
       def inherited(base)
         base._cg_attributes = (_cg_attributes || []).dup
         base._cg_method_attributes = (_cg_method_attributes || []).dup
