@@ -11,6 +11,9 @@ group :benchmarks do
 
   gem "benchmark-ips"
   gem "memory_profiler"
+
+  # Comparison target for the scenario benchmarks (panko/scg vs oj_serializers).
+  gem "oj_serializers"
 end
 
 group :test do

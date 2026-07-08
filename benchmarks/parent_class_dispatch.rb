@@ -20,10 +20,10 @@ require_relative "support/targets"
 # measurable IPS drop on the symbol_body rows rather than slipping in
 # unnoticed.
 #
-# n/a — panko / oj_serializers / plain rows omitted; this scenario
-# compares scg variants against each other only. End-to-end perf vs
-# Panko's C ext is the Panko-side slice 3.3 deliverable, not S18's
-# (per `docs/merging-into-panko.md § Phase 3`).
+# Carries a `panko/*` row: a Panko serializer's method attribute is an
+# instance method (the symbol-body shape), so panko/json is the end-to-end
+# cost of the same {id, title, body_length} emit through Panko's public
+# API — measured next to the two raw-engine dispatch variants.
 
 class BenchParent
   def body_length
@@ -63,14 +63,22 @@ SCG_HASH_PARENT_CLASS_CALLABLE = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_CA
 SCG_JSON_PARENT_CLASS_SYMBOL = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR, output: :json).new(descriptor: PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR)
 SCG_HASH_PARENT_CLASS_SYMBOL = Panko::CodeGen.compile(PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR, output: :hash).new(descriptor: PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR)
 
+class ParentClassDispatchPankoSerializer < Panko::Serializer
+  attributes :id, :title, :body_length
+
+  def body_length
+    object.body.length
+  end
+end
+
 # --- Target registry entries ----------------------------------------------
-# n/a — panko / oj_serializers / plain rows omitted; this scenario compares
-# scg variants against each other only.
 
 Targets::SCG_JSON[:parent_class_dispatch_callable_body] = ->(records) { SCG_JSON_PARENT_CLASS_CALLABLE.serialize_many(records) }
 Targets::SCG_HASH[:parent_class_dispatch_callable_body] = ->(records) { SCG_HASH_PARENT_CLASS_CALLABLE.serialize_many(records) }
 Targets::SCG_JSON[:parent_class_dispatch_symbol_body] = ->(records) { SCG_JSON_PARENT_CLASS_SYMBOL.serialize_many(records) }
 Targets::SCG_HASH[:parent_class_dispatch_symbol_body] = ->(records) { SCG_HASH_PARENT_CLASS_SYMBOL.serialize_many(records) }
+Targets::PANKO_JSON[:parent_class_dispatch] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: ParentClassDispatchPankoSerializer).to_json }
+Targets::PANKO_OBJECT[:parent_class_dispatch] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: ParentClassDispatchPankoSerializer).to_a }
 
 # --- Scenario -------------------------------------------------------------
 
@@ -79,6 +87,8 @@ benchmark_scenario "ParentClassDispatch", type: :posts do |records|
     "serializers_code_gen/json[callable_body]" => -> { Targets::SCG_JSON[:parent_class_dispatch_callable_body].call(records) },
     "serializers_code_gen/hash[callable_body]" => -> { Targets::SCG_HASH[:parent_class_dispatch_callable_body].call(records) },
     "serializers_code_gen/json[symbol_body]" => -> { Targets::SCG_JSON[:parent_class_dispatch_symbol_body].call(records) },
-    "serializers_code_gen/hash[symbol_body]" => -> { Targets::SCG_HASH[:parent_class_dispatch_symbol_body].call(records) }
+    "serializers_code_gen/hash[symbol_body]" => -> { Targets::SCG_HASH[:parent_class_dispatch_symbol_body].call(records) },
+    "panko/json" => -> { Targets::PANKO_JSON[:parent_class_dispatch].call(records) },
+    "panko/object" => -> { Targets::PANKO_OBJECT[:parent_class_dispatch].call(records) }
   }
 end

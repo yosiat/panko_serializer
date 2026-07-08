@@ -48,6 +48,7 @@ GEM
     io-console (0.8.2)
     json (2.19.3)
     language_server-protocol (3.17.0.5)
+    lefthook (2.1.9)
     lint_roller (1.1.0)
     logger (1.7.0)
     memory_profiler (1.1.0)
@@ -56,6 +57,8 @@ GEM
     oj (3.16.16)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
+    oj_serializers (3.0.0)
+      oj (>= 3.14.0)
     ostruct (0.6.3)
     parallel (1.28.0)
     parser (3.3.11.1)
@@ -149,7 +152,9 @@ DEPENDENCIES
   benchmark-ips
   byebug
   faker
+  lefthook
   memory_profiler
+  oj_serializers
   panko_serializer!
   pg
   rake

@@ -17,9 +17,7 @@ require "rspec"
 # state — every subsequent example in the suite would fail. The bench harness
 # is designed to be a fresh process anyway (per docs/benchmarks.md § Running),
 # so the smoke spec exercises the production-shape path.
-RSpec.describe "benchmark harness smoke",
-  skip: "Deferred to Phase 4.3 (benchmark integration): the scenario subprocess " \
-        "compares against competitor gem oj_serializers, which is not yet in Panko's Gemfile" do
+RSpec.describe "benchmark harness smoke" do
   let(:env) do
     {
       "IPS_TIME" => "0.02",
@@ -29,7 +27,7 @@ RSpec.describe "benchmark harness smoke",
   end
 
   shared_examples "a bench scenario subprocess" do |scenario_file, scenario_label, expected_rows|
-    let(:scenario_path) { File.expand_path("../../../benchmarks/code_gen/#{scenario_file}", __dir__) }
+    let(:scenario_path) { File.expand_path("../../../benchmarks/#{scenario_file}", __dir__) }
 
     it "loads, runs, and emits one row per target at SIZE=50" do
       out, status = Open3.capture2e(env, "bundle", "exec", "ruby", scenario_path)
@@ -57,7 +55,9 @@ RSpec.describe "benchmark harness smoke",
       "serializers_code_gen/json[callable_body]",
       "serializers_code_gen/hash[callable_body]",
       "serializers_code_gen/json[symbol_body]",
-      "serializers_code_gen/hash[symbol_body]"
+      "serializers_code_gen/hash[symbol_body]",
+      "panko/json",
+      "panko/object"
     ]
   end
 end

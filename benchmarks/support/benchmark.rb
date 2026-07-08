@@ -1,200 +1,155 @@
 # frozen_string_literal: true
 
-require "bundler/setup"
-require "benchmark/ips"
-require "memory_profiler"
-require "active_support/all"
+require_relative "setup"
+require_relative "datasets"
 
-# Enable YJIT if available (Ruby 3.1+)
-RubyVM::YJIT.enable if defined?(RubyVM::YJIT.enable)
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-# Sizes to benchmark. Override with SIZE=n env var (single run).
-# @return [Array<Integer>]
-BENCHMARK_SIZES = ENV["SIZE"] ? [Integer(ENV["SIZE"])] : [50, 2300]
-
-# Registry of pre-loaded dataset slices, keyed by type symbol.
-# Populated by support/datasets.rb before any benchmark file runs.
-# @return [Hash{Symbol => Hash}]
-DATASETS = {}
-
-# Benchmark.ips measurement time in seconds (default 10).
-# @return [Integer]
-IPS_TIME = Integer(ENV.fetch("IPS_TIME", 10))
-
-# Benchmark.ips warmup time in seconds (default 3).
-# @return [Integer]
-IPS_WARMUP = Integer(ENV.fetch("IPS_WARMUP", 3))
-
-# ---------------------------------------------------------------------------
-# NoopWriter
-# ---------------------------------------------------------------------------
-
-# A no-op Oj::StringWriter stand-in used by benchmarks that test
-# serialization logic without paying JSON-string allocation costs.
-class NoopWriter
-  # The last value passed to push_value.
-  # @return [Object, nil]
-  attr_reader :value
-
-  # Records +value+ without writing JSON.
+# Frozen Data value carrying every env knob parsed once at harness load.
+# Read by `benchmark` / `benchmark_with_records` / `benchmark_scenario` to
+# decide which rows to measure and how to measure them. Documented at
+# docs/benchmarks.md § Harness.
+BenchmarkConfig = Data.define(:size, :bench, :target, :profile, :ips_time, :ips_warmup) do
+  # Effective size list for this run: a one-element array when SIZE=n was
+  # set, otherwise BENCHMARK_SIZES.
   #
-  # @param value [Object] the value to (not) write
-  # @param key [String, nil] ignored
-  # @return [void]
-  def push_value(value, key = nil)
-    @value = value
-  end
-
-  # No-op JSON push.
-  #
-  # @param value [String] ignored
-  # @param key [String, nil] ignored
-  # @return [nil]
-  def push_json(value, key = nil) # rubocop:disable Lint/UnusedMethodArgument
-    nil
+  # @return [Array<Integer>]
+  def sizes
+    size ? [size] : BENCHMARK_SIZES
   end
 end
 
-# ---------------------------------------------------------------------------
-# Internal state
-# ---------------------------------------------------------------------------
+# Singleton config for the current process — built once from ENV before any
+# benchmark runs. The harness internals read from it directly rather than
+# threading it as an arg through every helper, mirroring Panko's bench harness
+# shape (per docs/benchmarks.md § Harness).
+BENCHMARK_CONFIG = BenchmarkConfig.new(
+  size: (ENV["SIZE"] && !ENV["SIZE"].empty?) ? ENV["SIZE"].to_i : nil,
+  bench: (ENV["BENCH"] && !ENV["BENCH"].empty?) ? ENV["BENCH"] : nil,
+  target: (ENV["TARGET"] && !ENV["TARGET"].empty?) ? ENV["TARGET"] : nil,
+  profile: ENV["PROFILE"],
+  ips_time: (ENV["IPS_TIME"] || "5").to_f,
+  ips_warmup: (ENV["IPS_WARMUP"] || "2").to_f
+)
 
-# @!visibility private
-@header_printed = false
+puts "Ruby:    #{RUBY_DESCRIPTION}"
+puts "AR:      #{ActiveRecord::VERSION::STRING}"
+puts "YJIT:    #{(defined?(RubyVM::YJIT) && RubyVM::YJIT.enabled?) ? "on" : "off"}"
+puts "PROFILE: #{BENCHMARK_CONFIG.profile || "ips+memory"}"
+puts "SIZES:   #{BENCHMARK_CONFIG.sizes.inspect}"
+puts "FILTERS: BENCH=#{BENCHMARK_CONFIG.bench.inspect}  TARGET=#{BENCHMARK_CONFIG.target.inspect}"
+puts
 
-# @!visibility private
-@profile_blocks = []
-
-# ---------------------------------------------------------------------------
-# print_header
-# ---------------------------------------------------------------------------
-
-# Prints the benchmark table header once, deriving the section title from
-# the calling file's basename (without extension).
-#
-# @return [void]
-def print_header
-  return if @header_printed
-
-  @header_printed = true
-
-  title = File.basename($PROGRAM_NAME, ".*")
-  width = 78
-  puts "=" * width
-  puts "  #{title}".center(width)
-  puts "=" * width
-  puts "benchmark                                                   ips     allocs   retained"
-  puts "-" * width
+# StackProf is started once at harness load when PROFILE=cpu and the combined
+# profile is dumped at exit. Per-block start/stop is too granular in
+# fast-iteration mode (each report runs for IPS_TIME seconds) and yields a
+# noisy profile.
+if BENCHMARK_CONFIG.profile == "cpu"
+  StackProf.start(mode: :cpu, raw: true, interval: 1000)
+  at_exit do
+    StackProf.stop
+    puts
+    puts "=== StackProf (cpu, interval=1000us) ==="
+    StackProf::Report.new(StackProf.results).print_text(false, 25)
+  end
 end
 
-# ---------------------------------------------------------------------------
-# benchmark
-# ---------------------------------------------------------------------------
+# Formats an ips rate with thousands/millions suffix, narrow enough to stack
+# in a single column.
+#
+# @param rate [Float]
+# @return [String]
+def benchmark_format_rate(rate)
+  if rate >= 1_000_000
+    "%.2fM" % (rate / 1_000_000.0)
+  elsif rate >= 1_000
+    "%.2fK" % (rate / 1_000.0)
+  else
+    "%.2f" % rate
+  end
+end
 
-# Runs a single benchmark case, printing one formatted result row.
+# Runs +block+ once under benchmark-ips for ips, then once under
+# MemoryProfiler for allocs + retained, and prints one row of output. Returns
+# nothing meaningful — the harness is stdout-driven (per docs/benchmarks.md §
+# Baseline workflow). When BENCH=<substr> is set and the label doesn't
+# case-insensitively contain it, the row is silently skipped.
 #
-# Respects the BENCH env var: if set, only runs benchmarks whose +label+
-# contains the value as a case-insensitive substring.
+# GC is left running during the IPS measurement: empirically, disabling
+# it during a 5s/iter window lets the heap grow unbounded for high-alloc
+# rows (heap-growth syscalls become the dominant noise source — error
+# bands explode to ±30–60% on +scg/hash+, +oj_serializers/json+,
+# +plain/*+). Leaving GC enabled drops those bands to ±3–7% and
+# replicates production behavior. The MemoryProfiler block keeps GC
+# disabled because it's explicitly measuring allocations and the
+# standard isolation pattern for that path is GC-off.
 #
-# When PROFILE=cpu  : collects the block for a single StackProf run at exit.
-# When PROFILE=memory: runs MemoryProfiler and calls pretty_print immediately.
-# Normal mode       : disables GC, measures allocations + ips, prints a row.
-#
-# @param label [String] human-readable name shown in the output table
-# @yield the code under measurement (called many times by Benchmark.ips)
+# @param label [String] human-readable row label
+# @yield invoked many times under benchmark-ips, then once under MemoryProfiler
 # @return [void]
 def benchmark(label, &block)
-  filter = ENV["BENCH"]
-  return if filter && !label.downcase.include?(filter.downcase)
+  return if BENCHMARK_CONFIG.bench && !label.downcase.include?(BENCHMARK_CONFIG.bench.downcase)
 
-  print_header
+  # One untimed warm-up call so first-invocation codegen (e.g., Panko's
+  # SerializationDescriptor build) doesn't bias either measurement.
+  block.call
 
-  case ENV["PROFILE"]
-  when "cpu"
-    @profile_blocks << [label, block]
-    return
-  when "memory"
-    report = MemoryProfiler.report(&block)
-    report.pretty_print
-    return
-  end
-
-  GC.start
-  GC.disable
-
-  memory_report = MemoryProfiler.report(&block)
-
-  ips_result = Benchmark.ips(IPS_TIME, IPS_WARMUP, true) do |x|
+  ips_report = Benchmark.ips do |x|
+    x.config(time: BENCHMARK_CONFIG.ips_time, warmup: BENCHMARK_CONFIG.ips_warmup, quiet: true)
     x.report(label, &block)
   end
 
+  entry = ips_report.entries.first
+  rate = entry.stats.central_tendency
+  err = entry.stats.error_percentage
+
+  GC.disable
+  mem_report = MemoryProfiler.report(&block)
   GC.enable
+  GC.start
 
-  ips = ips_result.entries.first.ips.round(2)
-  allocs = memory_report.total_allocated
-  retained = memory_report.total_retained
+  puts "%-58s %10s i/s ±%5.2f%%  %8d allocs  %8d retained" %
+    [label, benchmark_format_rate(rate), err, mem_report.total_allocated, mem_report.total_retained]
 
-  ips_str = format("%.2f", ips).reverse.gsub(/(\d{3})(?=\d)/, '\1,').reverse
-  allocs_str = allocs.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\1,').reverse
-  retained_str = retained.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\1,').reverse
-
-  puts format("%-54s %12s %10s %10s", label, ips_str, allocs_str, retained_str)
+  if BENCHMARK_CONFIG.profile == "memory"
+    puts
+    puts "--- memory profile: #{label} ---"
+    mem_report.pretty_print(scale_bytes: true, normalize_paths: true)
+    puts
+  end
 end
 
-# ---------------------------------------------------------------------------
-# benchmark_with_records
-# ---------------------------------------------------------------------------
-
-# Iterates BENCHMARK_SIZES and runs one benchmark per size, automatically
-# slicing the dataset registered under +type+.
+# Iterates the configured sizes for +type:+, slicing the DATASETS entry to
+# each size and calling +benchmark+ per size with a label that includes the
+# size suffix.
 #
-# @param label [String] benchmark label prefix (size + noun are appended)
-# @param type [Symbol] key into DATASETS (e.g. :posts)
-# @yield [records] the subset of records for this size
-# @yieldparam records [Array] first +n+ records from the dataset
+# @param label [String] base label; the size suffix is appended automatically
+# @param type [Symbol] DATASETS registry key (e.g. +:posts+)
+# @yield [records] called per size with the sliced array of Records
 # @return [void]
+# @raise [KeyError] when +type+ isn't registered in DATASETS
 def benchmark_with_records(label, type:, &block)
-  dataset = DATASETS.fetch(type)
-  data = dataset[:data]
-  noun = dataset[:noun]
-
-  BENCHMARK_SIZES.each do |n|
-    subset = data.first(n)
-    benchmark("#{label}, #{n} #{noun}") { block.call(subset) }
+  BENCHMARK_CONFIG.sizes.each do |size|
+    records = DATASETS.fetch(type).first(size)
+    benchmark("#{label} size=#{size}") { block.call(records) }
   end
 end
 
-# ---------------------------------------------------------------------------
-# run_cpu_profile
-# ---------------------------------------------------------------------------
-
-# Runs all blocks collected in PROFILE=cpu mode under a single StackProf
-# session and prints the results.
+# Scenario-file entry point: yields per-size records to +targets_hash_block+
+# (which returns a Hash of `row_label => 0-arity callable`) and runs
+# +benchmark+ per row. TARGET=<substr> filters rows at this boundary; BENCH
+# filters at the +benchmark+ boundary one level down.
 #
+# @param label [String] scenario label, e.g. +"Simple"+
+# @param type [Symbol] DATASETS registry key
+# @yield [records] returns the Hash of row_label => 0-arity callable
 # @return [void]
-def run_cpu_profile
-  return if @profile_blocks.empty?
-
-  require "stackprof"
-
-  combined = @profile_blocks.map { |_lbl, blk| blk }
-
-  profile = StackProf.run(mode: :cpu, raw: true) do
-    combined.each(&:call)
+# @raise [KeyError] when +type+ isn't registered in DATASETS
+def benchmark_scenario(label, type:, &targets_hash_block)
+  BENCHMARK_CONFIG.sizes.each do |size|
+    records = DATASETS.fetch(type).first(size)
+    rows = targets_hash_block.call(records)
+    rows.each do |row_label, row_callable|
+      next if BENCHMARK_CONFIG.target && !row_label.downcase.include?(BENCHMARK_CONFIG.target.downcase)
+      benchmark("#{label} size=#{size}/#{row_label}", &row_callable)
+    end
   end
-
-  StackProf::Report.new(profile).print_text
-end
-
-# ---------------------------------------------------------------------------
-# at_exit
-# ---------------------------------------------------------------------------
-
-at_exit do
-  run_cpu_profile if ENV["PROFILE"] == "cpu"
-  puts "=" * 78 if @header_printed
 end

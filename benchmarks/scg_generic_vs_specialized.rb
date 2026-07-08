@@ -9,13 +9,12 @@ require_relative "support/targets"
 # Quantifies the Specialized path's payoff (per-Attribute
 # `record._read_attribute("name")` vs the Generic-path
 # `_write_one_object` dispatch through `record.send(:name)`) on a real
-# AR record set, independently of the cross-target scg-vs-panko
-# comparison the sanity scenarios cover.
+# AR record set.
 #
-# Only carries `serializers_code_gen/*` rows — this is an internal
-# question about scg's own emit shape, not a competitive measurement
-# against panko / oj_serializers / plain (per
-# docs/benchmarks.md § Directory layout).
+# Carries a `panko/*` row alongside the two scg variants: Panko always
+# compiles the Generic path (DescriptorBuilder sets `models: nil`), so
+# panko/json ≈ scg[generic] plus Panko's DSL/runtime-seam overhead —
+# the overhead the merge adds over the raw engine.
 
 SCG_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgGenericPostBenchSerializer",
@@ -44,14 +43,18 @@ SCG_HASH_GENERIC = Panko::CodeGen.compile(SCG_GENERIC_DESCRIPTOR, output: :hash)
 SCG_JSON_SPECIALIZED = Panko::CodeGen.compile(SCG_SPECIALIZED_DESCRIPTOR, output: :json).new(descriptor: SCG_SPECIALIZED_DESCRIPTOR)
 SCG_HASH_SPECIALIZED = Panko::CodeGen.compile(SCG_SPECIALIZED_DESCRIPTOR, output: :hash).new(descriptor: SCG_SPECIALIZED_DESCRIPTOR)
 
+class ScgGvsSPostPankoSerializer < Panko::Serializer
+  attributes :id, :title, :body, :views, :published
+end
+
 # --- Target registry entries ----------------------------------------------
-# n/a — panko / oj_serializers / plain rows omitted; this scenario compares
-# scg variants against each other only.
 
 Targets::SCG_JSON[:scg_generic_vs_specialized_generic] = ->(records) { SCG_JSON_GENERIC.serialize_many(records) }
 Targets::SCG_HASH[:scg_generic_vs_specialized_generic] = ->(records) { SCG_HASH_GENERIC.serialize_many(records) }
 Targets::SCG_JSON[:scg_generic_vs_specialized_specialized] = ->(records) { SCG_JSON_SPECIALIZED.serialize_many(records) }
 Targets::SCG_HASH[:scg_generic_vs_specialized_specialized] = ->(records) { SCG_HASH_SPECIALIZED.serialize_many(records) }
+Targets::PANKO_JSON[:scg_generic_vs_specialized] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: ScgGvsSPostPankoSerializer).to_json }
+Targets::PANKO_OBJECT[:scg_generic_vs_specialized] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: ScgGvsSPostPankoSerializer).to_a }
 
 # --- Scenario -------------------------------------------------------------
 
@@ -60,6 +63,8 @@ benchmark_scenario "ScgGenericVsSpecialized", type: :posts do |records|
     "serializers_code_gen/json[generic]" => -> { Targets::SCG_JSON[:scg_generic_vs_specialized_generic].call(records) },
     "serializers_code_gen/hash[generic]" => -> { Targets::SCG_HASH[:scg_generic_vs_specialized_generic].call(records) },
     "serializers_code_gen/json[specialized]" => -> { Targets::SCG_JSON[:scg_generic_vs_specialized_specialized].call(records) },
-    "serializers_code_gen/hash[specialized]" => -> { Targets::SCG_HASH[:scg_generic_vs_specialized_specialized].call(records) }
+    "serializers_code_gen/hash[specialized]" => -> { Targets::SCG_HASH[:scg_generic_vs_specialized_specialized].call(records) },
+    "panko/json" => -> { Targets::PANKO_JSON[:scg_generic_vs_specialized].call(records) },
+    "panko/object" => -> { Targets::PANKO_OBJECT[:scg_generic_vs_specialized].call(records) }
   }
 end

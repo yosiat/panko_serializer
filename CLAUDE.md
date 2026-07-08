@@ -35,7 +35,7 @@ small dead-code cleanup (`Panko::ObjectWriter` is now unused).
 | `spec/features/`, `spec/unit/` | Panko's specs — run against the `Panko::CodeGen` engine |
 | `spec/code_gen/` | the engine's specs — self-contained, with its own `spec_helper.rb` |
 | `docs/code_gen/` | engine design docs (compilation, descriptor, filters, dumping, output-modes, …) |
-| `benchmarks/`, `benchmarks/code_gen/` | Panko's and the engine's benchmarks (dedup deferred to Phase 4) |
+| `benchmarks/` | one flattened, scenario-centric benchmark suite (`support/` harness + one file per shape) — each scenario runs `serializers_code_gen/*`, `panko/*`, `oj_serializers/*`, `plain/*` targets side by side |
 
 ## Toolchain
 
