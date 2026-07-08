@@ -47,12 +47,24 @@ module Panko
       # Each serializer accumulates its Fields as the engine's own value
       # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
       # on first use. A subclass inherits a copy so its DSL edits stay local.
-      attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations
+      attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations, :_cg_models
 
       def inherited(base)
         base._cg_attributes = (_cg_attributes || []).dup
         base._cg_method_attributes = (_cg_method_attributes || []).dup
         base._cg_associations = (_cg_associations || []).dup
+        base._cg_models = _cg_models
+      end
+
+      # Opts this serializer into the engine's Specialized record-access path:
+      # attributes read through +record._read_attribute+ (the ActiveRecord fast
+      # path) instead of the Generic +record.send+. The caller guarantees every
+      # serialized record is an instance of one of +klasses+; each attribute's
+      # source must be a column or instance method on every AR class listed, or
+      # compilation raises. Calling with no classes keeps the Generic path.
+      def models(*klasses)
+        flat = klasses.flatten
+        @_cg_models = flat.empty? ? nil : flat.freeze
       end
 
       def attributes(*attrs)

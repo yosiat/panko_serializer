@@ -21,7 +21,7 @@ module Panko
       def build(serializer_class)
         Descriptor.new(
           name: descriptor_name(serializer_class),
-          models: nil,
+          models: serializer_class._cg_models,
           attributes: serializer_class._cg_attributes.dup,
           method_attributes: serializer_class._cg_method_attributes.dup,
           associations: serializer_class._cg_associations.map { |decl| to_association(decl) },
