@@ -15,9 +15,13 @@ is now the **only** engine behind every `serialize` / `serialize_to_json` call:
 
 - The DSL (`Panko::Serializer`) accumulates its declarations and builds an
   immutable `Panko::CodeGen::Descriptor` directly (via
-  `lib/panko/code_gen/descriptor_builder.rb`); `serialize` routes through
-  `Panko::CodeGen::Runtime`, which compiles once per class (cached) and applies
-  `only`/`except` at runtime through the engine's `Filter` (`FilterAdapter`).
+  `lib/panko/code_gen/descriptor_builder.rb`); `serialize` / `serialize_to_json`
+  are inlined in `Panko::Serializer` / `Panko::ArraySerializer` — each compiles
+  once per (class, mode) (cached) and checks a Generated Class instance out of a
+  fiber-local `InstancePool` (`SerializerCache.instance_pool`) around the call,
+  releasing per-record state at checkin. `Panko::CodeGen::Runtime` only supplies
+  `runtime_filters` (`only`/`except`/`filters_for` → engine `Filter` via
+  `FilterAdapter`).
 - The **C extension has been deleted** — `ext/` is gone and there is no native
   extension to compile. `Panko::SerializationDescriptor` and the C
   `Attribute`/`Association` classes no longer exist.

@@ -27,11 +27,27 @@ Please pass valid each_serializer to ArraySerializer, for example:
       serialize_to_json(@subjects)
     end
 
+    # Inlined checkout/checkin for the same reason as Panko::Serializer's
+    # serialize methods: the mode is static per method, so the pool comes off
+    # the serializer class's own slot without a dispatch-layer hop.
+
     def serialize(subjects)
-      Panko::CodeGen::Runtime.serialize_many(
-        @each_serializer, subjects.to_a, output: :hash,
-        context: @context, scope: @scope, only: @only, except: @except
-      )
+      each_serializer = @each_serializer
+      pool = each_serializer._cg_pool_hash ||
+        Panko::CodeGen::SerializerCache.instance_pool(each_serializer, :hash)
+      filters = if @only || @except || each_serializer._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
+      end
+      stack = pool.stack
+      instance = stack.pop || pool.build
+      begin
+        instance.serialize_many(subjects.to_a, context: @context, scope: @scope, filters: filters)
+      ensure
+        # See Panko::Serializer#serialize — a pooled instance must not pin
+        # the last record graph between calls.
+        instance._release
+        stack.push(instance)
+      end
     end
 
     def to_a
@@ -39,10 +55,20 @@ Please pass valid each_serializer to ArraySerializer, for example:
     end
 
     def serialize_to_json(subjects)
-      Panko::CodeGen::Runtime.serialize_many(
-        @each_serializer, subjects.to_a, output: :json,
-        context: @context, scope: @scope, only: @only, except: @except
-      )
+      each_serializer = @each_serializer
+      pool = each_serializer._cg_pool_json ||
+        Panko::CodeGen::SerializerCache.instance_pool(each_serializer, :json)
+      filters = if @only || @except || each_serializer._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
+      end
+      stack = pool.stack
+      instance = stack.pop || pool.build
+      begin
+        instance.serialize_many(subjects.to_a, context: @context, scope: @scope, filters: filters)
+      ensure
+        instance._release
+        stack.push(instance)
+      end
     end
   end
 end

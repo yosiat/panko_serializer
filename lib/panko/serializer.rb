@@ -49,18 +49,37 @@ module Panko
       # on first use. A subclass inherits a copy so its DSL edits stay local.
       attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations, :_cg_models
 
-      # Per-class compile cache: the converted Descriptor and the compiled
-      # Generated Class per output mode. Direct class-ivar slots (read on every
-      # serialize) so SerializerCache never reaches in reflectively. Not copied
-      # on inheritance — each class compiles its own; a Zeitwerk reload mints a
-      # fresh class object with empty slots, so the cache self-heals.
-      attr_accessor :_cg_descriptor, :_cg_compiled_json, :_cg_compiled_hash
+      # Per-class compile cache: the converted Descriptor, the compiled
+      # Generated Class per output mode, and the per-mode InstancePool.
+      # Direct class-ivar slots (read on every serialize) so SerializerCache
+      # never reaches in reflectively. Not copied on inheritance — each class
+      # compiles its own; a Zeitwerk reload mints a fresh class object with
+      # empty slots, so the cache self-heals.
+      attr_accessor :_cg_descriptor, :_cg_compiled_json, :_cg_compiled_hash,
+        :_cg_pool_json, :_cg_pool_hash
+
+      # Whether this class defines +filters_for+, so the unfiltered hot path
+      # skips filter resolution entirely. Seeded at inheritance (covers a
+      # parent-defined +filters_for+) and flipped by {singleton_method_added}
+      # when one is defined later — including an RSpec stub added after the
+      # class has already serialized. Never flips back to false; a stale
+      # +true+ just re-checks +respond_to?+ inside +runtime_filters+.
+      attr_accessor :_cg_has_filters_for
 
       def inherited(base)
         base._cg_attributes = (_cg_attributes || []).dup
         base._cg_method_attributes = (_cg_method_attributes || []).dup
         base._cg_associations = (_cg_associations || []).dup
         base._cg_models = _cg_models
+        base._cg_has_filters_for = base.respond_to?(:filters_for)
+      end
+
+      # Mirrors {method_added}: a +filters_for+ defined (or stubbed) after
+      # the first serialize must still be honored, since the hot path reads
+      # +_cg_has_filters_for+ instead of paying +respond_to?+ per call.
+      def singleton_method_added(method)
+        super
+        @_cg_has_filters_for = true if method == :filters_for
       end
 
       # Opts this serializer into the engine's Specialized record-access path:
@@ -127,7 +146,17 @@ module Panko
       end
     end
 
-    def initialize(options = {})
+    # Frozen shared default for the no-options construction path — a literal
+    # +{}+ default allocates a fresh Hash on every +.new+, which is measurable
+    # on single-record serialization.
+    EMPTY_OPTIONS = {}.freeze
+
+    def initialize(options = EMPTY_OPTIONS)
+      # No-options construction (the common hot path) leaves the ivars
+      # uninitialized — Ruby reads them back as nil, same as unpacking an
+      # empty Hash, without paying four lookups and four writes per +.new+.
+      return if options.equal?(EMPTY_OPTIONS)
+
       # +_skip_init+ builds a bare instance for descriptor duplication.
       return if options[:_skip_init]
 
@@ -142,16 +171,47 @@ module Panko
     # them off the generated instance it runs on.
     attr_reader :object, :context, :scope
 
+    # Both serialize methods inline the whole seam instead of calling into a
+    # shared Runtime entry point: the mode is known statically here, so the
+    # pool comes off the class's own slot with no dispatch-layer hop, filter
+    # resolution is skipped outright on the unfiltered path, and the
+    # checkout/checkin cycle costs one Thread.current lookup. This matters
+    # because these shared entry points go polymorphic the moment an app has
+    # more than one serializer class.
+
     def serialize(object)
-      Panko::CodeGen::Runtime.serialize_one(
-        self.class, object, output: :hash, context: @context, scope: @scope, only: @only, except: @except
-      )
+      klass = self.class
+      pool = klass._cg_pool_hash || Panko::CodeGen::SerializerCache.instance_pool(klass, :hash)
+      filters = if @only || @except || klass._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(klass, @context, @scope, @only, @except)
+      end
+      stack = pool.stack
+      instance = stack.pop || pool.build
+      begin
+        instance.serialize_one(object, context: @context, scope: @scope, filters: filters)
+      ensure
+        # _release drops the instance tree's per-record @object/@context/@scope
+        # before it goes back on the stack — a pooled instance must not pin
+        # the last record graph (or request-scoped context) between calls.
+        instance._release
+        stack.push(instance)
+      end
     end
 
     def serialize_to_json(object)
-      Panko::CodeGen::Runtime.serialize_one(
-        self.class, object, output: :json, context: @context, scope: @scope, only: @only, except: @except
-      )
+      klass = self.class
+      pool = klass._cg_pool_json || Panko::CodeGen::SerializerCache.instance_pool(klass, :json)
+      filters = if @only || @except || klass._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(klass, @context, @scope, @only, @except)
+      end
+      stack = pool.stack
+      instance = stack.pop || pool.build
+      begin
+        instance.serialize_one(object, context: @context, scope: @scope, filters: filters)
+      ensure
+        instance._release
+        stack.push(instance)
+      end
     end
   end
 end

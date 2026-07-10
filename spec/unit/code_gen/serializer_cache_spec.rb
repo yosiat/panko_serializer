@@ -18,6 +18,9 @@ describe Panko::CodeGen::SerializerCache do
       klass._cg_compiled_json = nil
       klass._cg_compiled_hash = nil
       klass._cg_descriptor = nil
+      klass._cg_pool_json = nil
+      klass._cg_pool_hash = nil
+      klass._cg_has_filters_for = nil
     end
   end
 
