@@ -45,34 +45,30 @@ class NestedCompositionAuthorSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record["name"], "name")
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record.name, "name")
+      end
+      writer.pop
     end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record["name"], "name")
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record.name, "name")
-    end
-    writer.pop
   end
 end
 
@@ -111,34 +107,30 @@ class NestedCompositionCommentSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record["body"], "body")
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record.body, "body")
+      end
+      writer.pop
     end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record["body"], "body")
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record.body, "body")
-    end
-    writer.pop
   end
 end
 
@@ -180,65 +172,61 @@ class NestedCompositionPostSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        if @cb_if_author.call(record, context)
+          value = record["author"]
+          if value.nil?
+            writer.push_value(nil, "author")
+          else
+            writer.push_key("author")
+            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
+          end
+        end
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:comments, NestedCompositionCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("comments")
+        record["comments"].each do |element|
+          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
-    end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      if @cb_if_author.call(record, context)
-        value = record["author"]
-        if value.nil?
-          writer.push_value(nil, "author")
-        else
-          writer.push_key("author")
-          @author_serializer._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      unless filters.drops?(1)
+        if @cb_if_author.call(record, context)
+          value = record.author
+          if value.nil?
+            writer.push_value(nil, "author")
+          else
+            writer.push_key("author")
+            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
+          end
         end
       end
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:comments, NestedCompositionCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("comments")
-      record["comments"].each do |element|
-        @comments_serializer._write_one(element, writer, context, scope, child_filter)
+      unless filters.drops?(2)
+        child_filter = filters.child(:comments, NestedCompositionCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("comments")
+        record.comments.each do |element|
+          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
       end
       writer.pop
     end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      if @cb_if_author.call(record, context)
-        value = record.author
-        if value.nil?
-          writer.push_value(nil, "author")
-        else
-          writer.push_key("author")
-          @author_serializer._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
-        end
-      end
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:comments, NestedCompositionCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("comments")
-      record.comments.each do |element|
-        @comments_serializer._write_one(element, writer, context, scope, child_filter)
-      end
-      writer.pop
-    end
-    writer.pop
   end
 end

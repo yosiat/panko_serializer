@@ -34,79 +34,75 @@ class ScopeThreadingPostSerializer_Hash
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record["id"])
+      end
+      unless filters.drops?(3)
+        if @cb_if_author.call(record, context, scope)
+          value = record["author"]
+          result["author"] = if value.nil?
+            nil
+          else
+            @author_serializer._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
+          end
+        end
+      end
+      unless filters.drops?(4)
+        child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_Hash::FIELD_INDEX)
+        result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
+      end
+      unless filters.drops?(1)
+        value = @cb_legacy_label.call(record, context)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
+        end
+      end
+      unless filters.drops?(2)
+        value = @cb_viewer_label.call(record, context, scope)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
+        end
+      end
+      result
     else
-      _to_hash_object(record, context, scope, filters)
-    end
-  end
-
-  def _to_hash_hash(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
-    end
-    unless filters.drops?(3)
-      if @cb_if_author.call(record, context, scope)
-        value = record["author"]
-        result["author"] = if value.nil?
-          nil
-        else
-          @author_serializer._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record.id)
+      end
+      unless filters.drops?(3)
+        if @cb_if_author.call(record, context, scope)
+          value = record.author
+          result["author"] = if value.nil?
+            nil
+          else
+            @author_serializer._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
+          end
         end
       end
-    end
-    unless filters.drops?(4)
-      child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_Hash::FIELD_INDEX)
-      result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
-    end
-    unless filters.drops?(1)
-      value = @cb_legacy_label.call(record, context)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
+      unless filters.drops?(4)
+        child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_Hash::FIELD_INDEX)
+        result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
       end
-    end
-    unless filters.drops?(2)
-      value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
-      end
-    end
-    result
-  end
-
-  def _to_hash_object(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record.id)
-    end
-    unless filters.drops?(3)
-      if @cb_if_author.call(record, context, scope)
-        value = record.author
-        result["author"] = if value.nil?
-          nil
-        else
-          @author_serializer._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
+      unless filters.drops?(1)
+        value = @cb_legacy_label.call(record, context)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
         end
       end
-    end
-    unless filters.drops?(4)
-      child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_Hash::FIELD_INDEX)
-      result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
-    end
-    unless filters.drops?(1)
-      value = @cb_legacy_label.call(record, context)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
+      unless filters.drops?(2)
+        value = @cb_viewer_label.call(record, context, scope)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
+        end
       end
+      result
     end
-    unless filters.drops?(2)
-      value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
-      end
-    end
-    result
   end
 end

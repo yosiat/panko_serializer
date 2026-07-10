@@ -26,6 +26,10 @@ class StiSpecializedSerializer_Hash
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)

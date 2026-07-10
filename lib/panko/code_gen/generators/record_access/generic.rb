@@ -4,33 +4,35 @@ module Panko::CodeGen
   module Generators
     module RecordAccess
       # Generic-path Record-access emitter — used when a Descriptor's
-      # +Models+ field is +nil+. Emits per Output Mode: in JSON mode the
-      # +_write_one+ dispatcher plus +_write_one_hash+ / +_write_one_object+;
-      # in Hash mode the parallel +_to_hash+ dispatcher plus +_to_hash_hash+ /
-      # +_to_hash_object+ per +docs/output-modes.md § :hash+. Both shapes
-      # branch once on +record.is_a?(Hash)+ so each helper stays monomorphic
-      # end-to-end (every +record["id"]+ / +record.id+ call site sees one
-      # receiver class). The Specialized counterpart lands in S6.
+      # +Models+ field is +nil+. Emits one +_write_one+ (JSON) / +_to_hash+
+      # (Hash) whose body branches once on +record.is_a?(Hash)+ with both
+      # field-emit shapes inlined under the branch arms. Inlining (rather
+      # than dispatching to per-shape +_write_one_hash+ / +_write_one_object+
+      # helpers) saves a method call per record — measurable on
+      # association-heavy single-record serialization — while keeping every
+      # +record["id"]+ / +record.id+ call site monomorphic: each branch arm
+      # owns its own call sites, so the inline caches never see a mixed
+      # receiver. The Specialized counterpart (single shape, no branch)
+      # lives in {Specialized}.
       #
-      # When +descriptor.parent_class+ is non-+nil+ (S18.3), the
-      # +_write_one+ / +_to_hash+ *dispatchers* are prepended with three
-      # +@object = record; @context = context; @scope = scope+ lines so
-      # a user-defined method on the parent class can read those ivars
-      # on +self+ — the Panko-shape contract from
+      # When +descriptor.parent_class+ is non-+nil+ (S18.3) *and* the
+      # Descriptor declares a Symbol-body Method Attribute, the body is
+      # prepended with +@object = record; @context = context;
+      # @scope = scope+ so the user-defined method can read those ivars on
+      # +self+ — the Panko-shape contract from
       # +docs/merging-into-panko.md § Generated Class subclasses the
-      # user's Panko serializer+. The per-shape helpers
-      # (+_write_one_hash+ / +_write_one_object+ / +_to_hash_hash+ /
-      # +_to_hash_object+) stay *un-prepended* — they're invoked from
-      # the dispatcher which already set the ivars, so a Symbol-body
-      # method called from inside any helper sees the correct
-      # +@object+. See {emit_parent_class_ivar_writes} for the
-      # rationale. Bare descriptors (no +parent_class:+) stay byte-
-      # identical to pre-S18 emit.
+      # user's Panko serializer+. See {emit_parent_class_ivar_writes} for
+      # the gating rationale. Bare descriptors (no +parent_class:+) keep
+      # the pre-S18 body shape.
       module Generic
-        # Emits the JSON-mode +_write_one+ dispatcher plus the two helpers
-        # under +builder+. Field emit inside each helper is delegated to
-        # the per-Field-kind emitters: +Attribute+, and +Association+
-        # (+has_one+ landed in S5.1; +has_many+ in S5.2).
+        # Emits the JSON-mode +_write_one+ under +builder+: one method,
+        # +is_a?(Hash)+ branch, both field-emit shapes inline. +scope+
+        # slots between +context+ and +filters+ in the positional
+        # signature per S17.2 — Field emitters that delegate into nested
+        # Composition thread the same +scope+ unchanged into the inner
+        # +_write_one+. Field emit inside each arm is delegated to the
+        # per-Field-kind emitters: +Attribute+, +Association+, and
+        # +MethodAttribute+.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         #   being compiled
@@ -46,18 +48,22 @@ module Panko::CodeGen
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
-          emit_json_dispatch(descriptor, builder)
-          builder.blank
-          emit_json_hash_helper(descriptor, config, field_index, builder)
-          builder.blank
-          emit_json_object_helper(descriptor, config, field_index, builder)
+          builder.line "def _write_one(record, writer, context, scope, filters)"
+          builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
+            builder.line "if record.is_a?(Hash)"
+            builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| hash_read_expr(source, config) } }
+            builder.line "else"
+            builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
+            builder.line "end"
+          end
+          builder.line "end"
         end
 
-        # Emits the Hash-mode +_to_hash+ dispatcher plus the two helpers
-        # under +builder+, parallel to +emit_json+. Output keys come from
-        # +Config#hash_output_key_type+; record-side Hash keys come from
-        # +Config#hash_record_key_type+ — two orthogonal axes per
-        # +docs/config.md+.
+        # Emits the Hash-mode +_to_hash+ under +builder+, parallel to
+        # {emit_json}. Output keys come from +Config#hash_output_key_type+;
+        # record-side Hash keys come from +Config#hash_record_key_type+ —
+        # two orthogonal axes per +docs/config.md+.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         #   being compiled
@@ -68,248 +74,108 @@ module Panko::CodeGen
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
-          emit_hash_dispatch(descriptor, builder)
-          builder.blank
-          emit_hash_hash_helper(descriptor, config, field_index, builder)
-          builder.blank
-          emit_hash_object_helper(descriptor, config, field_index, builder)
-        end
-
-        # Emits the JSON-mode +_write_one+ dispatcher. +scope+ slots
-        # between +context+ and +filters+ in the positional signature
-        # per S17.2 — Field emitters that delegate into nested
-        # Composition thread the same +scope+ unchanged into the inner
-        # +_write_one+.
-        #
-        # When +descriptor.parent_class+ is non-+nil+ (S18.3), prepends
-        # +@object = record; @context = context; @scope = scope+ at the
-        # top of the dispatcher body so a user-defined +def+ on the
-        # parent class can read those ivars on +self+ regardless of
-        # which shape-specific helper the +is_a?(Hash)+ branch routes
-        # into. The two per-shape helpers
-        # ({emit_json_hash_helper} / {emit_json_object_helper}) stay
-        # *un-prepended* — they inherit the ivars from this dispatcher
-        # which already set them. The dispatcher is the only
-        # serialization-time entry from {JsonMode#emit_serialize_one} /
-        # {JsonMode#emit_serialize_many} and from nested-Composition
-        # call sites in +FieldEmitters::Association+, so prepending
-        # there covers every reachable path while keeping the helper
-        # bodies allocation-free.
-        #
-        # @param descriptor [Panko::CodeGen::Descriptor]
-        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
-        # @return [void]
-        def self.emit_json_dispatch(descriptor, builder)
-          builder.line "def _write_one(record, writer, context, scope, filters)"
-          builder.indent do
-            emit_parent_class_ivar_writes(descriptor, builder)
-            builder.line "if record.is_a?(Hash)"
-            builder.indent { builder.line "_write_one_hash(record, writer, context, scope, filters)" }
-            builder.line "else"
-            builder.indent { builder.line "_write_one_object(record, writer, context, scope, filters)" }
-            builder.line "end"
-          end
-          builder.line "end"
-        end
-
-        # Emits +_write_one_hash+, the JSON-mode Hash-record helper.
-        # Hash-key form follows +Config#hash_record_key_type+ — String
-        # literal for +:string+ (default), Symbol literal for +:symbol+.
-        # Only the default branch is exercised in this slice; the +:symbol+
-        # branch is exercised by the S10 config-isolation fixture.
-        #
-        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
-        # @param config [Panko::CodeGen::Config] resolved settings
-        # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map
-        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
-        # @return [void]
-        def self.emit_json_hash_helper(descriptor, config, field_index, builder)
-          builder.line "def _write_one_hash(record, writer, context, scope, filters)"
-          builder.indent do
-            builder.line "writer.push_object"
-            descriptor.attributes.each do |attribute|
-              FieldEmitters::Attribute.emit_json(attribute, hash_read_expr(attribute.source, config), field_index.fetch(attribute.name), builder)
-            end
-            descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_json(association, hash_read_expr(association.source, config), config, field_index.fetch(association.name), builder)
-            end
-            descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
-            end
-            builder.line "writer.pop"
-          end
-          builder.line "end"
-        end
-
-        # Emits +_write_one_object+, the JSON-mode method-dispatch helper.
-        # Works for ActiveRecord instances, POROs, and anything responding
-        # to the Source method.
-        #
-        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
-        # @param config [Panko::CodeGen::Config] resolved settings;
-        #   threaded through to per-Field emitters whose source choices
-        #   depend on it (e.g. +Association#emit_json+ branches on
-        #   +null_for_missing_has_one+)
-        # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map
-        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
-        # @return [void]
-        def self.emit_json_object_helper(descriptor, config, field_index, builder)
-          builder.line "def _write_one_object(record, writer, context, scope, filters)"
-          builder.indent do
-            builder.line "writer.push_object"
-            descriptor.attributes.each do |attribute|
-              FieldEmitters::Attribute.emit_json(attribute, "record.#{attribute.source}", field_index.fetch(attribute.name), builder)
-            end
-            descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.name), builder)
-            end
-            descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
-            end
-            builder.line "writer.pop"
-          end
-          builder.line "end"
-        end
-
-        # Emits the Hash-mode +_to_hash+ dispatcher. +scope+ slots
-        # between +context+ and +filters+ in the positional signature
-        # per S17.2 — mirrors the JSON-mode dispatcher.
-        #
-        # When +descriptor.parent_class+ is non-+nil+ (S18.3), prepends
-        # +@object = record; @context = context; @scope = scope+ at the
-        # top of the dispatcher body — mirror of
-        # {emit_json_dispatch}. The per-shape +_to_hash_hash+ /
-        # +_to_hash_object+ helpers stay un-prepended; they inherit the
-        # ivars from the dispatcher.
-        #
-        # @param descriptor [Panko::CodeGen::Descriptor]
-        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
-        # @return [void]
-        def self.emit_hash_dispatch(descriptor, builder)
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
-            builder.indent { builder.line "_to_hash_hash(record, context, scope, filters)" }
+            builder.indent { emit_hash_fields(descriptor, config, field_index, builder) { |source| hash_read_expr(source, config) } }
             builder.line "else"
-            builder.indent { builder.line "_to_hash_object(record, context, scope, filters)" }
+            builder.indent { emit_hash_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
             builder.line "end"
           end
           builder.line "end"
         end
 
-        # Emits +_to_hash_hash+, the Hash-mode Hash-record helper. Body
-        # is +result = {}; result[<key>] = record[<key>]; …; result+ per
-        # +docs/output-modes.md § :hash+ — no Writer indirection. The
-        # output key shape comes from +Config#hash_output_key_type+, the
-        # record-side lookup from +Config#hash_record_key_type+; both
-        # default to +:string+ in this slice.
+        # Emits one JSON-mode field-emit body (+push_object+ … +pop+)
+        # into +builder+ — one branch arm of {emit_json}. The record-read
+        # expression for each Source comes from the block, so the Hash arm
+        # and the method-dispatch arm share this emit verbatim.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @yieldparam source [Symbol] a Field's Source name
+        # @yieldreturn [String] the record-read expression for it
         # @return [void]
-        def self.emit_hash_hash_helper(descriptor, config, field_index, builder)
-          builder.line "def _to_hash_hash(record, context, scope, filters)"
-          builder.indent do
-            builder.line "result = {}"
-            descriptor.attributes.each do |attribute|
-              FieldEmitters::Attribute.emit_hash(
-                attribute,
-                hash_read_expr(attribute.source, config),
-                config.hash_output_key_type,
-                field_index.fetch(attribute.name),
-                builder
-              )
-            end
-            descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_hash(
-                association,
-                hash_read_expr(association.source, config),
-                config.hash_output_key_type,
-                config,
-                field_index.fetch(association.name),
-                builder
-              )
-            end
-            descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, field_index.fetch(method_attribute.name), builder)
-            end
-            builder.line "result"
+        def self.emit_json_fields(descriptor, config, field_index, builder, &read_expr)
+          builder.line "writer.push_object"
+          descriptor.attributes.each do |attribute|
+            FieldEmitters::Attribute.emit_json(attribute, read_expr.call(attribute.source), field_index.fetch(attribute.name), builder)
           end
-          builder.line "end"
+          descriptor.associations.each do |association|
+            FieldEmitters::Association.emit_json(association, read_expr.call(association.source), config, field_index.fetch(association.name), builder)
+          end
+          descriptor.method_attributes.each do |method_attribute|
+            FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
+          end
+          builder.line "writer.pop"
         end
 
-        # Emits +_to_hash_object+, the Hash-mode method-dispatch helper.
-        # Works for ActiveRecord instances, POROs, and anything responding
-        # to the Source method.
+        # Emits one Hash-mode field-emit body (+result = {}+ … +result+,
+        # no Writer indirection per +docs/output-modes.md § :hash+) into
+        # +builder+ — one branch arm of {emit_hash}. The record-read
+        # expression for each Source comes from the block, mirroring
+        # {emit_json_fields}.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @yieldparam source [Symbol] a Field's Source name
+        # @yieldreturn [String] the record-read expression for it
         # @return [void]
-        def self.emit_hash_object_helper(descriptor, config, field_index, builder)
-          builder.line "def _to_hash_object(record, context, scope, filters)"
-          builder.indent do
-            builder.line "result = {}"
-            descriptor.attributes.each do |attribute|
-              FieldEmitters::Attribute.emit_hash(
-                attribute,
-                "record.#{attribute.source}",
-                config.hash_output_key_type,
-                field_index.fetch(attribute.name),
-                builder
-              )
-            end
-            descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_hash(
-                association,
-                "record.#{association.source}",
-                config.hash_output_key_type,
-                config,
-                field_index.fetch(association.name),
-                builder
-              )
-            end
-            descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, field_index.fetch(method_attribute.name), builder)
-            end
-            builder.line "result"
+        def self.emit_hash_fields(descriptor, config, field_index, builder, &read_expr)
+          builder.line "result = {}"
+          descriptor.attributes.each do |attribute|
+            FieldEmitters::Attribute.emit_hash(
+              attribute,
+              read_expr.call(attribute.source),
+              config.hash_output_key_type,
+              field_index.fetch(attribute.name),
+              builder
+            )
           end
-          builder.line "end"
+          descriptor.associations.each do |association|
+            FieldEmitters::Association.emit_hash(
+              association,
+              read_expr.call(association.source),
+              config.hash_output_key_type,
+              config,
+              field_index.fetch(association.name),
+              builder
+            )
+          end
+          descriptor.method_attributes.each do |method_attribute|
+            FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, field_index.fetch(method_attribute.name), builder)
+          end
+          builder.line "result"
         end
 
         # Prepends per-record +@object+ / +@context+ / +@scope+ ivar
-        # writes at the top of the +_write_one+ / +_to_hash+
-        # *dispatchers* when +descriptor.parent_class+ is non-+nil+ —
-        # the S18.3 wire-up that lets a user-defined +def+ on the
-        # parent class read those ivars naturally on +self+. The
-        # dispatcher is the only entry point into the per-shape helpers
-        # (and the only call site from
-        # {JsonMode#emit_serialize_one} / +serialize_many+ + nested
-        # Composition), so prepending there covers every reachable
-        # path — the +_write_one_hash+ / +_write_one_object+ /
-        # +_to_hash_hash+ / +_to_hash_object+ helpers stay
-        # un-prepended; they inherit the ivars from the dispatcher.
+        # writes at the top of +_write_one+ / +_to_hash+ when
+        # +descriptor.parent_class+ is non-+nil+ AND the Descriptor
+        # declares a Symbol-body Method Attribute — the S18.3 wire-up
+        # that lets the user-defined method read those ivars naturally
+        # on +self+.
         #
-        # No-op when +parent_class+ is +nil+ — bare descriptors stay
-        # byte-identical to pre-S18 emit so every existing snapshot
-        # remains pinned. Unconditional on the +parent_class+ axis (not
-        # gated on a Symbol-body Method Attribute being present) per
-        # the PRD rationale shared with
-        # {Specialized.emit_parent_class_ivar_writes}.
+        # Gated on a Symbol-body being present (revisiting the original
+        # S18.3 decision to emit unconditionally on the +parent_class+
+        # axis): a Symbol-body method is the only code that runs on the
+        # Generated Class instance during a serialize — Callable bodies
+        # and +if:+ guards receive +(record, context, scope)+ as explicit
+        # args — so on descriptors without one the writes are pure
+        # per-record overhead, which the merged-Panko GameSerializer
+        # profile showed compounding across nested Composition.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_parent_class_ivar_writes(descriptor, builder)
           return if descriptor.parent_class.nil?
+          return if descriptor.method_attributes.none? { |method_attribute| method_attribute.body.is_a?(Symbol) }
           builder.line "@object = record"
           builder.line "@context = context"
           builder.line "@scope = scope"

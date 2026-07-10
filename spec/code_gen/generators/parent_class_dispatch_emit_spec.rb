@@ -6,17 +6,18 @@ require "panko/code_gen"
 # Narrow emit-shape tests for the S18.3 +parent_class+ dispatch wiring:
 # the +FieldEmitters::MethodAttribute+ Symbol-vs-Callable branch and the
 # per-record +@object+ / +@context+ / +@scope+ ivar writes prepended at
-# the +RecordAccess+ dispatch sites when +descriptor.parent_class+ is
-# non-+nil+. These assert directly on the +Generator+'s source-string
-# output — no +module_eval+, no snapshot files. The full snapshot tier +
-# end-to-end concern spec land in S18.4 once the three
-# +parent_class_*+ fixtures land.
+# the top of +_write_one+ / +_to_hash+ when +descriptor.parent_class+ is
+# non-+nil+ *and* a Symbol-body Method Attribute is declared (the only
+# code that runs on the Generated Class instance during a serialize —
+# without one the writes are pure per-record overhead and are elided).
+# These assert directly on the +Generator+'s source-string output — no
+# +module_eval+, no snapshot files.
 #
-# The +parent_class: nil+ default stays byte-identical to pre-S18 emit;
-# the existing 17+17 snapshots under +spec/fixtures/generated/+ remain
-# the source of truth for that property — here we just pin that flipping
-# +parent_class:+ to a +Class+ flips on the ivar writes and the
-# Symbol-body branch leaves no +@cb_<name>+ traces.
+# The +parent_class: nil+ default keeps no ivar writes; the snapshots
+# under +spec/fixtures/generated/+ remain the source of truth for the
+# full body shape — here we just pin that the ivar writes flip on
+# exactly when (parent_class, Symbol-body) are both present and that
+# the Symbol-body branch leaves no +@cb_<name>+ traces.
 RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
   let(:generator) { Panko::CodeGen::Generator.new }
   let(:config) { Panko::CodeGen::Config.new }
@@ -65,9 +66,22 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
   end
 
   describe "per-record ivar writes on Specialized path" do
-    let(:descriptor) {
+    let(:symbol_body_method_attributes) {
+      [Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)]
+    }
+    let(:descriptor_with_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "SpecializedParentSerializer",
+        models: [Post],
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
+        method_attributes: symbol_body_method_attributes,
+        associations: [],
+        parent_class: parent_class
+      )
+    }
+    let(:descriptor_without_symbol_body) {
+      Panko::CodeGen::Descriptor.new(
+        name: "SpecializedParentNoSymbolSerializer",
         models: [Post],
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
@@ -80,8 +94,8 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
       context "with #{mode} Output Mode" do
         let(:entry_method) { (mode == :json) ? "_write_one(record, writer, context, scope, filters)" : "_to_hash(record, context, scope, filters)" }
 
-        it "prepends @object/@context/@scope writes at the top of the body" do
-          source = generator.emit(descriptor, output: mode, config: config)
+        it "prepends @object/@context/@scope writes when a Symbol-body Method Attribute is declared" do
+          source = generator.emit(descriptor_with_symbol_body, output: mode, config: config)
           expected_block =
             "  def #{entry_method}\n" \
             "    @object = record\n" \
@@ -89,14 +103,32 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
             "    @scope = scope\n"
           expect(source).to include(expected_block)
         end
+
+        it "elides the writes when no Symbol-body Method Attribute is declared" do
+          source = generator.emit(descriptor_without_symbol_body, output: mode, config: config)
+          expect(source).not_to include("@object = record")
+        end
       end
     end
   end
 
-  describe "per-record ivar writes on Generic path — dispatchers only" do
-    let(:descriptor) {
+  describe "per-record ivar writes on Generic path" do
+    let(:symbol_body_method_attributes) {
+      [Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)]
+    }
+    let(:descriptor_with_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "GenericParentSerializer",
+        models: nil,
+        attributes: [Panko::CodeGen::Attribute.new(name: :id)],
+        method_attributes: symbol_body_method_attributes,
+        associations: [],
+        parent_class: parent_class
+      )
+    }
+    let(:descriptor_without_symbol_body) {
+      Panko::CodeGen::Descriptor.new(
+        name: "GenericParentNoSymbolSerializer",
         models: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
@@ -106,8 +138,8 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     }
 
     context "with json Output Mode" do
-      it "prepends ivar writes at the top of the _write_one dispatcher" do
-        source = generator.emit(descriptor, output: :json, config: config)
+      it "prepends ivar writes at the top of _write_one, before the Hash branch" do
+        source = generator.emit(descriptor_with_symbol_body, output: :json, config: config)
         expected =
           "  def _write_one(record, writer, context, scope, filters)\n" \
           "    @object = record\n" \
@@ -117,22 +149,25 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
         expect(source).to include(expected)
       end
 
-      it "leaves the _write_one_hash / _write_one_object helpers unprepended" do
-        source = generator.emit(descriptor, output: :json, config: config)
-        expected_hash_helper =
-          "  def _write_one_hash(record, writer, context, scope, filters)\n" \
-          "    writer.push_object\n"
-        expected_object_helper =
-          "  def _write_one_object(record, writer, context, scope, filters)\n" \
-          "    writer.push_object\n"
-        expect(source).to include(expected_hash_helper)
-        expect(source).to include(expected_object_helper)
+      it "elides the writes when no Symbol-body Method Attribute is declared" do
+        source = generator.emit(descriptor_without_symbol_body, output: :json, config: config)
+        expect(source).to include(
+          "  def _write_one(record, writer, context, scope, filters)\n" \
+          "    if record.is_a?(Hash)\n"
+        )
+        expect(source).not_to include("@object = record")
+      end
+
+      it "emits both field-emit shapes inline — no per-shape helper methods" do
+        source = generator.emit(descriptor_with_symbol_body, output: :json, config: config)
+        expect(source).not_to include("def _write_one_hash")
+        expect(source).not_to include("def _write_one_object")
       end
     end
 
     context "with hash Output Mode" do
-      it "prepends ivar writes at the top of the _to_hash dispatcher" do
-        source = generator.emit(descriptor, output: :hash, config: config)
+      it "prepends ivar writes at the top of _to_hash, before the Hash branch" do
+        source = generator.emit(descriptor_with_symbol_body, output: :hash, config: config)
         expected =
           "  def _to_hash(record, context, scope, filters)\n" \
           "    @object = record\n" \
@@ -142,16 +177,19 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
         expect(source).to include(expected)
       end
 
-      it "leaves the _to_hash_hash / _to_hash_object helpers unprepended" do
-        source = generator.emit(descriptor, output: :hash, config: config)
-        expected_hash_helper =
-          "  def _to_hash_hash(record, context, scope, filters)\n" \
-          "    result = {}\n"
-        expected_object_helper =
-          "  def _to_hash_object(record, context, scope, filters)\n" \
-          "    result = {}\n"
-        expect(source).to include(expected_hash_helper)
-        expect(source).to include(expected_object_helper)
+      it "elides the writes when no Symbol-body Method Attribute is declared" do
+        source = generator.emit(descriptor_without_symbol_body, output: :hash, config: config)
+        expect(source).to include(
+          "  def _to_hash(record, context, scope, filters)\n" \
+          "    if record.is_a?(Hash)\n"
+        )
+        expect(source).not_to include("@object = record")
+      end
+
+      it "emits both field-emit shapes inline — no per-shape helper methods" do
+        source = generator.emit(descriptor_with_symbol_body, output: :hash, config: config)
+        expect(source).not_to include("def _to_hash_hash")
+        expect(source).not_to include("def _to_hash_object")
       end
     end
   end

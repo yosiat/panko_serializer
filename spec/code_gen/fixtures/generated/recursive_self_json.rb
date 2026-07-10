@@ -46,49 +46,45 @@ class RecursiveSelfCommentSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record["body"], "body")
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("replies")
+        record["replies"].each do |element|
+          @replies_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
-    end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record["body"], "body")
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("replies")
-      record["replies"].each do |element|
-        @replies_serializer._write_one(element, writer, context, scope, child_filter)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record.body, "body")
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("replies")
+        record.replies.each do |element|
+          @replies_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
       end
       writer.pop
     end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record.body, "body")
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("replies")
-      record.replies.each do |element|
-        @replies_serializer._write_one(element, writer, context, scope, child_filter)
-      end
-      writer.pop
-    end
-    writer.pop
   end
 end

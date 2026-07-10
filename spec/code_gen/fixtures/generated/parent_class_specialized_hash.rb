@@ -27,6 +27,13 @@ class ParentClassSpecializedSerializer_Hash < ParentClassSpecializedBase
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    @object = nil
+    @context = nil
+    @scope = nil
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     @object = record
     @context = context

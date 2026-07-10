@@ -154,16 +154,16 @@ module Panko::CodeGen
         #
         # No-op when +parent_class+ is +nil+ — the bare descriptor stays
         # byte-identical to pre-S18 emit so every existing snapshot
-        # remains pinned. Unconditional on the +parent_class+ axis
-        # rather than gated on a Symbol-body Method Attribute being
-        # present per the PRD rationale: user +def+s reachable on the
-        # parent class can call helpers reading +@object+ even without
-        # a declared Symbol-body, and +Panko::Serializer+ exposes
-        # +attr_reader :object, :context, :scope+ as user-facing surface
-        # for any +parent_class:+ Descriptor. Bench-validated as a
-        # same-ish-noise-level delta (PRD § "Per-record ivar writes",
-        # +/tmp/k1_ivar_bench/bench.rb+, ~29 ns within ±8.7% error,
-        # allocations identical).
+        # remains pinned. Additionally gated on a Symbol-body Method
+        # Attribute being present (revisiting the original S18.3
+        # decision to emit unconditionally on the +parent_class+ axis,
+        # which bench-validated the writes as noise-level on the shapes
+        # measured then): a Symbol-body method is the only code that
+        # runs on the Generated Class instance during a serialize —
+        # Callable bodies and +if:+ guards receive +(record, context,
+        # scope)+ as explicit args — and the merged-Panko GameSerializer
+        # profile showed the writes compounding across nested
+        # Composition on descriptors that never read them.
         #
         # Deviation from the "GC ivars are init-time constants" pattern
         # in +docs/code-generation.md+ — documented at the field-emitter
@@ -175,6 +175,7 @@ module Panko::CodeGen
         # @return [void]
         def self.emit_parent_class_ivar_writes(descriptor, builder)
           return if descriptor.parent_class.nil?
+          return if descriptor.method_attributes.none? { |method_attribute| method_attribute.body.is_a?(Symbol) }
           builder.line "@object = record"
           builder.line "@context = context"
           builder.line "@scope = scope"
