@@ -72,10 +72,12 @@ user-supplied class and have the **Generated Class** emit `class <Name>_<Mode> <
 - `nil` (default): the **Generated Class** emits as a bare `class <Name>_<Mode>`, byte-
   identical to pre-S18 output. Every non-Panko caller stays on this shape — the new
   field is invisible.
-- Non-`nil` `Class`: the **Generated Class** subclasses `parent_class` and `_write_one` /
+- Non-`nil` `Class`: the **Generated Class** subclasses `parent_class`, and — when the
+  **Descriptor** also declares a Symbol-body **Method Attribute** — `_write_one` /
   `_to_hash` prepend `@object = record; @context = context; @scope = scope` at the top of
-  the dispatcher so a user-defined `def` on the parent class can read those ivars on
-  `self` (the Panko-shape contract). The class's fully-qualified `parent_class.name` is
+  the method body so the user-defined `def` on the parent class can read those ivars on
+  `self` (the Panko-shape contract; see [code-generation.md](code-generation.md) for the
+  gating rationale). The class's fully-qualified `parent_class.name` is
   spliced into the emit verbatim, so namespaced classes (`Outer::Inner::Base`) resolve
   correctly at `module_eval` time. Anonymous classes (passed as `Class.new`) are out of
   scope — Panko's converter always sets a named class.

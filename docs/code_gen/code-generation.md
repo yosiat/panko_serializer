@@ -168,8 +168,9 @@ Why ivars (not class constants set via `const_set`):
 ## Per-record ivar writes — the bounded `parent_class` deviation
 
 The "GC ivars are init-time constants" pattern above has one **bounded deviation**: when
-`Descriptor#parent_class` is non-`nil`, the **Generator** emits three per-record ivar
-writes at the top of `_write_one` / `_to_hash`:
+`Descriptor#parent_class` is non-`nil` **and** the **Descriptor** declares a Symbol-body
+**Method Attribute**, the **Generator** emits three per-record ivar writes at the top of
+`_write_one` / `_to_hash`:
 
 ```ruby
 @object  = record
@@ -188,28 +189,39 @@ couldn't see the current record.
 
 Bounded by three properties:
 
-- **Opt-in via `parent_class`.** Bare **Descriptors** (`parent_class: nil`, the default)
-  emit the pre-S18 shape — no ivar writes, ivar-set is init-time only, "GC ivars are
-  init-time constants" holds. Every existing snapshot stays byte-identical.
+- **Opt-in via `parent_class` + a Symbol-body Method Attribute.** Bare **Descriptors**
+  (`parent_class: nil`, the default) emit the pre-S18 shape — no ivar writes, ivar-set is
+  init-time only, "GC ivars are init-time constants" holds. So do `parent_class:`
+  **Descriptors** with no Symbol-body **Method Attribute**: a Symbol-body method is the
+  only code that runs on the **Generated Class** instance during a serialize — Callable
+  bodies and `if:` guards receive `(record, context, scope)` as explicit args — so
+  without one the writes would be pure per-record overhead.
 - **Per-call deterministic write site.** When emitted, the writes are *always* the three
-  lines above at the *top* of the dispatcher. The shape is invariant — no per-Field
-  branching, no conditional emit, no other ivars added — so YJIT's object-shape cache
-  stays stable across calls (the same three ivar slots are written every time).
-- **Specialized path emits at the single `_write_one` / `_to_hash` body; Generic path
-  emits at the *dispatcher* only.** Generic helpers (`_write_one_hash` /
-  `_write_one_object` / `_to_hash_hash` / `_to_hash_object`) stay un-prepended — they
-  inherit the ivars from the dispatcher that called them, so a Symbol-body method
-  reached from inside a helper still sees the correct `@object`.
+  lines above at the *top* of `_write_one` / `_to_hash`. The shape is invariant — no
+  per-Field branching, no conditional emit, no other ivars added — so YJIT's object-shape
+  cache stays stable across calls (the same three ivar slots are written every time).
+- **One write site per record on both paths.** Specialized and Generic each emit the
+  writes at the top of the single `_write_one` / `_to_hash` body — on the Generic path
+  both field-emit shapes are inlined under the `is_a?(Hash)` branch of that one method
+  (see [compilation.md](compilation.md)), so the writes happen exactly once, before the
+  branch, and every Symbol-body method reached from either arm sees the correct
+  `@object`. Above the Generic path's fused-dispatch threshold, where the per-shape
+  helpers return, the helpers stay un-prepended — they inherit the ivars from the
+  `_write_one` / `_to_hash` that called them.
 
 **Self-recursion safety**: under the S8 `@<name>_serializer = self` shortcut a
 self-recursive **Descriptor** uses one **Generated Class** instance across every depth,
 but each entry into `_write_one` / `_to_hash` re-writes the ivars at the top of the
-dispatcher. Inner frames running *during* their own dispatcher call observe their own
-per-record ivars. The "load-bearing" K1 safety property: this is the only dispatch
-shape that's safe for self-recursion without per-call snapshot/restore guards — the
+method body. Inner frames running *during* their own `_write_one` / `_to_hash` call
+observe their own per-record ivars. The "load-bearing" K1 safety property: this is the
+only shape that's safe for self-recursion without per-call snapshot/restore guards — the
 rejected J (init-time dispatcher ivar) and A (thread-local dispatcher cache + Lambda
 wrapper) shapes share a dispatcher across recursion depths and clobber `@object` mid-
 walk in ways the user method can't recover from.
+
+The checkin-side counterpart of these writes is `_release`, which nils the three ivars
+before a pooled instance goes back on its stack — see
+[generated-class.md](generated-class.md).
 
 Bench: `/tmp/k1_ivar_bench/bench.rb` (2026-05-16, YJIT-on, Ruby 4.0.2). Single-record
 `serialize_one` with `Oj::StringWriter`:

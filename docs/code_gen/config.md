@@ -50,15 +50,15 @@ any other value raises `ArgumentError` at call time. See
 
 ### `hash_record_key_type` (default: `:string`)
 
-Controls the lookup form emitted in `_write_one_hash` when the **Record** is a Hash
-(generic path only — the specialized path contractually assumes instances of the declared
-**Models**, not Hashes).
+Controls the lookup form emitted for Hash **Records** — the `record.is_a?(Hash)` arm of
+`_write_one` / `_to_hash`, or the per-shape Hash helper above the fused-dispatch
+threshold (generic path only — the specialized path contractually assumes instances of
+the declared **Models**, not Hashes).
 
 - `:string`: emits `record["id"]`. Matches `JSON.parse` output and Panko's current convention.
 - `:symbol`: emits `record[:id]`. Matches Ruby literal hashes and ActionController params.
 
-The choice is baked into the helper at **Compile** time — one monomorphic lookup form per
-class. Mixed-key Hashes (both `"id"` and `:id`) are not supported; callers normalize upstream
+The choice is baked in at **Compile** time — one monomorphic lookup form per class. Mixed-key Hashes (both `"id"` and `:id`) are not supported; callers normalize upstream
 if needed.
 
 ### `hash_output_key_type` (default: `:string`)

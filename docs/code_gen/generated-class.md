@@ -127,10 +127,35 @@ during nested serialization. Do not call directly.
 Both internal methods operate on one **Record** and are idempotent/pure aside from **Writer**
 mutations in JSON mode.
 
+### `_release` (both modes)
+
+The checkin-side counterpart of the per-record `@object` / `@context` / `@scope` writes
+(see [code-generation.md](code-generation.md)): nils those ivars and walks acyclic child
+serializers so the whole **Composition** tree drops its references. The Panko seam calls
+it right before pushing an instance back onto its **InstancePool** stack — a pooled
+instance must not pin the last serialized record graph (or request-scoped context)
+between calls.
+
+Every **Generated Class** defines `_release`, even when there is nothing to clear (empty
+body), so the seam can call it unconditionally. The body is compile-time specialized to
+the tree's needs: ivar nils only on classes whose `_write_one` / `_to_hash` actually
+writes them, child `_release` calls only into subtrees that nil something. Self-loop
+children (`@x_serializer = self`) are skipped — the receiver's own nils already cover
+them — and a cyclic child of a cyclic parent is skipped so the chain provably terminates
+without per-call visited state. Mutual-recursive serializer pairs therefore keep their
+last record until the next serialize; accepted, since guarding them would cost an
+allocation or a reset flag on every call for a rare shape.
+
 ## Thread safety
 
 A **Generated Class** instance holds ivars that are read but not mutated during serialization
 (callables and nested instances). It is safe to share one instance across threads.
+
+Exception: a class that emits the per-record `@object` / `@context` / `@scope` writes
+(`parent_class:` set and a Symbol-body **Method Attribute** declared — see
+[code-generation.md](code-generation.md)) mutates those ivars on every call and must not
+be shared across concurrent serializations; the Panko seam's fiber-local **InstancePool**
+exists for exactly this.
 
 However, in JSON mode, the top-level `serialize_one` / `serialize_many` methods allocate a
 fresh **Writer** on every call, so there is no mutable state shared between calls. **Composition**
@@ -143,7 +168,9 @@ Cheap to allocate; cheap to throw away. Callers may:
 
 - Instantiate once and reuse forever (common).
 - Instantiate per request (fine — constructor cost is small and ivar-population is straightforward).
-- Pool per thread (overkill for v1 — benchmark first).
+- Pool per fiber and call `_release` at checkin (what the Panko seam does via
+  **InstancePool** — on association-heavy serializers the recursive constructor
+  dominates the per-call seam cost).
 
 The library itself has no opinion.
 

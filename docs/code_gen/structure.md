@@ -129,8 +129,14 @@ lib/
         method_attribute.rb                    # emit one Method Attribute
         association.rb                         # emit one Association (nested call threading)
       record_access/
-        generic.rb                             # _write_one_hash / _write_one_object generator
+        generic.rb                             # fused _write_one / _to_hash generator —
+                                               # one is_a?(Hash) branch, both field-emit
+                                               # shapes inlined under the branch arms;
+                                               # splits to per-shape helpers above
+                                               # FUSED_DISPATCH_MAX_FIELDS (64) Fields
         specialized.rb                         # _read_attribute / method-dispatch generator
+      release.rb                               # _release generator — checkin-side cleanup
+                                               # emitted on every Generated Class
 
     # === Dump ===
     dump.rb                                    # Dump#dump: drive Generator + File.write

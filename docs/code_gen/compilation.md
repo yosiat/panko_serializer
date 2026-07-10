@@ -112,42 +112,46 @@ is set.
 
 ### Generic path — `models: nil`
 
-`_write_one` dispatches to one of two specialized helpers based on the **Record** shape:
+One `_write_one` (JSON mode) / `_to_hash` (Hash mode) is emitted. Its body branches once
+on the **Record** shape, with both field-emit shapes inlined under the branch arms:
 
 ```ruby
-def _write_one(record, writer, context, filters)
+def _write_one(record, writer, context, scope, filters)
   if record.is_a?(Hash)
-    _write_one_hash(record, writer, context, filters)
+    writer.push_object
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["title"], "title")
+    # ...
+    writer.pop
   else
-    _write_one_object(record, writer, context, filters)
+    writer.push_object
+    writer.push_value(record.id, "id")
+    writer.push_value(record.title, "title")
+    # ...
+    writer.pop
   end
-end
-
-def _write_one_hash(record, writer, context, filters)
-  writer.push_object
-  writer.push_key("id");    writer.push_value(record["id"])
-  writer.push_key("title"); writer.push_value(record["title"])
-  # ...
-  writer.pop
-end
-
-def _write_one_object(record, writer, context, filters)
-  writer.push_object
-  writer.push_key("id");    writer.push_value(record.id)
-  writer.push_key("title"); writer.push_value(record.title)
-  # ...
-  writer.pop
 end
 ```
 
-- One dispatch per `_write_one` entry, not per **Attribute**.
-- Each helper is monomorphic end-to-end once entered — every `record["id"]` call site in
-  `_write_one_hash` sees a single receiver class; same for `record.id` call sites in
-  `_write_one_object`. YJIT/ZJIT specialize each helper as its own unit.
-- The dispatch method body is small enough to inline under YJIT; when it doesn't, the one
-  extra call is trivial vs. the per-attribute work inside.
-- `_write_one_object` uses method dispatch and works for ActiveRecord models, plain Ruby
+- One shape branch per `_write_one` entry, not per **Attribute**.
+- Each branch arm is monomorphic end-to-end — every `record["id"]` call site in the Hash
+  arm sees a single receiver class; same for `record.id` call sites in the method arm.
+  The inline caches never see a mixed receiver.
+- Inlining both arms (rather than dispatching to per-shape `_write_one_hash` /
+  `_write_one_object` helpers) saves a method call per record — measurable on
+  association-heavy single-record serialization.
+- The method arm uses method dispatch and works for ActiveRecord models, plain Ruby
   objects, anything responding to the **Source** method.
+
+Above `FUSED_DISPATCH_MAX_FIELDS` (64) **Fields**, the emit reverts to a dispatcher +
+per-shape-helper split: `_write_one` branches on the **Record** shape and delegates to
+`_write_one_hash` / `_write_one_object` (`_to_hash_hash` / `_to_hash_object` in Hash
+mode), each helper carrying one field-emit body — same bytes per body as the fused arms,
+only the wrapping differs. Fusion measured faster at every tested width under YJIT (lazy
+basic-block versioning compiles only the executed arm), but it doubles the method's
+source; the split above this width trades the small dispatch saving for halved
+per-method source — insurance for method-granular JITs (ZJIT compiles whole methods) and
+bounded code-region growth across apps with hundreds of **Generated Classes**.
 
 ### Specialized path — `models: [...]` set (all ActiveRecord)
 
@@ -224,7 +228,8 @@ in the **Generator**, no divergence between the two.
 2. If **Models** is set, introspect classes for specialized-path classification.
 3. Recursively **Compile** nested **Descriptors** (depth-first, naturally). No cycle handling.
 4. Ask the **Generator** for source code — one method per top-level public entry plus
-   `_write_one` (JSON mode) / `_to_hash` (Hash mode).
+   `_write_one` (JSON mode) / `_to_hash` (Hash mode) and `_release`
+   (see [generated-class.md](generated-class.md)).
 5. Inject the source into a fresh anonymous class via Ruby's standard class-level source
    injection API, with a synthetic path for backtraces. See [code-generation.md](code-generation.md).
 6. Return the class.

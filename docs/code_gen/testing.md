@@ -161,7 +161,7 @@ Ten fixtures. Each compiled in the relevant **Output Modes**, yielding ~16 snaps
 
 | # | Name                  | Shape                                                                                                                                | Pins                                                                                                 |
 | - | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| 1 | `shallow_generic`     | `Models: nil`, 3 Attributes                                                                                                          | Generic-path dispatch, `_write_one_hash` + `_write_one_object`, default string-key Hash lookup.     |
+| 1 | `shallow_generic`     | `Models: nil`, 3 Attributes                                                                                                          | Fused generic `_write_one` / `_to_hash` — one `is_a?(Hash)` branch, both field-emit arms inline — default string-key Hash lookup. |
 | 2 | `shallow_specialized` | `Models: [Post]`. 2 column-backed Attributes, 1 method-dispatched Attribute (reader override). MethodAttributes arity 0, 1 (SKIP), 2. | Specialized classification, arity-specialized emit, SKIP identity-compare, Callable ivar hoisting.  |
 | 3 | `nested_composition`  | Post → `has_one :author`, `has_many :comments`. Author with `if: ->(r, c) { ... }`.                                                  | Composition constructor wiring, default `null_for_missing_has_one: true` emit, has_many iteration, Association-`if:` emit, filter threading. |
 | 4 | `recursive_self`      | Comment with `has_many :replies` → same Comment Descriptor.                                                                          | Self-ref short-circuit: `@replies_serializer = self`.                                                |
@@ -177,7 +177,7 @@ shared with #1–#6, so core-fixture churn doesn't cascade into config snapshots
 | -- | ------------------------------- | ---------------------------------------------------------------------- | --------------------------------- | ----- | ----------------------------------------------- |
 | 7  | `config_root_key_on`            | `Models: nil`, 1 Attribute                                             | `supports_root_key: true`         | JSON  | `root_key:` kwarg + wrap emit.                  |
 | 8  | `config_null_for_has_one_off`   | `Models: nil`, 1 Attribute, 1 `has_one` to a minimal inner Descriptor  | `null_for_missing_has_one: false` | JSON  | Omit-key-when-nil branch of has_one emit.       |
-| 9  | `config_hash_record_key_symbol` | `Models: nil`, 2 Attributes                                            | `hash_record_key_type: :symbol`   | JSON  | Symbol-key Hash lookup in `_write_one_hash`.    |
+| 9  | `config_hash_record_key_symbol` | `Models: nil`, 2 Attributes                                            | `hash_record_key_type: :symbol`   | JSON  | Symbol-key lookup in `_write_one`'s Hash arm.   |
 | 10 | `config_hash_output_key_symbol` | `Models: nil`, 2 Attributes                                            | `hash_output_key_type: :symbol`   | Hash  | Symbol-key output emit in Hash mode.            |
 
 ### Fixture module shape
