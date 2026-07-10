@@ -24,7 +24,27 @@ module Panko::CodeGen
       # user's Panko serializer+. See {emit_parent_class_ivar_writes} for
       # the gating rationale. Bare descriptors (no +parent_class:+) keep
       # the pre-S18 body shape.
+      #
+      # Above {FUSED_DISPATCH_MAX_FIELDS} fields the emit reverts to the
+      # dispatcher + per-shape-helper split: inlining doubles the method's
+      # source, and on very wide serializers the per-record call it saves
+      # is noise while the doubled body taxes method-granular JITs (ZJIT
+      # compiles whole methods; YJIT's lazy basic-block versioning only
+      # compiles executed blocks, but code-region budget is finite across
+      # hundreds of Generated Classes).
       module Generic
+        # Field count above which +_write_one+ / +_to_hash+ emit the
+        # dispatcher + per-shape-helper split instead of the fused inline
+        # body. Measured (Ruby 4.0.2 + YJIT, Struct records): fused wins
+        # +4%/+3% single-record at 30/90 fields and ~+2% on batches, with
+        # zero side exits even at 90 fields — YJIT's lazy basic-block
+        # versioning only compiles the executed arm, so the inline body is
+        # never a compilation liability there. The split above this width
+        # trades that measured ~3% for halved per-method source: insurance
+        # for method-granular JITs (ZJIT compiles whole methods; untestable
+        # here — this build ships without ZJIT) and for bounded code-region
+        # growth across apps with hundreds of Generated Classes.
+        FUSED_DISPATCH_MAX_FIELDS = 64
         # Emits the JSON-mode +_write_one+ under +builder+: one method,
         # +is_a?(Hash)+ branch, both field-emit shapes inline. +scope+
         # slots between +context+ and +filters+ in the positional
@@ -48,6 +68,8 @@ module Panko::CodeGen
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
+          return emit_json_split(descriptor, config, field_index, builder) if split_dispatch?(descriptor)
+
           builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
@@ -57,6 +79,38 @@ module Panko::CodeGen
             builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
             builder.line "end"
           end
+          builder.line "end"
+        end
+
+        # The above-threshold JSON emit: +_write_one+ dispatches on the
+        # record shape to +_write_one_hash+ / +_write_one_object+, each
+        # carrying one field-emit body. Same bytes per body as the fused
+        # arms — only the wrapping differs.
+        #
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings
+        # @param field_index [Hash{Symbol => Integer}] codegen-time
+        #   +Field name → integer index+ map
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_json_split(descriptor, config, field_index, builder)
+          builder.line "def _write_one(record, writer, context, scope, filters)"
+          builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
+            builder.line "if record.is_a?(Hash)"
+            builder.indent { builder.line "_write_one_hash(record, writer, context, scope, filters)" }
+            builder.line "else"
+            builder.indent { builder.line "_write_one_object(record, writer, context, scope, filters)" }
+            builder.line "end"
+          end
+          builder.line "end"
+          builder.blank
+          builder.line "def _write_one_hash(record, writer, context, scope, filters)"
+          builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| hash_read_expr(source, config) } }
+          builder.line "end"
+          builder.blank
+          builder.line "def _write_one_object(record, writer, context, scope, filters)"
+          builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
           builder.line "end"
         end
 
@@ -74,6 +128,8 @@ module Panko::CodeGen
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
+          return emit_hash_split(descriptor, config, field_index, builder) if split_dispatch?(descriptor)
+
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
@@ -84,6 +140,43 @@ module Panko::CodeGen
             builder.line "end"
           end
           builder.line "end"
+        end
+
+        # The above-threshold Hash emit — mirror of {emit_json_split}.
+        #
+        # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
+        # @param config [Panko::CodeGen::Config] resolved settings
+        # @param field_index [Hash{Symbol => Integer}] codegen-time
+        #   +Field name → integer index+ map
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_hash_split(descriptor, config, field_index, builder)
+          builder.line "def _to_hash(record, context, scope, filters)"
+          builder.indent do
+            emit_parent_class_ivar_writes(descriptor, builder)
+            builder.line "if record.is_a?(Hash)"
+            builder.indent { builder.line "_to_hash_hash(record, context, scope, filters)" }
+            builder.line "else"
+            builder.indent { builder.line "_to_hash_object(record, context, scope, filters)" }
+            builder.line "end"
+          end
+          builder.line "end"
+          builder.blank
+          builder.line "def _to_hash_hash(record, context, scope, filters)"
+          builder.indent { emit_hash_fields(descriptor, config, field_index, builder) { |source| hash_read_expr(source, config) } }
+          builder.line "end"
+          builder.blank
+          builder.line "def _to_hash_object(record, context, scope, filters)"
+          builder.indent { emit_hash_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
+          builder.line "end"
+        end
+
+        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @return [Boolean] whether this Descriptor's field count is over
+        #   {FUSED_DISPATCH_MAX_FIELDS}
+        def self.split_dispatch?(descriptor)
+          descriptor.attributes.size + descriptor.method_attributes.size + descriptor.associations.size >
+            FUSED_DISPATCH_MAX_FIELDS
         end
 
         # Emits one JSON-mode field-emit body (+push_object+ … +pop+)
