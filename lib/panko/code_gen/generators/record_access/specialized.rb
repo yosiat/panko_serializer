@@ -82,6 +82,8 @@ module Panko::CodeGen
             descriptor.attributes.each do |attribute|
               if json_column_attribute?(attribute, ar_classes)
                 FieldEmitters::Attribute.emit_json_column(attribute, config, field_index.fetch(attribute.name), builder)
+              elsif datetime_column_attribute?(attribute, ar_classes)
+                FieldEmitters::Attribute.emit_json_datetime_column(attribute, field_index.fetch(attribute.name), builder)
               else
                 FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, descriptor), field_index.fetch(attribute.name), builder)
               end
@@ -111,18 +113,26 @@ module Panko::CodeGen
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
           ensure_attribute_methods!(descriptor)
+          ar_classes = descriptor.models.select { |m| ar_class?(m) }
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
-              FieldEmitters::Attribute.emit_hash(
-                attribute,
-                attribute_read_expr(attribute, descriptor),
-                config.hash_output_key_type,
-                field_index.fetch(attribute.name),
-                builder
-              )
+              if datetime_column_attribute?(attribute, ar_classes)
+                FieldEmitters::Attribute.emit_hash_datetime_column(
+                  attribute, config.hash_output_key_type, field_index.fetch(attribute.name), builder
+                )
+              else
+                FieldEmitters::Attribute.emit_hash(
+                  attribute,
+                  attribute_read_expr(attribute, descriptor),
+                  config.hash_output_key_type,
+                  field_index.fetch(attribute.name),
+                  builder,
+                  cast: !plain_column_attribute?(attribute, ar_classes)
+                )
+              end
             end
             descriptor.associations.each do |association|
               FieldEmitters::Association.emit_hash(
@@ -257,6 +267,40 @@ module Panko::CodeGen
         def self.json_column_attribute?(attribute, ar_classes)
           return false if ar_classes.empty?
           ar_classes.all? { |klass| ActiveRecord::AccessClassifier.json_typed?(klass, attribute.source) }
+        end
+
+        # Returns +true+ when +attribute+ takes the raw-string datetime fast
+        # path: uniformly datetime-typed across the whole +Models+ set, a
+        # +:column+ verdict from the classifier (a user override must keep
+        # method dispatch), and — checked at compile time —
+        # +::ActiveRecord.default_timezone == :utc+, since the raw DB bytes
+        # carry no zone and only under +:utc+ is the spliced trailing "Z"
+        # truthful. The +::+ matters: bare +ActiveRecord+ here resolves to
+        # +Panko::CodeGen::ActiveRecord+.
+        #
+        # @param attribute [Panko::CodeGen::Attribute] the Field node
+        # @param ar_classes [Array<Class>] AR-class subset of
+        #   +descriptor.models+
+        # @return [Boolean]
+        def self.datetime_column_attribute?(attribute, ar_classes)
+          return false if ar_classes.empty?
+          return false unless ::ActiveRecord.default_timezone == :utc
+          return false unless ar_classes.all? { |klass| ActiveRecord::AccessClassifier.datetime_typed?(klass, attribute.source) }
+          ActiveRecord::AccessClassifier.classify(ar_classes, attribute.source) == :column
+        end
+
+        # Returns +true+ when +attribute+ is a +:column+ verdict whose type
+        # is provably non-datetime on every class in the +Models+ set — the
+        # Hash-mode emit may then skip the per-value +cast_datetime+ wrapper.
+        #
+        # @param attribute [Panko::CodeGen::Attribute] the Field node
+        # @param ar_classes [Array<Class>] AR-class subset of
+        #   +descriptor.models+
+        # @return [Boolean]
+        def self.plain_column_attribute?(attribute, ar_classes)
+          return false if ar_classes.empty?
+          return false unless ar_classes.all? { |klass| ActiveRecord::AccessClassifier.plain_typed?(klass, attribute.source) }
+          ActiveRecord::AccessClassifier.classify(ar_classes, attribute.source) == :column
         end
       end
     end

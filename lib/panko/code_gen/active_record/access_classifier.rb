@@ -169,6 +169,49 @@ module Panko::CodeGen
       def self.json_typed?(model, attribute_name)
         model.type_for_attribute(attribute_name.to_s).is_a?(::ActiveRecord::Type::Json)
       end
+
+      # AR type symbols whose raw DB value is the "YYYY-MM-DD HH:MM:SS
+      # [.fraction]" shape {Panko::CodeGen::DateTimeFormat} splices.
+      # +:date+ / +:time+ are deliberately absent — their raw shapes are
+      # different and their type-cast reads are cheap enough not to chase.
+      DATETIME_TYPES = %i[datetime timestamptz].freeze
+
+      # Returns +true+ when +attribute_name+ on +model+ is a datetime-shaped
+      # column eligible for the raw-string fast path. Matches by the type's
+      # +#type+ symbol rather than class so adapter-specific subclasses
+      # (mysql2's +DateTime+, PG's +TimestampWithTimeZone+) all qualify;
+      # custom attribute types that merely reuse the symbol also pass, which
+      # is safe — their raw value fails {DateTimeFormat.format_raw}'s shape
+      # checks and falls back to the type-cast read.
+      #
+      # @param model [Class] AR model class — must respond to
+      #   +#type_for_attribute+
+      # @param attribute_name [Symbol, String] the +Attribute#source+ to probe
+      # @return [Boolean]
+      def self.datetime_typed?(model, attribute_name)
+        DATETIME_TYPES.include?(model.type_for_attribute(attribute_name.to_s).type)
+      end
+
+      # AR type symbols whose cast values can never be datetime objects, so
+      # Hash mode may skip the +cast_datetime+ wrapper for the column
+      # entirely. An allowlist rather than "not datetime" — a custom
+      # attribute type with an unknown symbol keeps the wrapper, since its
+      # cast value could be anything.
+      PLAIN_TYPES = %i[
+        string text integer bigint float decimal boolean uuid binary
+        json jsonb inet cidr macaddr
+      ].freeze
+
+      # Returns +true+ when +attribute_name+ on +model+ is typed such that
+      # its cast value is provably not a datetime.
+      #
+      # @param model [Class] AR model class — must respond to
+      #   +#type_for_attribute+
+      # @param attribute_name [Symbol, String] the +Attribute#source+ to probe
+      # @return [Boolean]
+      def self.plain_typed?(model, attribute_name)
+        PLAIN_TYPES.include?(model.type_for_attribute(attribute_name.to_s).type)
+      end
     end
   end
 end

@@ -116,6 +116,59 @@ module Panko::CodeGen
           builder.line "end"
         end
 
+        # Emits the datetime-column write for one Attribute on the
+        # Specialized path, JSON mode. Reads the pre-typecast raw bytes and
+        # splices them into the ISO-8601 shape via
+        # {Panko::CodeGen::DateTimeFormat.format_raw} — skipping AR's
+        # String→Time→TimeWithZone cast and Oj's Time formatting entirely.
+        # Any unrecognized raw value (dirty attribute holding a Time, nil,
+        # exotic adapter format) falls back to pushing the type-cast read,
+        # today's shape. Routed only when the column is uniformly
+        # datetime-typed AND +::ActiveRecord.default_timezone == :utc+ (the
+        # raw bytes carry no zone; only under +:utc+ is the trailing "Z"
+        # truthful) — see +RecordAccess::Specialized+.
+        #
+        # @param attribute [Panko::CodeGen::Attribute] the Field node;
+        #   must be a datetime column on the Specialized path
+        # @param index [Integer] codegen-time +FIELD_INDEX+ position used
+        #   in the +unless filters.drops?(<index>)+ wrapper
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_json_datetime_column(attribute, index, builder)
+          source_lit = %("#{attribute.source}")
+          builder.line "unless filters.drops?(#{index})"
+          builder.indent do
+            builder.line "value = Panko::CodeGen::DateTimeFormat.format_raw(record.read_attribute_before_type_cast(#{source_lit}))"
+            builder.line %(writer.push_value(value || record._read_attribute(#{source_lit}), "#{attribute.name}"))
+          end
+          builder.line "end"
+        end
+
+        # Emits the datetime-column write for one Attribute on the
+        # Specialized path, Hash mode — the Hash-mode twin of
+        # {.emit_json_datetime_column}. The fallback wraps the type-cast
+        # read in +cast_datetime+ so the Hash-mode datetime→String contract
+        # holds on the slow path too.
+        #
+        # @param attribute [Panko::CodeGen::Attribute] the Field node;
+        #   must be a datetime column on the Specialized path
+        # @param output_key_type [Symbol] +:string+ or +:symbol+ — the
+        #   pre-validated value of +Config#hash_output_key_type+
+        # @param index [Integer] codegen-time +FIELD_INDEX+ position used
+        #   in the +unless filters.drops?(<index>)+ wrapper
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_hash_datetime_column(attribute, output_key_type, index, builder)
+          source_lit = %("#{attribute.source}")
+          builder.line "unless filters.drops?(#{index})"
+          builder.indent do
+            builder.line "value = Panko::CodeGen::DateTimeFormat.format_raw(record.read_attribute_before_type_cast(#{source_lit}))"
+            builder.line "result[#{hash_key_literal(attribute, output_key_type)}] = value || " \
+              "Panko::CodeGen.cast_datetime(record._read_attribute(#{source_lit}))"
+          end
+          builder.line "end"
+        end
+
         # Emits the Hash-mode write for one Attribute. Inside the
         # +unless filters.drops?(<index>)+ wrapper, one line:
         # +result[<key>] = Panko::CodeGen.cast_datetime(<read_expr>)+ — the
@@ -126,6 +179,12 @@ module Panko::CodeGen
         # exercised in S3.1; the +:symbol+ branch is pinned by S10's
         # +config_hash_output_key_symbol+ fixture.
         #
+        # When the caller can prove at compile time the value is never a
+        # datetime (a plain-typed column on the Specialized path), +cast:
+        # false+ drops the wrapper and assigns the read directly — the
+        # wrapper sits on every Hash-mode field write, so eliding it where
+        # types are known is a measurable win.
+        #
         # @param attribute [Panko::CodeGen::Attribute] the Field node
         # @param read_expr [String] Ruby source for fetching the value
         #   (e.g. +"record[\"id\"]"+ or +"record.id"+)
@@ -134,17 +193,26 @@ module Panko::CodeGen
         # @param index [Integer] codegen-time +FIELD_INDEX+ position used
         #   in the +unless filters.drops?(<index>)+ wrapper
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @param cast [Boolean] wrap the read in +cast_datetime+ (default);
+        #   +false+ only when the value is provably not a datetime
         # @return [void]
-        def self.emit_hash(attribute, read_expr, output_key_type, index, builder)
-          key_lit = case output_key_type
+        def self.emit_hash(attribute, read_expr, output_key_type, index, builder, cast: true)
+          value_expr = cast ? "Panko::CodeGen.cast_datetime(#{read_expr})" : read_expr
+          builder.line "unless filters.drops?(#{index})"
+          builder.indent do
+            builder.line "result[#{hash_key_literal(attribute, output_key_type)}] = #{value_expr}"
+          end
+          builder.line "end"
+        end
+
+        # @param attribute [Panko::CodeGen::Attribute] the Field node
+        # @param output_key_type [Symbol] +:string+ or +:symbol+
+        # @return [String] the Hash-mode output-key literal
+        def self.hash_key_literal(attribute, output_key_type)
+          case output_key_type
           when :symbol then ":#{attribute.name}"
           else %("#{attribute.name}")
           end
-          builder.line "unless filters.drops?(#{index})"
-          builder.indent do
-            builder.line "result[#{key_lit}] = Panko::CodeGen.cast_datetime(#{read_expr})"
-          end
-          builder.line "end"
         end
       end
     end
