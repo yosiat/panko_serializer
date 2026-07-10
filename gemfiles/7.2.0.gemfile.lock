@@ -54,7 +54,7 @@ GEM
     memory_profiler (1.1.0)
     mini_portile2 (2.8.9)
     minitest (5.27.0)
-    oj (3.16.16)
+    oj (3.17.3)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
     oj_serializers (3.0.0)
