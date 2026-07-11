@@ -1,7 +1,7 @@
 # Testing strategy
 
 How the library is tested. Terms in bold are defined in
-[../UBIQUITOUS_LANGUAGE.md](../UBIQUITOUS_LANGUAGE.md).
+[UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
 
 ## Framework
 
@@ -306,7 +306,7 @@ not under `features/`.
 ### UL-aligned naming
 
 All test-surface names use the vocabulary from
-[../UBIQUITOUS_LANGUAGE.md](../UBIQUITOUS_LANGUAGE.md):
+[UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md):
 
 - Directory names: `descriptors/` (per-**Descriptor** specs), not "fixtures" or "corpus."
 - Concern file names: `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`,

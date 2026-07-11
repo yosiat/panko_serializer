@@ -20,3 +20,5 @@ Detailed reference for Panko's API and DSL.
     `filters_for`.
 -   [Response]({% link response-bag.md %}) — `Panko::Response` and
     `Panko::JsonValue` for composing responses.
+-   [Configuration]({% link configuration.md %}) — `Panko.configure` and the
+    auto-specialization settings.

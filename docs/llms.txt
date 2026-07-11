@@ -9,7 +9,7 @@ The public API is small and stable: subclass `Panko::Serializer` and declare `at
 - [Introduction](https://panko.dev/): What Panko is and the three choices behind its speed.
 - [Getting Started](https://panko.dev/getting-started): Install Panko and write your first serializer, including collection and Rails-controller usage.
 - [Performance](https://panko.dev/performance): Benchmark methodology plus Panko's throughput and allocation numbers across serializer shapes.
-- [Design Choices](https://panko.dev/design-choices): How Panko is fast — code generation, incremental JSON with Oj::StringWriter, and ahead-of-time metadata.
+- [Design Choices](https://panko.dev/design-choices): How Panko is fast — code generation, per-record-class specialization, incremental JSON with Oj::StringWriter, and ahead-of-time metadata.
 
 ## Reference
 
@@ -18,6 +18,7 @@ The public API is small and stable: subclass `Panko::Serializer` and declare `at
 - [Associations](https://panko.dev/associations): `has_one` and `has_many`, output-key aliasing, and serializer inference.
 - [Filters](https://panko.dev/filters): `only` / `except`, nested filters, and `filters_for`.
 - [Response](https://panko.dev/response-bag): `Panko::Response` and `Panko::JsonValue` for composing serialized output into a larger JSON response.
+- [Configuration](https://panko.dev/configuration): `Panko.configure` and `Panko::Config.auto_specialization` (`enabled`, `capacity`) — tuning per-record-class specialization.
 
 ## Optional
 

@@ -2,7 +2,7 @@
 
 Continuous integration strategy, GitHub Actions layout, appraisal wiring for the
 Rails-version matrix, and local-developer tooling (lefthook). Terms in bold are defined
-in [../UBIQUITOUS_LANGUAGE.md](../UBIQUITOUS_LANGUAGE.md).
+in [UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
 
 ## Scope
 

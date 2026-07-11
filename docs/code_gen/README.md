@@ -1,10 +1,21 @@
-# serializers-code-gen — design docs
+# Panko::CodeGen — engine design docs
 
-Design decisions, architecture, and API surface for the code-generated serializer library
-that will be absorbed into [Panko](https://github.com/yosiat/panko_serializer).
+Design decisions, architecture, and API surface for Panko's code-generation engine,
+written while it was the standalone `serializers-code-gen` gem and carried over when it
+was merged into Panko as `Panko::CodeGen`.
 
-All documents use the vocabulary defined in [`../UBIQUITOUS_LANGUAGE.md`](../UBIQUITOUS_LANGUAGE.md).
+All documents use the vocabulary defined in [`UBIQUITOUS_LANGUAGE.md`](UBIQUITOUS_LANGUAGE.md).
 Read that first; every term in bold elsewhere is defined there.
+
+**Reading pre-merge names.** Most documents predate the merge and keep its vocabulary:
+
+- `SerializersCodeGen` is now `Panko::CodeGen`; `lib/serializers_code_gen/` is now
+  [`lib/panko/code_gen/`](../../lib/panko/code_gen/).
+- **Models** (plural) was singularized — a **Descriptor** carries at most one `model`
+  (`nil` = generic path).
+- The `models:` DSL mentioned in places was retired; specialization is now automatic —
+  see [auto-specialization.md](auto-specialization.md), the one document written
+  post-merge.
 
 ## Table of contents
 
@@ -16,6 +27,7 @@ Read that first; every term in bold elsewhere is defined there.
 | [generated-class.md](generated-class.md)          | Runtime API of the **Generated Class** — public entry points, constructor   |
 | [output-modes.md](output-modes.md)                | JSON vs Hash **Output Modes** — structural differences, **Writer** lifecycle |
 | [config.md](config.md)                            | The **Config** struct — compile-time settings                                |
+| [auto-specialization.md](auto-specialization.md)  | Panko's runtime seam — per-record-class **Specialized** variants, the variant cache, guarded dispatch |
 | [filters.md](filters.md)                          | **Filter** public shape, threading through **Composition**, JSON/Hash parity |
 | [errors.md](errors.md)                            | Error hierarchy — `DescriptorError`, `CompileError` + subclasses             |
 | [code-generation.md](code-generation.md)          | Internal **Code Builder**, backtrace strategy, source injection              |
@@ -31,5 +43,8 @@ Read that first; every term in bold elsewhere is defined there.
 
 ## Stage
 
-Pre-implementation. This directory captures the design reached through a grilling/design session;
-no code exists yet. Intended as source material for PRDs and future refinement.
+Implemented and merged. The engine lives at [`lib/panko/code_gen/`](../../lib/panko/code_gen/)
+and is the only engine behind `serialize` / `serialize_to_json`. The living documents above
+are kept aligned with the code; [research/](research/), [phase-1-bar.md](phase-1-bar.md),
+[merging-into-panko.md](merging-into-panko.md), and [deferred.md](deferred.md) are
+historical records of how the design got here.

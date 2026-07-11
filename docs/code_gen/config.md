@@ -6,7 +6,7 @@ baked into the emitted code — no runtime branching for configured behaviors.
 ## Shape
 
 ```ruby
-module SerializersCodeGen
+module Panko::CodeGen
   Config = Data.define(
     :null_for_missing_has_one,   # Boolean; default: true
     :supports_root_key,          # Boolean; default: false
@@ -14,13 +14,13 @@ module SerializersCodeGen
     :hash_output_key_type,       # :string | :symbol; default: :string — Hash mode output
     :json_column_emit,           # :wire_format | :html_safe; default: :wire_format — JSON-column emit shape
     :pool_writer,                # Boolean; default: true — JSON-mode Writer pooling
-    # Additional knobs to be added as design proceeds
+    :guarded_model               # Boolean; default: false — per-record Model guard on the Specialized path
   )
 end
 ```
 
 All fields default to sensible values so most callers can omit the config entirely
-(`SerializersCodeGen.compile(descriptor, output: :json)`).
+(`Panko::CodeGen.compile(descriptor, output: :json)`).
 
 ## Fields
 
@@ -103,7 +103,7 @@ directly in HTML script tags without a sanitizer at the HTML layer (uncommon).
 Detection of JSON-typed columns uses `is_a?(::ActiveRecord::Type::Json)` —
 adapter-agnostic; matches `t.json` and `t.jsonb` on every supported backend; correctly
 rejects `encrypts :metadata` (sibling type, not a subclass) and `serialize :m, coder:`
-(also a sibling). Generic-path **Descriptors** (`models: nil`) are unaffected — the knob
+(also a sibling). Generic-path **Descriptors** (`model: nil`) are unaffected — the knob
 applies only to the **Specialized path**.
 
 Design rationale, byte-divergence table, and benchmark numbers:
@@ -114,11 +114,11 @@ Design rationale, byte-divergence table, and benchmark numbers:
 Controls whether the **JSON Output Mode** emit reuses **Writers** across `serialize_one` /
 `serialize_many` calls via a per-**Generated Class** fiber-local LIFO pool. See
 [output-modes.md § Writer lifecycle](output-modes.md#writer-lifecycle) for the lifecycle
-contract and [`lib/serializers_code_gen/writers_pool.rb`](../lib/serializers_code_gen/writers_pool.rb)
+contract and [`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)
 for the pool implementation.
 
 - `true` (default): the **Generated Class** declares
-  `POOL = SerializersCodeGen::WritersPool::<backend>.new(:<unique_key>)` as a class-level
+  `POOL = Panko::CodeGen::WritersPool::<backend>.new(:<unique_key>)` as a class-level
   constant; `serialize_one` / `serialize_many` open with `writer = POOL.checkout`, wrap
   the body in `begin` / `ensure`, and return the **Writer** via `POOL.checkin(writer)`
   in the `ensure`. After warmup, `checkout` allocates zero objects on the steady-state
@@ -140,6 +140,24 @@ difference.
 No effect on **Hash Output Mode** — Hash mode allocates no **Writer** and the knob is a
 no-op there.
 
+### `guarded_model` (default: `false`)
+
+Controls whether a **Specialized path** **Generated Class** trusts the caller's **Model**
+contract or verifies it per record.
+
+- `false` (default): the Specialized bodies assume every **Record** is an instance of the
+  **Descriptor**'s **Model** — the original contract, appropriate when the caller controls
+  what it serializes.
+- `true` (the auto-specialization shape): `_write_one` / `_to_hash` open with a
+  `record.instance_of?(<Model>)` guard; a mismatched **Record** delegates to an inline
+  generic twin body (`_generic_write_one` / `_generic_to_hash` — same **Fields**, duck
+  dispatch, Hash branch), so a class compiled for one record class can never emit wrong
+  output for another. Requires `descriptor.model` to be a *named* class — the guard
+  references it by constant path.
+
+No effect on the generic path (`model: nil`) — there is nothing to guard.
+See [auto-specialization.md](auto-specialization.md) for who sets this and why.
+
 ## What belongs in Config vs elsewhere
 
 - **Compile-time toggles that change emitted code** → Config.
@@ -148,11 +166,15 @@ no-op there.
 
 ## Immutability
 
-Config is a frozen `Data` value. No library-wide mutable singleton. No `SerializersCodeGen.configure { ... }`
+Config is a frozen `Data` value. No library-wide mutable singleton. No `Panko::CodeGen.configure { ... }`
 block. If a caller wants a shared default **Config**, they keep their own constant.
 
 This avoids the class of bug where a global mutable config change invalidates cached
 **Generated Classes** held elsewhere.
+
+(`Panko.configure` / `Panko::Config` is a different layer: Panko's *runtime* settings for
+the auto-specialization cache, not the engine's compile-time Config. See
+[docs/configuration.md](../configuration.md).)
 
 ## Future fields
 

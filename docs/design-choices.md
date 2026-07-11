@@ -138,6 +138,35 @@ reader (`record.title`) and pushed as-is. You can inspect this for any
 serializer with `Panko::CodeGen.dump`. (The real output also wraps each field
 in an `only`/`except` filter check, elided here for readability.)
 
+### Specializing per record class
+
+The generated class above is **generic** — it reads fields the same way
+whatever object you hand it. Panko goes one step further for ActiveRecord:
+the first time a serializer meets a given record class (say, `Post`), it
+compiles a **specialized variant** hard-wired to that model.
+
+A specialized variant knows things the generic code can't:
+
+-   **How each column is stored.** Columns are read straight out of
+    ActiveRecord's attribute storage rather than through reader-method
+    dispatch, and each column's type is known at compile time — so, for
+    example, datetime formatting is decided once, not re-checked per value.
+    Anything you've overridden — a reader method you defined on the model —
+    still goes through your method.
+-   **The shape of its associations.** The model's reflections fill in the
+    record class of each `has_one` / `has_many`, so nested serializers get
+    specialized variants too.
+
+Each variant starts with an `instance_of?` guard: a record of a different
+class falls back to the generic code, so heterogeneous collections stay
+correct. Plain Hashes and non-ActiveRecord objects always use the generic
+path.
+
+All of this is automatic and bounded — a serializer keeps a limited number of
+variants (16 per output mode by default) and routes everything past the cap to
+the generic path. The cap, and specialization itself, can be tuned or turned
+off; see [Configuration]({% link configuration.md %}).
+
 ### Incremental JSON
 
 A typical Ruby JSON pipeline does three passes:
@@ -181,7 +210,8 @@ modes agree on their shape:
 Two smaller choices round out the performance story:
 
 -   **Compile once, per class.** The generated class is built and cached the
-    first time a serializer is used. Every later call reuses it, so the
+    first time a serializer is used — and each specialized variant the first
+    time its record class is seen. Every later call reuses them, so the
     generation cost never appears in your request path after warm-up.
 -   **Pooled instances.** Serializing checks a generated instance out of a
     small pool and returns it afterward (its per-record state is cleared on

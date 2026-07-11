@@ -2,7 +2,7 @@
 
 Performance measurement strategy — harness, scenarios, comparison targets, and
 regression workflow. Terms in bold are defined in
-[../UBIQUITOUS_LANGUAGE.md](../UBIQUITOUS_LANGUAGE.md).
+[UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
 
 Benchmarks **do not run in CI** (see [ci.md § Benchmarks in CI](ci.md#benchmarks-in-ci)).
 They run on dev hardware against a committed baseline in release notes. Refinement of
