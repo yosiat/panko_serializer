@@ -36,7 +36,11 @@ module Panko
     #
     # Keyed by class identity: a Rails/Zeitwerk reload mints a new class object
     # with an empty cache, so edits self-heal. Manually reopening a live class
-    # after its first serialize is unsupported (documented limitation).
+    # after its first serialize is unsupported (documented limitation) — and
+    # that covers record classes too: a variant's classification verdicts
+    # (column vs override) freeze at first sight of the record class, so a
+    # reader override added to a live model class afterwards is not picked up
+    # until the class object is replaced (reload) or the process restarts.
     #
     # Config is fixed at compile time to the engine defaults, which reproduce
     # Panko 0.8.5's output (string hash keys, :wire_format JSON columns,
