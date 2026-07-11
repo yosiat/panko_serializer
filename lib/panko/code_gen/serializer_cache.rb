@@ -237,10 +237,10 @@ module Panko
       # (the emitted guard references it by constant path) or not AR-like,
       # capacity is exhausted, or the specialized compile fails —
       # auto-specialization must never turn a serializer that works
-      # generically into a raise. Root-only for now: +.with(model:)+
-      # replaces the root's Model and leaves child descriptors untouched
-      # (safe on Panko-built trees — they are acyclic with uniquified
-      # names, so the rebuilt root can't collide with its children).
+      # generically into a raise. The descriptor tree is rebuilt by
+      # {DescriptorBuilder.specialize}: the root gets +model+ and each
+      # association's reflected AR class fills its child's Model
+      # recursively, so nested serializers get the typed emits too.
       def self.auto_variant_pool(serializer_class, output, model, base)
         return nil unless auto_specialize?(serializer_class, model)
         if specialized_count(serializer_class, output, base) >= Panko::Config.auto_specialization.capacity
@@ -248,7 +248,7 @@ module Panko
           return nil
         end
 
-        descriptor = descriptor_for(serializer_class).with(model: model)
+        descriptor = DescriptorBuilder.specialize(descriptor_for(serializer_class), model)
         compiled = Panko::CodeGen.compile(descriptor, output: output, config: Config.new(guarded_model: true))
         InstancePool.new(
           :"_panko_cg_pool_#{output}_#{serializer_class.object_id}_#{model.object_id}",
