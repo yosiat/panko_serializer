@@ -1,7 +1,7 @@
 ---
 title: Response
 layout: default
-nav_order: 7
+nav_order: 5
 parent: Reference
 ---
 
@@ -57,6 +57,20 @@ class PostsController < ApplicationController
     )
   end
 end
+```
+
+Inside a `create` block you can also nest a collection with
+`r.array_serializer(records, serializer, options)`:
+
+```ruby
+render(
+  json: Panko::Response.create do |r|
+    {
+      success: true,
+      posts: r.array_serializer(Post.all, PostSerializer)
+    }
+  end
+)
 ```
 
 ## JsonValue

@@ -7,4 +7,16 @@ has_children: true
 
 # Reference
 
-Detailed reference documentation for Panko Serializer's features.
+Detailed reference for Panko's API and DSL.
+
+-   [Serializers]({% link serializers.md %}) — the `Panko::Serializer` /
+    `Panko::ArraySerializer` API: serialize methods, constructor options, and
+    `context` / `scope`.
+-   [Attributes]({% link attributes.md %}) — field attributes, method
+    attributes, and `aliases`.
+-   [Associations]({% link associations.md %}) — `has_one` and `has_many`,
+    aliasing, and serializer inference.
+-   [Filters]({% link filters.md %}) — `only` / `except`, nested filters, and
+    `filters_for`.
+-   [Response]({% link response-bag.md %}) — `Panko::Response` and
+    `Panko::JsonValue` for composing responses.

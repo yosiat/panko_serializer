@@ -1,0 +1,24 @@
+# Panko
+
+> Panko is a high-performance JSON serializer for ActiveRecord and Ruby objects, inspired by ActiveModelSerializers 0.9. It compiles a specialized serializer, in pure Ruby, once per serializer class (there is no C extension), builds JSON incrementally with Oj::StringWriter, and does its own type casting — so per-record serialization is straight-line code with minimal allocations.
+
+The public API is small and stable: subclass `Panko::Serializer` and declare `attributes`, `has_one` / `has_many`, and method attributes; serialize a single object with `#serialize` (returns a Hash) or `#serialize_to_json` (returns a JSON String), and a collection with `Panko::ArraySerializer`.
+
+## Docs
+
+- [Introduction](https://panko.dev/): What Panko is and the three choices behind its speed.
+- [Getting Started](https://panko.dev/getting-started): Install Panko and write your first serializer, including collection and Rails-controller usage.
+- [Performance](https://panko.dev/performance): Benchmark methodology plus Panko's throughput and allocation numbers across serializer shapes.
+- [Design Choices](https://panko.dev/design-choices): How Panko is fast — code generation, Oj::StringWriter, and self-managed type casting.
+
+## Reference
+
+- [Serializers](https://panko.dev/serializers): The `Panko::Serializer` / `Panko::ArraySerializer` API — serialize methods, constructor options (`context`, `scope`, `only`, `except`), and `SKIP`.
+- [Attributes](https://panko.dev/attributes): Field attributes, method attributes (with `object` / `context` / `scope`), and `aliases`.
+- [Associations](https://panko.dev/associations): `has_one` and `has_many`, output-key aliasing, and serializer inference.
+- [Filters](https://panko.dev/filters): `only` / `except`, nested filters, and `filters_for`.
+- [Response](https://panko.dev/response-bag): `Panko::Response` and `Panko::JsonValue` for composing serialized output into a larger JSON response.
+
+## Optional
+
+- [GitHub repository](https://github.com/yosiat/panko_serializer): Source, issues, and changelog.
