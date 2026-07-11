@@ -107,10 +107,10 @@ Compile-time cycle handling (via the identity cache) is unrelated and always on.
 
 ## Record-access strategy
 
-**Compile** emits different code depending on whether the **Descriptor**'s **Models** field
+**Compile** emits different code depending on whether the **Descriptor**'s **Model** field
 is set.
 
-### Generic path — `models: nil`
+### Generic path — `model: nil`
 
 One `_write_one` (JSON mode) / `_to_hash` (Hash mode) is emitted. Its body branches once
 on the **Record** shape, with both field-emit shapes inlined under the branch arms:
@@ -153,49 +153,38 @@ source; the split above this width trades the small dispatch saving for halved
 per-method source — insurance for method-granular JITs (ZJIT compiles whole methods) and
 bounded code-region growth across apps with hundreds of **Generated Classes**.
 
-### Specialized path — `models: [...]` set (all ActiveRecord)
+### Specialized path — `model:` set (ActiveRecord)
 
-When **Models** is set and all entries are ActiveRecord classes, **Compile** introspects
-each class at compile time and classifies every **Attribute** via a three-step rule:
+When **Model** is an ActiveRecord class, **Compile** introspects it at compile time and
+classifies every **Attribute** via a three-step rule:
 
-1. **Column-backed** (name appears in `Model.columns_hash`) → emit
-   `record._read_attribute("title")`. This is the fastest access form on Ruby 4 + YJIT +
-   AR 8.1 by a wide margin (see [research/ar_access_results.md](research/ar_access_results.md)):
+1. **Column-backed** (name appears in `Model.columns_hash`) with AR's own auto-generated
+   reader → emit `record._read_attribute("title")`. This is the fastest access form on
+   Ruby 4 + YJIT + AR 8.1 by a wide margin (see
+   [research/ar_access_results.md](research/ar_access_results.md)):
    4.43M ips persisted / 4.13M non-persisted, 1 alloc/call, and the `_read_attribute` call
    dispatches through AR's type-cast path so enum columns correctly return mapped labels.
-2. **Else, instance method exists** (name appears in `Model.instance_methods`) → emit
-   `record.title` method dispatch.
+2. **Else, instance method exists** (name appears in `Model.instance_methods`, including a
+   user-overridden column reader) → emit `record.title` method dispatch.
 3. **Else** → raise at **Compile** time with a message naming the missing attribute and
    the class.
 
-#### Overrides are bypassed for column-backed attributes
+#### Overrides are honored
 
-If a user defines `def title; super.upcase; end` on a model whose `title` is a column,
-the specialized path emits the column-access form and the user's override is NOT invoked.
-Users who need a custom reader should declare the field as a **Method Attribute** instead.
-This mirrors Panko's existing semantics and keeps the generated code straight-line.
+If a user defines `def title; super.upcase; end` on a model whose `title` is a column, the
+classifier detects that the reader's owner is not AR's `GeneratedAttributeMethods` module
+and emits method dispatch — the override runs, exactly as it would on the generic path.
+The **Model** field is a compiler hint, never a semantic switch: a specialized body must
+stay observably identical to the generic body for the same records.
 
-Document this loudly in user-facing docs (Panko's DSL layer) so the trade is explicit.
-
-#### STI and mixed class sets
-
-When `models:` contains multiple classes (STI or otherwise), classify each **Attribute**
-against **every** class in the set and take the intersection:
-
-- Column-backed in every class → emit the column-access form.
-- Instance method in every class (but not uniformly column-backed) → emit method dispatch.
-- Neither in at least one class → raise at **Compile** time.
-
-The classification is computed once during **Compile** and baked directly into the emitted
-source; there is no runtime classification cache. For STI specifically, this means a
-subclass that overrides a column reader downgrades that attribute across the whole
-**Generated Class** — method dispatch wins whenever any class in the set lacks uniform
-column-backing.
+STI hierarchies specialize per concrete class — each class gets its own **Descriptor** and
+Generated Class, so a subclass override affects only that subclass's compile.
 
 #### Other specialized-path invariants
 
-- No Hash-access branch — **Models** implies the **Records** are instances of those classes.
-- Constraint: the **Models** classes must be loaded at **Compile** time (usually true in
+- No Hash-access branch — **Model** implies the **Records** are instances of that class
+  (or its subclasses).
+- Constraint: the **Model** class must be loaded at **Compile** time (usually true in
   Rails boot order; flag loudly if a class isn't loadable).
 - AR attribute methods are generated lazily. **Compile** calls `Model.define_attribute_methods`
   defensively before introspecting so steps 1–3 see a fully-populated method table. The call
@@ -204,9 +193,9 @@ column-backing.
 
 ### Non-AR class in `models`
 
-If a class in **Models** isn't ActiveRecord, **Compile** falls back to `record.foo` method
-dispatch. No Hash-access branch is emitted (the contract is still "**Records** are instances
-of these classes").
+If the **Model** isn't ActiveRecord, **Compile** falls back to `record.foo` method
+dispatch. No Hash-access branch is emitted (the contract is still "**Records** are
+instances of this class").
 
 ## Constructor of the Generated Class
 
@@ -225,7 +214,7 @@ in the **Generator**, no divergence between the two.
 ## What Compile does internally
 
 1. Validate the **Descriptor** (arity of **Callables**, `kind` enum, `output` in `[:json, :hash]`).
-2. If **Models** is set, introspect classes for specialized-path classification.
+2. If **Model** is set, introspect the class for specialized-path classification.
 3. Recursively **Compile** nested **Descriptors** (depth-first, naturally). No cycle handling.
 4. Ask the **Generator** for source code — one method per top-level public entry plus
    `_write_one` (JSON mode) / `_to_hash` (Hash mode) and `_release`

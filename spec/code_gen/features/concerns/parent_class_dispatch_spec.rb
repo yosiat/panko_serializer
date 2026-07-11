@@ -28,10 +28,10 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
-  def descriptor_with(name:, parent_class:, attributes: [], method_attributes: [], associations: [], models: nil)
+  def descriptor_with(name:, parent_class:, attributes: [], method_attributes: [], associations: [], model: nil)
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: models,
+      model: model,
       parent_class: parent_class,
       attributes: attributes,
       method_attributes: method_attributes,
@@ -287,7 +287,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
 
           comment = Panko::CodeGen::Descriptor.new(
             name: "ParentClassDispatchSpec_RecursiveSerializer_#{mode}",
-            models: nil,
+            model: nil,
             parent_class: ParentClassDispatchSpec_RecursiveBase,
             attributes: [attribute(:id)],
             method_attributes: [method_attribute(:tag, :tag)],

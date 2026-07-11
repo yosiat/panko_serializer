@@ -12,7 +12,7 @@ structurally comparable.
 module SerializersCodeGen
   Descriptor = Data.define(
     :name,               # String — used for the Generated Class name and backtrace identity
-    :models,             # Array<Class> | nil — when set, unlocks compile-time specialization
+    :model,              # Class | nil — when set, unlocks compile-time specialization
     :attributes,         # Array<Attribute>
     :method_attributes,  # Array<MethodAttribute>
     :associations,       # Array<Association>
@@ -49,16 +49,16 @@ Used to:
 - Compose the synthetic path passed to the Ruby eval step for backtrace stability.
 - Name the **Dump**ed file.
 
-### `Descriptor#models`
+### `Descriptor#model`
 
-An Array of Ruby classes, or `nil`.
+A Ruby class, or `nil`.
 
 - `nil`: no knowledge about **Record** shape. **Compile** emits the generic path (runtime
   Hash vs method-dispatch branch).
-- `[SomeClass]` or `[Class1, Class2]` (STI): unlocks compile-time specialization for
-  ActiveRecord columns. See [compilation.md](compilation.md).
-
-Plural name; the array is ordered but order is not semantically meaningful.
+- a `Class`: unlocks compile-time specialization for ActiveRecord columns — the engine
+  compiles one monomorphic body per Model class. See [compilation.md](compilation.md).
+  STI hierarchies specialize per concrete class (one **Descriptor** / Generated Class per
+  class), not per set — there is no multi-class intersection.
 
 ### `Descriptor#parent_class`
 
@@ -249,7 +249,7 @@ hierarchy. See [errors.md](errors.md).
 Cheap, one-time-per-construction checks on types and shapes:
 
 - `Descriptor#name` is a non-empty String.
-- `Descriptor#models`, if set, is an Array of Class objects.
+- `Descriptor#model` is `nil` or a Class object.
 - `Descriptor#attributes`, `method_attributes`, `associations` are Arrays of the right
   element type (all **Fields**).
 - `Descriptor#parent_class`, if set, is a Ruby `Class`. `nil` is the default and stays
@@ -272,7 +272,7 @@ Walks the tree (with identity-based cycle handling, see "Recursive Descriptors" 
 
 - **Name uniqueness across Fields** at the same level — no two **Fields** (regardless of
   kind) may share a `name`. Violations raise `NameCollisionError`.
-- **Source validity on the specialized path** — when **Models** is set, every
+- **Source validity on the specialized path** — when **Model** is set, every
   **Attribute**'s `source` must be column-backed or an instance method on every class in
   **Models**. Violations raise `UnknownSourceError`.
 - **Callable arity** — every **Callable** has arity `0`, `1`, `2`, or `3`. Violations

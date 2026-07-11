@@ -20,7 +20,7 @@ require_relative "support/targets"
 
 WIDE_ATTRIBUTES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "WideAttributesPostBenchSerializer",
-  models: [Bench::WidePost],
+  model: Bench::WidePost,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     *WIDE_POST_ATTRIBUTE_NAMES.map { |n| Panko::CodeGen::Attribute.new(name: n.to_sym, source: n.to_sym) }

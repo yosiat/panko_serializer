@@ -3,7 +3,7 @@
 require "spec_helper"
 require "panko/code_gen"
 require "config/config_json_column_generic_fallthrough"
-require "config/config_json_column_non_uniform_specialized"
+require "config/config_json_column_non_json_specialized"
 
 # Source-token assertion spec for the two regression fixtures filed under
 # #61. Pins intent (the JSON-column fast-path emit must not fire), not
@@ -48,7 +48,7 @@ RSpec.describe "JSON-column emit fallthrough — source token regression" do
   end
 
   describe "non-uniform-Specialized Descriptor (Models with mixed t.json + t.string :metadata)" do
-    let(:fixture) { Fixtures::Config::ConfigJsonColumnNonUniformSpecialized }
+    let(:fixture) { Fixtures::Config::ConfigJsonColumnNonJsonSpecialized }
 
     it "emits push_value (not push_json) because ar_classes.all? rejects" do
       source = Panko::CodeGen::Generator.new.emit(

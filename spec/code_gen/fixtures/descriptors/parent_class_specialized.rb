@@ -6,7 +6,7 @@
 # +@object+ / +@context+ / +@scope+ ivar writes prepended to the single
 # +_write_one+ / +_to_hash+ body (Specialized has no Hash/Object
 # dispatcher), and Symbol-body / Callable-body coexistence in one
-# +Descriptor+. +models: [ParentClassSpecializedRecord]+ — a plain Ruby
+# +Descriptor+. +model: ParentClassSpecializedRecord+ — a plain Ruby
 # class (non-AR), so the Specialized path's per-Attribute access form
 # falls through to method dispatch per
 # +docs/compilation.md § Non-AR class in `models`+; the snapshot pins
@@ -43,7 +43,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ParentClassSpecializedSerializer",
-      models: [ParentClassSpecializedRecord],
+      model: ParentClassSpecializedRecord,
       parent_class: ParentClassSpecializedBase,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),

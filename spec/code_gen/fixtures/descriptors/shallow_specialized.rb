@@ -5,7 +5,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ShallowSpecializedSerializer",
-      models: [Post],
+      model: Post,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title),
@@ -26,11 +26,11 @@ module Fixtures
 
     def self.expected_output(mode)
       case mode
-      when :json then '{"id":1,"title":"hi","headline":"HI (id=1)","static":42,"contextual":null}'
+      when :json then '{"id":1,"title":"HI","headline":"HI (id=1)","static":42,"contextual":null}'
       when :hash
         {
           "id" => 1,
-          "title" => "hi",
+          "title" => "HI",
           "headline" => "HI (id=1)",
           "static" => 42,
           "contextual" => nil

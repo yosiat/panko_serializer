@@ -13,7 +13,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
   def descriptor_with(name: "SkipDescriptor", attributes: [], method_attributes: [])
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: nil,
+      model: nil,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: []

@@ -16,7 +16,7 @@ require "config/config_null_for_has_one_off"
 require "config/config_json_column_wire_format"
 require "config/config_json_column_html_safe"
 require "config/config_json_column_generic_fallthrough"
-require "config/config_json_column_non_uniform_specialized"
+require "config/config_json_column_non_json_specialized"
 
 # Environment loads-and-runs tier per +docs/dumping.md § Contract:
 # the dumped file is runnable with a Descriptor at construction+. For
@@ -49,7 +49,7 @@ RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
     Fixtures::Config::ConfigJsonColumnWireFormat,
     Fixtures::Config::ConfigJsonColumnHtmlSafe,
     Fixtures::Config::ConfigJsonColumnGenericFallthrough,
-    Fixtures::Config::ConfigJsonColumnNonUniformSpecialized
+    Fixtures::Config::ConfigJsonColumnNonJsonSpecialized
   ]
 
   # Recursively renames every +Descriptor+ in +descriptor+'s tree with
@@ -63,7 +63,7 @@ RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
 
     renamed = Panko::CodeGen::Descriptor.new(
       name: "#{prefix}#{descriptor.name}",
-      models: descriptor.models,
+      model: descriptor.model,
       attributes: descriptor.attributes,
       method_attributes: descriptor.method_attributes,
       associations: []

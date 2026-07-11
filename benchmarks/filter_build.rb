@@ -44,7 +44,7 @@ end
 
 FILTER_BUILD_FLAT5_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildFlat5",
-  models: nil,
+  model: nil,
   attributes: make_filter_build_attrs(%i[a b c d e]),
   method_attributes: [],
   associations: []
@@ -52,7 +52,7 @@ FILTER_BUILD_FLAT5_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 FILTER_BUILD_FLAT70_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildFlat70",
-  models: nil,
+  model: nil,
   attributes: make_filter_build_attrs((1..70).map { |i| :"f#{i}" }),
   method_attributes: [],
   associations: []
@@ -60,14 +60,14 @@ FILTER_BUILD_FLAT70_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 FILTER_BUILD_GC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildGrandchild",
-  models: nil,
+  model: nil,
   attributes: make_filter_build_attrs(%i[x y z]),
   method_attributes: [],
   associations: []
 )
 FILTER_BUILD_CHILD_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildChild",
-  models: nil,
+  model: nil,
   attributes: make_filter_build_attrs(%i[p q r]),
   method_attributes: [],
   associations: [
@@ -76,7 +76,7 @@ FILTER_BUILD_CHILD_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 )
 FILTER_BUILD_DEEP_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterBuildDeep",
-  models: nil,
+  model: nil,
   attributes: make_filter_build_attrs(%i[a b c]),
   method_attributes: [],
   associations: [

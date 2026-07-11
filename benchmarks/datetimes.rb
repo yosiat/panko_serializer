@@ -45,7 +45,7 @@ EVENTS = Bench::Event.order(:id).to_a
 
 EVENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "EventSerializer",
-  models: [Bench::Event],
+  model: Bench::Event,
   attributes: %i[id name starts_at ends_at created_at updated_at].map do |name|
     Panko::CodeGen::Attribute.new(name: name, source: name)
   end,

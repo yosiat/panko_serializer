@@ -2,32 +2,25 @@
 
 module Fixtures
   # Canonical STI fixture (#6 in +docs/testing.md § Canonical snapshot
-  # corpus+). Pins the multi-class intersection rule's two access-form
-  # verdicts in a single Generated Class — both branches of the rule
-  # visible in one snapshot:
+  # corpus+). Pins the classifier's two access-form verdicts in a single
+  # Generated Class — both branches of the rule visible in one snapshot:
   #
-  # - +vin+ — uniformly column-backed on +Vehicle+ and +Car+ with no
-  #   override on either class. Verdict: +:column+. Emits
-  #   +record._read_attribute("vin")+ on both instances.
-  # - +make+ — column on the table (so column-backed on both classes)
-  #   but +Car+ overrides the reader (+def make; super.titleize; end+).
-  #   Per +docs/compilation.md § STI and mixed class sets+, "a subclass
-  #   that overrides a column reader downgrades that attribute across
-  #   the whole Generated Class." Verdict: +:method+. Emits
-  #   +record.make+ on both instances — +Vehicle+ hits AR's
-  #   auto-generated reader (returns the raw column value); +Car+ hits
-  #   the user override (returns the titleized value).
+  # - +vin+ — column-backed on +Car+ with AR's own auto-generated
+  #   reader (inherited from the +Vehicle+ STI base). Verdict:
+  #   +:column+. Emits +record._read_attribute("vin")+.
+  # - +make+ — column on the table, but +Car+ overrides the reader
+  #   (+def make; super.titleize; end+). A user override is honored,
+  #   never bypassed. Verdict: +:method+. Emits +record.make+ so the
+  #   override runs on every instance.
   #
   # The +sanity_record+ is a +Car+ so the snapshot test
   # (+spec/generators/snapshot_spec.rb+'s tier-3 cell) exercises the
-  # override on the +make+ Attribute. The feature spec serializes both
-  # +Vehicle+ and +Car+ instances through the same Generated Class to
-  # pin both halves of the rule end-to-end.
+  # override on the +make+ Attribute.
   module StiSpecialized
     CONFIG = Panko::CodeGen::Config.new
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "StiSpecializedSerializer",
-      models: [Vehicle, Car],
+      model: Car,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :vin, source: :vin),
         Panko::CodeGen::Attribute.new(name: :make, source: :make)

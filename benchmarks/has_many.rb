@@ -11,7 +11,7 @@ require_relative "support/targets"
 
 HAS_MANY_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyCommentBenchSerializer",
-  models: [Bench::Comment],
+  model: Bench::Comment,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -22,7 +22,7 @@ HAS_MANY_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 HAS_MANY_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title)

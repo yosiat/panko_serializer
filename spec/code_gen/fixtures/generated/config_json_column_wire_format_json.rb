@@ -52,7 +52,7 @@ class ConfigJsonColumnWireFormatSerializer_JSON
   def _write_one(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
-      writer.push_value(record._read_attribute("id"), "id")
+      writer.push_value(record.id, "id")
     end
     unless filters.drops?(1)
       raw = record.read_attribute_before_type_cast("metadata")

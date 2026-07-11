@@ -65,7 +65,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     it "two Fibers yielding mid-emit each produce correct output" do
       yielding_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolFiberYieldSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -105,7 +105,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
     it "outer + inner outputs are correct when an outer Method Attribute calls a different Generated Class's serialize_one" do
       inner_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassInnerSerializer",
-        models: nil,
+        model: nil,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :tag, source: :tag)
@@ -118,7 +118,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
 
       outer_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassOuterSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -150,7 +150,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       generated = nil
       reentrant_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolSameClassReentrantSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -198,7 +198,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       should_raise = true
       raising_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolExceptionRecoverySerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(

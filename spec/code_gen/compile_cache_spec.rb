@@ -7,7 +7,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
   let(:cache) { described_class.new }
   let(:descriptor) {
     Panko::CodeGen::Descriptor.new(
-      name: "ADescriptor", models: nil,
+      name: "ADescriptor", model: nil,
       attributes: [], method_attributes: [], associations: []
     )
   }
@@ -25,7 +25,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
 
     it "treats structurally-equal-but-distinct Descriptors as distinct keys" do
       twin = Panko::CodeGen::Descriptor.new(
-        name: "ADescriptor", models: nil,
+        name: "ADescriptor", model: nil,
         attributes: [], method_attributes: [], associations: []
       )
       klass = Class.new
@@ -33,7 +33,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
       expect(cache.get(twin)).to be_nil
     end
 
-    # S18.4 row: two Descriptors with the same +name+ / +models+ /
+    # S18.4 row: two Descriptors with the same +name+ / +model+ /
     # Field arrays but different +parent_class+ values must map to
     # distinct cache entries. Pinned explicitly to make the cache's
     # +__id__+-keyed contract visible for the new field — the cache
@@ -44,7 +44,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
     it "treats two Descriptors differing only by parent_class as distinct keys" do
       bare_parent = Class.new
       with_parent = Panko::CodeGen::Descriptor.new(
-        name: "ADescriptor", models: nil,
+        name: "ADescriptor", model: nil,
         attributes: [], method_attributes: [], associations: [],
         parent_class: bare_parent
       )
@@ -100,7 +100,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
 
     it "is identity-keyed — two distinct Descriptor instances each get their own block invocation" do
       twin = Panko::CodeGen::Descriptor.new(
-        name: "ADescriptor", models: nil,
+        name: "ADescriptor", model: nil,
         attributes: [], method_attributes: [], associations: []
       )
       one_klass = Class.new

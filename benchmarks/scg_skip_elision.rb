@@ -18,7 +18,7 @@ require_relative "support/targets"
 
 SCG_SKIP_FIRES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgSkipFiresPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title)
@@ -34,7 +34,7 @@ SCG_SKIP_FIRES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 SCG_SKIP_NEVER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgSkipNeverPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: SCG_SKIP_FIRES_DESCRIPTOR.attributes,
   method_attributes: [
     Panko::CodeGen::MethodAttribute.new(

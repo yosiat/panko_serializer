@@ -55,10 +55,10 @@ class ShallowSpecializedSerializer_JSON
   def _write_one(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
-      writer.push_value(record._read_attribute("id"), "id")
+      writer.push_value(record.id, "id")
     end
     unless filters.drops?(1)
-      writer.push_value(record._read_attribute("title"), "title")
+      writer.push_value(record.title, "title")
     end
     unless filters.drops?(2)
       writer.push_value(record.headline, "headline")

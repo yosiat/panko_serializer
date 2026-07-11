@@ -8,7 +8,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
   def descriptor_with(name: "PostDescriptor", method_attributes: [], associations: [])
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: nil,
+      model: nil,
       attributes: [],
       method_attributes: method_attributes,
       associations: associations
@@ -53,7 +53,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
 
     it "skips Symbol-body MethodAttributes (no .arity call on Symbol) — S18.2" do
       descriptor = Panko::CodeGen::Descriptor.new(
-        name: "PostDescriptor", models: nil,
+        name: "PostDescriptor", model: nil,
         attributes: [],
         method_attributes: [method_attribute(:greeting, :greeting)],
         associations: [],
@@ -68,7 +68,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
   describe ".validate — Association#if arity" do
     let(:inner) {
       Panko::CodeGen::Descriptor.new(
-        name: "InnerDescriptor", models: nil,
+        name: "InnerDescriptor", model: nil,
         attributes: [], method_attributes: [], associations: []
       )
     }
@@ -144,7 +144,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
   describe ".validate — nested Descriptor walk" do
     it "raises when a Method Attribute one level deep has bad arity" do
       inner = Panko::CodeGen::Descriptor.new(
-        name: "AuthorDescriptor", models: nil,
+        name: "AuthorDescriptor", model: nil,
         attributes: [],
         method_attributes: [method_attribute(:full_name, ->(_a, _b, _c, _d) { :ok })],
         associations: []
@@ -163,7 +163,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
   describe ".validate — cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       inner = Panko::CodeGen::Descriptor.new(
-        name: "InnerDescriptor", models: nil, attributes: [],
+        name: "InnerDescriptor", model: nil, attributes: [],
         method_attributes: [method_attribute(:fld, ->(_r) { :ok })],
         associations: []
       )
@@ -181,7 +181,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
       # post-construction to install the back-reference, then prove the
       # validator's identity-cache short-circuits the cycle.
       parent = Panko::CodeGen::Descriptor.new(
-        name: "CommentDescriptor", models: nil, attributes: [],
+        name: "CommentDescriptor", model: nil, attributes: [],
         method_attributes: [method_attribute(:body, ->(_r) { :ok })],
         associations: []
       )

@@ -45,7 +45,7 @@ module Panko::CodeGen
 
       # Emits one +<Name>_Hash+ class shell with constructor + public
       # entries + the chosen +RecordAccess+ strategy's helpers. Strategy
-      # choice is per-Descriptor and keyed off +descriptor.models.nil?+
+      # choice is per-Descriptor and keyed off +descriptor.model.nil?+
       # per +docs/compilation.md § Record-access strategy+: +nil+ →
       # +RecordAccess::Generic+ (Hash + PORO via the +_to_hash_hash+ /
       # +_to_hash_object+ split); set → +RecordAccess::Specialized+
@@ -81,7 +81,7 @@ module Panko::CodeGen
           builder.blank
           Release.emit(descriptor, builder, cyclic_ids)
           builder.blank
-          if descriptor.models.nil?
+          if descriptor.model.nil?
             RecordAccess::Generic.emit_hash(descriptor, config, field_index, builder)
           else
             RecordAccess::Specialized.emit_hash(descriptor, config, field_index, builder)

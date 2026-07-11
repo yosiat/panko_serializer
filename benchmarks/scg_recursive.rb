@@ -23,7 +23,7 @@ require_relative "support/targets"
 
 SCG_RECURSIVE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgRecursiveCommentBenchSerializer",
-  models: [Bench::Comment],
+  model: Bench::Comment,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)

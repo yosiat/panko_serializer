@@ -42,7 +42,7 @@ end
 
 GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphAuthorBenchSerializer",
-  models: [Bench::Author],
+  model: Bench::Author,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -53,7 +53,7 @@ GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphCommentBenchSerializer",
-  models: [Bench::Comment],
+  model: Bench::Comment,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -64,7 +64,7 @@ GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

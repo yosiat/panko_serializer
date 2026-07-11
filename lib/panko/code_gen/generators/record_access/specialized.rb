@@ -4,7 +4,7 @@ module Panko::CodeGen
   module Generators
     module RecordAccess
       # Specialized-path Record-access emitter — used when a Descriptor's
-      # +Models+ field is set per +docs/compilation.md § Specialized path+.
+      # +Model+ field is set per +docs/compilation.md § Specialized path+.
       # Emits a single +_write_one(record, writer, context, scope, filters)+
       # (JSON) or +_to_hash(record, context, scope, filters)+ (Hash) — no
       # +is_a?(Hash)+ dispatch and no +_write_one_hash+ / +_write_one_object+
@@ -17,17 +17,20 @@ module Panko::CodeGen
       # contract from +docs/merging-into-panko.md § Generated Class
       # subclasses the user's Panko serializer+. See
       # {emit_parent_class_ivar_writes} for the rationale.
-      # The +Models+ contract assumes Records are instances of the declared
-      # classes (or their subclasses), so every per-Attribute access form
+      # The +Model+ contract assumes Records are instances of the declared
+      # class (or its subclasses), so every per-Attribute access form
       # is monomorphic at emit time.
       #
       # Per Attribute, the access form is chosen by the 3-step rule from
       # +AccessClassifier+ (S6.1):
       # - +:column+ → +record._read_attribute("name")+. The fastest access
-      #   form on Ruby 4 + YJIT + AR 8.1; bypasses any user-defined reader
-      #   override per +docs/compilation.md § Overrides are bypassed+.
+      #   form on Ruby 4 + YJIT + AR 8.1; only taken when the reader is
+      #   AR's own auto-generated one — a user-defined override is honored
+      #   via method dispatch, so a specialized body stays observably
+      #   identical to the Generic path.
       # - +:method+ → +record.name+. Standard method dispatch, used for
-      #   instance methods that aren't columns.
+      #   instance methods that aren't columns and for user-overridden
+      #   column readers.
       #
       # +Association+ Sources stay on +record.<source>+ method dispatch
       # — Associations name AR relations (or methods returning related
@@ -35,19 +38,19 @@ module Panko::CodeGen
       # Attributes+ are independent of the access strategy entirely (they
       # invoke a hoisted Callable, not the Record's reader).
       #
-      # Non-AR class fallback: when +descriptor.models+ contains only
-      # non-AR classes (no +#columns_hash+), every Attribute falls through
-      # to method dispatch. This is the "+Struct+ or plain +Class.new+ in
-      # +models:+" case from +docs/compilation.md § Non-AR class in
-      # +models++ — the contract still binds (no Hash branch), just the
-      # column-form optimization doesn't apply.
+      # Non-AR class fallback: when +descriptor.model+ is a non-AR class
+      # (no +#columns_hash+), every Attribute falls through to method
+      # dispatch. This is the "+Struct+ or plain +Class.new+ in +models:+"
+      # case from +docs/compilation.md § Non-AR class in +models++ — the
+      # contract still binds (no Hash branch), just the column-form
+      # optimization doesn't apply.
       #
-      # +DefineAttributeMethods.ensure!+ is invoked on every AR class in
-      # +descriptor.models+ at the top of +emit_json+ / +emit_hash+ —
-      # before classification — so AR's lazy column readers are populated
-      # in time for step (2) of the 3-step rule. Idempotent across calls;
-      # the +SourceResolution+ validator (S6.1) also calls +ensure!+, so
-      # the warm path here is one short-circuit per class.
+      # +DefineAttributeMethods.ensure!+ is invoked on the AR Model at the
+      # top of +emit_json+ / +emit_hash+ (inside {ar_model}) — before
+      # classification — so AR's lazy column readers are populated in time
+      # for step (2) of the 3-step rule. Idempotent across calls; the
+      # +SourceResolution+ validator (S6.1) also calls +ensure!+, so the
+      # warm path here is one short-circuit per class.
       module Specialized
         # Emits the JSON-mode +_write_one+ helper under +builder+. No
         # +_write_one_hash+ / +_write_one_object+ split — the Specialized
@@ -73,19 +76,18 @@ module Panko::CodeGen
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
-          ensure_attribute_methods!(descriptor)
-          ar_classes = descriptor.models.select { |m| ar_class?(m) }
+          ar_model = ar_model(descriptor)
           builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
-              if json_column_attribute?(attribute, ar_classes)
+              if json_column_attribute?(attribute, ar_model)
                 FieldEmitters::Attribute.emit_json_column(attribute, config, field_index.fetch(attribute.name), builder)
-              elsif datetime_column_attribute?(attribute, ar_classes)
+              elsif datetime_column_attribute?(attribute, ar_model)
                 FieldEmitters::Attribute.emit_json_datetime_column(attribute, field_index.fetch(attribute.name), builder)
               else
-                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, descriptor), field_index.fetch(attribute.name), builder)
+                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, ar_model), field_index.fetch(attribute.name), builder)
               end
             end
             descriptor.associations.each do |association|
@@ -112,25 +114,24 @@ module Panko::CodeGen
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
-          ensure_attribute_methods!(descriptor)
-          ar_classes = descriptor.models.select { |m| ar_class?(m) }
+          ar_model = ar_model(descriptor)
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
-              if datetime_column_attribute?(attribute, ar_classes)
+              if datetime_column_attribute?(attribute, ar_model)
                 FieldEmitters::Attribute.emit_hash_datetime_column(
                   attribute, config.hash_output_key_type, field_index.fetch(attribute.name), builder
                 )
               else
                 FieldEmitters::Attribute.emit_hash(
                   attribute,
-                  attribute_read_expr(attribute, descriptor),
+                  attribute_read_expr(attribute, ar_model),
                   config.hash_output_key_type,
                   field_index.fetch(attribute.name),
                   builder,
-                  cast: !plain_column_attribute?(attribute, ar_classes)
+                  cast: !plain_column_attribute?(attribute, ar_model)
                 )
               end
             end
@@ -192,115 +193,96 @@ module Panko::CodeGen
         end
 
         # Returns the read expression for one Attribute in the Specialized
-        # path. Filters +descriptor.models+ to the AR-class subset and
-        # runs +AccessClassifier.classify+ against it as a whole; the
-        # classifier applies the intersection rule per +docs/compilation.md
-        # § STI and mixed class sets+ (column-in-all → +:column+;
-        # method-in-all → +:method+; else raise). Column-backed verdicts
-        # emit +record._read_attribute("name")+; method verdicts emit
-        # +record.<name>+. When the AR subset is empty (every class
-        # in +descriptor.models+ fails the duck-type test), falls back
-        # to method dispatch for every Attribute — the "non-AR class in
-        # +models:+" case from +docs/compilation.md § Non-AR class in
+        # path. Runs +AccessClassifier.classify+ against the AR Model;
+        # +:column+ verdicts emit +record._read_attribute("name")+, method
+        # verdicts (including user-overridden column readers, which are
+        # honored, never bypassed) emit +record.<name>+. When +ar_model+
+        # is +nil+ (the declared Model fails the AR duck-type test), falls
+        # back to method dispatch for every Attribute — the "non-AR class
+        # in +models:+" case from +docs/compilation.md § Non-AR class in
         # `models`+.
         #
         # @param attribute [Panko::CodeGen::Attribute]
-        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @param ar_model [Class, nil]
         # @return [String] Ruby source like +'record._read_attribute("title")'+
         #   or +"record.headline"+
-        def self.attribute_read_expr(attribute, descriptor)
-          ar_classes = descriptor.models.select { |m| ar_class?(m) }
-          return "record.#{attribute.source}" if ar_classes.empty?
-          case ActiveRecord::AccessClassifier.classify(ar_classes, attribute.source)
+        def self.attribute_read_expr(attribute, ar_model)
+          return "record.#{attribute.source}" if ar_model.nil?
+          case ActiveRecord::AccessClassifier.classify(ar_model, attribute.source)
           when :column then %(record._read_attribute("#{attribute.source}"))
           else "record.#{attribute.source}"
           end
         end
 
-        # Calls +DefineAttributeMethods.ensure!+ on every AR class in
-        # +descriptor.models+ so AR's lazy column readers are populated
-        # before classification. Idempotent — the +SourceResolution+
-        # validator already invoked +ensure!+ during the pre-Generator
-        # validation pass, so this is the warm-path short-circuit. Calling
-        # again here keeps the Generator runnable without the validator
-        # in test affordances and pins the acceptance criterion's
-        # "Generator calls +DefineAttributeMethods.ensure!+ ... before any
-        # classification".
+        # Returns +descriptor.model+ when it quacks like AR, +nil+
+        # otherwise — and, on the AR path, calls
+        # +DefineAttributeMethods.ensure!+ so AR's lazy column readers are
+        # populated before classification. +ensure!+ is idempotent — the
+        # +SourceResolution+ validator already invoked it during the
+        # pre-Generator validation pass, so this is the warm-path
+        # short-circuit; calling it again here keeps the Generator
+        # runnable without the validator in test affordances.
+        #
+        # The duck-type mirrors +Validators::SourceResolution+'s gate: a
+        # class qualifies as AR-like when it responds to both
+        # +#columns_hash+ (the column table the classifier introspects)
+        # and +#attribute_methods_generated?+ (the gate +ensure!+
+        # short-circuits on). A non-AR Model (+Struct+, +Class.new+)
+        # returns +nil+ and every Attribute falls through to method
+        # dispatch.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
-        # @return [void]
-        def self.ensure_attribute_methods!(descriptor)
-          descriptor.models.each do |klass|
-            next unless ar_class?(klass)
-            ActiveRecord::DefineAttributeMethods.ensure!(klass)
-          end
+        # @return [Class, nil]
+        def self.ar_model(descriptor)
+          model = descriptor.model
+          return nil unless model.respond_to?(:columns_hash) && model.respond_to?(:attribute_methods_generated?)
+          ActiveRecord::DefineAttributeMethods.ensure!(model)
+          model
         end
 
-        # Duck-typed AR test mirroring +Validators::SourceResolution+'s
-        # gate. A class qualifies as AR-like when it responds to both
-        # +#columns_hash+ (the column-table the classifier introspects)
-        # and +#attribute_methods_generated?+ (the gate +ensure!+
-        # short-circuits on). Non-AR classes (+Struct+, +Class.new+) fail
-        # this test and are skipped in both helpers, falling through to
-        # method dispatch.
-        #
-        # @param klass [Class]
-        # @return [Boolean]
-        def self.ar_class?(klass)
-          klass.respond_to?(:columns_hash) && klass.respond_to?(:attribute_methods_generated?)
-        end
-
-        # Returns +true+ when +attribute+ is JSON-typed on every AR class in
-        # +ar_classes+. The S12.5 +:wire_format+ JSON-mode emit path fires
-        # only when the type is uniformly JSON across the whole +Models+ set
-        # — a non-uniform set (one class with +t.json+ and a sibling with
-        # +t.string+) downgrades to today's +emit_json+ shape so the
-        # Specialized class stays monomorphic per Attribute. Empty
-        # +ar_classes+ (the "non-AR class in models:" case) returns +false+;
-        # that path falls through to method dispatch on every Attribute and
-        # is irrelevant to the JSON-column optimization.
+        # Returns +true+ when +attribute+ is JSON-typed on the AR Model —
+        # the S12.5 +:wire_format+ JSON-mode emit path. +nil+ +ar_model+
+        # (the "non-AR class in models:" case) returns +false+; that path
+        # falls through to method dispatch on every Attribute and is
+        # irrelevant to the JSON-column optimization.
         #
         # @param attribute [Panko::CodeGen::Attribute] the Field node
-        # @param ar_classes [Array<Class>] AR-class subset of
-        #   +descriptor.models+
+        # @param ar_model [Class, nil]
         # @return [Boolean]
-        def self.json_column_attribute?(attribute, ar_classes)
-          return false if ar_classes.empty?
-          ar_classes.all? { |klass| ActiveRecord::AccessClassifier.json_typed?(klass, attribute.source) }
+        def self.json_column_attribute?(attribute, ar_model)
+          return false if ar_model.nil?
+          ActiveRecord::AccessClassifier.json_typed?(ar_model, attribute.source)
         end
 
         # Returns +true+ when +attribute+ takes the raw-string datetime fast
-        # path: uniformly datetime-typed across the whole +Models+ set, a
-        # +:column+ verdict from the classifier (a user override must keep
-        # method dispatch), and — checked at compile time —
-        # +::ActiveRecord.default_timezone == :utc+, since the raw DB bytes
-        # carry no zone and only under +:utc+ is the spliced trailing "Z"
-        # truthful. The +::+ matters: bare +ActiveRecord+ here resolves to
-        # +Panko::CodeGen::ActiveRecord+.
+        # path: datetime-typed on the Model, a +:column+ verdict from the
+        # classifier (a user override must keep method dispatch), and —
+        # checked at compile time — +::ActiveRecord.default_timezone ==
+        # :utc+, since the raw DB bytes carry no zone and only under +:utc+
+        # is the spliced trailing "Z" truthful. The +::+ matters: bare
+        # +ActiveRecord+ here resolves to +Panko::CodeGen::ActiveRecord+.
         #
         # @param attribute [Panko::CodeGen::Attribute] the Field node
-        # @param ar_classes [Array<Class>] AR-class subset of
-        #   +descriptor.models+
+        # @param ar_model [Class, nil]
         # @return [Boolean]
-        def self.datetime_column_attribute?(attribute, ar_classes)
-          return false if ar_classes.empty?
+        def self.datetime_column_attribute?(attribute, ar_model)
+          return false if ar_model.nil?
           return false unless ::ActiveRecord.default_timezone == :utc
-          return false unless ar_classes.all? { |klass| ActiveRecord::AccessClassifier.datetime_typed?(klass, attribute.source) }
-          ActiveRecord::AccessClassifier.classify(ar_classes, attribute.source) == :column
+          return false unless ActiveRecord::AccessClassifier.datetime_typed?(ar_model, attribute.source)
+          ActiveRecord::AccessClassifier.classify(ar_model, attribute.source) == :column
         end
 
         # Returns +true+ when +attribute+ is a +:column+ verdict whose type
-        # is provably non-datetime on every class in the +Models+ set — the
-        # Hash-mode emit may then skip the per-value +cast_datetime+ wrapper.
+        # is provably non-datetime on the Model — the Hash-mode emit may
+        # then skip the per-value +cast_datetime+ wrapper.
         #
         # @param attribute [Panko::CodeGen::Attribute] the Field node
-        # @param ar_classes [Array<Class>] AR-class subset of
-        #   +descriptor.models+
+        # @param ar_model [Class, nil]
         # @return [Boolean]
-        def self.plain_column_attribute?(attribute, ar_classes)
-          return false if ar_classes.empty?
-          return false unless ar_classes.all? { |klass| ActiveRecord::AccessClassifier.plain_typed?(klass, attribute.source) }
-          ActiveRecord::AccessClassifier.classify(ar_classes, attribute.source) == :column
+        def self.plain_column_attribute?(attribute, ar_model)
+          return false if ar_model.nil?
+          return false unless ActiveRecord::AccessClassifier.plain_typed?(ar_model, attribute.source)
+          ActiveRecord::AccessClassifier.classify(ar_model, attribute.source) == :column
         end
       end
     end

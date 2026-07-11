@@ -12,7 +12,7 @@ require "panko/code_gen"
 RSpec.describe Panko::CodeGen::Generators::Fanout do
   def descriptor(name, associations: [])
     Panko::CodeGen::Descriptor.new(
-      name: name, models: nil,
+      name: name, model: nil,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [], associations: associations
     )

@@ -2,7 +2,7 @@
 
 # Canonical S18 fixture for the Generic-path parent_class shape per
 # the parent S18 PRD (#95). Mirrors +parent_class_specialized+'s
-# descriptor shape but with +models: nil+, so the +_write_one+ /
+# descriptor shape but with +model: nil+, so the +_write_one+ /
 # +_to_hash+ dispatchers + per-shape +_write_one_hash+ /
 # +_write_one_object+ + +_to_hash_hash+ / +_to_hash_object+ helpers
 # from +Generators::RecordAccess::Generic+ pin the parent_class
@@ -34,7 +34,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ParentClassGenericSerializer",
-      models: nil,
+      model: nil,
       parent_class: ParentClassGenericBase,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),

@@ -64,21 +64,21 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
       # of +nested_composition_json.rb+ (same process).
       author = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedAuthor",
-        models: nil,
+        model: nil,
         attributes: Fixtures::NestedComposition::AUTHOR_DESCRIPTOR.attributes,
         method_attributes: [],
         associations: []
       )
       comment = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedComment",
-        models: nil,
+        model: nil,
         attributes: Fixtures::NestedComposition::COMMENT_DESCRIPTOR.attributes,
         method_attributes: [],
         associations: []
       )
       renamed = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedPost",
-        models: nil,
+        model: nil,
         attributes: descriptor.attributes,
         method_attributes: [],
         associations: [
@@ -180,14 +180,14 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
         # occur in the same process.
         renamed_item = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualItem",
-          models: nil,
+          model: nil,
           attributes: Fixtures::RecursiveMutual::ITEM_DESCRIPTOR.attributes,
           method_attributes: [],
           associations: []
         )
         renamed_folder = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualFolder",
-          models: nil,
+          model: nil,
           attributes: Fixtures::RecursiveMutual::FOLDER_DESCRIPTOR.attributes,
           method_attributes: [],
           associations: []

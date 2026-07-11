@@ -23,7 +23,7 @@ module Fixtures
       CONFIG = Panko::CodeGen::Config.new(json_column_emit: :wire_format)
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnWireFormatSerializer",
-        models: [PlainPost],
+        model: PlainPost,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)

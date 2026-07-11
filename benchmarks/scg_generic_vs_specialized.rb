@@ -4,21 +4,21 @@ require_relative "support/benchmark"
 require_relative "support/targets"
 
 # --- ScgGenericVsSpecialized — scg-only -----------------------------------
-# Same flat shape as simple.rb, two Descriptors: one with `models: nil`
-# (Generic path) and one with `models: [Bench::Post]` (Specialized path).
+# Same flat shape as simple.rb, two Descriptors: one with `model: nil`
+# (Generic path) and one with `model: Bench::Post` (Specialized path).
 # Quantifies the Specialized path's payoff (per-Attribute
 # `record._read_attribute("name")` vs the Generic-path
 # `_write_one_object` dispatch through `record.send(:name)`) on a real
 # AR record set.
 #
 # Carries a `panko/*` row alongside the two scg variants: Panko always
-# compiles the Generic path (DescriptorBuilder sets `models: nil`), so
+# compiles the Generic path (DescriptorBuilder sets `model: nil`), so
 # panko/json ≈ scg[generic] plus Panko's DSL/runtime-seam overhead —
 # the overhead the merge adds over the raw engine.
 
 SCG_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgGenericPostBenchSerializer",
-  models: nil,
+  model: nil,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),
@@ -32,7 +32,7 @@ SCG_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 SCG_SPECIALIZED_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ScgSpecializedPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: SCG_GENERIC_DESCRIPTOR.attributes,
   method_attributes: [],
   associations: []

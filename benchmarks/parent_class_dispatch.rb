@@ -9,7 +9,7 @@ require_relative "support/targets"
 # MethodAttribute (today's contract, `parent_class: nil`), one with a
 # Symbol-body MethodAttribute under `parent_class: BenchParent` (the S18
 # direct-dispatch shape). Both go through the Specialized path via
-# `models: [Bench::Post]`, so the only delta under measurement is the
+# `model: Bench::Post`, so the only delta under measurement is the
 # field-emitter Symbol-vs-Callable branch + per-record ivar writes.
 #
 # Encodes the load-bearing perf claim from PRD #95 — that Symbol-body
@@ -33,7 +33,7 @@ end
 
 PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ParentClassDispatchCallablePostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title)
@@ -49,7 +49,7 @@ PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 PARENT_CLASS_DISPATCH_SYMBOL_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "ParentClassDispatchSymbolPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: PARENT_CLASS_DISPATCH_CALLABLE_DESCRIPTOR.attributes,
   method_attributes: [
     Panko::CodeGen::MethodAttribute.new(name: :body_length, body: :body_length)

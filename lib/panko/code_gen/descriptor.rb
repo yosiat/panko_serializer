@@ -102,23 +102,6 @@ module Panko::CodeGen
       raise DescriptorError, "#{field}: must be a non-empty String; got #{value.inspect}:#{value.class}"
     end
 
-    # Raises +DescriptorError+ when +value+ is neither +nil+ nor an +Array+
-    # of +Class+ objects. Encodes the +Models+ contract from
-    # +docs/descriptor.md § Descriptor#models+: +nil+ unlocks the generic
-    # path, +Array<Class>+ unlocks compile-time specialization.
-    #
-    # @param field [String] qualified name; expected to be +"Descriptor#models"+
-    # @param value [Array<Class>, nil] the value to type-check
-    # @return [void]
-    # @raise [DescriptorError] when +value+ is non-nil and not an
-    #   +Array<Class>+
-    def validate_models!(field, value)
-      return if value.nil?
-      unless value.is_a?(Array) && value.all?(Class)
-        raise DescriptorError, "#{field}: must be nil or Array<Class>; got #{value.inspect}:#{value.class}"
-      end
-    end
-
     # Raises +DescriptorError+ when +value+ is not an +Array+ whose elements
     # all +is_a?+ +element_class+. Used for the per-Field-kind arrays on
     # +Descriptor+ (+attributes+, +method_attributes+, +associations+).
@@ -276,7 +259,7 @@ module Panko::CodeGen
 
   # The input to Compile — an immutable, normalized description of one
   # serializer (per +docs/descriptor.md § Descriptor+). Carries the
-  # human-readable identifier, the optional Models hint that unlocks
+  # human-readable identifier, the optional Model hint that unlocks
   # compile-time specialization, the three Field-kind arrays
   # (+attributes+, +method_attributes+, +associations+), and the optional
   # +parent_class+ that flips the Generated Class into the
@@ -286,14 +269,14 @@ module Panko::CodeGen
   # +DescriptorError+ on shape violations. Children are validated at their
   # own +.new+ — Descriptor only enforces array-element type, not the inner
   # Field shape.
-  Descriptor = Data.define(:name, :models, :attributes, :method_attributes, :associations, :parent_class) do
-    # Validates +name+ is a non-empty String, +models+ is +nil+ or an
-    # +Array<Class>+, the three Field-kind arrays contain only their
+  Descriptor = Data.define(:name, :model, :attributes, :method_attributes, :associations, :parent_class) do
+    # Validates +name+ is a non-empty String, +model+ is +nil+ or a
+    # +Class+, the three Field-kind arrays contain only their
     # corresponding +Data+ types, and +parent_class+ is +nil+ or a +Class+.
     #
     # @param name [String] human-readable identifier; non-empty
-    # @param models [Array<Class>, nil] Record class hint; +nil+ uses the
-    #   generic path
+    # @param model [Class, nil] Record class hint; +nil+ uses the
+    #   generic path, a +Class+ unlocks compile-time specialization
     # @param attributes [Array<Attribute>] direct-read Fields
     # @param method_attributes [Array<MethodAttribute>] Callable-driven Fields
     # @param associations [Array<Association>] nested-Descriptor Fields
@@ -302,9 +285,9 @@ module Panko::CodeGen
     #   bare +class <Name>_<Mode>+ shape (byte-identical to pre-S18 emit)
     # @return [void]
     # @raise [DescriptorError] on any structural rule violation
-    def initialize(name:, models:, attributes:, method_attributes:, associations:, parent_class: nil)
+    def initialize(name:, model:, attributes:, method_attributes:, associations:, parent_class: nil)
       StructuralValidation.validate_non_empty_string!("Descriptor#name", name)
-      StructuralValidation.validate_models!("Descriptor#models", models)
+      StructuralValidation.validate_class!("Descriptor#model", model)
       StructuralValidation.validate_array_of!("Descriptor#attributes", attributes, Attribute, "Attribute")
       StructuralValidation.validate_array_of!("Descriptor#method_attributes", method_attributes, MethodAttribute, "MethodAttribute")
       StructuralValidation.validate_array_of!("Descriptor#associations", associations, Association, "Association")

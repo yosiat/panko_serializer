@@ -6,7 +6,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   let(:config) { Panko::CodeGen::Config.new }
   let(:inner) {
     Panko::CodeGen::Descriptor.new(
-      name: "InnerDescriptor", models: nil,
+      name: "InnerDescriptor", model: nil,
       attributes: [], method_attributes: [], associations: []
     )
   }
@@ -14,7 +14,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   def descriptor_with(name: "PostDescriptor", attributes: [], method_attributes: [], associations: [])
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: nil,
+      model: nil,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: associations
@@ -131,7 +131,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   describe ".validate — cross-level isolation" do
     it "does not raise when the same name appears at parent and nested levels" do
       nested = Panko::CodeGen::Descriptor.new(
-        name: "AuthorDescriptor", models: nil,
+        name: "AuthorDescriptor", model: nil,
         attributes: [attribute(:id)],
         method_attributes: [], associations: []
       )
@@ -148,7 +148,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   describe ".validate — nested Descriptor walk" do
     it "raises when the collision is inside a nested Descriptor and names the nested Descriptor" do
       nested = Panko::CodeGen::Descriptor.new(
-        name: "AuthorDescriptor", models: nil,
+        name: "AuthorDescriptor", model: nil,
         attributes: [attribute(:name)],
         method_attributes: [],
         associations: [association(:name, inner)]
@@ -166,7 +166,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   describe ".validate — cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       shared = Panko::CodeGen::Descriptor.new(
-        name: "SharedDescriptor", models: nil,
+        name: "SharedDescriptor", model: nil,
         attributes: [attribute(:id)],
         method_attributes: [], associations: []
       )
@@ -180,7 +180,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
 
     it "does not infinite-loop on a self-referencing Descriptor" do
       parent = Panko::CodeGen::Descriptor.new(
-        name: "CommentDescriptor", models: nil,
+        name: "CommentDescriptor", model: nil,
         attributes: [attribute(:body)],
         method_attributes: [], associations: []
       )

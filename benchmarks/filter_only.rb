@@ -28,7 +28,7 @@ require_relative "support/targets"
 
 FILTER_ONLY_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterOnlyPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

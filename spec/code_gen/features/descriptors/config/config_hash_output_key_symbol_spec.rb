@@ -68,7 +68,7 @@ RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
     it "emits Symbol keys at every depth (has_one and has_many)" do
       inner = Panko::CodeGen::Descriptor.new(
         name: "ConfigHashOutputKeySymbolInnerSerializer",
-        models: nil,
+        model: nil,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -78,7 +78,7 @@ RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
       )
       outer = Panko::CodeGen::Descriptor.new(
         name: "ConfigHashOutputKeySymbolOuterSerializer",
-        models: nil,
+        model: nil,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id)
         ],

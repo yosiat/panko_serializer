@@ -30,7 +30,7 @@ RSpec.describe "Compile-time errors" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
           name: "InnerSerializer",
-          models: nil,
+          model: nil,
           attributes: [],
           method_attributes: [],
           associations: []
@@ -45,35 +45,35 @@ RSpec.describe "Compile-time errors" do
         )
         desc = Panko::CodeGen::Descriptor.new(
           name: "PostSerializer",
-          models: [String, Integer],
+          model: String,
           attributes: [attr],
           method_attributes: [ma],
           associations: [assoc]
         )
         expect(desc).to be_frozen
         expect(desc.name).to eq("PostSerializer")
-        expect(desc.models).to eq([String, Integer])
+        expect(desc.model).to eq(String)
         expect(desc.attributes).to eq([attr])
         expect(desc.method_attributes).to eq([ma])
         expect(desc.associations).to eq([assoc])
       end
 
-      it "constructs with models: nil and empty Field arrays" do
+      it "constructs with model: nil and empty Field arrays" do
         desc = Panko::CodeGen::Descriptor.new(
           name: "PostSerializer",
-          models: nil,
+          model: nil,
           attributes: [],
           method_attributes: [],
           associations: []
         )
         expect(desc).to be_frozen
-        expect(desc.models).to be_nil
+        expect(desc.model).to be_nil
       end
 
       it "permits an Association whose descriptor is the parent (self-referential shape)" do
         parent = Panko::CodeGen::Descriptor.new(
           name: "CommentSerializer",
-          models: nil,
+          model: nil,
           attributes: [],
           method_attributes: [],
           associations: []
@@ -87,7 +87,7 @@ RSpec.describe "Compile-time errors" do
       it "raises when name is nil" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: nil, models: nil, attributes: [], method_attributes: [], associations: []
+            name: nil, model: nil, attributes: [], method_attributes: [], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#name/)
       end
@@ -95,32 +95,24 @@ RSpec.describe "Compile-time errors" do
       it "raises when name is an empty String" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "", models: nil, attributes: [], method_attributes: [], associations: []
+            name: "", model: nil, attributes: [], method_attributes: [], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#name/)
       end
 
-      it "raises when models contains a non-Class element" do
+      it "raises when model is neither nil nor a Class" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: ["NotAClass"], attributes: [], method_attributes: [], associations: []
+            name: "X", model: "NotAClass", attributes: [], method_attributes: [], associations: []
           )
-        }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#models/)
-      end
-
-      it "raises when models is not nil and not an Array" do
-        expect {
-          Panko::CodeGen::Descriptor.new(
-            name: "X", models: String, attributes: [], method_attributes: [], associations: []
-          )
-        }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#models/)
+        }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#model/)
       end
 
       it "raises when attributes contains a non-Attribute element" do
         ma = Panko::CodeGen::MethodAttribute.new(name: :x, body: -> {})
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [ma], method_attributes: [], associations: []
+            name: "X", model: nil, attributes: [ma], method_attributes: [], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#attributes/)
       end
@@ -129,7 +121,7 @@ RSpec.describe "Compile-time errors" do
         attr = Panko::CodeGen::Attribute.new(name: :x)
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [], method_attributes: [attr], associations: []
+            name: "X", model: nil, attributes: [], method_attributes: [attr], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#method_attributes/)
       end
@@ -138,7 +130,7 @@ RSpec.describe "Compile-time errors" do
         attr = Panko::CodeGen::Attribute.new(name: :x)
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [], method_attributes: [], associations: [attr]
+            name: "X", model: nil, attributes: [], method_attributes: [], associations: [attr]
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#associations/)
       end
@@ -146,7 +138,7 @@ RSpec.describe "Compile-time errors" do
       it "raises when attributes is not an Array" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: nil, method_attributes: [], associations: []
+            name: "X", model: nil, attributes: nil, method_attributes: [], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#attributes/)
       end
@@ -154,7 +146,7 @@ RSpec.describe "Compile-time errors" do
       it "raises when attributes contains a nil element" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [nil], method_attributes: [], associations: []
+            name: "X", model: nil, attributes: [nil], method_attributes: [], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#attributes/)
       end
@@ -162,7 +154,7 @@ RSpec.describe "Compile-time errors" do
       it "raises when method_attributes contains a nil element" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [], method_attributes: [nil], associations: []
+            name: "X", model: nil, attributes: [], method_attributes: [nil], associations: []
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#method_attributes/)
       end
@@ -170,28 +162,28 @@ RSpec.describe "Compile-time errors" do
       it "raises when associations contains a nil element" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [], method_attributes: [], associations: [nil]
+            name: "X", model: nil, attributes: [], method_attributes: [], associations: [nil]
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#associations/)
       end
 
       it "S18.1 parent_class: defaults to nil when the kwarg is omitted" do
         desc = Panko::CodeGen::Descriptor.new(
-          name: "X", models: nil, attributes: [], method_attributes: [], associations: []
+          name: "X", model: nil, attributes: [], method_attributes: [], associations: []
         )
         expect(desc.parent_class).to be_nil
       end
 
       it "S18.1 parent_class: accepts an explicit nil" do
         desc = Panko::CodeGen::Descriptor.new(
-          name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: nil
+          name: "X", model: nil, attributes: [], method_attributes: [], associations: [], parent_class: nil
         )
         expect(desc.parent_class).to be_nil
       end
 
       it "S18.1 parent_class: accepts a Class" do
         desc = Panko::CodeGen::Descriptor.new(
-          name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: String
+          name: "X", model: nil, attributes: [], method_attributes: [], associations: [], parent_class: String
         )
         expect(desc.parent_class).to equal(String)
       end
@@ -199,7 +191,7 @@ RSpec.describe "Compile-time errors" do
       it "S18.1 parent_class: raises when parent_class is not a Class" do
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: "Object"
+            name: "X", model: nil, attributes: [], method_attributes: [], associations: [], parent_class: "Object"
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#parent_class/)
       end
@@ -208,7 +200,7 @@ RSpec.describe "Compile-time errors" do
         mod = Module.new
         expect {
           Panko::CodeGen::Descriptor.new(
-            name: "X", models: nil, attributes: [], method_attributes: [], associations: [], parent_class: mod
+            name: "X", model: nil, attributes: [], method_attributes: [], associations: [], parent_class: mod
           )
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#parent_class/)
       end
@@ -279,7 +271,7 @@ RSpec.describe "Compile-time errors" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
           name: "InnerSerializer",
-          models: nil,
+          model: nil,
           attributes: [],
           method_attributes: [],
           associations: []
@@ -398,14 +390,14 @@ RSpec.describe "Compile-time errors" do
     describe "NameCollisionError (S9)" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
-          name: "InnerDescriptor", models: nil,
+          name: "InnerDescriptor", model: nil,
           attributes: [], method_attributes: [], associations: []
         )
       }
 
       it "raises when two Attributes share a name" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [
             Panko::CodeGen::Attribute.new(name: :id),
             Panko::CodeGen::Attribute.new(name: :id)
@@ -422,7 +414,7 @@ RSpec.describe "Compile-time errors" do
 
       it "raises when an Attribute and a MethodAttribute share a name" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [Panko::CodeGen::Attribute.new(name: :id)],
           method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :id, body: -> { "computed" })],
           associations: []
@@ -437,7 +429,7 @@ RSpec.describe "Compile-time errors" do
 
       it "raises when an Attribute and an Association share a name" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [Panko::CodeGen::Attribute.new(name: :author)],
           method_attributes: [],
           associations: [Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)]
@@ -452,7 +444,7 @@ RSpec.describe "Compile-time errors" do
 
       it "raises when a MethodAttribute and an Association share a name" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [],
           method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :author, body: -> { :ok })],
           associations: [Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: inner)]
@@ -467,13 +459,13 @@ RSpec.describe "Compile-time errors" do
 
       it "names the nested Descriptor when collision is inside a nested Descriptor" do
         nested = Panko::CodeGen::Descriptor.new(
-          name: "AuthorDescriptor", models: nil,
+          name: "AuthorDescriptor", model: nil,
           attributes: [Panko::CodeGen::Attribute.new(name: :name)],
           method_attributes: [],
           associations: [Panko::CodeGen::Association.new(name: :name, kind: :has_one, descriptor: inner)]
         )
         outer = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [], method_attributes: [],
           associations: [Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: nested)]
         )
@@ -487,12 +479,12 @@ RSpec.describe "Compile-time errors" do
 
       it "does not raise when the same name appears at different levels" do
         nested = Panko::CodeGen::Descriptor.new(
-          name: "AuthorDescriptor", models: nil,
+          name: "AuthorDescriptor", model: nil,
           attributes: [Panko::CodeGen::Attribute.new(name: :id)],
           method_attributes: [], associations: []
         )
         outer = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [Panko::CodeGen::Attribute.new(name: :id)],
           method_attributes: [],
           associations: [Panko::CodeGen::Association.new(name: :author, kind: :has_one, descriptor: nested)]
@@ -522,10 +514,10 @@ RSpec.describe "Compile-time errors" do
         end
       end
 
-      def descriptor_with_attribute(name:, source:, models:)
+      def descriptor_with_attribute(name:, source:, model:)
         Panko::CodeGen::Descriptor.new(
           name: "PostDescriptor",
-          models: models,
+          model: model,
           attributes: [Panko::CodeGen::Attribute.new(name: name, source: source)],
           method_attributes: [],
           associations: []
@@ -534,7 +526,7 @@ RSpec.describe "Compile-time errors" do
 
       it "does not raise when source is a column-backed Attribute on the single Model" do
         klass = fake_ar_class(name: "Post", columns: ["title"])
-        descriptor = descriptor_with_attribute(name: :title, source: :title, models: [klass])
+        descriptor = descriptor_with_attribute(name: :title, source: :title, model: klass)
         expect {
           Panko::CodeGen.compile(descriptor, output: :json)
         }.not_to raise_error
@@ -542,7 +534,7 @@ RSpec.describe "Compile-time errors" do
 
       it "does not raise when source is an instance method on the single Model" do
         klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
-        descriptor = descriptor_with_attribute(name: :full_title, source: :full_title, models: [klass])
+        descriptor = descriptor_with_attribute(name: :full_title, source: :full_title, model: klass)
         expect {
           Panko::CodeGen.compile(descriptor, output: :json)
         }.not_to raise_error
@@ -550,65 +542,25 @@ RSpec.describe "Compile-time errors" do
 
       it "raises when source is neither a column nor an instance method on the single Model" do
         klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
-        descriptor = descriptor_with_attribute(name: :missing, source: :missing, models: [klass])
+        descriptor = descriptor_with_attribute(name: :missing, source: :missing, model: klass)
         expect {
           Panko::CodeGen.compile(descriptor, output: :json)
         }.to raise_error(Panko::CodeGen::UnknownSourceError, /not a column or instance method on Post/)
       end
 
-      it "does not raise at Compile when Models is nil (defers to runtime NoMethodError)" do
-        descriptor = descriptor_with_attribute(name: :title, source: :title, models: nil)
+      it "does not raise at Compile when Model is nil (defers to runtime NoMethodError)" do
+        descriptor = descriptor_with_attribute(name: :title, source: :title, model: nil)
         expect {
           Panko::CodeGen.compile(descriptor, output: :json)
         }.not_to raise_error
       end
 
-      it "does not raise when models contains a non-AR class (falls through to method dispatch)" do
+      it "does not raise when model is a non-AR class (falls through to method dispatch)" do
         non_ar = Class.new { def self.name = "PlainClass" }
-        descriptor = descriptor_with_attribute(name: :anything, source: :anything, models: [non_ar])
+        descriptor = descriptor_with_attribute(name: :anything, source: :anything, model: non_ar)
         expect {
           Panko::CodeGen.compile(descriptor, output: :json)
         }.not_to raise_error
-      end
-
-      def descriptor_with_two_models(name:, source:, models:)
-        Panko::CodeGen::Descriptor.new(
-          name: "VehicleDescriptor",
-          models: models,
-          attributes: [Panko::CodeGen::Attribute.new(name: name, source: source)],
-          method_attributes: [],
-          associations: []
-        )
-      end
-
-      it "S7.1 multi-class: does not raise when source is column-backed on every class in a multi-class set" do
-        v = fake_ar_class(name: "Vehicle", columns: ["vin", "make"])
-        c = fake_ar_class(name: "Car", columns: ["vin", "make"])
-        descriptor = descriptor_with_two_models(name: :vin, source: :vin, models: [v, c])
-        expect {
-          Panko::CodeGen.compile(descriptor, output: :json)
-        }.not_to raise_error
-      end
-
-      it "S7.1 multi-class: does not raise when source downgrades to method dispatch (column-backed on one, method-only on the other)" do
-        v = fake_ar_class(name: "Vehicle", columns: ["make"], methods: %i[make])
-        c = fake_ar_class(name: "Car", columns: [], methods: %i[make])
-        descriptor = descriptor_with_two_models(name: :make, source: :make, models: [v, c])
-        expect {
-          Panko::CodeGen.compile(descriptor, output: :json)
-        }.not_to raise_error
-      end
-
-      it "S7.1 multi-class: raises UnknownSourceError when source is missing on at least one class in the set; message names the class" do
-        v = fake_ar_class(name: "Vehicle", columns: ["vin"], methods: %i[wheels])
-        c = fake_ar_class(name: "Car", columns: ["vin"])
-        descriptor = descriptor_with_two_models(name: :wheels, source: :wheels, models: [v, c])
-        expect {
-          Panko::CodeGen.compile(descriptor, output: :json)
-        }.to raise_error(
-          Panko::CodeGen::UnknownSourceError,
-          "VehicleDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Car."
-        )
       end
     end
 
@@ -616,7 +568,7 @@ RSpec.describe "Compile-time errors" do
       def descriptor_with_method_attribute(name:, body:)
         Panko::CodeGen::Descriptor.new(
           name: "PostDescriptor",
-          models: nil,
+          model: nil,
           attributes: [],
           method_attributes: [Panko::CodeGen::MethodAttribute.new(name: name, body: body)],
           associations: []
@@ -625,12 +577,12 @@ RSpec.describe "Compile-time errors" do
 
       def descriptor_with_association_if(name:, if_callable:)
         inner = Panko::CodeGen::Descriptor.new(
-          name: "InnerDescriptor", models: nil,
+          name: "InnerDescriptor", model: nil,
           attributes: [], method_attributes: [], associations: []
         )
         Panko::CodeGen::Descriptor.new(
           name: "PostDescriptor",
-          models: nil,
+          model: nil,
           attributes: [],
           method_attributes: [],
           associations: [
@@ -712,7 +664,7 @@ RSpec.describe "Compile-time errors" do
       # +spec/validators/symbol_body_dispatch_spec.rb+.
       it "raises when a Symbol-body MethodAttribute sits in a Descriptor with parent_class: nil" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [],
           method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
           associations: [],
@@ -729,7 +681,7 @@ RSpec.describe "Compile-time errors" do
 
       it "compiles when a Callable-body MethodAttribute sits in a Descriptor with parent_class: nil" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [],
           method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :computed, body: ->(_r) { :ok })],
           associations: [],
@@ -742,7 +694,7 @@ RSpec.describe "Compile-time errors" do
 
       it "compiles when a Callable-body MethodAttribute sits in a Descriptor with parent_class set" do
         descriptor = Panko::CodeGen::Descriptor.new(
-          name: "PostDescriptor", models: nil,
+          name: "PostDescriptor", model: nil,
           attributes: [],
           method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :computed, body: ->(_r) { :ok })],
           associations: [],
@@ -768,7 +720,7 @@ RSpec.describe "Compile-time errors" do
 
     it "NameCollisionError names the Descriptor, Field name, and rule (S9)" do
       descriptor = Panko::CodeGen::Descriptor.new(
-        name: "PostDescriptor", models: nil,
+        name: "PostDescriptor", model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :id, body: -> { "computed" })],
         associations: []
@@ -795,7 +747,7 @@ RSpec.describe "Compile-time errors" do
       end
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: [klass],
+        model: klass,
         attributes: [Panko::CodeGen::Attribute.new(name: :title, source: :raw_title)],
         method_attributes: [],
         associations: []
@@ -811,7 +763,7 @@ RSpec.describe "Compile-time errors" do
     it "ArityError matches the docs/errors.md § Message convention example (S4)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c, _d) { :ok })
@@ -829,7 +781,7 @@ RSpec.describe "Compile-time errors" do
     it "SymbolBodyError names the Descriptor, Field name, rule, and parent_class state (S18.2)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
         associations: [],
@@ -867,7 +819,7 @@ RSpec.describe "Compile-time errors" do
     it "ArityError parity — Dump raises the same class as Compile (S4)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c, _d) { :ok })
@@ -889,7 +841,7 @@ RSpec.describe "Compile-time errors" do
     it "NameCollisionError parity — Dump raises the same class as Compile (S9)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: nil,
+        model: nil,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id),
           Panko::CodeGen::Attribute.new(name: :id)
@@ -912,7 +864,7 @@ RSpec.describe "Compile-time errors" do
     it "SymbolBodyError parity — Dump raises the same class as Compile (S18.2)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
         associations: [],
@@ -947,7 +899,7 @@ RSpec.describe "Compile-time errors" do
       end
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: [klass],
+        model: klass,
         attributes: [Panko::CodeGen::Attribute.new(name: :missing, source: :missing)],
         method_attributes: [],
         associations: []
@@ -980,7 +932,7 @@ RSpec.describe "Compile-time errors" do
       end
       Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
-        models: [klass],
+        model: klass,
         attributes: [Panko::CodeGen::Attribute.new(name: :missing, source: :missing)],
         method_attributes: [],
         associations: []
@@ -991,7 +943,7 @@ RSpec.describe "Compile-time errors" do
       context "with #{mode} Output Mode" do
         it "NameCollisionError raises before Generator emit (S9)" do
           descriptor = Panko::CodeGen::Descriptor.new(
-            name: "PostDescriptor", models: nil,
+            name: "PostDescriptor", model: nil,
             attributes: [
               Panko::CodeGen::Attribute.new(name: :id),
               Panko::CodeGen::Attribute.new(name: :id)
@@ -1012,7 +964,7 @@ RSpec.describe "Compile-time errors" do
         it "ArityError raises before Generator emit (S4)" do
           descriptor = Panko::CodeGen::Descriptor.new(
             name: "PostDescriptor",
-            models: nil,
+            model: nil,
             attributes: [],
             method_attributes: [
               Panko::CodeGen::MethodAttribute.new(name: :likes_count, body: ->(_a, _b, _c, _d) { :ok })
@@ -1027,7 +979,7 @@ RSpec.describe "Compile-time errors" do
         it "SymbolBodyError raises before Generator emit (S18.2)" do
           descriptor = Panko::CodeGen::Descriptor.new(
             name: "PostDescriptor",
-            models: nil,
+            model: nil,
             attributes: [],
             method_attributes: [Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)],
             associations: [],

@@ -13,7 +13,7 @@ RSpec.describe Panko::CodeGen::Validators::SymbolBodyDispatch do
   )
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: nil,
+      model: nil,
       attributes: [],
       method_attributes: method_attributes,
       associations: associations,
@@ -74,7 +74,7 @@ RSpec.describe Panko::CodeGen::Validators::SymbolBodyDispatch do
   describe ".validate — nested Descriptor walk" do
     it "raises when the Symbol-body sits one level deep under a parent_class: nil Descriptor" do
       inner = Panko::CodeGen::Descriptor.new(
-        name: "AuthorDescriptor", models: nil,
+        name: "AuthorDescriptor", model: nil,
         attributes: [],
         method_attributes: [method_attribute(:full_name, :full_name)],
         associations: [],
@@ -93,7 +93,7 @@ RSpec.describe Panko::CodeGen::Validators::SymbolBodyDispatch do
 
     it "does not raise when each level of nested Descriptors with Symbol-body sets parent_class" do
       inner = Panko::CodeGen::Descriptor.new(
-        name: "AuthorDescriptor", models: nil,
+        name: "AuthorDescriptor", model: nil,
         attributes: [],
         method_attributes: [method_attribute(:full_name, :full_name)],
         associations: [],
@@ -114,7 +114,7 @@ RSpec.describe Panko::CodeGen::Validators::SymbolBodyDispatch do
   describe ".validate — cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       shared = Panko::CodeGen::Descriptor.new(
-        name: "SharedDescriptor", models: nil,
+        name: "SharedDescriptor", model: nil,
         attributes: [],
         method_attributes: [method_attribute(:fld, ->(_r) { :ok })],
         associations: [],
@@ -130,7 +130,7 @@ RSpec.describe Panko::CodeGen::Validators::SymbolBodyDispatch do
 
     it "does not infinite-loop on a self-referencing Descriptor" do
       parent = Panko::CodeGen::Descriptor.new(
-        name: "CommentDescriptor", models: nil,
+        name: "CommentDescriptor", model: nil,
         attributes: [],
         method_attributes: [method_attribute(:body, ->(_r) { :ok })],
         associations: [],

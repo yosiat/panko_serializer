@@ -27,7 +27,7 @@ RSpec.describe "Generator parent_class emit (S18.1)" do
   def descriptor(parent_class:)
     Panko::CodeGen::Descriptor.new(
       name: "DemoSerializer",
-      models: nil,
+      model: nil,
       attributes: [Panko::CodeGen::Attribute.new(name: :id)],
       method_attributes: [],
       associations: [],
@@ -69,7 +69,7 @@ RSpec.describe "Generator parent_class emit (S18.1)" do
           stub_const("ParentClassIdentitySpecBase_#{suffix}", parent)
           desc = Panko::CodeGen::Descriptor.new(
             name: "ParentClassIdentitySerializer_#{suffix}",
-            models: nil,
+            model: nil,
             attributes: [Panko::CodeGen::Attribute.new(name: :id)],
             method_attributes: [],
             associations: [],
@@ -82,7 +82,7 @@ RSpec.describe "Generator parent_class emit (S18.1)" do
         it "defaults to Object as the superclass when parent_class is nil" do
           desc = Panko::CodeGen::Descriptor.new(
             name: "DefaultSuperSerializer_#{suffix}",
-            models: nil,
+            model: nil,
             attributes: [Panko::CodeGen::Attribute.new(name: :id)],
             method_attributes: [],
             associations: []

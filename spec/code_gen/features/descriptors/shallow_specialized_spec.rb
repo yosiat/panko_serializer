@@ -14,16 +14,16 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
         let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
         let(:generated) { generated_class.new(descriptor: descriptor) }
 
-        it "reads column-backed Attributes via _read_attribute, bypassing the user-defined reader override" do
+        it "honors the user-defined reader override on a column-backed Attribute (method dispatch, not _read_attribute)" do
           post = Post.create!(title: "hello", body: "world", views: 7)
           expect(post.title).to eq("HELLO")
           output = generated.serialize_one(post)
           case mode
           when :json
-            expect(output).to include(%("title":"hello"))
-            expect(output).not_to include(%("title":"HELLO"))
+            expect(output).to include(%("title":"HELLO"))
+            expect(output).not_to include(%("title":"hello"))
           when :hash
-            expect(output["title"]).to eq("hello")
+            expect(output["title"]).to eq("HELLO")
           end
         end
 
@@ -43,11 +43,11 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
           post = Post.create!(title: "hi", body: "world", views: 7)
           expected = case mode
           when :json
-            %({"id":#{post.id},"title":"hi","headline":"HI (id=#{post.id})","static":42,"contextual":null})
+            %({"id":#{post.id},"title":"HI","headline":"HI (id=#{post.id})","static":42,"contextual":null})
           when :hash
             {
               "id" => post.id,
-              "title" => "hi",
+              "title" => "HI",
               "headline" => "HI (id=#{post.id})",
               "static" => 42,
               "contextual" => nil
@@ -86,7 +86,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
     end
   end
 
-  describe "non-AR class in models: falls back to method dispatch" do
+  describe "non-AR class in model: falls back to method dispatch" do
     # Inline helpers (rather than +let+s) keep the memoization cap (5) clear
     # — both per-mode contexts already pull +descriptor+ / +config+ /
     # +generated_class+ / +generated+ from the outer scope, leaving no room
@@ -99,7 +99,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
     def non_ar_descriptor
       @non_ar_descriptor ||= Panko::CodeGen::Descriptor.new(
         name: "NonArShallowSerializer",
-        models: [non_ar_record_class],
+        model: non_ar_record_class,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :title, source: :title)

@@ -11,7 +11,7 @@ require_relative "support/targets"
 
 ALIASES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "AliasesPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :title),

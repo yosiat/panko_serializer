@@ -5,7 +5,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ShallowGenericSerializer",
-      models: nil,
+      model: nil,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title)

@@ -46,7 +46,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ParentClassRecursiveSelfCommentSerializer",
-      models: nil,
+      model: nil,
       parent_class: ParentClassRecursiveBase,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),

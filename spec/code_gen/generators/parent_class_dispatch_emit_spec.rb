@@ -31,7 +31,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "MixedBodySerializer",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :static_via_callable, body: -> { 1 }),
@@ -72,7 +72,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:descriptor_with_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "SpecializedParentSerializer",
-        models: [Post],
+        model: Post,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: symbol_body_method_attributes,
         associations: [],
@@ -82,7 +82,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:descriptor_without_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "SpecializedParentNoSymbolSerializer",
-        models: [Post],
+        model: Post,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: [],
@@ -119,7 +119,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:descriptor_with_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "GenericParentSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: symbol_body_method_attributes,
         associations: [],
@@ -129,7 +129,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:descriptor_without_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "GenericParentNoSymbolSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: [],
@@ -198,7 +198,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:specialized_descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "NoParentSpecializedSerializer",
-        models: [Post],
+        model: Post,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -207,7 +207,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:generic_descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "NoParentGenericSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -262,7 +262,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     let(:descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "SymbolBodyEndToEndSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :static, body: -> { 99 }),
@@ -321,7 +321,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
       # — both pinned here; the runtime error stays Ruby-native.
       descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :nope, body: :nope_does_not_exist)

@@ -246,7 +246,7 @@ RSpec.describe Panko::CodeGen::Filter do
     def descriptor_with_attribute_names(names)
       Panko::CodeGen::Descriptor.new(
         name: "FilterEndToEnd_#{names.size}",
-        models: nil,
+        model: nil,
         attributes: names.map { |n| Panko::CodeGen::Attribute.new(name: n, source: n) },
         method_attributes: [],
         associations: []

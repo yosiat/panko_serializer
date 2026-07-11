@@ -12,7 +12,7 @@ require_relative "support/targets"
 
 METHOD_ATTRIBUTE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MethodAttributePostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title)

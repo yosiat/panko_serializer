@@ -36,10 +36,10 @@ class ShallowSpecializedSerializer_Hash
   def _to_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record._read_attribute("id")
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
-      result["title"] = record._read_attribute("title")
+      result["title"] = Panko::CodeGen.cast_datetime(record.title)
     end
     unless filters.drops?(2)
       result["headline"] = Panko::CodeGen.cast_datetime(record.headline)

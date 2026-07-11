@@ -22,10 +22,10 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  def descriptor_with(name: "PostDescriptor", models: nil, attributes: [], associations: [])
+  def descriptor_with(name: "PostDescriptor", model: nil, attributes: [], associations: [])
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: models,
+      model: model,
       attributes: attributes,
       method_attributes: [],
       associations: associations
@@ -39,7 +39,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
   describe ".validate — column outcome" do
     it "passes when source is a column on the single Model" do
       klass = fake_ar_class(name: "Post", columns: ["title"])
-      descriptor = descriptor_with(models: [klass], attributes: [attribute(:title)])
+      descriptor = descriptor_with(model: klass, attributes: [attribute(:title)])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.not_to raise_error
@@ -48,7 +48,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     it "passes when source defaults from name and the name is a column" do
       klass = fake_ar_class(name: "Post", columns: ["id", "title"])
       descriptor = descriptor_with(
-        models: [klass],
+        model: klass,
         attributes: [attribute(:id), attribute(:title)]
       )
       expect {
@@ -60,7 +60,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
   describe ".validate — method outcome" do
     it "passes when source is an instance method on the single Model" do
       klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
-      descriptor = descriptor_with(models: [klass], attributes: [attribute(:full_title)])
+      descriptor = descriptor_with(model: klass, attributes: [attribute(:full_title)])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.not_to raise_error
@@ -70,7 +70,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
   describe ".validate — UnknownSourceError" do
     it "raises when source is neither a column nor an instance method" do
       klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
-      descriptor = descriptor_with(models: [klass], attributes: [attribute(:missing)])
+      descriptor = descriptor_with(model: klass, attributes: [attribute(:missing)])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.to raise_error(
@@ -82,7 +82,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     it "names the resolved source (not the Field name) when source differs from name" do
       klass = fake_ar_class(name: "Post", columns: ["id"])
       descriptor = descriptor_with(
-        models: [klass],
+        model: klass,
         attributes: [attribute(:title, source: :raw_title)]
       )
       expect {
@@ -94,10 +94,10 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — Models: nil" do
-    it "does not raise when models is nil (Generic path; defers to runtime NoMethodError)" do
+  describe ".validate — model: nil" do
+    it "does not raise when model is nil (Generic path; defers to runtime NoMethodError)" do
       descriptor = descriptor_with(
-        models: nil,
+        model: nil,
         attributes: [attribute(:title), attribute(:anything)]
       )
       expect {
@@ -106,121 +106,15 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — non-AR class in models:" do
+  describe ".validate — non-AR class in model:" do
     it "skips classification for a plain Class.new (no +columns_hash+) and does not raise" do
       non_ar = Class.new do
         def self.name = "PlainClass"
       end
-      descriptor = descriptor_with(models: [non_ar], attributes: [attribute(:anything)])
+      descriptor = descriptor_with(model: non_ar, attributes: [attribute(:anything)])
       expect {
         described_class.validate(descriptor, output: :json, config: config)
       }.not_to raise_error
-    end
-  end
-
-  describe ".validate — multi-class intersection (S7.1)" do
-    it "passes when source is column-backed on every class in models:" do
-      v = fake_ar_class(name: "Vehicle", columns: ["vin", "make"])
-      c = fake_ar_class(name: "Car", columns: ["vin", "make"])
-      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:vin)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.not_to raise_error
-    end
-
-    it "passes when source is uniformly an instance method on every class (uniform method)" do
-      v = fake_ar_class(name: "Vehicle", columns: ["id"], methods: %i[label])
-      c = fake_ar_class(name: "Car", columns: ["id"], methods: %i[label])
-      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:label)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.not_to raise_error
-    end
-
-    it "passes when one class lacks the column (downgrade — column-backed on one, method-only on the other)" do
-      v = fake_ar_class(name: "Vehicle", columns: ["make"], methods: %i[make])
-      c = fake_ar_class(name: "Car", columns: [], methods: %i[make])
-      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:make)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.not_to raise_error
-    end
-
-    it "raises UnknownSourceError when source is missing on at least one class; message names the class" do
-      v = fake_ar_class(name: "Vehicle", columns: ["vin"], methods: %i[wheels])
-      c = fake_ar_class(name: "Car", columns: ["vin"])
-      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:wheels)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.to raise_error(
-        Panko::CodeGen::UnknownSourceError,
-        "PostDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Car."
-      )
-    end
-
-    it "names every missing class when the source is absent from multiple classes" do
-      v = fake_ar_class(name: "Vehicle", columns: ["vin"])
-      c = fake_ar_class(name: "Car", columns: ["vin"])
-      t = fake_ar_class(name: "Truck", columns: ["vin"])
-      descriptor = descriptor_with(models: [v, c, t], attributes: [attribute(:wheels)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.to raise_error(
-        Panko::CodeGen::UnknownSourceError,
-        "PostDescriptor#wheels: Attribute#source :wheels is not a column or instance method on Vehicle, Car, Truck."
-      )
-    end
-
-    it "calls DefineAttributeMethods.ensure! once per AR class in models: before any classification" do
-      define_calls = Hash.new(0)
-      generated = Hash.new(false)
-      build = ->(name) {
-        Class.new do
-          define_singleton_method(:name) { name }
-          define_singleton_method(:columns_hash) { {"vin" => :stub} }
-          define_singleton_method(:method_defined?) { |_| false }
-          define_singleton_method(:attribute_methods_generated?) { generated[name] }
-          define_singleton_method(:define_attribute_methods) do
-            define_calls[name] += 1
-            generated[name] = true
-          end
-        end
-      }
-      v = build.call("Vehicle")
-      c = build.call("Car")
-      descriptor = descriptor_with(models: [v, c], attributes: [attribute(:vin)])
-      described_class.validate(descriptor, output: :json, config: config)
-      expect(define_calls).to eq({"Vehicle" => 1, "Car" => 1})
-    end
-
-    it "skips classification when models: contains only non-AR classes" do
-      non_ar1 = Class.new { def self.name = "PlainOne" }
-      non_ar2 = Class.new { def self.name = "PlainTwo" }
-      descriptor = descriptor_with(models: [non_ar1, non_ar2], attributes: [attribute(:anything)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.not_to raise_error
-    end
-
-    it "filters non-AR classes from models: and classifies against the AR-class subset only" do
-      non_ar = Class.new { def self.name = "PlainClass" }
-      ar = fake_ar_class(name: "Post", columns: ["title"])
-      descriptor = descriptor_with(models: [non_ar, ar], attributes: [attribute(:title)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.not_to raise_error
-    end
-
-    it "does not name a non-AR class in the error message when only the AR class is missing the source" do
-      non_ar = Class.new { def self.name = "PlainClass" }
-      ar = fake_ar_class(name: "Post", columns: ["id"])
-      descriptor = descriptor_with(models: [non_ar, ar], attributes: [attribute(:title)])
-      expect {
-        described_class.validate(descriptor, output: :json, config: config)
-      }.to raise_error(
-        Panko::CodeGen::UnknownSourceError,
-        "PostDescriptor#title: Attribute#source :title is not a column or instance method on Post."
-      )
     end
   end
 
@@ -238,7 +132,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
           generated = true
         end
       end
-      descriptor = descriptor_with(models: [klass], attributes: [attribute(:title)])
+      descriptor = descriptor_with(model: klass, attributes: [attribute(:title)])
       described_class.validate(descriptor, output: :json, config: config)
       expect(define_calls).to eq(1)
     end
@@ -249,7 +143,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       inner_klass = fake_ar_class(name: "Author", columns: ["id"])
       inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor",
-        models: [inner_klass],
+        model: inner_klass,
         attributes: [attribute(:missing)],
         method_attributes: [],
         associations: []
@@ -270,7 +164,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       inner_klass = fake_ar_class(name: "Author", columns: ["id"])
       inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor",
-        models: [inner_klass],
+        model: inner_klass,
         attributes: [attribute(:id)],
         method_attributes: [],
         associations: []
@@ -287,7 +181,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       parent_klass = fake_ar_class(name: "Comment", columns: ["id", "body"])
       parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor",
-        models: [parent_klass],
+        model: parent_klass,
         attributes: [attribute(:body)],
         method_attributes: [],
         associations: []
@@ -304,7 +198,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
   describe ".validate — no Generated Class produced on raise" do
     it "raises before Panko::CodeGen.compile emits any source" do
       klass = fake_ar_class(name: "Post", columns: ["id"])
-      bad = descriptor_with(models: [klass], attributes: [attribute(:bad)])
+      bad = descriptor_with(model: klass, attributes: [attribute(:bad)])
       generated_class = nil
       expect {
         generated_class = Panko::CodeGen.compile(bad, output: :json, config: config)
@@ -328,7 +222,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
 
     it "is invoked by the orchestrator on Compile" do
       klass = fake_ar_class(name: "Post", columns: ["id"])
-      bad = descriptor_with(models: [klass], attributes: [attribute(:missing)])
+      bad = descriptor_with(model: klass, attributes: [attribute(:missing)])
       expect {
         Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
       }.to raise_error(Panko::CodeGen::UnknownSourceError, /not a column or instance method on Post/)

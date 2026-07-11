@@ -86,8 +86,8 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           generated = compile(Fixtures::ShallowSpecialized, mode)
           record = Fixtures::ShallowSpecialized.sanity_record
           expected = (mode == :json) ?
-            '{"id":1,"title":"hi","headline":"HI (id=1)","contextual":null}' :
-            {"id" => 1, "title" => "hi", "headline" => "HI (id=1)", "contextual" => nil}
+            '{"id":1,"title":"HI","headline":"HI (id=1)","contextual":null}' :
+            {"id" => 1, "title" => "HI", "headline" => "HI (id=1)", "contextual" => nil}
           expect(generated.serialize_one(record, filters: {except: [:static]})).to eq(expected)
         end
 
@@ -269,7 +269,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     let(:author_descriptor) do
       Panko::CodeGen::Descriptor.new(
         name: "Source7AuthorSerializer",
-        models: nil,
+        model: nil,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -282,7 +282,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     let(:post_descriptor) do
       Panko::CodeGen::Descriptor.new(
         name: "Source7PostSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [],
         associations: [
@@ -354,7 +354,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         def build_with_spy(spy)
           author_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfAuthorSerializer",
-            models: nil,
+            model: nil,
             attributes: [
               Panko::CodeGen::Attribute.new(name: :id, source: :id),
               Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -364,7 +364,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           )
           comment_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfCommentSerializer",
-            models: nil,
+            model: nil,
             attributes: [
               Panko::CodeGen::Attribute.new(name: :id, source: :id),
               Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -374,7 +374,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           )
           Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfPostSerializer",
-            models: nil,
+            model: nil,
             attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
             method_attributes: [],
             associations: [
