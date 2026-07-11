@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "panko/version"
+require "panko/config"
 require "panko/serializer"
 require "panko/array_serializer"
 require "panko/response"

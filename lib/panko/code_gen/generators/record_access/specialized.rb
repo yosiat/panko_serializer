@@ -79,6 +79,7 @@ module Panko::CodeGen
           ar_model = ar_model(descriptor)
           builder.line "def _write_one(record, writer, context, scope, filters)"
           builder.indent do
+            emit_model_guard(descriptor, config, "_generic_write_one(record, writer, context, scope, filters)", builder)
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
@@ -99,6 +100,9 @@ module Panko::CodeGen
             builder.line "writer.pop"
           end
           builder.line "end"
+          emit_generic_twin(config, builder) do
+            Generic.emit_json(descriptor, config, field_index, builder, method_name: "_generic_write_one")
+          end
         end
 
         # Emits the Hash-mode +_to_hash+ helper under +builder+, parallel
@@ -117,6 +121,7 @@ module Panko::CodeGen
           ar_model = ar_model(descriptor)
           builder.line "def _to_hash(record, context, scope, filters)"
           builder.indent do
+            emit_model_guard(descriptor, config, "_generic_to_hash(record, context, scope, filters)", builder)
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
@@ -151,6 +156,9 @@ module Panko::CodeGen
             builder.line "result"
           end
           builder.line "end"
+          emit_generic_twin(config, builder) do
+            Generic.emit_hash(descriptor, config, field_index, builder, method_name: "_generic_to_hash")
+          end
         end
 
         # Prepends per-record +@object+ / +@context+ / +@scope+ ivar
@@ -190,6 +198,52 @@ module Panko::CodeGen
           builder.line "@object = record"
           builder.line "@context = context"
           builder.line "@scope = scope"
+        end
+
+        # Emits the per-record class guard at the top of +_write_one+ /
+        # +_to_hash+ when +Config#guarded_model+ is set — the
+        # auto-specialization shape, where no caller contract guarantees
+        # record homogeneity. A mismatched record (Hash, PORO, STI
+        # sibling, heterogeneous array element) delegates to the inline
+        # generic twin via +fallback_call+, so a variant compiled for one
+        # record class can never emit wrong output for another. For
+        # homogeneous data the guard is a single perfectly-predicted
+        # +instance_of?+ per record. No-op under the (unguarded)
+        # declared-Model contract.
+        #
+        # @param descriptor [Panko::CodeGen::Descriptor]
+        # @param config [Panko::CodeGen::Config] resolved settings
+        # @param fallback_call [String] the twin invocation to emit behind
+        #   the guard
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @return [void]
+        # @raise [Panko::CodeGen::CompileError] when guarded emission is
+        #   requested for an anonymous Model — the guard references the
+        #   Model by constant path, so it must be named
+        def self.emit_model_guard(descriptor, config, fallback_call, builder)
+          return unless config.guarded_model
+          model_name = descriptor.model.name
+          if model_name.nil?
+            raise CompileError,
+              "#{descriptor.name}: guarded_model requires a named Model class; got anonymous #{descriptor.model.inspect}"
+          end
+          builder.line "return #{fallback_call} unless record.instance_of?(::#{model_name})"
+        end
+
+        # Emits the generic twin body (+_generic_write_one+ /
+        # +_generic_to_hash+) after the guarded Specialized entry — the
+        # same Fields through the Generic path's duck-typed reads and
+        # Hash branch, sharing the instance's child serializers and
+        # Writer. Emitted only under +Config#guarded_model+; the block
+        # supplies the mode-appropriate {Generic} emit.
+        #
+        # @param config [Panko::CodeGen::Config] resolved settings
+        # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @return [void]
+        def self.emit_generic_twin(config, builder)
+          return unless config.guarded_model
+          builder.blank
+          yield
         end
 
         # Returns the read expression for one Attribute in the Specialized

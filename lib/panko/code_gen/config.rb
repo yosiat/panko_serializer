@@ -29,6 +29,16 @@ module Panko::CodeGen
   #   +begin+/+ensure+ wrap, no +POOL+ constant) — the documented
   #   rollback path. No-op for +output: :hash+ (Hash mode allocates no
   #   Writer).
+  # - +guarded_model+: +false+ — Specialized-path bodies trust the
+  #   caller's Model contract unconditionally. +true+ (the
+  #   auto-specialization shape) prepends a per-record
+  #   +record.instance_of?(<Model>)+ guard to +_write_one+ / +_to_hash+
+  #   that delegates mismatched records to an inline generic twin body
+  #   (+_generic_write_one+ / +_generic_to_hash+) — same fields, duck
+  #   dispatch, Hash branch — so a variant compiled for one record class
+  #   can never emit wrong output for another. Requires
+  #   +descriptor.model+ to be a named class (the guard references it by
+  #   constant path).
   #
   # The two +hash_*_key_type+ fields are enum-shaped; only +:string+ and
   # +:symbol+ are accepted. Construction with any other value raises
@@ -43,7 +53,8 @@ module Panko::CodeGen
     :hash_record_key_type,
     :hash_output_key_type,
     :json_column_emit,
-    :pool_writer
+    :pool_writer,
+    :guarded_model
   )
 
   # Default values applied to omitted kwargs in +Config.new+. Documented
@@ -55,7 +66,8 @@ module Panko::CodeGen
     hash_record_key_type: :string,
     hash_output_key_type: :string,
     json_column_emit: :wire_format,
-    pool_writer: true
+    pool_writer: true,
+    guarded_model: false
   }.freeze
 
   # Allowed values for the +hash_record_key_type+ and
@@ -109,7 +121,8 @@ module Panko::CodeGen
       validate_enum!(:hash_record_key_type, values[:hash_record_key_type])
       validate_enum!(:hash_output_key_type, values[:hash_output_key_type])
       validate_json_column_emit!(values[:json_column_emit])
-      validate_pool_writer!(values[:pool_writer])
+      validate_boolean!(:pool_writer, values[:pool_writer])
+      validate_boolean!(:guarded_model, values[:guarded_model])
     end
 
     # Asserts +value+ is one of the allowed enum values for +field+. On
@@ -149,17 +162,19 @@ module Panko::CodeGen
 
     # Asserts +value+ is +true+ or +false+. Anything else (including
     # +nil+, a Symbol, or a truthy non-Boolean) raises +ArgumentError+.
-    # Pool selection is a code-emit shape decision, not a Descriptor
-    # shape, so the error class matches +validate_json_column_emit!+'s
-    # convention.
+    # Both Boolean fields gate a code-emit shape decision, not a
+    # Descriptor shape, so the error class matches
+    # +validate_json_column_emit!+'s convention.
     #
+    # @param field [Symbol] the Config field being validated; used
+    #   verbatim in the error message.
     # @param value [Object] the observed value to check.
     # @return [void]
     # @raise [ArgumentError] when +value+ is not +true+ or +false+.
-    def validate_pool_writer!(value)
+    def validate_boolean!(field, value)
       return if value.equal?(true) || value.equal?(false)
       raise ArgumentError,
-        "Config#pool_writer: invalid value #{value.inspect}; must be true or false."
+        "Config##{field}: invalid value #{value.inspect}; must be true or false."
     end
   end
 

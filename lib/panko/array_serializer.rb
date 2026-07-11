@@ -29,19 +29,30 @@ Please pass valid each_serializer to ArraySerializer, for example:
 
     # Inlined checkout/checkin for the same reason as Panko::Serializer's
     # serialize methods: the mode is static per method, so the pool comes off
-    # the serializer class's own slot without a dispatch-layer hop.
+    # the serializer class's own slot without a dispatch-layer hop. Pool
+    # selection dispatches on the first record's class through the same
+    # one-entry inline cache as Panko::Serializer — an empty array's
+    # NilClass pins to the generic pool, and a heterogeneous tail is safe
+    # because a specialized variant guards per record and delegates
+    # mismatches to its generic twin.
 
     def serialize(subjects)
       each_serializer = @each_serializer
-      pool = each_serializer._cg_pool_hash ||
-        Panko::CodeGen::SerializerCache.instance_pool(each_serializer, :hash)
+      records = subjects.to_a
+      model = records.first.class
+      cached = each_serializer._cg_last_hash
+      pool = if cached && model.equal?(cached[0])
+        cached[1]
+      else
+        Panko::CodeGen::SerializerCache.variant_pool(each_serializer, :hash, model)
+      end
       filters = if @only || @except || each_serializer._cg_has_filters_for
         Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
       end
       stack = pool.stack
       instance = stack.pop || pool.build
       begin
-        instance.serialize_many(subjects.to_a, context: @context, scope: @scope, filters: filters)
+        instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
       ensure
         # See Panko::Serializer#serialize — a pooled instance must not pin
         # the last record graph between calls.
@@ -56,15 +67,21 @@ Please pass valid each_serializer to ArraySerializer, for example:
 
     def serialize_to_json(subjects)
       each_serializer = @each_serializer
-      pool = each_serializer._cg_pool_json ||
-        Panko::CodeGen::SerializerCache.instance_pool(each_serializer, :json)
+      records = subjects.to_a
+      model = records.first.class
+      cached = each_serializer._cg_last_json
+      pool = if cached && model.equal?(cached[0])
+        cached[1]
+      else
+        Panko::CodeGen::SerializerCache.variant_pool(each_serializer, :json, model)
+      end
       filters = if @only || @except || each_serializer._cg_has_filters_for
         Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
       end
       stack = pool.stack
       instance = stack.pop || pool.build
       begin
-        instance.serialize_many(subjects.to_a, context: @context, scope: @scope, filters: filters)
+        instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
       ensure
         instance._release
         stack.push(instance)

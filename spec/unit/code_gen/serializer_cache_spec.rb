@@ -21,6 +21,11 @@ describe Panko::CodeGen::SerializerCache do
       klass._cg_pool_json = nil
       klass._cg_pool_hash = nil
       klass._cg_has_filters_for = nil
+      klass._cg_variants_json = nil
+      klass._cg_variants_hash = nil
+      klass._cg_last_json = nil
+      klass._cg_last_hash = nil
+      klass._cg_capacity_warned = nil
     end
   end
 

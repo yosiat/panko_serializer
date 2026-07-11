@@ -66,11 +66,15 @@ module Panko::CodeGen
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
         #   per-Field literal at codegen time
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @param method_name [String] emitted method name; the default is
+        #   the Generic path's own entry, +"_generic_write_one"+ is the
+        #   guarded-Specialized twin (see {Specialized} under
+        #   +Config#guarded_model+)
         # @return [void]
-        def self.emit_json(descriptor, config, field_index, builder)
-          return emit_json_split(descriptor, config, field_index, builder) if split_dispatch?(descriptor)
+        def self.emit_json(descriptor, config, field_index, builder, method_name: "_write_one")
+          return emit_json_split(descriptor, config, field_index, builder, method_name: method_name) if split_dispatch?(descriptor)
 
-          builder.line "def _write_one(record, writer, context, scope, filters)"
+          builder.line "def #{method_name}(record, writer, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
@@ -92,9 +96,11 @@ module Panko::CodeGen
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @param method_name [String] emitted dispatcher name (the
+        #   per-shape helper names are fixed)
         # @return [void]
-        def self.emit_json_split(descriptor, config, field_index, builder)
-          builder.line "def _write_one(record, writer, context, scope, filters)"
+        def self.emit_json_split(descriptor, config, field_index, builder, method_name: "_write_one")
+          builder.line "def #{method_name}(record, writer, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
@@ -126,11 +132,13 @@ module Panko::CodeGen
         #   +Field name → integer index+ map; threaded into each
         #   +FieldEmitters::*.emit_*+ call (mirror of {emit_json})
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @param method_name [String] emitted method name; +"_generic_to_hash"+
+        #   is the guarded-Specialized twin (mirror of {emit_json})
         # @return [void]
-        def self.emit_hash(descriptor, config, field_index, builder)
-          return emit_hash_split(descriptor, config, field_index, builder) if split_dispatch?(descriptor)
+        def self.emit_hash(descriptor, config, field_index, builder, method_name: "_to_hash")
+          return emit_hash_split(descriptor, config, field_index, builder, method_name: method_name) if split_dispatch?(descriptor)
 
-          builder.line "def _to_hash(record, context, scope, filters)"
+          builder.line "def #{method_name}(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
@@ -149,9 +157,11 @@ module Panko::CodeGen
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
+        # @param method_name [String] emitted dispatcher name (the
+        #   per-shape helper names are fixed)
         # @return [void]
-        def self.emit_hash_split(descriptor, config, field_index, builder)
-          builder.line "def _to_hash(record, context, scope, filters)"
+        def self.emit_hash_split(descriptor, config, field_index, builder, method_name: "_to_hash")
+          builder.line "def #{method_name}(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"

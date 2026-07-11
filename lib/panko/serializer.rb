@@ -58,6 +58,13 @@ module Panko
       attr_accessor :_cg_descriptor, :_cg_compiled_json, :_cg_compiled_hash,
         :_cg_pool_json, :_cg_pool_hash
 
+      # Auto-specialization state (SerializerCache.variant_pool): the
+      # copy-on-write variant maps (record class → InstancePool), the
+      # seams' one-entry inline caches (frozen [model, pool] pairs), and
+      # the capacity warn-once flag.
+      attr_accessor :_cg_variants_json, :_cg_variants_hash,
+        :_cg_last_json, :_cg_last_hash, :_cg_capacity_warned
+
       # Whether this class defines +filters_for+, so the unfiltered hot path
       # skips filter resolution entirely. Seeded at inheritance (covers a
       # parent-defined +filters_for+) and flipped by {singleton_method_added}
@@ -181,10 +188,24 @@ module Panko
     # checkout/checkin cycle costs one Thread.current lookup. This matters
     # because these shared entry points go polymorphic the moment an app has
     # more than one serializer class.
+    #
+    # Pool selection dispatches on the record's class through a one-entry
+    # inline cache (+_cg_last_json+/+_cg_last_hash+, a frozen [model, pool]
+    # pair): the overwhelmingly common one-record-class-per-serializer case
+    # pays one ivar read and one pointer compare over the old single-slot
+    # read; a miss falls to +SerializerCache.variant_pool+ (frozen-Hash
+    # lookup, first sight compiles). Concurrent writers can race the pair
+    # swap — worst case a hit returns a stale pool whose per-record class
+    # guard delegates to its generic twin, so output stays correct.
 
     def serialize(object)
       klass = self.class
-      pool = klass._cg_pool_hash || Panko::CodeGen::SerializerCache.instance_pool(klass, :hash)
+      cached = klass._cg_last_hash
+      pool = if cached && object.instance_of?(cached[0])
+        cached[1]
+      else
+        Panko::CodeGen::SerializerCache.variant_pool(klass, :hash, object.class)
+      end
       filters = if @only || @except || klass._cg_has_filters_for
         Panko::CodeGen::Runtime.runtime_filters(klass, @context, @scope, @only, @except)
       end
@@ -203,7 +224,12 @@ module Panko
 
     def serialize_to_json(object)
       klass = self.class
-      pool = klass._cg_pool_json || Panko::CodeGen::SerializerCache.instance_pool(klass, :json)
+      cached = klass._cg_last_json
+      pool = if cached && object.instance_of?(cached[0])
+        cached[1]
+      else
+        Panko::CodeGen::SerializerCache.variant_pool(klass, :json, object.class)
+      end
       filters = if @only || @except || klass._cg_has_filters_for
         Panko::CodeGen::Runtime.runtime_filters(klass, @context, @scope, @only, @except)
       end
