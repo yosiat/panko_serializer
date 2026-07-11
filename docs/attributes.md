@@ -90,8 +90,9 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-But this reads `created_at` as a plain method, skipping Panko's type casting —
-a direct hit on performance. `aliases` keeps the fast column path while changing
+But this turns a column read into a method attribute — an extra method call on
+every record, and the value skips Panko's column handling (for example, datetime
+formatting in Hash mode). `aliases` keeps the plain column path while changing
 the output key:
 
 ```ruby
@@ -100,8 +101,7 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-Here `created_at` is read (and type-cast) as a column, but emitted as
-`published_at`.
+Here `created_at` is read as a regular column, but emitted as `published_at`.
 
 ## Filtering attributes
 
