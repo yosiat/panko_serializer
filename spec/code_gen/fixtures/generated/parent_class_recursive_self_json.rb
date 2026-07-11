@@ -74,7 +74,7 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
         writer.pop
       end
       unless filters.drops?(2)
-        value = viewer_tag
+        value = self.viewer_tag
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "viewer_tag")
         end
@@ -97,7 +97,7 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
         writer.pop
       end
       unless filters.drops?(2)
-        value = viewer_tag
+        value = self.viewer_tag
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "viewer_tag")
         end

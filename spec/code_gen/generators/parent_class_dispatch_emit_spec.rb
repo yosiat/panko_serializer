@@ -44,9 +44,9 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        it "emits +value = <method_name>+ for Symbol bodies, not +@cb_<name>.call+" do
+        it "emits +value = self.<method_name>+ for Symbol bodies, not +@cb_<name>.call+" do
           source = generator.emit(descriptor, output: mode, config: config)
-          expect(source).to include("value = greeting\n")
+          expect(source).to include("value = self.greeting\n")
           expect(source).not_to include("@cb_greeting.call")
         end
 
@@ -311,14 +311,12 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     end
 
     it "raises Ruby's native error at serialize time for a Symbol resolving to a missing method" do
-      # Ruby raises +NameError+ (which is +NoMethodError+'s superclass)
-      # for a bare-identifier reference that resolves to neither a
-      # local variable nor a method on +self+; +NoMethodError+ fires
-      # only for explicit-receiver dispatch (+self.foo+). The emitted
-      # shape is bare per the PRD (+value = <method_name>+), so the
-      # natural Ruby class here is +NameError+. The contract that
-      # matters is "no scg-specific error" + "no Compile-time check"
-      # — both pinned here; the runtime error stays Ruby-native.
+      # The emitted shape is explicit-receiver (+value = self.<name>+ —
+      # the receiver keeps user methods from being shadowed by the
+      # body's locals), so Ruby raises +NoMethodError+; the matcher
+      # pins its +NameError+ superclass. The contract that matters is
+      # "no scg-specific error" + "no Compile-time check" — both
+      # pinned here; the runtime error stays Ruby-native.
       descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",
         model: nil,

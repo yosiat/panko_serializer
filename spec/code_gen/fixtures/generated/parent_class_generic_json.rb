@@ -66,7 +66,7 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
         writer.push_value(record["name"], "name")
       end
       unless filters.drops?(2)
-        value = greeting
+        value = self.greeting
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "greeting")
         end
@@ -87,7 +87,7 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
         writer.push_value(record.name, "name")
       end
       unless filters.drops?(2)
-        value = greeting
+        value = self.greeting
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "greeting")
         end

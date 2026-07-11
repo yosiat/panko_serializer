@@ -51,7 +51,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
         result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
       end
       unless filters.drops?(2)
-        value = viewer_tag
+        value = self.viewer_tag
         unless value.equal?(Panko::CodeGen::SKIP)
           result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
         end
@@ -70,7 +70,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
         result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
       end
       unless filters.drops?(2)
-        value = viewer_tag
+        value = self.viewer_tag
         unless value.equal?(Panko::CodeGen::SKIP)
           result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
         end

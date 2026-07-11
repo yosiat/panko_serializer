@@ -15,12 +15,13 @@ module Panko::CodeGen
       #   +method_attribute.body.is_a?(Symbol)+ per S18.3 /
       #   +docs/merging-into-panko.md § Generated Class subclasses the
       #   user's Panko serializer+:
-      #   * Symbol → +value = <method_name>+ (direct method dispatch on
-      #     +self+, reachable because the owning Descriptor's
-      #     +parent_class+ pushes the Generated Class into a subclass of
-      #     the user-supplied class — semantic legitimacy enforced by
-      #     +Validators::SymbolBodyDispatch+ in S18.2, runtime errors are
-      #     Ruby-native).
+      #   * Symbol → +value = self.<method_name>+ (explicit-receiver
+      #     method dispatch on +self+, reachable because the owning
+      #     Descriptor's +parent_class+ pushes the Generated Class into a
+      #     subclass of the user-supplied class — semantic legitimacy
+      #     enforced by +Validators::SymbolBodyDispatch+ in S18.2, runtime
+      #     errors are Ruby-native; the receiver keeps the call from being
+      #     shadowed by the emitted bodies' locals, see {call_expression}).
       #   * Callable → today's arity-specialized
       #     +@cb_<name>.call(record, context, scope)+ — unchanged from
       #     pre-S18 emit, byte-identical for every existing snapshot.
@@ -123,8 +124,13 @@ module Panko::CodeGen
 
         # Returns the body-kind-specialized call expression for one
         # +MethodAttribute+. Branches on +body.is_a?(Symbol)+ per S18.3:
-        # Symbol bodies emit a bare +<method_name>+ (direct method
-        # dispatch on +self+, no Callable indirection); Callable bodies
+        # Symbol bodies emit +self.<method_name>+ — the explicit receiver
+        # is load-bearing, since the emitted bodies have +record+ /
+        # +writer+ / +context+ / +scope+ / +filters+ / +value+ / +result+
+        # locals in scope and a bare token for a user method with any of
+        # those names would silently resolve to the local (+value = value+
+        # even self-shadows to +nil+). +self.+ also reaches a method made
+        # private after definition (legal since Ruby 2.7). Callable bodies
         # emit today's arity-specialized +@cb_<name>.call(...)+, pre-
         # validated by the +callable_arity+ rule (S4.1, widened to
         # +0..3+ in S17.1, widened in S18.2 to skip Symbol bodies) so
@@ -136,12 +142,12 @@ module Panko::CodeGen
         #
         # @param method_attribute [Panko::CodeGen::MethodAttribute]
         #   the Field node; +#body+ is either a +Symbol+ or a Callable
-        # @return [String] Ruby source — +"greeting"+ for a Symbol body
-        #   named +:greeting+; +"@cb_full_title.call(record, context)"+
+        # @return [String] Ruby source — +"self.greeting"+ for a Symbol
+        #   body named +:greeting+; +"@cb_full_title.call(record, context)"+
         #   for an arity-2 Callable body on a Field named +:full_title+
         def self.call_expression(method_attribute)
           body = method_attribute.body
-          return body.to_s if body.is_a?(Symbol)
+          return "self.#{body}" if body.is_a?(Symbol)
           ivar = ivar_name(method_attribute)
           case body.arity
           when 0 then "#{ivar}.call"

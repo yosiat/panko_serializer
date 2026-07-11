@@ -46,7 +46,7 @@ class ParentClassSpecializedSerializer_Hash < ParentClassSpecializedBase
       result["name"] = Panko::CodeGen.cast_datetime(record.name)
     end
     unless filters.drops?(2)
-      value = greeting
+      value = self.greeting
       unless value.equal?(Panko::CodeGen::SKIP)
         result["greeting"] = Panko::CodeGen.cast_datetime(value)
       end
