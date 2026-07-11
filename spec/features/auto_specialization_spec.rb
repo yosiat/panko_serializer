@@ -46,18 +46,20 @@ describe "Auto-specialization" do
       expect(variant).not_to be(serializer_class._cg_pool_json)
     end
 
-    it "pins a Hash record class to the base generic pool" do
+    it "routes a Hash record class to the base generic pool without a map entry" do
       serializer_class.new.serialize_to_json(hash_record)
 
-      expect(serializer_class._cg_variants_json.fetch(Hash)).to be(serializer_class._cg_pool_json)
+      expect(variant_pool_for(serializer_class, :json, Hash)).to be(serializer_class._cg_pool_json)
+      expect(serializer_class._cg_variants_json || {}).not_to have_key(Hash)
     end
 
-    it "pins an anonymous AR class to the base generic pool (guard needs a constant path)" do
+    it "routes an anonymous AR class to the base generic pool (guard needs a constant path)" do
       anonymous_model = Class.new(ActiveRecord::Base) { self.table_name = "foos" }
       record = anonymous_model.create(name: name, address: address).reload
 
       expect(Oj.load(serializer_class.new.serialize_to_json(record))).to eq(expected)
-      expect(serializer_class._cg_variants_json.fetch(anonymous_model)).to be(serializer_class._cg_pool_json)
+      expect(variant_pool_for(serializer_class, :json, anonymous_model)).to be(serializer_class._cg_pool_json)
+      expect(serializer_class._cg_variants_json || {}).not_to have_key(anonymous_model)
     end
 
     it "pins to generic when the specialized compile fails, deferring to the runtime error" do
@@ -74,7 +76,8 @@ describe "Auto-specialization" do
 
       serializer_class.new.serialize_to_json(foo)
 
-      expect(serializer_class._cg_variants_json.fetch(Foo)).to be(serializer_class._cg_pool_json)
+      expect(variant_pool_for(serializer_class, :json, Foo)).to be(serializer_class._cg_pool_json)
+      expect(serializer_class._cg_variants_json || {}).not_to have_key(Foo)
     end
   end
 
@@ -176,7 +179,7 @@ describe "Auto-specialization" do
       expect(first_output).to eq(expected)
       expect(second_output).to eq(expected)
       expect(serializer_class._cg_variants_json.fetch(Foo)).not_to be(serializer_class._cg_pool_json)
-      expect(serializer_class._cg_variants_json.fetch(SecondFoo)).to be(serializer_class._cg_pool_json)
+      expect(serializer_class._cg_variants_json).not_to have_key(SecondFoo)
     end
 
     it "warns exactly once per serializer class when capacity is reached" do
@@ -195,6 +198,79 @@ describe "Auto-specialization" do
       expect(warnings.size).to eq(1)
       expect(warnings.first).to include("auto-specialization capacity (#{capacity_of_one}) reached")
       expect(warnings.first).to include("Panko::Config.auto_specialization.capacity")
+    end
+  end
+
+  describe "json columns with reader overrides" do
+    let(:payload_seed) { {"a" => 1} }
+    let(:computed_payload) { payload_seed.merge("computed" => true) }
+
+    before do
+      Temping.create(:json_host) do
+        with_columns do |t|
+          t.json :payload
+        end
+
+        def payload
+          (super || {}).merge("computed" => true)
+        end
+      end
+    end
+
+    let(:json_serializer_class) do
+      stub_const("JsonOverrideSerializer", Class.new(Panko::Serializer) do
+        attributes :payload
+      end)
+    end
+
+    let(:json_record) { JsonHost.create(payload: payload_seed).reload }
+
+    it "runs the override on the specialized variant (json mode)" do
+      output = Oj.load(json_serializer_class.new.serialize_to_json(json_record))
+      expect(output).to eq("payload" => computed_payload)
+    end
+
+    it "runs the override on the specialized variant (hash mode)" do
+      expect(json_serializer_class.new.serialize(json_record)).to eq("payload" => computed_payload)
+    end
+  end
+
+  describe "named but unregistered record classes" do
+    let(:phantom_class) do
+      klass_name = "PhantomFoo"
+      Class.new(ActiveRecord::Base) do
+        self.table_name = "foos"
+        define_singleton_method(:name) { klass_name }
+      end
+    end
+    let(:phantom_record) { phantom_class.create(name: name, address: address).reload }
+
+    it "serializes through the generic path instead of baking an unresolvable constant guard" do
+      2.times do
+        expect(Oj.load(serializer_class.new.serialize_to_json(phantom_record))).to eq(expected)
+        expect(serializer_class.new.serialize(phantom_record)).to eq(expected)
+      end
+    end
+
+    it "does not store a variant-map entry for it" do
+      serializer_class.new.serialize_to_json(phantom_record)
+      expect(serializer_class._cg_variants_json || {}).not_to have_key(phantom_class)
+    end
+  end
+
+  describe "variant map growth" do
+    let(:ephemeral_serializes) { 3 }
+
+    it "does not store entries for ephemeral non-AR record classes" do
+      serializer_class.new.serialize_to_json(foo)
+      size_before = serializer_class._cg_variants_json.size
+
+      ephemeral_serializes.times do
+        ephemeral = Struct.new(:name, :address)
+        serializer_class.new.serialize_to_json(ephemeral.new(name, address))
+      end
+
+      expect(serializer_class._cg_variants_json.size).to eq(size_before)
     end
   end
 

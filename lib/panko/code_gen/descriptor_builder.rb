@@ -98,16 +98,35 @@ module Panko
         return nil if reflection.nil? || reflection.polymorphic?
         klass = begin
           reflection.klass
-        rescue NameError
-          # +class_name:+ pointing at an undefined constant resolves lazily;
-          # an unresolvable edge simply isn't specializable.
+        rescue
+          # +class_name:+ pointing at an undefined constant resolves lazily
+          # (NameError), and misdeclared associations can raise other
+          # errors (e.g. ArgumentError) — an unresolvable edge simply
+          # isn't specializable.
           nil
         end
-        return nil if klass.nil? || klass.name.nil?
+        return nil if klass.nil? || !resolvable_name?(klass)
         return nil unless klass.respond_to?(:columns_hash) && klass.respond_to?(:attribute_methods_generated?)
         klass
       end
       private_class_method :reflected_child_model
+
+      # The specialized emit guards each body with
+      # +record.instance_of?(::<Name>)+, so a Model is only specializable
+      # when its name resolves back to the same class object at serialize
+      # time — a named-but-unregistered class (+def self.name = "X"+ with
+      # no +::X+ constant, or one shadowed by a stub) would bake a guard
+      # that raises +NameError+ or silently never matches.
+      #
+      # @param klass [Class]
+      # @return [Boolean]
+      def self.resolvable_name?(klass)
+        name = klass.name
+        return false if name.nil?
+        Object.const_defined?(name) && Object.const_get(name).equal?(klass)
+      rescue NameError
+        false
+      end
 
       # @param decl [Panko::Serializer::AssociationDecl]
       def to_association(decl)

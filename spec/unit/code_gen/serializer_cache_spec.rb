@@ -68,4 +68,32 @@ describe Panko::CodeGen::SerializerCache do
   it "raises on an unknown output mode" do
     expect { fetch(SerializerCacheFooSerializer, :xml) }.to raise_error(ArgumentError, /unknown output mode/)
   end
+
+  describe ".variant_pool — first-sight compile failures" do
+    before do
+      Temping.create(:cache_host) do
+        with_columns do |t|
+          t.string :name
+        end
+      end
+    end
+
+    let(:transient_error) { ActiveRecord::StatementInvalid.new("connection lost") }
+
+    it "returns the base pool unstored on a transient AR error, then retries and admits" do
+      base = described_class.instance_pool(SerializerCacheBarSerializer, :json)
+
+      allow(Panko::CodeGen).to receive(:compile).and_raise(transient_error)
+      pool = described_class.variant_pool(SerializerCacheBarSerializer, :json, CacheHost)
+
+      expect(pool).to be(base)
+      expect(SerializerCacheBarSerializer._cg_variants_json || {}).not_to have_key(CacheHost)
+
+      allow(Panko::CodeGen).to receive(:compile).and_call_original
+      retried = described_class.variant_pool(SerializerCacheBarSerializer, :json, CacheHost)
+
+      expect(retried).not_to be(base)
+      expect(SerializerCacheBarSerializer._cg_variants_json.fetch(CacheHost)).to be(retried)
+    end
+  end
 end

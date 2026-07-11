@@ -111,9 +111,17 @@ module Panko
       # Returns the {InstancePool} for (serializer class, mode, record
       # class) — the auto-specialization dispatch behind the seams' inline
       # cache. First sight of an eligible AR record class compiles a
-      # guarded Specialized variant for it; ineligible classes (and
-      # compile failures, and classes past capacity) are pinned to the
-      # base pool, so every subsequent call is a single frozen-Hash read.
+      # guarded Specialized variant for it and stores it in the map.
+      #
+      # The map only ever grows with ADMITTED entries — specialized
+      # variants (capacity-bounded) and deterministic +CompileError+ pins
+      # (bounded by real AR classes; stored so a failing descriptor isn't
+      # recompiled on every inline-cache miss). Everything else —
+      # ineligible classes (Hash, POROs, unresolvable names), capacity
+      # overflow, transient compile errors — returns the base pool WITHOUT
+      # inserting, so per-call-minted record classes can't grow the map or
+      # be pinned against GC; they cost their cheap eligibility re-check
+      # on each inline-cache miss instead.
       #
       # The variant compile runs outside +COMPILE_MUTEX+ (mirroring
       # {fetch}'s convert-outside-the-lock discipline and avoiding
@@ -123,8 +131,8 @@ module Panko
       #
       # @param serializer_class [Class] a Panko::Serializer subclass
       # @param output [Symbol] :json or :hash
-      # @param model [Class] the record's class (any class — non-AR pins
-      #   to the base pool)
+      # @param model [Class] the record's class (any class — non-AR uses
+      #   the base pool)
       # @return [Panko::CodeGen::InstancePool]
       def self.variant_pool(serializer_class, output, model)
         variants = variants_slot(serializer_class, output)
@@ -132,13 +140,18 @@ module Panko
 
         unless pool
           base = instance_pool(serializer_class, output)
-          candidate = auto_variant_pool(serializer_class, output, model, base) || base
-          COMPILE_MUTEX.synchronize do
-            current = variants_slot(serializer_class, output) || EMPTY_VARIANTS
-            pool = current[model]
-            unless pool
-              pool = admit_variant(serializer_class, model, candidate, base, current)
-              store_variants(serializer_class, output, current.merge(model => pool).freeze)
+          pool, admissible = auto_variant_pool(serializer_class, output, model, base)
+          if admissible
+            COMPILE_MUTEX.synchronize do
+              current = variants_slot(serializer_class, output) || EMPTY_VARIANTS
+              if (existing = current[model])
+                pool = existing
+              elsif (admitted = admit_variant(serializer_class, model, pool, base, current))
+                store_variants(serializer_class, output, current.merge(model => admitted).freeze)
+                pool = admitted
+              else
+                pool = base
+              end
             end
           end
         end
@@ -229,38 +242,46 @@ module Panko
       end
       private_class_method :remember_last
 
-      # Compiles the guarded Specialized variant for +model+, or returns
-      # +nil+ to pin the class to the base pool. +nil+ paths: the feature
-      # is disabled, +model+ is anonymous (the emitted guard references it
-      # by constant path) or not AR-like, capacity is exhausted, or the
-      # specialized compile fails — auto-specialization must never turn a
-      # serializer that works generically into a raise. The descriptor tree is rebuilt by
+      # Resolves the pool candidate for a first-seen +model+ and whether
+      # it may be stored: +[pool, admissible]+. Admissible entries are the
+      # compiled variant and the +CompileError+ base pin (deterministic
+      # failure — storing it avoids recompiling on every inline-cache
+      # miss). Everything else returns +[base, false]+: ineligible
+      # classes, capacity overflow (pre-checked lock-free here, re-checked
+      # in {admit_variant}), and non-deterministic +StandardError+ from AR
+      # introspection (possibly transient — connection loss, schema not
+      # loaded — so left unstored for a natural retry on a later miss;
+      # auto-specialization must never turn a serializer that works
+      # generically into a raise). The descriptor tree is rebuilt by
       # {DescriptorBuilder.specialize}: the root gets +model+ and each
       # association's reflected AR class fills its child's Model
       # recursively, so nested serializers get the typed emits too.
       def self.auto_variant_pool(serializer_class, output, model, base)
-        return nil unless auto_specialize?(model)
+        return [base, false] unless auto_specialize?(model)
         if specialized_count(serializer_class, output, base) >= Panko::Config.auto_specialization.capacity
           warn_capacity_once(serializer_class, model)
-          return nil
+          return [base, false]
         end
 
         descriptor = DescriptorBuilder.specialize(descriptor_for(serializer_class), model)
         compiled = Panko::CodeGen.compile(descriptor, output: output, config: Config.new(guarded_model: true))
-        InstancePool.new(
+        pool = InstancePool.new(
           :"_panko_cg_pool_#{output}_#{serializer_class.object_id}_#{model.object_id}",
           compiled, descriptor
         )
+        [pool, true]
       rescue CompileError
-        nil
+        [base, true]
+      rescue
+        [base, false]
       end
       private_class_method :auto_variant_pool
 
       def self.auto_specialize?(model)
         Panko::Config.auto_specialization.enabled &&
-          !model.name.nil? &&
           model.respond_to?(:columns_hash) &&
-          model.respond_to?(:attribute_methods_generated?)
+          model.respond_to?(:attribute_methods_generated?) &&
+          DescriptorBuilder.resolvable_name?(model)
       end
       private_class_method :auto_specialize?
 
@@ -273,14 +294,16 @@ module Panko
       private_class_method :specialized_count
 
       # Runs under +COMPILE_MUTEX+. Re-checks capacity against the current
-      # map (the pre-compile check in {auto_variant_pool} was lock-free) and
-      # downgrades an over-capacity candidate to the base pool.
+      # map (the pre-compile check in {auto_variant_pool} was lock-free).
+      # Returns the pool to store, or +nil+ for an over-capacity candidate
+      # — the class then uses the base pool WITHOUT a map entry, keeping
+      # the map bounded by admitted entries only.
       def self.admit_variant(serializer_class, model, candidate, base, current)
         return candidate if candidate.equal?(base)
         return candidate if current.count { |_, pool| !pool.equal?(base) } < Panko::Config.auto_specialization.capacity
 
         warn_capacity_once(serializer_class, model)
-        base
+        nil
       end
       private_class_method :admit_variant
 

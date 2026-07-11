@@ -294,18 +294,23 @@ module Panko::CodeGen
           model
         end
 
-        # Returns +true+ when +attribute+ is JSON-typed on the AR Model —
-        # the S12.5 +:wire_format+ JSON-mode emit path. +nil+ +ar_model+
-        # (the "non-AR class in model:" case) returns +false+; that path
-        # falls through to method dispatch on every Attribute and is
-        # irrelevant to the JSON-column optimization.
+        # Returns +true+ when +attribute+ is JSON-typed on the AR Model
+        # AND carries a +:column+ verdict — the S12.5 +:wire_format+
+        # JSON-mode emit path. The classify gate mirrors
+        # {datetime_column_attribute?}: a user-overridden reader must keep
+        # method dispatch (both column emits read past the override), so
+        # only AR's own auto-generated reader may take the column path.
+        # +nil+ +ar_model+ (the "non-AR class in model:" case) returns
+        # +false+; that path falls through to method dispatch on every
+        # Attribute and is irrelevant to the JSON-column optimization.
         #
         # @param attribute [Panko::CodeGen::Attribute] the Field node
         # @param ar_model [Class, nil]
         # @return [Boolean]
         def self.json_column_attribute?(attribute, ar_model)
           return false if ar_model.nil?
-          ActiveRecord::AccessClassifier.json_typed?(ar_model, attribute.source)
+          return false unless ActiveRecord::AccessClassifier.json_typed?(ar_model, attribute.source)
+          ActiveRecord::AccessClassifier.classify(ar_model, attribute.source) == :column
         end
 
         # Returns +true+ when +attribute+ takes the raw-string datetime fast
