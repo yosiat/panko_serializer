@@ -191,7 +191,7 @@ Generated Class, so a subclass override affects only that subclass's compile.
   is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1; see
   [research/define_attribute_methods_safety.md](research/define_attribute_methods_safety.md)).
 
-### Non-AR class in `models`
+### Non-AR class in `model`
 
 If the **Model** isn't ActiveRecord, **Compile** falls back to `record.foo` method
 dispatch. No Hash-access branch is emitted (the contract is still "**Records** are

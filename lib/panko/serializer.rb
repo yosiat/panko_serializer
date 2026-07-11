@@ -47,7 +47,7 @@ module Panko
       # Each serializer accumulates its Fields as the engine's own value
       # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
       # on first use. A subclass inherits a copy so its DSL edits stay local.
-      attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations, :_cg_model
+      attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations
 
       # Per-class compile cache: the converted Descriptor, the compiled
       # Generated Class per output mode, and the per-mode InstancePool.
@@ -77,7 +77,6 @@ module Panko
         base._cg_attributes = (_cg_attributes || []).dup
         base._cg_method_attributes = (_cg_method_attributes || []).dup
         base._cg_associations = (_cg_associations || []).dup
-        base._cg_model = _cg_model
         base._cg_has_filters_for = base.respond_to?(:filters_for)
       end
 
@@ -87,20 +86,6 @@ module Panko
       def singleton_method_added(method)
         super
         @_cg_has_filters_for = true if method == :filters_for
-      end
-
-      # Opts this serializer into the engine's Specialized record-access path:
-      # attributes read through +record._read_attribute+ (the ActiveRecord fast
-      # path) instead of the Generic +record.send+. The caller guarantees every
-      # serialized record is an instance of the declared class; each attribute's
-      # source must be a column or instance method on it, or compilation raises.
-      # Calling with no classes keeps the Generic path. Exactly one class — the
-      # engine compiles one monomorphic body per Model, so a mixed set has no
-      # single specialization to compile to.
-      def models(*klasses)
-        flat = klasses.flatten
-        raise ArgumentError, "models expects exactly one class; got #{flat.size}" if flat.size > 1
-        @_cg_model = flat.first
       end
 
       def attributes(*attrs)

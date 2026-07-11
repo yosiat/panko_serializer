@@ -7,7 +7,7 @@ require_relative "support/targets"
 # Attribute backed by a JSON DB column (`bench_posts.metadata`). On read the
 # column is deserialized to a Ruby Hash by AR; on emit the value is encoded
 # back to JSON. The scenario isolates the cost of dumping a structured Hash
-# value compared to scalar Attributes. Models: [Bench::Post] picks the
+# value compared to scalar Attributes. model: Bench::Post picks the
 # specialized path so the scg row goes through the same model-aware fast
 # path as panko/{json,object}.
 

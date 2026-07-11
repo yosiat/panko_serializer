@@ -60,15 +60,13 @@ describe "Auto-specialization" do
       expect(serializer_class._cg_variants_json.fetch(anonymous_model)).to be(serializer_class._cg_pool_json)
     end
 
-    it "keeps a serializer with a declared model on its unguarded base pool for every record class" do
-      declared = stub_const("DeclaredFooSerializer", Class.new(Panko::Serializer) do
-        models [Foo]
-        attributes :name, :address
+    it "pins to generic when the specialized compile fails, deferring to the runtime error" do
+      invalid = stub_const("InvalidFooSerializer", Class.new(Panko::Serializer) do
+        attributes :name, :not_a_column
       end)
 
-      declared.new.serialize_to_json(foo)
-
-      expect(declared._cg_variants_json.fetch(Foo)).to be(declared._cg_pool_json)
+      expect { invalid.new.serialize_to_json(foo) }.to raise_error(NoMethodError, /not_a_column/)
+      expect(invalid._cg_variants_json.fetch(Foo)).to be(invalid._cg_pool_json)
     end
 
     it "routes every record class to the generic pool when disabled" do

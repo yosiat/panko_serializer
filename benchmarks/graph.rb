@@ -9,7 +9,7 @@ require_relative "support/targets"
 # suite lacks. Two has_one Associations (:author, :first_comment) and two
 # has_many Associations (:comments, :recent_comments) on the same parent
 # stress per-Field dispatch through several nested Generated Classes per
-# Record. Models: [Bench::Post] / [Bench::Author] / [Bench::Comment] picks
+# Record. model: Bench::Post / Bench::Author / Bench::Comment picks
 # the specialized path on every level.
 #
 # :first_comment and :recent_comments are method-backed Sources defined on

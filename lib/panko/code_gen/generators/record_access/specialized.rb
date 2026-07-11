@@ -40,8 +40,8 @@ module Panko::CodeGen
       #
       # Non-AR class fallback: when +descriptor.model+ is a non-AR class
       # (no +#columns_hash+), every Attribute falls through to method
-      # dispatch. This is the "+Struct+ or plain +Class.new+ in +models:+"
-      # case from +docs/compilation.md § Non-AR class in +models++ — the
+      # dispatch. This is the "+Struct+ or plain +Class.new+ in +model:+"
+      # case from +docs/compilation.md § Non-AR class in +model++ — the
       # contract still binds (no Hash branch), just the column-form
       # optimization doesn't apply.
       #
@@ -54,14 +54,14 @@ module Panko::CodeGen
       module Specialized
         # Emits the JSON-mode +_write_one+ helper under +builder+. No
         # +_write_one_hash+ / +_write_one_object+ split — the Specialized
-        # path's contract is "Records are instances of declared +models:+",
+        # path's contract is "Records are instances of the declared +model:+",
         # so the body is monomorphic end-to-end. Per-Field emit delegates
         # to +FieldEmitters::Attribute+ / +FieldEmitters::Association+ /
         # +FieldEmitters::MethodAttribute+ — same per-Field shape as the
         # Generic path; only the per-Attribute read expression differs.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
-        #   being compiled; +#models+ must be non-+nil+ (caller already
+        #   being compiled; +#model+ must be non-+nil+ (caller already
         #   gated)
         # @param config [Panko::CodeGen::Config] resolved compile-time
         #   settings; threaded through to per-Field emitters whose source
@@ -253,7 +253,7 @@ module Panko::CodeGen
         # honored, never bypassed) emit +record.<name>+. When +ar_model+
         # is +nil+ (the declared Model fails the AR duck-type test), falls
         # back to method dispatch for every Attribute — the "non-AR class
-        # in +models:+" case from +docs/compilation.md § Non-AR class in
+        # in +model:+" case from +docs/compilation.md § Non-AR class in
         # `models`+.
         #
         # @param attribute [Panko::CodeGen::Attribute]
@@ -296,7 +296,7 @@ module Panko::CodeGen
 
         # Returns +true+ when +attribute+ is JSON-typed on the AR Model —
         # the S12.5 +:wire_format+ JSON-mode emit path. +nil+ +ar_model+
-        # (the "non-AR class in models:" case) returns +false+; that path
+        # (the "non-AR class in model:" case) returns +false+; that path
         # falls through to method dispatch on every Attribute and is
         # irrelevant to the JSON-column optimization.
         #

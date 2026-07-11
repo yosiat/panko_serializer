@@ -46,16 +46,15 @@ describe "Panko::CodeGen::DescriptorBuilder.specialize" do
     expect(specialized.associations.first.descriptor.model).to eq(Bar)
   end
 
-  it "leaves a child that declared its own Model untouched" do
-    stub_const("DeclaredBarSerializer", Class.new(Panko::Serializer) do
-      models [Bar]
-      attributes :label
-    end)
+  it "leaves a child that already carries a Model untouched" do
+    bar_serializer
     foo_serializer = stub_const("FooSerializer", Class.new(Panko::Serializer) do
       attributes :name
-      has_many :bars, serializer: DeclaredBarSerializer
+      has_many :bars, serializer: BarSerializer
     end)
-    descriptor = descriptor_for(foo_serializer)
+    base = descriptor_for(foo_serializer)
+    filled_child = base.associations.first.with(descriptor: base.associations.first.descriptor.with(model: Bar))
+    descriptor = base.with(associations: [filled_child])
 
     specialized = specialize(descriptor, Foo)
 

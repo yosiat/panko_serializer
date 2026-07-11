@@ -21,7 +21,7 @@ module Panko::CodeGen
     #   +docs/errors.md+.
     # - Non-AR class in +model:+ (e.g. a +Struct+ or plain +Class.new+) —
     #   skipped. The Specialized path falls back to method dispatch per
-    #   +docs/compilation.md § Non-AR class in `models`+.
+    #   +docs/compilation.md § Non-AR class in `model`+.
     module SourceResolution
       # Walks +descriptor+ depth-first and raises on the first unresolvable
       # Attribute Source against the +model:+ class. Uses an identity-keyed
@@ -69,7 +69,7 @@ module Panko::CodeGen
         # When +descriptor.model+ is not AR-like (e.g. a +Struct+ or a
         # plain +Class.new+), classification is skipped — the Specialized
         # path falls back to method dispatch per +docs/compilation.md §
-        # Non-AR class in `models`+.
+        # Non-AR class in `model`+.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] a Descriptor
         #   with +model:+ set (caller already gated)
@@ -112,10 +112,10 @@ module Panko::CodeGen
         # Duck-typed AR test: +columns_hash+ is the canonical AR class
         # method the classifier introspects, and +attribute_methods_generated?+
         # is the gate +DefineAttributeMethods.ensure!+ short-circuits on.
-        # Non-AR classes in +models:+ (e.g. +Struct+, plain +Class.new+)
+        # Non-AR classes in +model:+ (e.g. +Struct+, plain +Class.new+)
         # fail this test and are skipped — the Specialized path emits
         # method dispatch for them per +docs/compilation.md § Non-AR
-        # class in `models`+.
+        # class in `model`+.
         #
         # @param klass [Class]
         # @return [Boolean]

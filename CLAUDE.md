@@ -16,12 +16,17 @@ is now the **only** engine behind every `serialize` / `serialize_to_json` call:
 - The DSL (`Panko::Serializer`) accumulates its declarations and builds an
   immutable `Panko::CodeGen::Descriptor` directly (via
   `lib/panko/code_gen/descriptor_builder.rb`); `serialize` / `serialize_to_json`
-  are inlined in `Panko::Serializer` / `Panko::ArraySerializer` — each compiles
-  once per (class, mode) (cached) and checks a Generated Class instance out of a
-  fiber-local `InstancePool` (`SerializerCache.instance_pool`) around the call,
-  releasing per-record state at checkin. `Panko::CodeGen::Runtime` only supplies
-  `runtime_filters` (`only`/`except`/`filters_for` → engine `Filter` via
-  `FilterAdapter`).
+  are inlined in `Panko::Serializer` / `Panko::ArraySerializer` and dispatch on
+  the record's class through a one-entry inline cache backed by
+  **auto-specialization** (`SerializerCache.variant_pool`): first sight of a
+  named AR record class compiles a guarded Specialized variant for it (typed
+  emits, `_read_attribute` reads, children filled via AR reflections); Hash
+  records, POROs, compile failures, and classes past
+  `Panko::Config.auto_specialization.capacity` pin to the generic base pool.
+  Each variant checks a Generated Class instance out of a fiber-local
+  `InstancePool` around the call, releasing per-record state at checkin.
+  `Panko::CodeGen::Runtime` only supplies `runtime_filters`
+  (`only`/`except`/`filters_for` → engine `Filter` via `FilterAdapter`).
 - The **C extension has been deleted** — `ext/` is gone and there is no native
   extension to compile. `Panko::SerializationDescriptor` and the C
   `Attribute`/`Association` classes no longer exist.

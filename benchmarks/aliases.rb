@@ -5,7 +5,7 @@ require_relative "support/targets"
 
 # --- Aliases-shape Descriptor / serializers -------------------------------
 # Attributes whose output `name` differs from their `source` — the bench
-# exercises the per-Field rename path. Models: [Bench::Post] picks the
+# exercises the per-Field rename path. model: Bench::Post picks the
 # specialized path on the scg row for an apples-to-apples comparison
 # against panko/{json,object}.
 
@@ -30,12 +30,6 @@ class AliasesPostPankoSerializer < Panko::Serializer
   aliases title: :name, body: :content, views: :hits
 end
 
-class AliasesPostPankoModelsSerializer < Panko::Serializer
-  models [Bench::Post]
-  attributes :id
-  aliases title: :name, body: :content, views: :hits
-end
-
 class AliasesPostOjSerializer < OjSerializers::Serializer
   default_format :json
   attributes :id
@@ -48,8 +42,6 @@ Targets::SCG_JSON[:aliases] = ->(records) { SCG_JSON_ALIASES.serialize_many(reco
 Targets::SCG_HASH[:aliases] = ->(records) { SCG_HASH_ALIASES.serialize_many(records) }
 Targets::PANKO_JSON[:aliases] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:aliases] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoSerializer).to_a }
-Targets::PANKO_JSON[:aliases_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoModelsSerializer).to_json }
-Targets::PANKO_OBJECT[:aliases_models] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoModelsSerializer).to_a }
 Targets::OJ_JSON[:aliases] = ->(records) { AliasesPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:aliases] = ->(records) { records.map { |r| {id: r.id, name: r.title, content: r.body, hits: r.views} }.to_json }
 Targets::PLAIN_HASH[:aliases] = ->(records) { records.map { |r| {id: r.id, name: r.title, content: r.body, hits: r.views} } }
@@ -62,8 +54,6 @@ benchmark_scenario "Aliases", type: :posts do |records|
     "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:aliases].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:aliases].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:aliases].call(records) },
-    "panko/json[models]" => -> { Targets::PANKO_JSON[:aliases_models].call(records) },
-    "panko/object[models]" => -> { Targets::PANKO_OBJECT[:aliases_models].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:aliases].call(records) },
     "plain/json" => -> { Targets::PLAIN_JSON[:aliases].call(records) },
     "plain/hash" => -> { Targets::PLAIN_HASH[:aliases].call(records) }

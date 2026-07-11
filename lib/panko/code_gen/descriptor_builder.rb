@@ -17,11 +17,13 @@ module Panko
       module_function
 
       # @param serializer_class [Class] a Panko::Serializer subclass
-      # @return [Panko::CodeGen::Descriptor]
+      # @return [Panko::CodeGen::Descriptor] the Generic-path base
+      #   Descriptor; {specialize} fills +model+ per record class at
+      #   auto-specialization compile time
       def build(serializer_class)
         Descriptor.new(
           name: descriptor_name(serializer_class),
-          model: serializer_class._cg_model,
+          model: nil,
           attributes: serializer_class._cg_attributes.dup,
           method_attributes: serializer_class._cg_method_attributes.dup,
           associations: serializer_class._cg_associations.map { |decl| to_association(decl) },

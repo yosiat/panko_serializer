@@ -15,8 +15,7 @@ module Panko
     # Two tiers per (serializer class, mode):
     #
     # - the **base** Generated Class / {InstancePool} — Generic record
-    #   access (or unguarded Specialized when the serializer declared a
-    #   Model) — held in a class ivar, compiled once, read lock-free.
+    #   access — held in a class ivar, compiled once, read lock-free.
     # - the **auto-specialization variant map** ({variant_pool}) — a frozen
     #   copy-on-write Hash of record class → {InstancePool}, grown at first
     #   sight of each record class. Eligible AR classes get a guarded
@@ -232,17 +231,15 @@ module Panko
 
       # Compiles the guarded Specialized variant for +model+, or returns
       # +nil+ to pin the class to the base pool. +nil+ paths: the feature
-      # is disabled, the serializer declared its own Model (the base pool
-      # is already specialized, contract unchanged), +model+ is anonymous
-      # (the emitted guard references it by constant path) or not AR-like,
-      # capacity is exhausted, or the specialized compile fails —
-      # auto-specialization must never turn a serializer that works
-      # generically into a raise. The descriptor tree is rebuilt by
+      # is disabled, +model+ is anonymous (the emitted guard references it
+      # by constant path) or not AR-like, capacity is exhausted, or the
+      # specialized compile fails — auto-specialization must never turn a
+      # serializer that works generically into a raise. The descriptor tree is rebuilt by
       # {DescriptorBuilder.specialize}: the root gets +model+ and each
       # association's reflected AR class fills its child's Model
       # recursively, so nested serializers get the typed emits too.
       def self.auto_variant_pool(serializer_class, output, model, base)
-        return nil unless auto_specialize?(serializer_class, model)
+        return nil unless auto_specialize?(model)
         if specialized_count(serializer_class, output, base) >= Panko::Config.auto_specialization.capacity
           warn_capacity_once(serializer_class, model)
           return nil
@@ -259,9 +256,8 @@ module Panko
       end
       private_class_method :auto_variant_pool
 
-      def self.auto_specialize?(serializer_class, model)
+      def self.auto_specialize?(model)
         Panko::Config.auto_specialization.enabled &&
-          serializer_class._cg_model.nil? &&
           !model.name.nil? &&
           model.respond_to?(:columns_hash) &&
           model.respond_to?(:attribute_methods_generated?)

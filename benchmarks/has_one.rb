@@ -4,10 +4,10 @@ require_relative "support/benchmark"
 require_relative "support/targets"
 
 # --- HasOne-shape Descriptor / serializers --------------------------------
-# Post → Author single has_one Association. Models: [Bench::Post] /
-# [Bench::Author] picks the specialized path on both sides so the scg row
-# goes through the same model-aware fast path as panko/{json,object} for an
-# apples-to-apples comparison.
+# Post → Author single has_one Association. model: Bench::Post / Bench::Author
+# picks the specialized path on both sides so the scg row goes through the
+# same model-aware fast path as panko/{json,object} for an apples-to-apples
+# comparison.
 
 HAS_ONE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasOneAuthorBenchSerializer",
