@@ -7,14 +7,6 @@ class DatabaseConfig
       adapter: "sqlite3",
       database: ":memory:"
     },
-    "postgresql" => {
-      adapter: "postgresql",
-      database: "panko_test",
-      host: ENV["POSTGRES_HOST"] || "localhost",
-      username: ENV["POSTGRES_USER"] || "postgres",
-      password: ENV["POSTGRES_PASSWORD"] || "",
-      port: ENV["POSTGRES_PORT"] || 5432
-    },
     "mysql" => {
       adapter: "trilogy",
       database: "panko_test",

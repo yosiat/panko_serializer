@@ -6,7 +6,6 @@ gemspec
 
 group :benchmarks do
   gem "stackprof"
-  gem "pg"
 
   gem "benchmark-ips"
   gem "memory_profiler"
@@ -23,7 +22,6 @@ group :test do
 end
 
 group :development do
-  gem "byebug"
   gem "rake"
   gem "rspec", "~> 3.0"
   gem "lefthook"

@@ -14,8 +14,6 @@ require_relative "support/database_config"
 case DatabaseConfig.database_type
 when "sqlite"
   require "sqlite3"
-when "postgresql"
-  require "pg"
 when "mysql"
   require "trilogy"
 end
