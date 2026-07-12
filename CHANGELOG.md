@@ -48,8 +48,11 @@ output byte-for-byte was a design gate for the rewrite.
 ### Changed
 
 - **Faster.** Generated straight-line Ruby, specialized per record class and
-  compiled by YJIT, outperforms the 0.8.5 C extension by roughly 2–3x on
-  Panko's own benchmark suite (Ruby 4.0.2 + YJIT; see `benchmarks/`).
+  compiled by YJIT, beats the 0.8.5 C extension on every benchmark. A paired
+  head-to-head (both versions on the same Ruby 4.0.2 + YJIT) measures roughly
+  **1.9x** faster on JSON output and **3.1x** on Hash output (geomean across
+  Panko's suite), while allocating far fewer objects — steady-state JSON stays
+  O(1) in allocations where the C extension grew per record.
 - **Nothing to compile at install.** The gem is pure Ruby — installation no
   longer builds a native extension.
 - **Documentation rewritten** at [panko.dev](https://panko.dev), including the
