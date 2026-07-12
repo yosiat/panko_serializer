@@ -50,14 +50,14 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "generated source — :wire_format" do
-    it "contains push_json and Oj.sc_parse with mode: :strict" do
+    it "contains push_json and Oj.sc_parse with the frozen strict-parse opts" do
       source = Panko::CodeGen::Generator.new.emit(
         descriptor,
         output: :json,
         config: Panko::CodeGen::Config.new(json_column_emit: :wire_format)
       )
       expect(source).to include('writer.push_json(raw, "metadata")')
-      expect(source).to include("Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, mode: :strict)")
+      expect(source).to include("Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, Panko::CodeGen::JSON_STRICT_PARSE_OPTS)")
       expect(source).to include("rescue Oj::ParseError, EncodingError")
     end
   end

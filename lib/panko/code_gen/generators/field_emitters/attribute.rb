@@ -56,8 +56,10 @@ module Panko::CodeGen
         #
         # - +:wire_format+ (default) — read the pre-typecast raw bytes via
         #   +record.read_attribute_before_type_cast(name)+, validate
-        #   well-formedness via +Oj.sc_parse(JSON_NOOP_PARSER, raw, mode:
-        #   :strict)+ inside an inline +rescue Oj::ParseError, EncodingError+
+        #   well-formedness via +Oj.sc_parse(JSON_NOOP_PARSER, raw,
+        #   JSON_STRICT_PARSE_OPTS)+ (the strict-mode opts passed as a frozen
+        #   positional constant, not a per-call +mode:+ kwarg Hash) inside an
+        #   inline +rescue Oj::ParseError, EncodingError+
         #   guard, and on success push the bytes verbatim through
         #   +writer.push_json(raw, "<name>")+ — matches Panko 0.8.5
         #   byte-for-byte. On any rejection (non-String, empty, malformed,
@@ -96,7 +98,7 @@ module Panko::CodeGen
             builder.line %(raw = record.read_attribute_before_type_cast(#{source_lit}))
             builder.line "if raw.is_a?(String) && !raw.empty? && (begin"
             builder.indent do
-              builder.line "Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, mode: :strict)"
+              builder.line "Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, Panko::CodeGen::JSON_STRICT_PARSE_OPTS)"
               builder.line "true"
             end
             builder.line "rescue Oj::ParseError, EncodingError"

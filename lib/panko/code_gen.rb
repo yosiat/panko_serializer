@@ -50,6 +50,15 @@ module Panko::CodeGen
   # {file:docs/code_gen/config.md} for rationale and benchmark numbers.
   JSON_NOOP_PARSER = Object.new.freeze
 
+  # Frozen options for the +:wire_format+ JSON-column validation
+  # +Oj.sc_parse+ call. Passing +mode: :strict+ as a keyword argument
+  # allocates a fresh Hash on every call into Oj's C entry point (one per
+  # record); a hoisted frozen constant passed positionally reuses the same
+  # object, so the per-record validation matches the old C extension's
+  # allocation count. Emitted positionally by
+  # {Generators::FieldEmitters::Attribute.emit_json_column}.
+  JSON_STRICT_PARSE_OPTS = {mode: :strict}.freeze
+
   # Compiles +descriptor+ into a fresh Generated Class for the named
   # +output:+ mode. Thin facade per +docs/code_gen/structure.md § Public API
   # surface+ — every call goes through the same +Compiler+ orchestration
