@@ -27,6 +27,16 @@ Please pass valid each_serializer to ArraySerializer, for example:
       serialize_to_json(@subjects)
     end
 
+    # The effective public view for this instance — see Panko::Serializer#descriptor.
+    def descriptor
+      each_serializer = @each_serializer
+      filters = if @only || @except || each_serializer._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
+      end
+      base = Panko::Descriptor.for(each_serializer)
+      filters ? Panko::Descriptor::Filtered.new(base, filters) : base
+    end
+
     # Inlined checkout/checkin for the same reason as Panko::Serializer's
     # serialize methods: the mode is static per method, so the pool comes off
     # the serializer class's own slot without a dispatch-layer hop. Pool

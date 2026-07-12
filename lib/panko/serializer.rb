@@ -65,6 +65,9 @@ module Panko
       attr_accessor :_cg_variants_json, :_cg_variants_hash,
         :_cg_last_json, :_cg_last_hash, :_cg_capacity_warned
 
+      # The cached Panko::Descriptor public view (see Panko::Descriptor.for).
+      attr_accessor :_cg_public_descriptor
+
       # Whether this class defines +filters_for+, so the unfiltered hot path
       # skips filter resolution entirely. Seeded at inheritance (covers a
       # parent-defined +filters_for+) and flipped by {singleton_method_added}
@@ -106,6 +109,11 @@ module Panko
         return if index.nil?
         attribute = _cg_attributes.delete_at(index)
         _cg_method_attributes << Panko::CodeGen::MethodAttribute.new(name: attribute.name, body: method)
+      end
+
+      # The static public view of this serializer's declared shape.
+      def descriptor
+        Panko::Descriptor.for(self)
       end
 
       def has_one(name, options = {})
@@ -165,6 +173,18 @@ module Panko
     # @context / @scope on itself per record, so a user method field reads
     # them off the generated instance it runs on.
     attr_reader :object, :context, :scope
+
+    # The effective public view for this instance. Unfiltered (the common
+    # case) it is the cached class-level view itself; with filters it wraps
+    # that view lazily — the serialize path is not involved either way.
+    def descriptor
+      klass = self.class
+      filters = if @only || @except || klass._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(klass, @context, @scope, @only, @except)
+      end
+      base = Panko::Descriptor.for(klass)
+      filters ? Panko::Descriptor::Filtered.new(base, filters) : base
+    end
 
     # Both serialize methods inline the whole seam instead of calling into a
     # shared Runtime entry point: the mode is known statically here, so the
