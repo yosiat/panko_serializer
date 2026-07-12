@@ -3,22 +3,6 @@
 Items explicitly punted out of v1, with the version or milestone they're deferred to. When
 reviving one, check that the corresponding section of the main docs still holds.
 
-## Pre-Panko-merge
-
-> **Moved out**:
->
-> - The "First-class Context AND Scope across all callable surfaces"
->   entry was promoted to the live plan as
->   [implementation-plan.md § S17](implementation-plan.md#s17--first-class-context-and-scope)
->   — the foundation slice of
->   [Phase 4 — Pre-Panko-merge prep](implementation-plan.md#phase-4--pre-panko-merge-prep).
-> - The "`parent_class` method-field dispatch — scg-side prep" entry
->   (formerly "K1 method-field dispatch") was promoted to the live plan as
->   [implementation-plan.md § S18](implementation-plan.md#s18--subclass-based-method-dispatch-parent_class--scg-side-prep)
->   on 2026-05-16, after grilling resolved Symbol-body validation flow,
->   per-record ivar-writes gating (bench-validated), Generic-path support,
->   and fixture coverage scope.
-
 ## v2
 
 ### Polymorphic Associations
@@ -84,7 +68,7 @@ source where possible, fall back to a comment placeholder otherwise.
 benchmark harness and flags regressions vs. a committed baseline before the commit
 lands. Intended as a first-line-of-defense against accidental perf regressions — the
 CI tier explicitly won't run benchmarks (GHA noise floor > our signal threshold; see
-[testing.md](testing.md) and the CI design doc).
+[benchmarks.md](benchmarks.md)).
 
 **Why punted**: depends on the full benchmark harness landing first (harness, baseline
 file format, comparison tool). Also needs a "sanity subset" concept — the smallest
@@ -127,26 +111,6 @@ a design discussion.
 Panko-DSL layer where they own the naming conventions.
 
 **How to apply when revived**: probably never — keep at the consumer layer.
-
-### `:instance` namespace clash — loud failure mode
-
-**Feature**: surface the `has_one :instance` / `has_many :instance` filter
-clash loudly (raise at class-definition time, or at descriptor-build time)
-instead of silently dropping the association from filter resolution.
-
-**Why punted (Q8.e, 2026-05-16)**: documented but preserved as-is for the
-initial merge to avoid forcing every affected user to rename their
-association just to load the post-merge gem. The clash is rare (`:instance`
-is an unusual association name) and the bug-compat path is the safer
-default for the major-version merge. Documented as a known limitation in
-[merging-into-panko-changes.md § Documented limitation — `has_one :instance` /
-`has_many :instance` filters unreachable](merging-into-panko-changes.md#documented-limitation--has_one-instance--has_many-instance-filters-unreachable).
-
-**How to apply when revived**: add a check at `Panko::Serializer.has_one` /
-`.has_many` that raises `ArgumentError` when the association name is
-`:instance`. Coordinate with a CHANGELOG callout and a migration note
-explaining the rename workaround. Empirical probe of current Panko
-behaviour at `/tmp/instance_clash/probe.rb`.
 
 ### Hash-mode default key type — flip `Config#hash_output_key_type` to `:symbol`
 

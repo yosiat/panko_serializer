@@ -4,10 +4,8 @@ Performance measurement strategy — harness, scenarios, comparison targets, and
 regression workflow. Terms in bold are defined in
 [UBIQUITOUS_LANGUAGE.md](UBIQUITOUS_LANGUAGE.md).
 
-Benchmarks **do not run in CI** (see [ci.md § Benchmarks in CI](ci.md#benchmarks-in-ci)).
-They run on dev hardware against a committed baseline in release notes. Refinement of
-the structure below is expected once the harness lands — this doc captures the locked
-structural decisions, not a final spec.
+Benchmarks **do not run in CI** — GitHub Actions' noise floor exceeds the signal we
+care about. They run on dev hardware against a committed baseline in release notes.
 
 ## Harness
 
@@ -47,23 +45,33 @@ benchmarks/
   method_attribute.rb            # Method Attribute
   aliases.rb                     # Attribute name ≠ source
   json_column.rb                 # Attribute backed by a JSON DB column
+  datetimes.rb                   # datetime columns — raw-string emit fast path
   filter_only.rb                 # Filter only:
   filter_except.rb               # Filter except:
+  filter_build.rb                # Filter.wrap construction cost, isolated from emit
 
   # Beyond-sanity scenarios (shapes Panko's current bench suite lacks)
   wide_attributes.rb             # ~70 Attributes — stresses per-Field emit/dispatch cost
   graph.rb                       # entrypoint Descriptor with Attributes + multiple has_one
                                  # + multiple has_many — stresses combined Composition
+  medium_graph_shallow_only.rb   # 8-field entrypoint under only: — reproduces the filter
+                                 # verdict cell from research/filter_experiments_results.md
   single_record.rb               # one-record APIs (`serialize_one`, `Serializer.one`,
                                  # `record.as_json`) on a Bench::Post + author + comments
                                  # graph; carries an output-parity guard at the top of the
                                  # file (Oj.load(mode: :strict) on every row's JSON; abort
                                  # with a labeled diff if any row diverges) — future
                                  # scenarios should mirror this guard
+  parent_class_dispatch.rb       # Symbol-body vs Callable-body Method Attribute dispatch
 
-  # serializers_code_gen-specific scenarios
-  # (only compare scg variants against each other; no cross-target row)
-  scg_generic_vs_specialized.rb  # Models: nil vs Models: [Post], same shape
+  # Cross-library comparison
+  game_serializer.rb             # single + collection Game/Player graph across panko,
+                                 # oj_serializers, alba, blueprinter, and plain Oj /
+                                 # as_json baselines — gated on byte-identical output
+
+  # engine-only scenarios (compare scg variants against each other; a panko/*
+  # row, where present, measures the DSL/runtime-seam overhead over the engine)
+  scg_generic_vs_specialized.rb  # model: nil vs model: Bench::Post, same shape
   scg_skip_elision.rb            # MethodAttribute returning SKIP on half the records
   scg_recursive.rb               # Comment self-ref, 3 levels deep (recursive_self shape)
 
@@ -91,37 +99,49 @@ Never both, never N-way.
 
 ## Comparison targets
 
-Four families for the initial release, seven rows per sanity scenario:
+Four families, seven rows per sanity scenario:
 
 | Row label                           | Implementation                                       |
 | ----------------------------------- | ---------------------------------------------------- |
-| `serializers_code_gen/json`         | This library, `:json` **Output Mode**.               |
-| `serializers_code_gen/hash`         | This library, `:hash` **Output Mode**.               |
-| `panko/json`                        | Current Panko, `.to_json`.                           |
-| `panko/object`                      | Current Panko, object-mode.                          |
+| `serializers_code_gen/json`         | The engine (`Panko::CodeGen`) directly, `:json` **Output Mode**. |
+| `serializers_code_gen/hash`         | The engine directly, `:hash` **Output Mode**.        |
+| `panko/json`                        | Panko's public DSL — `ArraySerializer#to_json`.      |
+| `panko/object`                      | Panko's public DSL — object/Hash mode (`#to_a`).     |
 | `oj_serializers/json`               | Oj-Serializers gem, JSON output.                     |
 | `plain/json`                        | `records.map(&:as_json).to_json`.                    |
 | `plain/hash`                        | `records.map(&:as_json)`.                            |
 
-Panko rows form the **hard bar** in [`phase-1-bar.md`](phase-1-bar.md); the
-Oj-Serializers row forms the **soft bar** (measured and recorded, does not block).
-Plain rows are context, not competitive targets.
+The `panko/*` rows drive Panko's public DSL and runtime seam, so the gap to the raw
+`serializers_code_gen/*` rows is the overhead the seam adds over the engine. The
+`oj_serializers/json` row is the external competitive reference (measured and recorded,
+non-blocking). Plain rows are context, not competitive targets.
 
 **No ActiveModel::Serializers.** AMS is absent from Panko's current benchmark suite,
 not a target this library competes against, and its shape differs enough from the
 others that fair comparison is hard.
 
-### Fresh serializer definitions, not shared with Panko's existing benchmarks
+### Cross-library comparison — `game_serializer.rb`
 
-Benchmark serializers are **purpose-built for this library's benchmark suite**, not
-lifted from Panko's `benchmarks/panko_json.rb`. Two reasons:
+The per-shape scenarios above compare the engine against the `panko/*`, `oj_serializers`,
+and `plain` rows. `benchmarks/game_serializer.rb` is the broader cross-library bench: a
+single Game/Player graph run in both single-record and collection form across Panko,
+Oj-Serializers, Alba, Blueprinter, and plain Oj / `as_json` baselines. Every row is
+gated on **byte-identical output** — the file aborts before measuring if any target's
+emit shape diverges from the reference — so the numbers compare like for like. It runs
+under `rake benchmarks:all` alongside the scenario files but stands on its own; treat it
+as the head-to-head across the wider serializer ecosystem, not as a shape scenario.
+
+### Purpose-built serializers per scenario
+
+Each scenario file defines all its target serializers inline, purpose-built to express
+one shape across every row. Two reasons:
 
 1. **Shape parity matters.** The `panko/json` row must express the same semantic
-   scenario as the `serializers_code_gen/json` row. Reusing Panko's existing
-   `PostFastSerializer` would leave us benchmarking subtly different shapes.
-2. **Panko's existing bench coverage is missing cases we care about** — specifically
-   the wide-attribute and graph scenarios listed above. Building our own serializer
-   set lets us match the scenario list exactly.
+   scenario as the `serializers_code_gen/json` row; defining both from the same field
+   list in one file keeps them from drifting into subtly different shapes.
+2. **The scenario list drives coverage** — including the wide-attribute and graph
+   shapes above that Panko's pre-merge bench suite lacked. Owning the serializer set
+   lets each scenario match its field list exactly.
 
 ## Scenario file shape
 
@@ -133,12 +153,13 @@ cross-target row set:
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-benchmark_scenario "HasMany", type: :authors do |records|
+benchmark_scenario "HasMany", type: :posts do |records|
   {
     "serializers_code_gen/json" => -> { Targets::SCG_JSON[:has_many].call(records) },
     "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:has_many].call(records) },
     "panko/json"                => -> { Targets::PANKO_JSON[:has_many].call(records) },
     "panko/object"              => -> { Targets::PANKO_OBJECT[:has_many].call(records) },
+    "oj_serializers/json"       => -> { Targets::OJ_JSON[:has_many].call(records) },
     "plain/json"                => -> { Targets::PLAIN_JSON[:has_many].call(records) },
     "plain/hash"                => -> { Targets::PLAIN_HASH[:has_many].call(records) },
   }
@@ -151,9 +172,10 @@ comment above the hash. Row set shape is per-scenario, not required to be identi
 
 ## Running
 
-- **One scenario**: `bundle exec ruby benchmarks/has_many.rb`.
-- **All scenarios**: `rake bench:all` — globs `benchmarks/*.rb` (excluding `support/`)
-  and executes each in sequence. Stdout tables stack.
+- **One scenario**: `bundle exec ruby benchmarks/has_many.rb`, or
+  `rake benchmarks:run[has_many]`.
+- **All scenarios**: `rake benchmarks:all` — globs `benchmarks/*.rb` and executes each
+  in sequence. Stdout tables stack.
 - **Env filtering**: `SIZE=50`, `BENCH=HasMany`, `TARGET=panko_json` all pass through
   the harness and filter per row.
 
@@ -163,10 +185,14 @@ No persisted baseline files. **Numbers live in release notes** — when a perf-r
 change lands, the PR author copies the before/after tables into the PR description and
 (on release) into the release notes.
 
-For the **benchmark-gated experiments** (filter dual-path emit, filter internal rep —
-see [filters.md](filters.md)), follow the `docs/research/` template: commit the
-experiment-specific bench script + a markdown report with numbers and the decision.
-Example to match: `docs/research/ar_access_bench.rb` + `docs/research/ar_access_results.md`.
+**Benchmark-gated decisions** that pick a representation (e.g. the filter internal rep
+and dual-path emit — see [filters.md](filters.md), settled on the `Indexed` filter)
+capture their evidence under [research/](research/): an experiment-specific bench
+script plus a markdown report with numbers and the decision. Examples to match:
+[`research/ar_access_bench.rb`](research/ar_access_bench.rb) +
+[`research/ar_access_results.md`](research/ar_access_results.md), and
+[`research/filter_experiments_results.md`](research/filter_experiments_results.md) for
+the shipped filter verdict.
 
 ## Fixture data
 
@@ -181,10 +207,10 @@ numbers comparable with existing Panko runs over time.
 
 ## Open refinements
 
-These aspects are likely to evolve once the harness lands:
+These aspects may still evolve as the suite grows:
 
-- Scenario names and exact shapes — may grow/shrink as implementation reveals hot
-  paths worth isolating.
+- Scenario names and exact shapes — may grow/shrink as profiling reveals hot paths
+  worth isolating.
 - Whether `wide_attributes` should cover a second dimension (attr count `×` record
   count), or stay one-dimensional.
 - Whether `graph.rb` is one shape or several (e.g., "narrow entrypoint, wide children"

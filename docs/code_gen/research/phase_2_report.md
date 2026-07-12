@@ -89,8 +89,7 @@ match any S13 fixture).**
 - **Decision:** **phase-2 closed.** Rule 1 passes with 8 upward
   curiosities recorded; rule 2 passes at pattern equivalence with
   numeric reproduction deferred. No phase-2-blocking issues; phase 3
-  (Dump) unblocks per
-  [`docs/implementation-plan.md`](../implementation-plan.md).
+  (Dump) unblocks.
 - **Anomalies flagged:**
   - **8 / 24 rule-1 rows outside ±5% in the upward direction** — all
     `scg/json`, all paired with a 1-alloc/call reduction, all traced
@@ -394,7 +393,7 @@ structurally invalid.
 ## 6. Decisions for flagged rows
 
 Per the parent S14 PRD's `PROFILE=memory` follow-up protocol and the
-[`docs/phase-1-bar.md` § Tuning](../phase-1-bar.md#tuning) precedent:
+`docs/phase-1-bar.md` § Tuning precedent:
 
 - **Investigate** when a no-filter row is >5% off phase 1 or a
   with-filter row is >10% off S13's verdict-cell numbers.
@@ -405,7 +404,7 @@ Per the parent S14 PRD's `PROFILE=memory` follow-up protocol and the
   bench re-runs in full.
 - **Tune** when the gap is structural and the original target was
   overstated. The 5% / ±10% rules are themselves tunable per the
-  [`docs/phase-1-bar.md` § Tuning](../phase-1-bar.md#tuning)
+  `docs/phase-1-bar.md` § Tuning
   precedent — any tuning records the new threshold + rationale here
   and the verdict in § 1 cites it by section heading.
 
@@ -458,7 +457,7 @@ allocation in a hot loop on a YJIT-compiled JSON-mode emit path.
 #### Decision (2026-05-03): record as upward curiosity; phase 2 closes
 
 Per § 1's verdict-template clause and
-[`phase_1_report.md` § 1's ratio-not-absolute](../phase-1-bar.md#tuning)
+`phase_1_report.md` § 1's ratio-not-absolute
 discipline: improvements unrelated to the slice under measurement
 are recorded but do not block. The rule-1 intent is "no S14
 regression on the no-filter path"; the verdict is `Pass`. No
@@ -592,7 +591,7 @@ S14.1–S14.4 mutations exactly with no surprises:
    Attributes → MethodAttributes → Associations per the S14.1
    contract.
 2. **`raise NotImplementedError if filters` → `filters =
-   SerializersCodeGen::Filter.wrap(filters, FIELD_INDEX)`** at every
+   Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)`** at every
    public entry point (`serialize_one` / `serialize_many`).
 3. **`unless filters.drops?(<integer>)` wrappers** around every
    field emit (`writer.push_value(...)`, `result[...] = ...`,

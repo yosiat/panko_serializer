@@ -7,12 +7,13 @@ wrong). Callers rescue the specific subclass they care about, or the root for a 
 ## Hierarchy
 
 ```
-SerializersCodeGen::Error < StandardError
-├── SerializersCodeGen::DescriptorError    # structural validation at Data.new
-└── SerializersCodeGen::CompileError       # semantic validation at Compile time
+Panko::CodeGen::Error < StandardError
+├── Panko::CodeGen::DescriptorError    # structural validation at Data.new
+└── Panko::CodeGen::CompileError       # semantic validation at Compile time
     ├── NameCollisionError   # two Fields share a name at the same level
     ├── UnknownSourceError   # specialized-path Attribute Source not resolvable
-    └── ArityError           # Callable arity not in {0, 1, 2, 3}
+    ├── ArityError           # Callable arity not in {0, 1, 2, 3}
+    └── SymbolBodyError      # Symbol-body MethodAttribute with parent_class: nil
 ```
 
 **Runtime errors** (inside `_write_one` / `_to_hash`) are not wrapped. A missing method
@@ -44,11 +45,14 @@ emitted. The specific subclass identifies the reason:
 - **`NameCollisionError`** — two **Fields** at the same level share a `name`. Since
   every **Field** contributes exactly one output key, a collision makes the output
   ambiguous.
-- **`UnknownSourceError`** — the **Descriptor** sets **Models**, and an **Attribute**'s
-  `source` is neither a column on every class nor an instance method on every class. See
-  the 3-step classification rule in [compilation.md](compilation.md).
+- **`UnknownSourceError`** — the **Descriptor** sets a **Model**, and an **Attribute**'s
+  `source` is neither a column on that class nor an instance method on it. See the 3-step
+  classification rule in [compilation.md](compilation.md).
 - **`ArityError`** — a **Callable** (Method Attribute `body` or Association `if:`) has
   an arity outside `{0, 1, 2, 3}`. See "Callable arity" in [descriptor.md](descriptor.md).
+- **`SymbolBodyError`** — a **Method Attribute** has a `Symbol` `body` but its owning
+  **Descriptor** has `parent_class: nil`, so the method has no `self` to resolve against.
+  See "Symbol-body dispatch" in [descriptor.md](descriptor.md).
 
 ## Message convention
 
@@ -62,7 +66,7 @@ debugger:
 Example:
 
 ```
-SerializersCodeGen::ArityError: PostDescriptor#likes_count: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3.
+Panko::CodeGen::ArityError: PostDescriptor#likes_count: MethodAttribute#body has arity 4; must be 0, 1, 2, or 3.
 ```
 
 ## What's not in the hierarchy
@@ -70,6 +74,6 @@ SerializersCodeGen::ArityError: PostDescriptor#likes_count: MethodAttribute#body
 - `ArgumentError` / `TypeError` / `NoMethodError` — Ruby built-ins the library does
   *not* wrap when they originate from user code (**Callable** bodies, **Record** access).
   Catch these separately if needed.
-- No `SerializersCodeGen::RuntimeError` class. If one becomes necessary (e.g., for a
+- No `Panko::CodeGen::RuntimeError` class. If one becomes necessary (e.g., for a
   specific library-detected runtime failure not already caught by Ruby), add it under
   `Error` as a new sibling phase.

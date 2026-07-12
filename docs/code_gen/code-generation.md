@@ -73,7 +73,7 @@ class JsonGenerator
   end
 
   def emit_write_one(descriptor, builder)
-    builder.line "def _write_one(record, writer, context, filters)"
+    builder.line "def _write_one(record, writer, context, scope, filters)"
     builder.indent do
       builder.line "writer.push_object"
       descriptor.attributes.each        { |a| emit_attribute(a, descriptor, builder) }

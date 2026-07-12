@@ -9,11 +9,11 @@ whose public methods serialize **Records** as fast as Ruby allows on modern runt
 Think of it as a way to JIT-compile an existing serializer library. The library itself is
 not a user-facing serializer.
 
-## Primary consumer
+## Host gem
 
 **Panko.** Panko's user-facing DSL (`class PostSerializer < Panko::Serializer; attributes :id, ...`)
-will translate into **Descriptors** and feed them into this library. The long-term plan is
-for this code to be absorbed into Panko as its code-gen core.
+translates into **Descriptors** and feeds them into this engine. `Panko::CodeGen` is Panko's
+internal code-gen core.
 
 ## Design priorities (in order)
 
@@ -24,32 +24,12 @@ for this code to be absorbed into Panko as its code-gen core.
 3. **Flexibility where it costs nothing.** Design choices that cost nothing at runtime should
    favor consumer flexibility (e.g., **Callables** over method-name conventions).
 
-## Phasing
-
-The initial release is structured in three phases, executed in order. Each phase
-ends on a documented criterion before the next begins; phases do not interleave.
-
-1. **Pre-filter core** — all features locked in the design docs except **Filters**
-   and **Dump**. `serialize_*` accepts the `filters:` keyword but raises
-   `NotImplementedError` on non-nil values until phase 2 lands. Phase ends when
-   [`phase-1-bar.md`](phase-1-bar.md) is satisfied.
-2. **Filters** — filter support implemented on top of phase-1 code. Implementation
-   is gated by a benchmark experiment run against real codegen output from phase
-   1 (see [`filters.md` § Experiment design](filters.md#experiment-design)).
-3. **Dump** — `.rb`-file **Dump** and the **Environment** contract (see
-   [`dumping.md`](dumping.md)).
-
-Phases 1 and 2 together constitute **core** — all runtime features. Phase 3 is
-developer ergonomics, not core runtime. The initial release ships after all
-three phases complete.
-
 ## Non-goals
 
 - **No user-facing DSL.** That is Panko's job. The **Descriptor** is the public input; any
   sugar for constructing one is a secondary, optional convenience.
 - **No internal caching.** **Compile** is a pure function of (**Descriptor**, **Output Mode**,
   **Config**). The caller (Panko) owns memoization.
-- **No gem publishing.** Will be merged into Panko.
 - **No polymorphic Associations in v1.** Deferred (see [deferred.md](deferred.md)).
 - **No runtime mutation of Config or Descriptor.** Both are frozen at compile time.
 
@@ -69,7 +49,7 @@ Two **Output Modes** are supported:
 
 The consumer picks which one when calling **Compile**; each produces its own **Generated Class**.
 
-## What a user (of Panko, eventually) sees
+## What a user of Panko sees
 
 Nothing directly. They keep writing Panko serializers. Under the hood, Panko normalizes their
 DSL into a **Descriptor**, calls **Compile**, caches the **Generated Class**, and invokes
@@ -78,16 +58,16 @@ its `serialize_one` / `serialize_many` methods.
 ## What a library author sees
 
 ```ruby
-descriptor = SerializersCodeGen::Descriptor.new(
+descriptor = Panko::CodeGen::Descriptor.new(
   name: "PostSerializer",
-  models: [Post],
+  model: Post,
   attributes: [Attribute.new(name: :id, source: :id)],
   method_attributes: [MethodAttribute.new(name: :full_title, body: Post.method(:full_title_for))],
   associations: [Association.new(kind: :has_many, name: :comments, source: :public_comments,
                                   descriptor: CommentDescriptor, if: nil)]
 )
 
-klass = SerializersCodeGen.compile(descriptor, output: :json, config: Config.new(...))
+klass = Panko::CodeGen.compile(descriptor, output: :json, config: Config.new(...))
 klass.new(descriptor: descriptor).serialize_one(post, context: current_user, filters: nil)
 #=> "{\"id\":1,\"full_title\":\"...\",\"comments\":[...]}"
 ```

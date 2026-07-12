@@ -7,7 +7,7 @@ How the library is tested. Terms in bold are defined in
 
 RSpec. Tests follow **Arrange-Act-Assert**; arrange must be minimal. If repeated
 fixture-building code starts dominating a spec, extract to a support helper (e.g.,
-`spec/support/fixture_builders.rb`) — not FactoryBot. The "few lines of setup" shape is
+`spec/code_gen/support/fixture_builders.rb`) — not FactoryBot. The "few lines of setup" shape is
 part of the test's readability.
 
 ## Test tiers
@@ -16,11 +16,11 @@ Five tiers, ordered by abstraction level:
 
 | Tier                    | What it tests                                                           | Where it lives                      |
 | ----------------------- | ----------------------------------------------------------------------- | ----------------------------------- |
-| **CodeBuilder**         | Pure string/indent accumulator. No domain types.                        | `spec/code_builder_spec.rb`         |
-| **Validators**          | Behavior of each validation rule; error hierarchy.                      | `spec/validators/*_spec.rb`         |
-| **Snapshot**            | **Generator** / **Dump** byte-emit matches committed fixture `.rb` files. | `spec/generators/snapshot_spec.rb`  |
-| **Feature**             | End-to-end serialization behavior against records.                      | `spec/features/*_spec.rb`           |
-| **Compile-time errors** | `DescriptorError`, `CompileError` subclasses surface correctly.         | `spec/compile_errors_spec.rb`       |
+| **CodeBuilder**         | Pure string/indent accumulator. No domain types.                        | `spec/code_gen/code_builder_spec.rb`         |
+| **Validators**          | Behavior of each validation rule; error hierarchy.                      | `spec/code_gen/validators/*_spec.rb`         |
+| **Snapshot**            | **Generator** / **Dump** byte-emit matches committed fixture `.rb` files. | `spec/code_gen/generators/snapshot_spec.rb`  |
+| **Feature**             | End-to-end serialization behavior against records.                      | `spec/code_gen/features/*_spec.rb`           |
+| **Compile-time errors** | `DescriptorError`, `CompileError` subclasses surface correctly.         | `spec/code_gen/compile_errors_spec.rb`       |
 
 ### What we deliberately are not doing
 
@@ -53,13 +53,13 @@ them byte-identical to what **Compiler** feeds to `module_eval`. Storing them as
 expect(actual_source).to match_snapshot("shallow_generic_json.rb")
 ```
 
-~30 lines in `spec/support/snapshot_matcher.rb`. Mismatches delegate formatting to
+~30 lines in `spec/code_gen/support/snapshot_matcher.rb`. Mismatches delegate formatting to
 `RSpec::Expectations.differ` for multi-line diff output.
 
 ### Disk layout
 
 ```
-spec/
+spec/code_gen/
   spec_helper.rb
   code_builder_spec.rb                         # tier: CodeBuilder
   compile_errors_spec.rb                       # tier: compile-time errors
@@ -81,10 +81,10 @@ spec/
       recursive_mutual_spec.rb
       sti_specialized_spec.rb
       config/                                  # config-isolation Descriptors sub-family
-        root_key_on_spec.rb
-        null_for_has_one_off_spec.rb
-        hash_record_key_symbol_spec.rb
-        hash_output_key_symbol_spec.rb
+        config_root_key_on_spec.rb
+        config_null_for_has_one_off_spec.rb
+        config_hash_record_key_symbol_spec.rb
+        config_hash_output_key_symbol_spec.rb
     concerns/                                  # cross-cutting behavioral specs
       filter_spec.rb                           # Filter
       skip_spec.rb                             # SKIP
@@ -94,10 +94,9 @@ spec/
 
   fixtures/
     descriptors/                               # Ruby modules — each exports DESCRIPTOR, CONFIG, MODES,
-      shallow_generic.rb                       # sanity_record, expected_output(mode)
-      shallow_specialized.rb
+      shallow_generic.rb                       # sanity_record, expected_output(mode); the
+      shallow_specialized.rb                   # snapshot spec requires each one by name
       ...
-      all.rb                                   # aggregates → FIXTURES array
     generated/                                 # committed snapshot files — each is a runnable Generated Class
       shallow_generic_json.rb
       shallow_generic_hash.rb
@@ -110,7 +109,7 @@ spec/
     fixture_builders.rb                        # reserved — add only if arrange blocks start dominating
 ```
 
-`spec/spec_helper.rb` unshifts `spec/fixtures/generated` and `spec/fixtures/descriptors`
+`spec/code_gen/spec_helper.rb` unshifts `spec/code_gen/fixtures/generated` and `spec/code_gen/fixtures/descriptors`
 onto `$LOAD_PATH`, so specs use `require "shallow_generic_json"` instead of path-relative
 requires. Decouples spec-file location from fixture location.
 
@@ -140,7 +139,7 @@ For each fixture and each of its **Output Modes**:
 
 1. **Generator emit matches snapshot** — `Generator#emit` produces bytes equal to the
    on-disk `.rb` file.
-2. **Dump write matches snapshot** — `SerializersCodeGen.dump(...)` writes a file whose
+2. **Dump write matches snapshot** — `Panko::CodeGen.dump(...)` writes a file whose
    bytes equal the snapshot.
 3. **Snapshot file loads and runs** — `require` the snapshot file, instantiate the
    **Generated Class**, pass a hardcoded `sanity_record`, compare output to a hardcoded
@@ -161,12 +160,12 @@ Ten fixtures. Each compiled in the relevant **Output Modes**, yielding ~16 snaps
 
 | # | Name                  | Shape                                                                                                                                | Pins                                                                                                 |
 | - | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| 1 | `shallow_generic`     | `Models: nil`, 3 Attributes                                                                                                          | Fused generic `_write_one` / `_to_hash` — one `is_a?(Hash)` branch, both field-emit arms inline — default string-key Hash lookup. |
-| 2 | `shallow_specialized` | `Models: [Post]`. 2 column-backed Attributes, 1 method-dispatched Attribute (reader override). MethodAttributes arity 0, 1 (SKIP), 2. | Specialized classification, arity-specialized emit, SKIP identity-compare, Callable ivar hoisting.  |
+| 1 | `shallow_generic`     | `model: nil`, 3 Attributes                                                                                                          | Fused generic `_write_one` / `_to_hash` — one `is_a?(Hash)` branch, both field-emit arms inline — default string-key Hash lookup. |
+| 2 | `shallow_specialized` | `model: Post`. 3 column-backed Attributes. MethodAttributes arity 0, 1 (SKIP), 2.                    | Specialized classification, arity-specialized emit, SKIP identity-compare, Callable ivar hoisting.  |
 | 3 | `nested_composition`  | Post → `has_one :author`, `has_many :comments`. Author with `if: ->(r, c) { ... }`.                                                  | Composition constructor wiring, default `null_for_missing_has_one: true` emit, has_many iteration, Association-`if:` emit, filter threading. |
 | 4 | `recursive_self`      | Comment with `has_many :replies` → same Comment Descriptor.                                                                          | Self-ref short-circuit: `@replies_serializer = self`.                                                |
 | 5 | `recursive_mutual`    | Folder → Item → Folder cycle.                                                                                                        | Identity-cache threading at construction — one instance per unique Descriptor in the cycle.          |
-| 6 | `sti_specialized`     | `Models: [Vehicle, Car]`, `Car < Vehicle`. Car overrides a column reader. 2 Attributes: one uniformly column-backed; one downgraded to method dispatch due to override. | STI intersection classification.                                                                     |
+| 6 | `sti_specialized`     | `model: Car`, `Car < Vehicle`. `vin` column-backed via the reader inherited from the `Vehicle` STI base; `make` overridden on `Car`, so downgraded to method dispatch. | Access-form classification under an STI subclass — inherited column reader vs honored reader override. |
 
 ### Config-isolation fixtures
 
@@ -175,24 +174,24 @@ shared with #1–#6, so core-fixture churn doesn't cascade into config snapshots
 
 | #  | Name                            | Descriptor                                                             | Config flip                       | Mode  | Pins                                            |
 | -- | ------------------------------- | ---------------------------------------------------------------------- | --------------------------------- | ----- | ----------------------------------------------- |
-| 7  | `config_root_key_on`            | `Models: nil`, 1 Attribute                                             | `supports_root_key: true`         | JSON  | `root_key:` kwarg + wrap emit.                  |
-| 8  | `config_null_for_has_one_off`   | `Models: nil`, 1 Attribute, 1 `has_one` to a minimal inner Descriptor  | `null_for_missing_has_one: false` | JSON  | Omit-key-when-nil branch of has_one emit.       |
-| 9  | `config_hash_record_key_symbol` | `Models: nil`, 2 Attributes                                            | `hash_record_key_type: :symbol`   | JSON  | Symbol-key lookup in `_write_one`'s Hash arm.   |
-| 10 | `config_hash_output_key_symbol` | `Models: nil`, 2 Attributes                                            | `hash_output_key_type: :symbol`   | Hash  | Symbol-key output emit in Hash mode.            |
+| 7  | `config_root_key_on`            | `model: nil`, 1 Attribute                                             | `supports_root_key: true`         | JSON  | `root_key:` kwarg + wrap emit.                  |
+| 8  | `config_null_for_has_one_off`   | `model: nil`, 1 Attribute, 1 `has_one` to a minimal inner Descriptor  | `null_for_missing_has_one: false` | JSON  | Omit-key-when-nil branch of has_one emit.       |
+| 9  | `config_hash_record_key_symbol` | `model: nil`, 2 Attributes                                            | `hash_record_key_type: :symbol`   | JSON  | Symbol-key lookup in `_write_one`'s Hash arm.   |
+| 10 | `config_hash_output_key_symbol` | `model: nil`, 2 Attributes                                            | `hash_output_key_type: :symbol`   | Hash  | Symbol-key output emit in Hash mode.            |
 
 ### Fixture module shape
 
 ```ruby
-# spec/fixtures/descriptors/shallow_generic.rb
+# spec/code_gen/fixtures/descriptors/shallow_generic.rb
 module Fixtures
   module ShallowGeneric
-    CONFIG     = SerializersCodeGen::Config.new
-    DESCRIPTOR = SerializersCodeGen::Descriptor.new(
+    CONFIG     = Panko::CodeGen::Config.new
+    DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ShallowGenericSerializer",
-      models: nil,
+      model: nil,
       attributes: [
-        SerializersCodeGen::Attribute.new(name: :id,    source: :id),
-        SerializersCodeGen::Attribute.new(name: :title, source: :title),
+        Panko::CodeGen::Attribute.new(name: :id,    source: :id),
+        Panko::CodeGen::Attribute.new(name: :title, source: :title),
       ],
       method_attributes: [],
       associations: [],
@@ -222,7 +221,7 @@ top-level namespace. Convention-enforced; collisions break loudly at load time.
 ### Real ActiveRecord + in-memory sqlite
 
 ```ruby
-# spec/spec_helper.rb
+# spec/code_gen/spec_helper.rb
 ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
 require "schema"
 require "models"
@@ -242,8 +241,8 @@ portable or the schema file gates per-adapter.
 
 ### Schema and model classes
 
-- `spec/support/schema.rb` — single `ActiveRecord::Schema.define` block for all tables.
-- `spec/support/models.rb` — all AR classes (`Post`, `Comment`, `Author`, `Vehicle`,
+- `spec/code_gen/support/schema.rb` — single `ActiveRecord::Schema.define` block for all tables.
+- `spec/code_gen/support/models.rb` — all AR classes (`Post`, `Comment`, `Author`, `Vehicle`,
   `Car`, `Folder`, `Item`).
 
 ### Isolation: transactional rollback per test
@@ -266,13 +265,13 @@ No DatabaseCleaner dependency. `use_transactional_fixtures` pattern, without Rai
 - No extra dependency.
 
 **Minimal-arrange principle.** If repeated arrange blocks start dominating feature specs,
-extract to `spec/support/fixture_builders.rb` (or similar utility module) — not
+extract to `spec/code_gen/support/fixture_builders.rb` (or similar utility module) — not
 FactoryBot. The AAA flow expects arrange to be brief; when it isn't, the pressure is
 toward helper extraction, not tooling replacement.
 
 ### Record-shape coverage
 
-Only fixtures with `Models: nil` exercise non-AR records — the specialized path contract
+Only fixtures with `model: nil` exercise non-AR records — the specialized path contract
 assumes **Records** are AR instances of declared classes.
 
 | Fixture family                         | Record shapes exercised in features            |
@@ -286,21 +285,21 @@ only to the named methods. Proves no hidden AR-ness dependency on the generic pa
 
 ## Feature-test organization
 
-Feature specs live under `spec/features/` in two parallel subtrees:
+Feature specs live under `spec/code_gen/features/` in two parallel subtrees:
 
-- **`spec/features/descriptors/`** — one file per canonical **Descriptor** (see
+- **`spec/code_gen/features/descriptors/`** — one file per canonical **Descriptor** (see
   [Canonical snapshot corpus](#canonical-snapshot-corpus) above). Each file's job is
   **record-shape coverage**: compile the fixture fresh (never load the snapshot file) and
   exercise it against the shapes listed in the [Record-shape coverage](#record-shape-coverage)
   table. Config-isolation fixtures are grouped under `config/`.
-- **`spec/features/concerns/`** — one file per cross-cutting behavior:
+- **`spec/code_gen/features/concerns/`** — one file per cross-cutting behavior:
   `filter_spec.rb`, `skip_spec.rb`, `association_if_spec.rb`, `root_key_spec.rb`,
   `scope_spec.rb`. Each file tests its contract end-to-end across both **Output Modes**.
 
 The axes are orthogonal: a reader asking "how do filters behave?" finds one file; a
 reader asking "what's proven for `shallow_generic`?" finds another. Neither file grows
 into the other's job. **Compile-time error specs** live at the top level in
-`spec/compile_errors_spec.rb` — a separate tier per the [Test tiers](#test-tiers) table,
+`spec/code_gen/compile_errors_spec.rb` — a separate tier per the [Test tiers](#test-tiers) table,
 not under `features/`.
 
 ### UL-aligned naming
@@ -386,7 +385,7 @@ From [descriptor.md](descriptor.md):
 3. Works across **Method Attribute** arities 0, 1, 2.
 4. Adjacent **Fields** (before and after a SKIPped one) emit correctly.
 5. Multiple SKIPping **Method Attributes** — all elide.
-6. Singleton identity — `SerializersCodeGen::SKIP` is frozen; `SKIP.equal?(SKIP)` stable.
+6. Singleton identity — `Panko::CodeGen::SKIP` is frozen; `SKIP.equal?(SKIP)` stable.
 7. JSON/Hash parity on (1)–(5).
 
 Fixture strategy: mostly inline minimal **Descriptors** (1–3 **Method Attributes** each).
@@ -438,7 +437,7 @@ Fixture strategy: `nested_composition` for `has_one` + `if:` positive and falsy 
 
 **Not tested here (belongs elsewhere):**
 
-- `ArityError` on rejected arities (3+, variadic) → `spec/compile_errors_spec.rb`
+- `ArityError` on rejected arities (3+, variadic) → `spec/code_gen/compile_errors_spec.rb`
   (compile-time tier).
 - Filter drops **Association** without invoking `if:` → already covered in
   `filter_spec.rb` (filter-side perspective).
@@ -496,8 +495,7 @@ default **Config** is the smallest.
 
 #### `scope_spec.rb`
 
-From [generated-class.md § Scope contract](generated-class.md#scope-contract) and the
-S17 PRD ([implementation-plan.md § S17](implementation-plan.md#s17--first-class-context-and-scope)):
+From [generated-class.md § Scope contract](generated-class.md#scope-contract):
 
 1. `scope:` defaults to `nil` when omitted at `serialize_one` / `serialize_many`.
 2. **Scope is distinct from Context** — an arity-3 **Callable** observes them as separate
@@ -525,13 +523,13 @@ pins the emit bytes at the snapshot tier; this file pins the runtime semantics.
 **Not tested here (belongs elsewhere):**
 
 - **`ArityError` on rejected arities** (4, `-1`, `-2`, ...) →
-  `spec/compile_errors_spec.rb` + `spec/validators/callable_arity_spec.rb`.
+  `spec/code_gen/compile_errors_spec.rb` + `spec/code_gen/validators/callable_arity_spec.rb`.
 - **Snapshot-level emit shape** — the widened signature lines and positional `scope`
   threading at nested call sites are pinned by every existing snapshot under
-  `spec/fixtures/generated/` plus the dedicated `scope_threading_{json,hash}.rb`
+  `spec/code_gen/fixtures/generated/` plus the dedicated `scope_threading_{json,hash}.rb`
   snapshots.
 
-#### `spec/compile_errors_spec.rb`
+#### `spec/code_gen/compile_errors_spec.rb`
 
 Top-level file per the [Test tiers](#test-tiers) table, not under `features/`. Covers
 the full error hierarchy from [errors.md](errors.md).
@@ -542,7 +540,7 @@ under `CompileError`.
 
 **`DescriptorError` — structural, at `Data.new`** (grouped by Data type):
 
-- **Descriptor**: name nil / empty String; models contains non-Class; attributes /
+- **Descriptor**: name nil / empty String; model neither nil nor a Class; attributes /
   method_attributes / associations contain wrong element types.
 - **Attribute**: name or source not a Symbol.
 - **MethodAttribute**: body doesn't respond to `.call`.
@@ -554,9 +552,8 @@ under `CompileError`.
 - **`NameCollisionError`** — two **Fields** sharing a name, covering all four Field-kind
   pairings; collision inside a nested **Descriptor** (message names the nested Descriptor);
   same name across different levels does **not** raise.
-- **`UnknownSourceError`** — `Models: [AR]` with source neither column nor instance
-  method; `Models: [Class1, Class2]` mixed with non-uniform backing; `Models: nil` does
-  **not** raise at Compile (defers to runtime `NoMethodError`).
+- **`UnknownSourceError`** — `model: AR` with source neither column nor instance
+  method; `model: nil` does **not** raise at Compile (defers to runtime `NoMethodError`).
 - **`ArityError`** — MethodAttribute body or Association `if:` with arity 4 / -1 / -2 / -3
   raises; arity 0 / 1 / 2 / 3 compiles successfully (positive cases pin the allowed set,
   guarding against false-positive validation).
@@ -576,7 +573,7 @@ arity 4; must be 0, 1, 2, or 3."`
 tier table — the `describe` tree mirrors the hierarchy, so the file stays scannable.
 
 **Fixture strategy:** mostly inline invalid **Descriptors** (corpus fixtures are the
-valid cases). `UnknownSourceError` tests use AR classes from `spec/support/models.rb`
+valid cases). `UnknownSourceError` tests use AR classes from `spec/code_gen/support/models.rb`
 (loaded globally via `spec_helper`) with a deliberately-missing source.
 
 **Not tested here (out of contract):**

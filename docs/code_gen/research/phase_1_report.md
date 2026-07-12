@@ -2,7 +2,7 @@
 
 > **Status: phase 1 closed (2026-05-02, S12.4).** Hard bar passes on
 > every sanity row including `json_column` via the
-> [carve-out clause](../phase-1-bar.md#json_column-allocation-carve-out)
+> carve-out clause
 > introduced atomically in S12.5. Soft bar measured and recorded: 14/16
 > sanity rows meet or beat `oj_serializers/json`; the one flagged
 > scenario (`filter_only`, both sizes, ~45% behind) is structural to the
@@ -22,7 +22,7 @@
 
 This is the canonical phase-1 baseline against which S13 (filter
 experiment) and S14 (filter implementation) measure filter overhead, per
-[`docs/phase-1-bar.md` § 3 Benchmark verdict recorded](../phase-1-bar.md#3-benchmark-verdict-recorded).
+`docs/phase-1-bar.md` § 3 Benchmark verdict recorded.
 The shape matches the [`docs/research/`](README.md) convention (summary
 verdict at top, raw numbers, analysis) — see
 [`ar_access_results.md`](ar_access_results.md) for the template this
@@ -41,7 +41,7 @@ scenarios at both sizes") passes 7/8 — `simple`, `has_one`,
 `filter_except`; only `filter_only` is a within-noise tie. **Clause C
 (`allocations scg ≤ panko`) passes on every sanity row except
 `json_column`, which passes the
-[json_column-specific carve-out clause](../phase-1-bar.md#json_column-allocation-carve-out)
+json_column-specific carve-out clause
 introduced atomically in S12.5**: `scg/json` on `json_column` drops
 from 154 / 6904 allocs (pre-fix baseline) to ~104 / ~4604 allocs
 (post-fix) at sizes [50, 2300] — a clean self-comparison "≤ today's
@@ -57,21 +57,21 @@ at both sizes); the gap is structural to phase 1 — scg passes
 `filters: nil` per the phase-1 contract, so it emits the full attribute
 set while oj honors `:only` at runtime — and closes mechanically when
 S13 / S14 land. Per
-[`docs/phase-1-bar.md` § Soft bar](../phase-1-bar.md#soft-bar--measured-recorded-does-not-block):
+`docs/phase-1-bar.md` § Soft bar:
 recorded, does not block. Beyond-sanity (`wide_attributes`, `graph`) and
 scg-specific scenarios are recorded in §§ 6–7 as informational baselines
 per
-[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar).
+`docs/phase-1-bar.md` § What's not in the bar.
 
 Decision: phase 1 closed. The `json_column` iteration shipped as
 [#60 (S12.5 — json_column JSON-mode allocation iteration)](https://github.com/yosiat/serializers-code-gen/issues/60):
 detection + emit-mode knob + raw-passthrough emit, with regression-spec
 coverage of the Panko-parity table and the byte-divergence rows. The
 canonical bench re-ran clean against the
-[json_column-specific carve-out clause](../phase-1-bar.md#json_column-allocation-carve-out) —
+json_column-specific carve-out clause —
 see § 8.1's S12.5 closeout block for the post-fix raw-number block and
 allocation delta. S12.4 verified the closeout gates from
-[`docs/phase-1-bar.md` § 2 CI green on full matrix](../phase-1-bar.md#2-ci-green-on-full-matrix):
+`docs/phase-1-bar.md` § 2 CI green on full matrix:
 the 5-cell CI matrix is green at HEAD on `main`
 ([run 25249854276](https://github.com/yosiat/serializers-code-gen/actions/runs/25249854276):
 Ruby 3.4 × {Rails 7.2, 8.0, 8.1}; Ruby 4.0 × {Rails 8.0, 8.1}),
@@ -111,7 +111,7 @@ All 13 scenarios from
 [`docs/benchmarks.md` § Directory layout](../benchmarks.md#directory-layout--scenario-centric)
 appear below. The 8 sanity scenarios populate the hard bar in § 4; the 2
 beyond-sanity and 3 scg-specific scenarios are recorded for reference per
-[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar)
+`docs/phase-1-bar.md` § What's not in the bar
 and write up in §§ 6–7.
 
 ### 3.1 Sanity scenarios
@@ -355,7 +355,7 @@ ScgRecursive size=2300/serializers_code_gen/hash               190.09 i/s ± 1.5
 
 ## 4. Hard-bar analysis
 
-Per [`docs/phase-1-bar.md` § Hard bar](../phase-1-bar.md#hard-bar--blocks-moving-to-phase-2),
+Per `docs/phase-1-bar.md` § Hard bar,
 across every **sanity** scenario, at both sizes `[50, 2300]`:
 
 1. **Clause A** — `serializers_code_gen/json` ≥ `panko/json` (ips).
@@ -404,7 +404,7 @@ the bar is verified per scenario, not per row.
 
 ## 5. Soft-bar analysis
 
-Per [`docs/phase-1-bar.md` § Soft bar](../phase-1-bar.md#soft-bar--measured-recorded-does-not-block).
+Per `docs/phase-1-bar.md` § Soft bar.
 `oj_serializers/json` is the comparison. Recorded across every sanity
 scenario at both sizes; gaps >10% get a one-paragraph investigation note
 in § 5.2. Soft bar **does not block** phase-1 closeout.
@@ -462,16 +462,15 @@ encoding step. Both cushions vanish in the `filter_except` row, where scg
 ties oj within noise (+5–9%) — `:except` doesn't get the same fast-path
 treatment in oj, and that asymmetry is the visible artifact.
 
-Worth pursuing in phase 2? The gap closes mechanically when
-[`S13` (filter experiment)](../implementation-plan.md) and
-[`S14` (filter implementation)](../implementation-plan.md) land — the
+Worth pursuing in phase 2? The gap closes mechanically when S13 (filter
+experiment) and S14 (filter implementation) land — the
 phase-2 design emits filter-aware code at compile time, so the runtime cost
 collapses to ~zero on the filtered subset. No phase-1 fix is warranted; the
 soft-bar gap is exactly the work item phase 2 exists to absorb.
 
 ## 6. Beyond-sanity scenarios — observations
 
-Per [`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar):
+Per `docs/phase-1-bar.md` § What's not in the bar:
 recorded for reference, **do not gate phase 1**. The shapes are still
 fluid per [`docs/benchmarks.md` § Open refinements](../benchmarks.md#open-refinements);
 gating phase 1 on them would force the implementer to lock down a
@@ -490,7 +489,7 @@ figure is recorded for reference — it isn't a phase-1 regression
 (`panko` allocates more on this shape, so Clause C still passes if this
 were a sanity row), but the per-Attribute alloc count is the natural
 target for any future "wide schema" phase-2 optimization. Per
-[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar):
+`docs/phase-1-bar.md` § What's not in the bar:
 informational, does not gate phase 1.
 
 ### 6.2 `graph`
@@ -504,7 +503,7 @@ vs 104.00 at 2300), and `scg/json` over `oj_serializers/json` is 1.39× /
 same per-record figure as `json_column`, which suggests the allocation is
 not specific to the JSON-column path but is an attribute of the JSON-mode
 emit at the Composition boundary. Per
-[`docs/phase-1-bar.md` § What's not in the bar](../phase-1-bar.md#whats-not-in-the-bar):
+`docs/phase-1-bar.md` § What's not in the bar:
 informational, does not gate phase 1; the shape is still
 fluid per [`docs/benchmarks.md` § Open refinements](../benchmarks.md#open-refinements),
 so the numbers are recorded as a reference point rather than as a gating signal.
@@ -518,7 +517,7 @@ later docs or phase-2 work.
 
 ### 7.1 `scg_generic_vs_specialized`
 
-The Specialized path (`record._read_attribute("name")`, `models: [Post]`)
+The Specialized path (`record._read_attribute("name")`, `model: Post`)
 runs ~9–13% faster than the Generic path (`_write_one_object`,
 `record.send(:name)`) on the same flat shape across both modes and sizes:
 +10.9% (json/50: 74.04K → 82.09K), +8.9% (hash/50: 90.69K → 98.73K), +12.7%
@@ -530,7 +529,7 @@ phase-2 work.
 
 ### 7.2 `scg_skip_elision`
 
-The SKIP-handling guard (`unless value.equal?(SerializersCodeGen::SKIP)`)
+The SKIP-handling guard (`unless value.equal?(Panko::CodeGen::SKIP)`)
 costs roughly 2–6% when SKIP fires on half the records, measured against
 an unconditional control with the same shape: −2.3% (json/50: 118.05K →
 115.28K), −4.6% (hash/50: 136.14K → 129.82K), −3.6% (json/2300: 2.78K →
@@ -564,7 +563,7 @@ _To be filled if any._ Per the parent PRD's **fix vs tune** protocol:
   the canonical bench re-runs in full.
 - **Tune** when the gap is structural and the original target was
   overstated.
-  [`docs/phase-1-bar.md` § Tuning](../phase-1-bar.md#tuning) explicitly
+  `docs/phase-1-bar.md` § Tuning explicitly
   invites this; the discipline is "write the new bar down before
   deciding phase 1 is done", not "never tune". Any tuning updates
   `docs/phase-1-bar.md` with the new clause + rationale, and the verdict
@@ -621,7 +620,7 @@ routes through a new `raw+val` path that mirrors Panko's pattern:
 ```ruby
 raw = record.read_attribute_before_type_cast("metadata")
 if raw.is_a?(String) && !raw.empty? && (begin
-     Oj.sc_parse(SerializersCodeGen::JSON_NOOP_PARSER, raw); true
+     Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw); true
    rescue Oj::ParseError
      false
    end)
@@ -741,7 +740,7 @@ and shipped on branch `sandcastle/issue-60-s12-5-json-column-json-mode-allocatio
 across three commits:
 
 - `6f32e99` — `AccessClassifier.json_typed?` predicate + `Config#json_column_emit`
-  knob + `SerializersCodeGen::JSON_NOOP_PARSER` constant; predicate +
+  knob + `Panko::CodeGen::JSON_NOOP_PARSER` constant; predicate +
   config specs.
 - `eef245f` — `FieldEmitters::Attribute.emit_json_column` (the
   `:wire_format` raw-passthrough emit shape and the `:html_safe`
@@ -754,7 +753,7 @@ across three commits:
   unsaved Hash assignment, in-place mutation, byte-divergence rows for
   `</script>`, U+2028, U+2029, `-0.0`, scientific notation) plus the
   in-spec `MemoryProfiler` allocation-invariant assertion that backs
-  the [`json_column` carve-out](../phase-1-bar.md#json_column-allocation-carve-out)
+  the `json_column` carve-out
   as a focused regression spec.
 
 `§ 3.1.6` above is the post-fix raw-number block, re-run on the

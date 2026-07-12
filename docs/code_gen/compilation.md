@@ -6,7 +6,7 @@
 ## Signature
 
 ```ruby
-SerializersCodeGen.compile(
+Panko::CodeGen.compile(
   descriptor,              # Descriptor
   output:,                 # :json or :hash
   config: Config.new(...)  # optional; defaults to library-default values
@@ -35,8 +35,8 @@ One **Generated Class** is returned. A consumer that wants both JSON and Hash ou
 same **Descriptor** must call **Compile** twice — once per **Output Mode**.
 
 ```ruby
-post_json = SerializersCodeGen.compile(post_descriptor, output: :json)
-post_hash = SerializersCodeGen.compile(post_descriptor, output: :hash)
+post_json = Panko::CodeGen.compile(post_descriptor, output: :json)
+post_hash = Panko::CodeGen.compile(post_descriptor, output: :hash)
 ```
 
 The two classes have identical public method names (`serialize_one`, `serialize_many`) but

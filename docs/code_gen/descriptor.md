@@ -9,7 +9,7 @@ All **Descriptor** types are `Data.define` classes. They are frozen, pattern-mat
 structurally comparable.
 
 ```ruby
-module SerializersCodeGen
+module Panko::CodeGen
   Descriptor = Data.define(
     :name,               # String — used for the Generated Class name and backtrace identity
     :model,              # Class | nil — when set, unlocks compile-time specialization
@@ -113,7 +113,7 @@ A **Field** whose value comes from either a **Callable** or — when the owning
   `_write_one` / `_to_hash`. The Symbol body axis is **only** for `MethodAttribute#body`;
   `Association#if` stays Callable-only.
 - **Symbol-body legitimacy**: a `Symbol` body in a **Descriptor** with `parent_class: nil`
-  raises `SerializersCodeGen::SymbolBodyError` at **Compile** time (the Symbol resolves on
+  raises `Panko::CodeGen::SymbolBodyError` at **Compile** time (the Symbol resolves on
   `self`, but with an implicit `Object` parent the method can't be reached). Validation
   lives in `Validators::SymbolBodyDispatch`, not in structural validation
   (`MethodAttribute.new` has no view of the owning **Descriptor**'s `parent_class:`).
@@ -123,7 +123,7 @@ A **Field** whose value comes from either a **Callable** or — when the owning
   surfaces as `ArgumentError`. No scg-specific error class — the error vocabulary stays
   Ruby-native.
 - **Return value semantics** (both body kinds): if the return value is `equal?` to
-  `SerializersCodeGen::SKIP`, the field is omitted from the output (no key, no value).
+  `Panko::CodeGen::SKIP`, the field is omitted from the output (no key, no value).
   Any other value is serialized.
 
 Callable bodies and Symbol bodies can coexist in the same **Descriptor** — the emitter
@@ -172,7 +172,7 @@ Arity is introspected at **Compile** time (`callable.arity`). The **Generator** 
 the appropriate call expression specialized to that arity — zero runtime dispatch
 overhead, zero unused-arg passing.
 
-**Rejected shapes** (all raise `SerializersCodeGen::ArityError` at **Compile** time):
+**Rejected shapes** (all raise `Panko::CodeGen::ArityError` at **Compile** time):
 
 - Variadic / splatted (`->(*args) {...}`, arity `-1`, `-2`, `-3`, …).
 - 4-or-more positional args (arity `≥ 4`).
@@ -205,7 +205,7 @@ A **Descriptor** may reference itself through an **Association**, enabling natur
 
 A **Record** is anything the **Generated Class** can read fields from. Supported shapes:
 
-- **ActiveRecord instances**: accessed via the fastest available path given **Models**.
+- **ActiveRecord instances**: accessed via the fastest available path given the **Model**.
 - **Ruby Hashes**: accessed via `record["key"]` (default) or `record[:key]` (via config).
 - **Plain Ruby objects**: accessed via method dispatch (`record.foo`). Works in the
   generic path; not specialized.
@@ -223,7 +223,7 @@ A **Record** is anything the **Generated Class** can read fields from. Supported
 ## `SKIP` sentinel
 
 ```ruby
-module SerializersCodeGen
+module Panko::CodeGen
   SKIP = Object.new.freeze
 end
 ```
@@ -231,7 +231,7 @@ end
 Returned by a **Method Attribute** body to omit a field.
 
 - Identity-compared via `equal?` — O(1), never collides with user data.
-- Exposed as a module constant so consumers write `return SerializersCodeGen::SKIP`.
+- Exposed as a module constant so consumers write `return Panko::CodeGen::SKIP`.
 
 ## Normalization
 
@@ -264,7 +264,7 @@ Cheap, one-time-per-construction checks on types and shapes:
 - `Association#if`, if set, responds to `.call` (Symbol axis is **MethodAttribute#body**
   only).
 
-Failures raise `SerializersCodeGen::DescriptorError`.
+Failures raise `Panko::CodeGen::DescriptorError`.
 
 ### Semantic — at Compile, one pass before emitting
 
@@ -273,8 +273,8 @@ Walks the tree (with identity-based cycle handling, see "Recursive Descriptors" 
 - **Name uniqueness across Fields** at the same level — no two **Fields** (regardless of
   kind) may share a `name`. Violations raise `NameCollisionError`.
 - **Source validity on the specialized path** — when **Model** is set, every
-  **Attribute**'s `source` must be column-backed or an instance method on every class in
-  **Models**. Violations raise `UnknownSourceError`.
+  **Attribute**'s `source` must be column-backed or an instance method on the
+  **Model**. Violations raise `UnknownSourceError`.
 - **Callable arity** — every **Callable** has arity `0`, `1`, `2`, or `3`. Violations
   raise `ArityError`. See "Callable arity" above. Symbol-body **Method Attributes** are
   skipped by this rule (Symbols have no `#arity`); their existence / arity is checked
@@ -283,7 +283,7 @@ Walks the tree (with identity-based cycle handling, see "Recursive Descriptors" 
   in a **Descriptor** whose `parent_class:` is non-`nil`. Violations raise
   `SymbolBodyError`.
 
-All semantic errors are subclasses of `SerializersCodeGen::CompileError`.
+All semantic errors are subclasses of `Panko::CodeGen::CompileError`.
 
 ## Frozen, shareable
 

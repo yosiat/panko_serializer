@@ -9,24 +9,24 @@ Two **Output Modes** are supported: `:json` and `:hash`. Each produces a differe
 
 ```ruby
 class PostSerializer_JSON
-  POOL = SerializersCodeGen::WritersPool::ThreadLocal.new(:_scg_writer__PostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_scg_writer__PostSerializer_JSON)
 
   # Public
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     writer = POOL.checkout
     begin
-      _write_one(record, writer, context, filters)
+      _write_one(record, writer, context, scope, filters)
       writer.to_s
     ensure
       POOL.checkin(writer)
     end
   end
 
-  def serialize_many(records, context: nil, filters: nil)
+  def serialize_many(records, context: nil, scope: nil, filters: nil)
     writer = POOL.checkout
     begin
       writer.push_array
-      records.each { |r| _write_one(r, writer, context, filters) }
+      records.each { |r| _write_one(r, writer, context, scope, filters) }
       writer.pop
       writer.to_s
     ensure
@@ -35,7 +35,7 @@ class PostSerializer_JSON
   end
 
   # Internal — invoked by this class and by parent Generated Classes (Composition)
-  def _write_one(record, writer, context, filters)
+  def _write_one(record, writer, context, scope, filters)
     writer.push_object
     # ... emitted attribute / method_attribute / association writes ...
     writer.pop
@@ -46,7 +46,7 @@ end
 ### Writer lifecycle
 
 - Each **Generated Class** holds a class-level `POOL` constant pointing at a per-class
-  `WritersPool` instance ([`lib/serializers_code_gen/writers_pool.rb`](../lib/serializers_code_gen/writers_pool.rb)).
+  `WritersPool` instance ([`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)).
   The pool is keyed off a unique Symbol — `:_scg_writer__<Name>_JSON` — so two **Generated
   Classes** never share a stack and one class's pool can't corrupt another.
 - `serialize_one` / `serialize_many` call `POOL.checkout` at the top, thread the
@@ -98,15 +98,15 @@ No config knob for this — empty arrays are natural JSON.
 ### Shape
 
 ```ruby
-def serialize_one(record, context: nil, filters: nil)
-  _to_hash(record, context, filters)
+def serialize_one(record, context: nil, scope: nil, filters: nil)
+  _to_hash(record, context, scope, filters)
 end
 
-def serialize_many(records, context: nil, filters: nil)
-  records.map { |r| _to_hash(r, context, filters) }
+def serialize_many(records, context: nil, scope: nil, filters: nil)
+  records.map { |r| _to_hash(r, context, scope, filters) }
 end
 
-def _to_hash(record, context, filters)
+def _to_hash(record, context, scope, filters)
   result = {}
   # ... emitted attribute / method_attribute / association writes into result ...
   result
