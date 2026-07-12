@@ -10,7 +10,7 @@ module Panko::CodeGen
       # strategy (+RecordAccess::Generic+ here, +RecordAccess::Specialized+
       # in S6).
       #
-      # Per +docs/code-generation.md § Generator shape+, each emitter takes
+      # Per +docs/code_gen/code-generation.md § Generator shape+, each emitter takes
       # the descriptor node + a +CodeBuilder+ and writes lines. Both
       # +emit_json+ and +emit_hash+ share the same module so per-mode
       # divergence stays in one file rather than copy-pasted across the
@@ -18,7 +18,7 @@ module Panko::CodeGen
       #
       # Every per-Field emit body is wrapped in
       # +unless filters.drops?(<integer>) ... end+ per
-      # +docs/filters.md § Threading through Composition+. The integer
+      # +docs/code_gen/filters.md § Threading through Composition+. The integer
       # literal is the Field's position in the canonical Field ordering
       # (Attributes + Method Attributes + Associations, declared order)
       # and is baked at codegen time so the runtime hot path is one
@@ -65,12 +65,12 @@ module Panko::CodeGen
         #   +writer.push_value(record._read_attribute("<name>"), "<name>")+
         #   slow path so the per-edge-case behavior is "scg degrades cleanly
         #   where Panko crashes" per
-        #   +docs/research/phase_1_report.md § 8.1+.
+        #   +docs/code_gen/research/phase_1_report.md § 8.1+.
         # - +:html_safe+ — delegates back to {.emit_json}, keeping today's
         #   +push_value(_read_attribute(...), "<name>")+ shape. Used when
         #   the consumer embeds scg output directly in HTML script tags
         #   without a sanitizer at the HTML layer; documented as opt-in in
-        #   +docs/config.md+.
+        #   +docs/code_gen/config.md+.
         #
         # Routed only on the Specialized path's column-backed Attributes —
         # see +RecordAccess::Specialized+. Generic-path Descriptors keep

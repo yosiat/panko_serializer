@@ -4,7 +4,7 @@ module Panko::CodeGen
   # Compile-time settings baked into a Generated Class. A frozen
   # +Data.define+ value with sensible defaults — most callers can omit
   # +config:+ on +Panko::CodeGen.compile+ entirely. See
-  # +docs/config.md § Shape+ for the documented fields and defaults.
+  # +docs/code_gen/config.md § Shape+ for the documented fields and defaults.
   #
   # Field defaults applied at +.new+ time:
   #
@@ -58,7 +58,7 @@ module Panko::CodeGen
   )
 
   # Default values applied to omitted kwargs in +Config.new+. Documented
-  # in +docs/config.md § Shape+; mirrored here so +.new+ can merge them
+  # in +docs/code_gen/config.md § Shape+; mirrored here so +.new+ can merge them
   # before validation. Frozen to keep the constant safe to share.
   Config::DEFAULTS = {
     null_for_missing_has_one: true,
@@ -76,7 +76,7 @@ module Panko::CodeGen
   Config::HASH_KEY_TYPES = %i[string symbol].freeze
 
   # Allowed values for +json_column_emit+. Anything outside this set
-  # raises +ArgumentError+ at +.new+. See +docs/config.md+ for the
+  # raises +ArgumentError+ at +.new+. See +docs/code_gen/config.md+ for the
   # per-mode contract and the byte-divergence table.
   Config::JSON_COLUMN_EMIT_MODES = %i[wire_format html_safe].freeze
 
@@ -110,7 +110,7 @@ module Panko::CodeGen
 
     # Runs the cheap structural checks on the merged Config kwargs. Only
     # the enum-shaped fields are validated here; Boolean fields are
-    # accepted as-is per +docs/config.md+.
+    # accepted as-is per +docs/code_gen/config.md+.
     #
     # @param values [Hash{Symbol => Object}] the merged kwargs about to
     #   be passed to the +Data.define+-generated +new+.
@@ -128,7 +128,7 @@ module Panko::CodeGen
     # Asserts +value+ is one of the allowed enum values for +field+. On
     # violation, raises +DescriptorError+ with a message that names the
     # offending field and the observed value, per
-    # +docs/errors.md § Message convention+.
+    # +docs/code_gen/errors.md § Message convention+.
     #
     # @param field [Symbol] the Config field being validated; used
     #   verbatim in the error message.

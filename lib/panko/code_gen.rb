@@ -47,11 +47,11 @@ module Panko::CodeGen
   # materializing the parsed structure or invoking any Ruby callback.
   # Used by the +:wire_format+ JSON-column emit path emitted by
   # {Generators::FieldEmitters::Attribute.emit_json_column}; see
-  # {file:docs/config.md} for rationale and benchmark numbers.
+  # {file:docs/code_gen/config.md} for rationale and benchmark numbers.
   JSON_NOOP_PARSER = Object.new.freeze
 
   # Compiles +descriptor+ into a fresh Generated Class for the named
-  # +output:+ mode. Thin facade per +docs/structure.md § Public API
+  # +output:+ mode. Thin facade per +docs/code_gen/structure.md § Public API
   # surface+ — every call goes through the same +Compiler+ orchestration
   # so +Dump+ in S15 can plug in next to it without retraining the
   # internals.
@@ -62,7 +62,7 @@ module Panko::CodeGen
   #   defaults to {Config.new} (library defaults)
   # @return [Class] a fresh Generated Class — two calls return two
   #   independent classes (Compile is a pure function per
-  #   +docs/compilation.md+).
+  #   +docs/code_gen/compilation.md+).
   # @raise [Panko::CodeGen::CompileError] when semantic validation
   #   rejects the input
   # @raise [ArgumentError] when +output:+ is not in
@@ -72,10 +72,10 @@ module Panko::CodeGen
   end
 
   # Dumps +descriptor+ into a runnable +.rb+ file at +path:+ for the
-  # named +output:+ mode. Thin facade per +docs/structure.md § Public
+  # named +output:+ mode. Thin facade per +docs/code_gen/structure.md § Public
   # API surface+ — every call goes through the same +Dump+
   # orchestration so the +Compile ≡ Dump byte-identical+ contract from
-  # +docs/structure.md § Layered architecture+ stays intact (the same
+  # +docs/code_gen/structure.md § Layered architecture+ stays intact (the same
   # +Generator+ output drives both materialization paths). S15.2 ships
   # flat single-file output; nested-Descriptor multi-file fan-out is
   # S15.5 territory.

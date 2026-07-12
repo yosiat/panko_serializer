@@ -5,7 +5,7 @@ require_relative "filters/indexed"
 
 module Panko::CodeGen
   # Public-facing namespace for the +Filter+ family per
-  # +docs/filters.md+. {Filter.wrap} is the single entry point used at
+  # +docs/code_gen/filters.md+. {Filter.wrap} is the single entry point used at
   # the top of every Generated Class's +serialize_one+ /
   # +serialize_many+; it normalizes the caller-supplied +filters:+ Hash
   # into a +Filter+ object exposing the +drops?(<integer>)+ /
@@ -18,8 +18,8 @@ module Panko::CodeGen
   #   returns +true+. Allocation-free, frozen at module load.
   # - {Indexed} — the winning cell from S13's experiment
   #   (+indexed × single_path+, see
-  #   +docs/research/filter_experiments_results.md § 1+). Lifted from
-  #   +docs/research/filter_experiments_bench.rb+ (lines 281–433).
+  #   +docs/code_gen/research/filter_experiments_results.md § 1+). Lifted from
+  #   +docs/code_gen/research/filter_experiments_bench.rb+ (lines 281–433).
   #   Picks {Indexed::Bits} (Integer bit-mask) when the Generated
   #   Class's +FIELD_INDEX+ has +<= INDEXED_BITS_THRESHOLD+ entries,
   #   {Indexed::Array} (Boolean Array) otherwise.
@@ -27,13 +27,13 @@ module Panko::CodeGen
     # The no-filter singleton — frozen reference to the {Filter::None}
     # module. Emitted code receives this instance whenever the caller
     # passed +nil+ or +{}+, so the no-filter hot path pays zero filter
-    # allocations per +docs/filters.md § No-filter fast path+.
+    # allocations per +docs/code_gen/filters.md § No-filter fast path+.
     NONE = None
 
     # Normalizes the caller-supplied +filters:+ kwarg into a Filter
     # object satisfying the +drops?+ / +child+ / +none?+ contract.
     # +nil+ and +{}+ collapse to {NONE} per
-    # +docs/filters.md § Public shape+ ("Empty Hash +{}+ at a level is
+    # +docs/code_gen/filters.md § Public shape+ ("Empty Hash +{}+ at a level is
     # equivalent to +nil+ at that level — no filtering."). A non-empty
     # Hash routes to {Indexed.build} against +field_index+ — the
     # per-Generated-Class +FIELD_INDEX+ map emitted by
@@ -47,7 +47,7 @@ module Panko::CodeGen
     # Recursively walks +filters+ before delegating to {Indexed.build}
     # and raises +ArgumentError+ at the first level (depth-first) that
     # carries both +:only+ and +:except+ keys per
-    # +docs/filters.md § Rules+. Validation runs once per +serialize_*+
+    # +docs/code_gen/filters.md § Rules+. Validation runs once per +serialize_*+
     # call so the emitted +_write_one+ / +_to_hash+ bodies stay free of
     # validation branches.
     #
@@ -73,7 +73,7 @@ module Panko::CodeGen
     # value that is itself a +Hash+ (Association sub-filters) and
     # ignores non-Hash values (the +:only+ / +:except+ Arrays
     # themselves, plus forward-compat unknown-shape values that
-    # +docs/filters.md § Rules+ documents as silently ignored).
+    # +docs/code_gen/filters.md § Rules+ documents as silently ignored).
     #
     # Module-private: only {wrap} should call this. Pinned at module
     # scope (rather than inlined) so the recursion-around-Hash-values

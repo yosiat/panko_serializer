@@ -4,10 +4,10 @@ module Panko::CodeGen
   module Filter
     # The +indexed x single_path+ cell — verdict from S13's filter
     # experiment per
-    # +docs/research/filter_experiments_results.md § 1+. Lifts
+    # +docs/code_gen/research/filter_experiments_results.md § 1+. Lifts
     # +IndexedBitsFilter+ / +IndexedArrayFilter+ /
     # +IndexedFilter.build+ from
-    # +docs/research/filter_experiments_bench.rb+ (lines 281–433) into
+    # +docs/code_gen/research/filter_experiments_bench.rb+ (lines 281–433) into
     # production code.
     #
     # The constructor inspects the per-Generated-Class +FIELD_INDEX+
@@ -22,7 +22,7 @@ module Panko::CodeGen
     #
     # Both representations satisfy the same +drops?(<integer>)+ /
     # +child(<symbol>)+ / +none?+ contract as +Filter::NONE+ so emitted
-    # code stays monomorphic per +docs/filters.md § Threading through
+    # code stays monomorphic per +docs/code_gen/filters.md § Threading through
     # Composition+. The hot-path representation is chosen at construction
     # time and never re-checked per call.
     #
@@ -36,7 +36,7 @@ module Panko::CodeGen
     # When the parent's caller-supplied +Hash+ has no entry for +source+,
     # an empty sub-+Hash+, or a non-+Hash+ value, the cache memoizes the
     # {Filter::NONE} singleton instead per
-    # +docs/filters.md § Public shape+.
+    # +docs/code_gen/filters.md § Public shape+.
     module Indexed
       module_function
 
@@ -45,7 +45,7 @@ module Panko::CodeGen
       # +Integer#[]+ stays constant-time. At 64 the literal would box
       # into a +Bignum+, so +Integer#[]+ on it stops being O(1) and the
       # +Array#[]+ path wins. Per
-      # +docs/research/filter_experiments_bench.rb+ comment block at
+      # +docs/code_gen/research/filter_experiments_bench.rb+ comment block at
       # lines 336–339.
       INDEXED_BITS_THRESHOLD = 63
 
@@ -58,7 +58,7 @@ module Panko::CodeGen
       #
       # Names in +:only+ / +:except+ that are not present in
       # +field_index+ are silently ignored (forward-compatibility per
-      # +docs/filters.md § Rules+ — caller's may name Fields that have
+      # +docs/code_gen/filters.md § Rules+ — caller's may name Fields that have
       # since been removed from the Descriptor without breaking).
       #
       # @param hash [Hash] the caller-supplied non-empty +filters:+ Hash;
@@ -146,7 +146,7 @@ module Panko::CodeGen
         # cache-lifetime contract: the resolved child is memoized for the
         # remainder of the parent's +serialize_*+ call so a +has_many+
         # iteration consults the cache once at hoist time and never
-        # rebuilds. Per +docs/filters.md § Threading through Composition+
+        # rebuilds. Per +docs/code_gen/filters.md § Threading through Composition+
         # the parent's emitted code passes the child class's +FIELD_INDEX+
         # constant at the call site; this cell is shape-agnostic about
         # the child Descriptor.
@@ -224,12 +224,12 @@ module Panko::CodeGen
       # +field_index+. Returns +Filter::NONE+ when the parent hash carries
       # no entry for +source+, when the entry is +nil+, when it is the
       # empty Hash, or when it is non-Hash (the public contract per
-      # +docs/filters.md § Public shape+ is that nested values are Hashes
+      # +docs/code_gen/filters.md § Public shape+ is that nested values are Hashes
       # — non-Hashes are silently ignored).
       #
       # When the sub-hash is a non-empty +Hash+, builds a real child
       # {Bits} / {Array} cell directly via {build} — co-supply validation
-      # (per +docs/filters.md § Rules+) already ran at the top-level
+      # (per +docs/code_gen/filters.md § Rules+) already ran at the top-level
       # +Filter.wrap+ call and walked every nested level depth-first, so
       # this resolution path can skip re-validating and pay only the
       # one-shot index walk that {build} performs against +field_index+.

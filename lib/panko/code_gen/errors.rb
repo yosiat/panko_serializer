@@ -2,11 +2,11 @@
 
 module Panko::CodeGen
   # Root of the library exception hierarchy. All errors raised by
-  # +serializers-code-gen+ inherit from this class — callers may rescue
+  # +Panko::CodeGen+ inherit from this class — callers may rescue
   # +Panko::CodeGen::Error+ as a catch-all or rescue the specific
   # subclass they care about. Ruby built-ins originating from user code
   # (Callable bodies, Record access) are not wrapped; see
-  # +docs/errors.md § What's not in the hierarchy+.
+  # +docs/code_gen/errors.md § What's not in the hierarchy+.
   class Error < StandardError; end
 
   # Raised at +Data.new+ when a Descriptor (or one of its child Data
@@ -30,7 +30,7 @@ module Panko::CodeGen
   # Raised on the specialized path when an Attribute's +source+ is
   # neither a column on every Model nor an instance method on every
   # Model (per the 3-step classification rule in
-  # +docs/compilation.md+). Generic-path Descriptors (+Models: nil+)
+  # +docs/code_gen/compilation.md+). Generic-path Descriptors (+model: nil+)
   # never raise this — missing methods surface at runtime as Ruby's
   # own +NoMethodError+.
   class UnknownSourceError < CompileError; end
@@ -38,7 +38,7 @@ module Panko::CodeGen
   # Raised when a Callable (MethodAttribute +body+ or Association
   # +if:+) has an arity outside +{0, 1, 2, 3}+. Variadic Callables
   # (any negative arity — +-1+, +-2+, +-3+, ...) also raise. The
-  # allowed arities are pinned in +docs/descriptor.md § Callable
+  # allowed arities are pinned in +docs/code_gen/descriptor.md § Callable
   # arity+.
   class ArityError < CompileError; end
 

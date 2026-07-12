@@ -10,10 +10,10 @@ module Panko::CodeGen
       #   (the 2-arg form collapses +push_key+ + +push_value+ into one
       #   C-extension dispatch — byte-identical output, fewer dispatches);
       #   Hash emits +result[<key>] = value+. One module, one entry per mode,
-      #   per +docs/output-modes.md § Composition across modes+.
+      #   per +docs/code_gen/output-modes.md § Composition across modes+.
       # - *Body kind* — the call expression branches on
       #   +method_attribute.body.is_a?(Symbol)+ per S18.3 /
-      #   +docs/merging-into-panko.md § Generated Class subclasses the
+      #   +docs/code_gen/merging-into-panko.md § Generated Class subclasses the
       #   user's Panko serializer+:
       #   * Symbol → +value = self.<method_name>+ (explicit-receiver
       #     method dispatch on +self+, reachable because the owning
@@ -27,7 +27,7 @@ module Panko::CodeGen
       #     pre-S18 emit, byte-identical for every existing snapshot.
       # - *Callable arity* — when the body is a Callable, the call
       #   expression is specialized per arity per
-      #   +docs/descriptor.md § Callable arity+. Arity is read off the
+      #   +docs/code_gen/descriptor.md § Callable arity+. Arity is read off the
       #   Callable at +Compile+ time (the +callable_arity+ validator from
       #   S4.1, widened in S17.1 to +0..3+ and widened in S18.2 to skip
       #   Symbol bodies, has already pre-checked it lies in +{0, 1, 2,
@@ -38,19 +38,19 @@ module Panko::CodeGen
       #   * +3+: +@cb_<name>.call(record, context, scope)+
       #   No splat, no shared helper, no wrapper — the emitted Ruby reads
       #   exactly as one of the four call forms above per
-      #   +docs/code-generation.md § Callable hoisting+.
+      #   +docs/code_gen/code-generation.md § Callable hoisting+.
       #
       # Both entries wrap the call in two nested guards:
       #
       # 1. +unless filters.drops?(<index>) ... end+ — the codegen-time
-      #    Filter wrapper per +docs/filters.md § Threading through
+      #    Filter wrapper per +docs/code_gen/filters.md § Threading through
       #    Composition+. A filter-dropped Method Attribute never invokes
       #    its body, so the dispatch + +equal?(SKIP)+ pair is completely
       #    elided when the Filter says no.
       # 2. Inside it, +unless value.equal?(Panko::CodeGen::SKIP)+.
       #    The +equal?+ check is load-bearing — +==+ would let an
       #    +==+-overriding object accidentally collide with +SKIP+ per
-      #    +docs/descriptor.md § SKIP sentinel+.
+      #    +docs/code_gen/descriptor.md § SKIP sentinel+.
       #
       # Per-record +@object+ / +@context+ / +@scope+ ivars are reachable
       # from a Symbol-body method on +self+ because +RecordAccess+'s
@@ -58,7 +58,7 @@ module Panko::CodeGen
       # +_to_hash+ (Specialized) or the +_write_one+ / +_to_hash+
       # dispatchers (Generic) when +descriptor.parent_class+ is non-nil
       # per S18.3 — a deliberate deviation from the "GC ivars are
-      # init-time constants" pattern in +docs/code-generation.md+,
+      # init-time constants" pattern in +docs/code_gen/code-generation.md+,
       # bench-validated as a same-ish-noise-level delta.
       module MethodAttribute
         # Emits the JSON-mode write for one +MethodAttribute+. Two
@@ -135,7 +135,7 @@ module Panko::CodeGen
         # validated by the +callable_arity+ rule (S4.1, widened to
         # +0..3+ in S17.1, widened in S18.2 to skip Symbol bodies) so
         # only arities +0+, +1+, +2+, +3+ ever reach this method.
-        # Specialization is per +docs/descriptor.md § Callable arity+ —
+        # Specialization is per +docs/code_gen/descriptor.md § Callable arity+ —
         # no splat / +*args+ / shared helper. Arity 3 threads +scope+
         # positionally as the third argument; arity 2 keeps its
         # +(record, context)+ meaning (no +scope+ leak).

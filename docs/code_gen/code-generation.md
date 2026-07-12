@@ -109,7 +109,7 @@ generated source into it using the standard class-level source-injection call. T
 arguments are passed:
 
 1. The source string.
-2. A **synthetic path** like `"(serializers-code-gen: PostSerializer/json)"`. When the
+2. A **synthetic path** like `"(Panko::CodeGen: PostSerializer/json)"`. When the
    class is **Dump**ed, the path becomes the real file path instead.
 3. A starting line number of `1` (matching the emitted string's line numbering).
 

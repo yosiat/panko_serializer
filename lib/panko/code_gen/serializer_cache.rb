@@ -10,7 +10,7 @@ module Panko
     # Per-serializer-class cache of compiled Generated Classes, plus the
     # (mode-agnostic) converted Descriptor. This is the caller-side cache
     # the engine deliberately does not keep
-    # (docs/merging-into-panko.md § Compile cache stays in Panko).
+    # (docs/code_gen/merging-into-panko.md § Compile cache stays in Panko).
     #
     # Two tiers per (serializer class, mode):
     #

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Panko::CodeGen
-  # Orchestrates one +Compile+ call per +docs/compilation.md § What
+  # Orchestrates one +Compile+ call per +docs/code_gen/compilation.md § What
   # Compile does internally+: runs semantic validation, asks the
   # +Generator+ for source bytes, materializes them into a fresh
   # anonymous class via +Module#module_eval+ with a synthetic
@@ -15,12 +15,11 @@ module Panko::CodeGen
   # +Compiler+ here, +Dump+ in S15. Anything observable in the in-memory
   # form must also be observable in the on-disk form (the
   # +Compile ≡ Dump byte-identical+ contract from
-  # +docs/structure.md § Layered architecture+).
+  # +docs/code_gen/structure.md § Layered architecture+).
   class Compiler
     # Per-mode suffix appended to +Descriptor#name+ to form the inner
     # Generated Class constant — +"JSON"+ for +:json+, +"Hash"+ for
-    # +:hash+ — per +docs/generated-class.md+ and the +<Name>_Hash+
-    # sketch in +docs/implementation-plan.md § S3+. An explicit table
+    # +:hash+ — per +docs/code_gen/generated-class.md+. An explicit table
     # rather than +to_s.upcase+ so the +:hash+ → +"Hash"+ casing matches
     # the docs verbatim.
     OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
@@ -98,14 +97,14 @@ module Panko::CodeGen
     end
 
     # Returns the synthetic backtrace path stamped into +Method#source_location+
-    # per +docs/code-generation.md § Backtrace quality+. The path
+    # per +docs/code_gen/code-generation.md § Backtrace quality+. The path
     # identifies the Generator-emitted code without colliding with any
     # real file on disk. Shared across every class in one Compile (the
     # whole tree's source is +module_eval+'d in one call).
     #
-    # @return [String] e.g. +"(serializers-code-gen: PostSerializer/json)"+
+    # @return [String] e.g. +"(Panko::CodeGen: PostSerializer/json)"+
     def synthetic_path
-      "(serializers-code-gen: #{@descriptor.name}/#{@output})"
+      "(#{GENERATOR_NAME}: #{@descriptor.name}/#{@output})"
     end
 
     # Depth-first walk of the Descriptor tree, populating +@cache+ with

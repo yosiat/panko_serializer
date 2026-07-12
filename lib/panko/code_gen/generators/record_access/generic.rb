@@ -20,7 +20,7 @@ module Panko::CodeGen
       # prepended with +@object = record; @context = context;
       # @scope = scope+ so the user-defined method can read those ivars on
       # +self+ — the Panko-shape contract from
-      # +docs/merging-into-panko.md § Generated Class subclasses the
+      # +docs/code_gen/merging-into-panko.md § Generated Class subclasses the
       # user's Panko serializer+. See {emit_parent_class_ivar_writes} for
       # the gating rationale. Bare descriptors (no +parent_class:+) keep
       # the pre-S18 body shape.
@@ -61,7 +61,7 @@ module Panko::CodeGen
         #   +record["id"]+ and +record[:id]+
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map per
-        #   +docs/filters.md § Threading through Composition+; threaded
+        #   +docs/code_gen/filters.md § Threading through Composition+; threaded
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
         #   per-Field literal at codegen time
@@ -123,7 +123,7 @@ module Panko::CodeGen
         # Emits the Hash-mode +_to_hash+ under +builder+, parallel to
         # {emit_json}. Output keys come from +Config#hash_output_key_type+;
         # record-side Hash keys come from +Config#hash_record_key_type+ —
-        # two orthogonal axes per +docs/config.md+.
+        # two orthogonal axes per +docs/code_gen/config.md+.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         #   being compiled
@@ -217,7 +217,7 @@ module Panko::CodeGen
         end
 
         # Emits one Hash-mode field-emit body (+result = {}+ … +result+,
-        # no Writer indirection per +docs/output-modes.md § :hash+) into
+        # no Writer indirection per +docs/code_gen/output-modes.md § :hash+) into
         # +builder+ — one branch arm of {emit_hash}. The record-read
         # expression for each Source comes from the block, mirroring
         # {emit_json_fields}.

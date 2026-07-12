@@ -3,7 +3,7 @@
 module Panko::CodeGen
   module Filter
     # No-filter singleton — the common-case fast path per
-    # +docs/filters.md § No-filter fast path+. Every Generated Class
+    # +docs/code_gen/filters.md § No-filter fast path+. Every Generated Class
     # +serialize_one+ / +serialize_many+ entry calls
     # +Filter.wrap(filters)+; +nil+ and +{}+ collapse to this constant.
     #
@@ -32,7 +32,7 @@ module Panko::CodeGen
 
       # Returns the singleton itself — the no-filter path stays
       # allocation-free through nested +Composition+ per
-      # +docs/filters.md § Threading through Composition+. The nested
+      # +docs/code_gen/filters.md § Threading through Composition+. The nested
       # Generated Class's +FIELD_INDEX+ is unread on this path because no
       # child cell needs to be materialized — the no-filter sentinel
       # propagates verbatim down the +Composition+ tree.

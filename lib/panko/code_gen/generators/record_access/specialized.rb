@@ -4,7 +4,7 @@ module Panko::CodeGen
   module Generators
     module RecordAccess
       # Specialized-path Record-access emitter — used when a Descriptor's
-      # +Model+ field is set per +docs/compilation.md § Specialized path+.
+      # +Model+ field is set per +docs/code_gen/compilation.md § Specialized path+.
       # Emits a single +_write_one(record, writer, context, scope, filters)+
       # (JSON) or +_to_hash(record, context, scope, filters)+ (Hash) — no
       # +is_a?(Hash)+ dispatch and no +_write_one_hash+ / +_write_one_object+
@@ -14,7 +14,7 @@ module Panko::CodeGen
       # body is prepended with three +@object = record; @context =
       # context; @scope = scope+ lines so a user-defined method on the
       # parent class can read those ivars on +self+ — the Panko-shape
-      # contract from +docs/merging-into-panko.md § Generated Class
+      # contract from +docs/code_gen/merging-into-panko.md § Generated Class
       # subclasses the user's Panko serializer+. See
       # {emit_parent_class_ivar_writes} for the rationale.
       # The +Model+ contract assumes Records are instances of the declared
@@ -41,7 +41,7 @@ module Panko::CodeGen
       # Non-AR class fallback: when +descriptor.model+ is a non-AR class
       # (no +#columns_hash+), every Attribute falls through to method
       # dispatch. This is the "+Struct+ or plain +Class.new+ in +model:+"
-      # case from +docs/compilation.md § Non-AR class in +model++ — the
+      # case from +docs/code_gen/compilation.md § Non-AR class in +model++ — the
       # contract still binds (no Hash branch), just the column-form
       # optimization doesn't apply.
       #
@@ -69,7 +69,7 @@ module Panko::CodeGen
         #   +null_for_missing_has_one+)
         # @param field_index [Hash{Symbol => Integer}] codegen-time
         #   +Field name → integer index+ map per
-        #   +docs/filters.md § Threading through Composition+; threaded
+        #   +docs/code_gen/filters.md § Threading through Composition+; threaded
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
         #   per-Field literal at codegen time
@@ -107,7 +107,7 @@ module Panko::CodeGen
 
         # Emits the Hash-mode +_to_hash+ helper under +builder+, parallel
         # to +emit_json+. Body is +result = {}; ...; result+ per
-        # +docs/output-modes.md § :hash+ — no Writer indirection. Output
+        # +docs/code_gen/output-modes.md § :hash+ — no Writer indirection. Output
         # keys come from +Config#hash_output_key_type+; per-Attribute
         # reads use the Specialized 3-step rule.
         #
@@ -168,7 +168,7 @@ module Panko::CodeGen
         # on the parent class read +@object+ / +@context+ / +@scope+
         # naturally instead of taking an explicit +(record, context,
         # scope)+ tuple (the Panko-shape contract from
-        # +docs/merging-into-panko.md § Generated Class subclasses the
+        # +docs/code_gen/merging-into-panko.md § Generated Class subclasses the
         # user's Panko serializer+).
         #
         # No-op when +parent_class+ is +nil+ — the bare descriptor stays
@@ -185,7 +185,7 @@ module Panko::CodeGen
         # Composition on descriptors that never read them.
         #
         # Deviation from the "GC ivars are init-time constants" pattern
-        # in +docs/code-generation.md+ — documented at the field-emitter
+        # in +docs/code_gen/code-generation.md+ — documented at the field-emitter
         # +call_expression+ boundary; the full doc-page update lands in
         # S18.4.
         #
@@ -253,7 +253,7 @@ module Panko::CodeGen
         # honored, never bypassed) emit +record.<name>+. When +ar_model+
         # is +nil+ (the declared Model fails the AR duck-type test), falls
         # back to method dispatch for every Attribute — the "non-AR class
-        # in +model:+" case from +docs/compilation.md § Non-AR class in
+        # in +model:+" case from +docs/code_gen/compilation.md § Non-AR class in
         # `models`+.
         #
         # @param attribute [Panko::CodeGen::Attribute]

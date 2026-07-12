@@ -4,12 +4,12 @@ module Panko::CodeGen
   # Sentinel a Method Attribute body returns to omit its Field from the
   # output. Identity-compared via +equal?+ at runtime so it never collides
   # with caller data; module-level + frozen so the identity is stable across
-  # the program lifetime. Documented in +docs/descriptor.md § SKIP sentinel+.
+  # the program lifetime. Documented in +docs/code_gen/descriptor.md § SKIP sentinel+.
   SKIP = Object.new.freeze
 
   # Internal namespace for structural-validation helpers shared by the
   # Descriptor-family +Data+ types. Helpers raise +DescriptorError+ with
-  # messages following +docs/errors.md § Message convention+:
+  # messages following +docs/code_gen/errors.md § Message convention+:
   # +"<Kind>#<Field>: <rule>; got <observed>:<ObservedClass>"+. Each
   # +Data+ type validates its own fields at +.new+; +Descriptor+ does not
   # re-walk its children's interiors (they have already validated
@@ -48,7 +48,7 @@ module Panko::CodeGen
     # rather than a supported shape.
     #
     # +UnboundMethod+ is rejected — it +respond_to?(:call)+ but cannot be
-    # invoked without binding first, per +docs/descriptor.md § MethodAttribute+.
+    # invoked without binding first, per +docs/code_gen/descriptor.md § MethodAttribute+.
     #
     # @param field [String] qualified name like +"MethodAttribute#body"+
     # @param value [Symbol, #call] the value to type-check
@@ -70,7 +70,7 @@ module Panko::CodeGen
     # shape (bare +class <Name>_<Mode>+, implicit +Object+ parent); a
     # +Class+ flips +emit_class+ into the +< <parent_class.name>+ branch
     # so the emitted class subclasses the user-supplied class per
-    # +docs/merging-into-panko.md § Generated Class subclasses the user's
+    # +docs/code_gen/merging-into-panko.md § Generated Class subclasses the user's
     # Panko serializer+.
     #
     # Modules (other than +Class+) are rejected — Ruby class inheritance
@@ -156,7 +156,7 @@ module Panko::CodeGen
 
   # A Field whose value is read directly from the Record via the Source
   # method. Both +name+ and +source+ are Symbols; +source+ defaults to
-  # +name+ when omitted (per +docs/descriptor.md § Attribute+). Frozen on
+  # +name+ when omitted (per +docs/code_gen/descriptor.md § Attribute+). Frozen on
   # construction; structural validation runs once at +.new+ and raises
   # +DescriptorError+ on shape violations.
   Attribute = Data.define(:name, :source) do
@@ -179,7 +179,7 @@ module Panko::CodeGen
   # the Field — or, as of S18, by dispatching to a Symbol-named method on
   # +self+ when the owning +Descriptor+ has a non-nil +parent_class+ (the
   # Symbol-body shape that drives Panko's direct-dispatch method
-  # contract per +docs/merging-into-panko.md § Generated Class subclasses
+  # contract per +docs/code_gen/merging-into-panko.md § Generated Class subclasses
   # the user's Panko serializer+).
   #
   # +body+ structurally accepts either a Callable (must respond to
@@ -210,7 +210,7 @@ module Panko::CodeGen
 
   # A Field linking one Descriptor to another — the data shape of a
   # has_one / has_many edge between two Records (per
-  # +docs/descriptor.md § Association+). The +descriptor+ field may
+  # +docs/code_gen/descriptor.md § Association+). The +descriptor+ field may
   # reference the parent itself for self-recursive shapes (Comment with
   # +has_many :replies+ pointing back at Comment); the recursive emit /
   # construction handling lands later in S5 + S8. Frozen on construction.
@@ -218,7 +218,7 @@ module Panko::CodeGen
   # Field defaults applied at +.new+ time:
   #
   # - +source+: defaults to +name+ if omitted or passed as +nil+ — matches
-  #   +docs/descriptor.md § Association+ ("output key matches the model
+  #   +docs/code_gen/descriptor.md § Association+ ("output key matches the model
   #   method" common case).
   # - +if+: defaults to +nil+ — no guard, no runtime cost.
   Association = Data.define(:name, :kind, :descriptor, :source, :if) do
@@ -258,12 +258,12 @@ module Panko::CodeGen
   Association::KINDS = %i[has_one has_many].freeze
 
   # The input to Compile — an immutable, normalized description of one
-  # serializer (per +docs/descriptor.md § Descriptor+). Carries the
+  # serializer (per +docs/code_gen/descriptor.md § Descriptor+). Carries the
   # human-readable identifier, the optional Model hint that unlocks
   # compile-time specialization, the three Field-kind arrays
   # (+attributes+, +method_attributes+, +associations+), and the optional
   # +parent_class+ that flips the Generated Class into the
-  # +< <parent_class.name>+ subclass shape per S18 / +docs/merging-into-panko.md
+  # +< <parent_class.name>+ subclass shape per S18 / +docs/code_gen/merging-into-panko.md
   # § Generated Class subclasses the user's Panko serializer+. Frozen on
   # construction; structural validation runs once at +.new+ and raises
   # +DescriptorError+ on shape violations. Children are validated at their

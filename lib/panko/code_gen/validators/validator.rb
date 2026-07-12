@@ -5,7 +5,7 @@ module Panko::CodeGen
     # Orchestrator for semantic validation. Holds an ordered list of
     # rule modules and runs them against the (Descriptor, Output Mode,
     # Config) triple at the top of every +Compile+ call, raising on the
-    # first violation per +docs/errors.md § Validator orchestrator+.
+    # first violation per +docs/code_gen/errors.md § Validator orchestrator+.
     #
     # The rule list grows one entry per validator slice — S4.1 plugs in
     # +callable_arity+; S6.1 adds +source_resolution+ (registered after

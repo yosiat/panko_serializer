@@ -3,7 +3,7 @@
 module Panko::CodeGen
   module ActiveRecord
     # Source-classification rule for the Specialized path per
-    # +docs/compilation.md § Specialized path+. Encodes the 3-step rule
+    # +docs/code_gen/compilation.md § Specialized path+. Encodes the 3-step rule
     # once (column with AR's own reader → +:column+; instance method →
     # +:method+; else raise) so the +Generator+ and the
     # +SourceResolution+ validator never duplicate it.
@@ -50,7 +50,7 @@ module Panko::CodeGen
       #   both a column and an instance method by +source+'s name;
       #   message names the class and the +source+ but does not include
       #   +Descriptor+ / +Field+ context (the +SourceResolution+
-      #   validator wraps the raise to satisfy the +docs/errors.md §
+      #   validator wraps the raise to satisfy the +docs/code_gen/errors.md §
       #   Message convention+ format)
       def self.classify(klass, source)
         if klass.columns_hash.key?(source.to_s)

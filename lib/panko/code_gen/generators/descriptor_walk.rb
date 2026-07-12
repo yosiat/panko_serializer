@@ -5,7 +5,7 @@ module Panko::CodeGen
     # Shared Descriptor-tree traversal used by per-mode emitters
     # (+JsonMode+, +HashMode+) to decide what classes to emit and in
     # what order. Identity-keyed (+__id__+) per
-    # +docs/descriptor.md § Recursive Descriptors+ — a shared inner
+    # +docs/code_gen/descriptor.md § Recursive Descriptors+ — a shared inner
     # Descriptor (and, in S8, a recursive one) is visited exactly once.
     module DescriptorWalk
       module_function

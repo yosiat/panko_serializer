@@ -7,7 +7,7 @@ require "shallow_generic"
 
 # Cross-cutting +Method#source_location+ contract — paths enter at
 # materialization, not in +Generator+'s emitted bytes. +Compiler+
-# passes the synthetic +(serializers-code-gen: <Name>/<output>)+
+# passes the synthetic +(Panko::CodeGen: <Name>/<output>)+
 # string as +module_eval+'s second argument; +Dump+ writes the bytes
 # via +File.write+ and Ruby's +require+ auto-stamps the on-disk path
 # when the file loads. See +docs/dumping.md § Method#source_location
@@ -17,19 +17,19 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
   let(:config) { Fixtures::ShallowGeneric::CONFIG }
 
   describe "Compile retains the synthetic path" do
-    it "stamps +(serializers-code-gen: ShallowGenericSerializer/json)+ on a JSON-mode instance method" do
+    it "stamps +(Panko::CodeGen: ShallowGenericSerializer/json)+ on a JSON-mode instance method" do
       klass = Panko::CodeGen.compile(descriptor, output: :json, config: config)
       path, line = klass.instance_method(:_write_one).source_location
 
-      expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/json)")
+      expect(path).to eq("(Panko::CodeGen: ShallowGenericSerializer/json)")
       expect(line).to be_a(Integer).and(be_positive)
     end
 
-    it "stamps +(serializers-code-gen: ShallowGenericSerializer/hash)+ on a Hash-mode instance method" do
+    it "stamps +(Panko::CodeGen: ShallowGenericSerializer/hash)+ on a Hash-mode instance method" do
       klass = Panko::CodeGen.compile(descriptor, output: :hash, config: config)
       path, line = klass.instance_method(:_to_hash).source_location
 
-      expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/hash)")
+      expect(path).to eq("(Panko::CodeGen: ShallowGenericSerializer/hash)")
       expect(line).to be_a(Integer).and(be_positive)
     end
   end

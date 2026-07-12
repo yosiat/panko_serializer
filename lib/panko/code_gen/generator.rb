@@ -9,7 +9,7 @@ module Panko::CodeGen
   #
   # The same +#emit+ output drives both materialization paths, satisfying
   # the +Compile ≡ Dump byte-identical+ contract from
-  # +docs/structure.md § Layered architecture+.
+  # +docs/code_gen/structure.md § Layered architecture+.
   class Generator
     # The set of accepted +output:+ values. Anything outside this set
     # raises +ArgumentError+ — the dispatch shape is locked from S2.1

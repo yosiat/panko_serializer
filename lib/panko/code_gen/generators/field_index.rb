@@ -5,7 +5,7 @@ module Panko::CodeGen
     # Builds the per-Generated-Class +FIELD_INDEX+ map. Codegen-time
     # +Symbol → Integer+ assignment over a +Descriptor+'s Fields in the
     # canonical declared order — Attributes, then Method Attributes,
-    # then Associations — per +docs/filters.md § Threading through
+    # then Associations — per +docs/code_gen/filters.md § Threading through
     # Composition+. Mode-agnostic (the same map is emitted into
     # +<Name>_JSON+ and +<Name>_Hash+) so JSON/Hash parity holds at the
     # filter contract per the parent S14 PRD.

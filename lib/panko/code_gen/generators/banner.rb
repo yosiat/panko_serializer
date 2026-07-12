@@ -5,7 +5,7 @@ module Panko::CodeGen
     # Header banner emitter shared by +JsonMode+ and +HashMode+. Produces
     # the per-file comment block that follows +# frozen_string_literal:
     # true+ and precedes the first +class+ line, per
-    # +docs/dumping.md § Dumped file shape+. Written once at the top of
+    # +docs/code_gen/dumping.md § Dumped file shape+. Written once at the top of
     # every emit, never per inner class — multi-class trees show only the
     # root Descriptor in the +Descriptor:+ line because that's the
     # Descriptor +compile+ / +dump+ was called with.

@@ -141,10 +141,10 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   end
 
   describe "synthetic backtrace path" do
-    it "stamps Method#source_location with (serializers-code-gen: <Name>/<mode>) for instance methods" do
+    it "stamps Method#source_location with (Panko::CodeGen: <Name>/<mode>) for instance methods" do
       method = generated_class.instance_method(:_write_one)
       path, line = method.source_location
-      expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/json)")
+      expect(path).to eq("(Panko::CodeGen: ShallowGenericSerializer/json)")
       expect(line).to be_a(Integer).and(be_positive)
     end
 
@@ -152,7 +152,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
       hash_class = Panko::CodeGen.compile(descriptor, output: :hash, config: config)
       method = hash_class.instance_method(:_to_hash)
       path, line = method.source_location
-      expect(path).to eq("(serializers-code-gen: ShallowGenericSerializer/hash)")
+      expect(path).to eq("(Panko::CodeGen: ShallowGenericSerializer/hash)")
       expect(line).to be_a(Integer).and(be_positive)
     end
   end

@@ -5,7 +5,7 @@ module Panko::CodeGen
     # Semantic-validation rule: a +MethodAttribute+ whose +body+ is a
     # +Symbol+ may only appear in a +Descriptor+ whose +parent_class+ is
     # non-nil. Symbol-body Method Attributes dispatch via direct method
-    # dispatch on +self+ per +docs/merging-into-panko.md § Generated Class
+    # dispatch on +self+ per +docs/code_gen/merging-into-panko.md § Generated Class
     # subclasses the user's Panko serializer+ — the Generated Class must
     # subclass a user-supplied class for the method name to resolve.
     #
@@ -47,7 +47,7 @@ module Panko::CodeGen
 
         # Recursive depth-first traversal. The +seen+ Hash is keyed by
         # Descriptor identity (+__id__+) — matches the contract from
-        # +docs/descriptor.md § Recursive Descriptors+ ("Recursion is
+        # +docs/code_gen/descriptor.md § Recursive Descriptors+ ("Recursion is
         # detected via Ruby object identity") and the convention
         # established by +CallableArity+ / +SourceResolution+ /
         # +NameUniqueness+.
@@ -71,7 +71,7 @@ module Panko::CodeGen
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
         # @return [void]
-        # @raise [Panko::CodeGen::SymbolBodyError] per +docs/errors.md
+        # @raise [Panko::CodeGen::SymbolBodyError] per +docs/code_gen/errors.md
         #   § Message convention+
         def check_method_attributes!(descriptor)
           return unless descriptor.parent_class.nil?

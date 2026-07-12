@@ -7,7 +7,7 @@ module Panko::CodeGen
     # in the tree, with children appearing before parents so each parent
     # constructor's reference to its nested +<Inner>_Hash+ class resolves
     # at module_eval time. Parallel — not a subclass — of +JsonMode+ per
-    # +docs/output-modes.md § Composition across modes+: the two emit
+    # +docs/code_gen/output-modes.md § Composition across modes+: the two emit
     # shapes diverge (Writer-pushing vs Hash-mutation) so inheritance
     # would couple distinct evolutionary paths. Shared field-level emit
     # lives in +FieldEmitters::Attribute+ / +FieldEmitters::Association+;
@@ -17,12 +17,12 @@ module Panko::CodeGen
     # +@<name>_serializer+ ivar hoisted in the constructor pointing at
     # one nested Generated Class instance — the call site in
     # +_to_hash_*+ stays monomorphic per
-    # +docs/compilation.md § Composition of nested Associations+.
+    # +docs/code_gen/compilation.md § Composition of nested Associations+.
     class HashMode
       # Builds and returns the source string for the Generated Class tree
       # rooted at +descriptor+. The string starts with
       # +# frozen_string_literal: true+ (per
-      # +docs/code-generation.md § Source pragmas+), then emits one class
+      # +docs/code_gen/code-generation.md § Source pragmas+), then emits one class
       # per unique Descriptor reachable from +descriptor+, children
       # before parents (post-order). The byte payload feeds both
       # +Compiler+ (+module_eval+) and +Dump+ (+File.write+).
@@ -46,7 +46,7 @@ module Panko::CodeGen
       # Emits one +<Name>_Hash+ class shell with constructor + public
       # entries + the chosen +RecordAccess+ strategy's helpers. Strategy
       # choice is per-Descriptor and keyed off +descriptor.model.nil?+
-      # per +docs/compilation.md § Record-access strategy+: +nil+ →
+      # per +docs/code_gen/compilation.md § Record-access strategy+: +nil+ →
       # +RecordAccess::Generic+ (Hash + PORO via the +_to_hash_hash+ /
       # +_to_hash_object+ split); set → +RecordAccess::Specialized+
       # (single +_to_hash+ body, no Hash branch).
@@ -103,7 +103,7 @@ module Panko::CodeGen
       #   byte-identical to pre-S18 emit so existing snapshots with
       #   +parent_class+ unset stay green).
       # - +Class+ → +class <Name>_Hash < <parent_class.name>+ (the
-      #   subclass-dispatch shape from +docs/merging-into-panko.md
+      #   subclass-dispatch shape from +docs/code_gen/merging-into-panko.md
       #   § Generated Class subclasses the user's Panko serializer+).
       #   The parent's fully-qualified name is spliced verbatim via
       #   +parent_class.name+ so namespaced parents
@@ -129,7 +129,7 @@ module Panko::CodeGen
       # Emits the +initialize(descriptor:)+ constructor. Hoists each
       # Method Attribute's Callable body into a per-Field +@cb_<name>+
       # ivar in declaration order per
-      # +docs/code-generation.md § Callable hoisting+, *skipping*
+      # +docs/code_gen/code-generation.md § Callable hoisting+, *skipping*
       # Method Attributes whose +body+ is a +Symbol+ (S18.3 — no
       # Callable to bind; Symbol bodies dispatch as +value =
       # <method_name>+ on +self+ at the emit site instead). Then per
@@ -139,12 +139,12 @@ module Panko::CodeGen
       # +@<name>_serializer = <Inner>_Hash .new(descriptor:
       # descriptor.associations[<i>].descriptor)+ — the Composition
       # wiring from
-      # +docs/compilation.md § Composition of nested Associations+.
+      # +docs/code_gen/compilation.md § Composition of nested Associations+.
       #
       # When an Association's nested Descriptor is the parent itself
       # (+assoc.descriptor.equal?(descriptor)+ — the self-recursion
-      # signal per +docs/descriptor.md § Recursive Descriptors+ +
-      # +docs/compilation.md § Recursive Descriptors+), the constructor
+      # signal per +docs/code_gen/descriptor.md § Recursive Descriptors+ +
+      # +docs/code_gen/compilation.md § Recursive Descriptors+), the constructor
       # emits +@<name>_serializer = self+ instead of allocating a nested
       # instance. Detection is identity-based, never structural — two
       # structurally-equal but distinct Descriptors compile to distinct
@@ -162,7 +162,7 @@ module Panko::CodeGen
       # then allocates via the +cache[d.__id__] ||= NestedClass.new(
       # descriptor: ..., _construct_cache: cache)+ idiom so the cycle
       # produces exactly one Generated Class instance per unique
-      # Descriptor per +docs/compilation.md § Recursive Descriptors+.
+      # Descriptor per +docs/code_gen/compilation.md § Recursive Descriptors+.
       # Acyclic Descriptors stay on the no-kwarg constructor and call
       # nested classes via the plain +.new(descriptor: ...)+ form — no
       # +_construct_cache:+ kwarg leakage and no Hash allocation. A
@@ -237,21 +237,21 @@ module Panko::CodeGen
       end
 
       # Emits the public +serialize_one+ method. Hash mode allocates no
-      # Writer (per +docs/output-modes.md § :hash+) — the body is a
+      # Writer (per +docs/code_gen/output-modes.md § :hash+) — the body is a
       # straight delegate to +_to_hash+, whose return value is the
       # produced Hash. The +filters+ kwarg is accepted from day 1 to
       # keep the public signature locked (per
-      # +docs/filters.md § Phase-1 behavior+); the body's first line
+      # +docs/code_gen/filters.md § Phase-1 behavior+); the body's first line
       # normalizes it via
       # +Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)+. +nil+
       # and +{}+ collapse to +Filter::NONE+ (allocation-free,
       # +FIELD_INDEX+ is unread on that path); a non-empty Hash routes
       # to the +Filter::Indexed+ cell from S13's verdict (S14.2,
-      # +docs/research/filter_experiments_results.md § 1+) — bit-mask
+      # +docs/code_gen/research/filter_experiments_results.md § 1+) — bit-mask
       # rep when +FIELD_INDEX.size <= 63+, Boolean Array otherwise.
       #
       # +scope:+ is a sibling kwarg of +context:+ added in S17.2 — the
-      # auth/viewer axis from +docs/merging-into-panko.md § Both `scope`
+      # auth/viewer axis from +docs/code_gen/merging-into-panko.md § Both `scope`
       # and `context` survive Panko's public DSL+. Defaults to +nil+,
       # threaded positionally into +_to_hash+ between +context+ and
       # +filters+. Arity-3 Callables observe it as the third arg;
@@ -263,7 +263,7 @@ module Panko::CodeGen
       # an additional +root_key:+ kwarg (defaulting to +nil+); when
       # truthy, the body wraps the produced Hash in a single-entry
       # +{root_key => result}+ (per
-      # +docs/generated-class.md § serialize_one+). The kwarg value
+      # +docs/code_gen/generated-class.md § serialize_one+). The kwarg value
       # must be a non-empty String or +nil+ —
       # +validate_root_key!+ raises +ArgumentError+ on anything else.
       # When +supports_root_key+ is +false+, the kwarg is omitted from
@@ -294,11 +294,11 @@ module Panko::CodeGen
       end
 
       # Emits the public +serialize_many+ method. Hash mode allocates no
-      # Writer (per +docs/output-modes.md § :hash+) — the body walks the
+      # Writer (per +docs/code_gen/output-modes.md § :hash+) — the body walks the
       # input enumerable with +.map+, calling +_to_hash+ per element, and
       # returns the resulting +Array<Hash>+. The +filters+ kwarg is
       # accepted from day 1 to keep the public signature locked (per
-      # +docs/filters.md § Phase-1 behavior+); the body's first line
+      # +docs/code_gen/filters.md § Phase-1 behavior+); the body's first line
       # normalizes it via
       # +Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)+ —
       # +nil+ / +{}+ → +Filter::NONE+; a non-empty Hash routes to the
@@ -309,7 +309,7 @@ module Panko::CodeGen
       # wraps the +Array<Hash>+ in a single-entry +{root_key => result}+,
       # so an empty input still emits +{root_key => []}+ (wrapped empty
       # array, never +nil+, never omitted) per
-      # +docs/testing.md § root_key_spec.rb+ (case 6).
+      # +docs/code_gen/testing.md § root_key_spec.rb+ (case 6).
       #
       # @param config [Panko::CodeGen::Config] resolved settings;
       #   +supports_root_key+ gates the +root_key:+ kwarg + wrap branch
@@ -336,7 +336,7 @@ module Panko::CodeGen
       # Emits the private +validate_root_key!+ helper used by the wrap
       # branch of +serialize_one+ / +serialize_many+ when
       # +Config#supports_root_key+ is +true+. Enforces the accepted-types
-      # contract from +docs/generated-class.md § serialize_one+: a
+      # contract from +docs/code_gen/generated-class.md § serialize_one+: a
       # non-empty +String+ or +nil+ only; empty +String+, +Symbol+, or
       # any other non-+nil+ value raises +ArgumentError+ at call time.
       # Emitted only when the wrap branch is also emitted, so the

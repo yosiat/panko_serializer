@@ -5,14 +5,14 @@ module Panko::CodeGen
     module FieldEmitters
       # Emits the per-mode write for one +Association+ inside a
       # +_write_one_*+ / +_to_hash_*+ helper. Composition shape per
-      # +docs/compilation.md § Composition of nested Associations+: the
+      # +docs/code_gen/compilation.md § Composition of nested Associations+: the
       # parent's constructor has hoisted +@<name>_serializer+ pointing at
       # an instance of the nested Generated Class; the emit here calls
       # through that ivar.
       #
       # Per-Association precedence ladder per
-      # +docs/filters.md § Filter before if:+ and
-      # +docs/testing.md § association_if_spec.rb § Precedence ladder+:
+      # +docs/code_gen/filters.md § Filter before if:+ and
+      # +docs/code_gen/testing.md § association_if_spec.rb § Precedence ladder+:
       # Filter > +if:+ > Source. The codegen mirrors the order — the
       # +unless filters.drops?(<index>)+ wrapper is the outermost guard,
       # the +if @cb_if_<name>.call(...)+ wrap (when present) lives inside
@@ -22,11 +22,11 @@ module Panko::CodeGen
       #
       # Nested calls thread +filters.child(:<source>)+ rather than the
       # parent's +filters+ object verbatim — Filters do not inherit per
-      # +docs/filters.md § Rules+ ("+:only+ at the parent level does not
+      # +docs/code_gen/filters.md § Rules+ ("+:only+ at the parent level does not
       # propagate to child Associations. Children are governed by their
       # own sub-hash (or are unfiltered if none is supplied)."). The
       # +Source+ (not the +name+) is the lookup key per
-      # +docs/filters.md § Public shape+. For +has_many+ the +#child+
+      # +docs/code_gen/filters.md § Public shape+. For +has_many+ the +#child+
       # lookup is hoisted to a +child_filter+ local above the iteration
       # so the Filter cell's child cache is consulted at most once per
       # +(Association, Record)+ pair rather than once per element.
@@ -37,11 +37,11 @@ module Panko::CodeGen
       # Callable wrap — when +association.if+ is non-+nil+ the entire
       # per-Kind emit is wrapped in
       # +if @cb_if_<name>.call(...) ... end+ with arity-specialized
-      # invocation per +docs/descriptor.md § Callable arity+; when +nil+
+      # invocation per +docs/code_gen/descriptor.md § Callable arity+; when +nil+
       # no wrap is emitted (zero runtime cost — no branch, no Callable
       # dispatch, no +@cb_if_<name>+ ivar hoisted by the constructor).
       # The +if:+ wrap precedes the Source read so a falsy guard never
-      # invokes the Source per +docs/testing.md § association_if_spec.rb
+      # invokes the Source per +docs/code_gen/testing.md § association_if_spec.rb
       # § Precedence ladder+ (item 2 wins over item 3; +if:+ falsy
       # short-circuits before either +null_for_missing_has_one+ branch
       # of +has_one+ or the +has_many+ collection iteration runs). Both
@@ -50,7 +50,7 @@ module Panko::CodeGen
       # source choices keyed off +Config#null_for_missing_has_one+ for
       # the +has_one+ Kind only; +has_many+ ignores the knob (an empty
       # collection always emits +[]+ — never +null+, never omitted) per
-      # +docs/output-modes.md § Null Association handling+. The
+      # +docs/code_gen/output-modes.md § Null Association handling+. The
       # +null_for_missing_has_one: false+ branch is exercised end-to-end
       # by S10's +config_null_for_has_one_off+ fixture; this slice only
       # pins the default-+true+ branch.
@@ -88,7 +88,7 @@ module Panko::CodeGen
         # (byte-identical output, fewer dispatches). The non-nil
         # +has_one+ arms keep the +push_key("<name>")+ + +_write_one+
         # split: the inner +_write_one+ opens its own +push_object+ frame
-        # per +docs/compilation.md § Composition of nested Associations+,
+        # per +docs/code_gen/compilation.md § Composition of nested Associations+,
         # so collapsing across that boundary would require restructuring
         # the +_write_one+ contract (a keyed-+_write_one+ variant or an
         # +_emit_fields+ helper that doesn't open its own frame).
@@ -244,13 +244,13 @@ module Panko::CodeGen
         # dispatch); the non-nil arm pushes the key then dispatches to
         # the nested Generated Class's +_write_one+, which opens its own
         # +push_object+ frame internally per
-        # +docs/compilation.md § Composition of nested Associations+. The
+        # +docs/code_gen/compilation.md § Composition of nested Associations+. The
         # +push_key+ in the non-nil arm cannot be collapsed across that
         # frame boundary without restructuring +_write_one+'s contract.
         #
         # The non-nil arm threads +filters.child(:<source>)+ — the
         # +Source+ is the lookup key per
-        # +docs/filters.md § Threading through Composition+ ("Filters do
+        # +docs/code_gen/filters.md § Threading through Composition+ ("Filters do
         # not inherit"). Inlined at the call site for +has_one+ since
         # the call fires at most once per record (Filter cell caches
         # repeated +#child+ lookups but the inline form keeps the
@@ -276,7 +276,7 @@ module Panko::CodeGen
         # the key then dispatches to the nested Generated Class's
         # +_write_one+, which opens its own +push_object+ frame
         # internally per
-        # +docs/compilation.md § Composition of nested Associations+.
+        # +docs/code_gen/compilation.md § Composition of nested Associations+.
         # The +push_key+ here cannot be collapsed across that frame
         # boundary without restructuring +_write_one+'s contract.
         #
@@ -298,7 +298,7 @@ module Panko::CodeGen
         # Emits the Hash-mode default-true branch — assigns the key with
         # +nil+ or the nested call via the +result[k] = if/else/end+
         # idiom. Threads +filters.child(:<source>)+ on the non-nil arm
-        # per +docs/filters.md § Threading through Composition+.
+        # per +docs/code_gen/filters.md § Threading through Composition+.
         #
         # @param association [Panko::CodeGen::Association]
         # @param key_lit [String] pre-rendered Ruby literal for the
@@ -340,13 +340,13 @@ module Panko::CodeGen
         # nested Generated Class's +_write_one+, then closes the array.
         # An empty collection naturally emits +[]+ (no key omission, no
         # +null+ — empty array is its own state) per
-        # +docs/output-modes.md § Null Association handling+.
+        # +docs/code_gen/output-modes.md § Null Association handling+.
         #
         # Hoists +child_filter = filters.child(:<source>)+ above the
         # iteration loop — one +#child+ call per Association per Record
         # rather than one per element. Matches the +indexed x
         # single_path+ winning cell from
-        # +docs/research/filter_experiments_bench.rb+ (lines 586–595).
+        # +docs/code_gen/research/filter_experiments_bench.rb+ (lines 586–595).
         #
         # @param association [Panko::CodeGen::Association]
         # @param source_read_expr [String] Ruby source for the parent
@@ -370,7 +370,7 @@ module Panko::CodeGen
         # element passed through the nested Generated Class's
         # +_to_hash+. An empty collection emits an empty Array (the
         # +Array#map+ on +[]+ returns +[]+) per
-        # +docs/output-modes.md § Null Association handling+.
+        # +docs/code_gen/output-modes.md § Null Association handling+.
         #
         # Hoists +child_filter = filters.child(:<source>)+ above the
         # +.map+ — same rationale as {.emit_json_has_many}.
@@ -395,9 +395,9 @@ module Panko::CodeGen
         # when no guard is configured. The wrap pre-empts the per-Kind
         # body — Source read, key push, nested call — so a falsy guard
         # short-circuits before any of them run, per
-        # +docs/testing.md § association_if_spec.rb § Precedence ladder+.
+        # +docs/code_gen/testing.md § association_if_spec.rb § Precedence ladder+.
         # Call expression is arity-specialized per
-        # +docs/descriptor.md § Callable arity+ via
+        # +docs/code_gen/descriptor.md § Callable arity+ via
         # {.call_expression}.
         #
         # @param association [Panko::CodeGen::Association]
@@ -431,7 +431,7 @@ module Panko::CodeGen
         # +MethodAttribute#body+ via
         # +FieldEmitters::MethodAttribute.call_expression+ — both Callable
         # surfaces share the per-arity emit shape per
-        # +docs/descriptor.md § Callable arity+. Arity 3 threads +scope+
+        # +docs/code_gen/descriptor.md § Callable arity+. Arity 3 threads +scope+
         # positionally as the third argument; arity 2 keeps its
         # +(record, context)+ meaning (no +scope+ leak).
         #
