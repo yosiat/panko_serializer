@@ -19,6 +19,7 @@ The public API is small and stable: subclass `Panko::Serializer` and declare `at
 - [Filters](https://panko.dev/filters): `only` / `except`, nested filters, and `filters_for`.
 - [Response](https://panko.dev/response-bag): `Panko::Response` and `Panko::JsonValue` for composing serialized output into a larger JSON response.
 - [Configuration](https://panko.dev/configuration): `Panko.configure` and `Panko::Config.auto_specialization` (`enabled`, `capacity`) — tuning per-record-class specialization.
+- [Descriptor](https://panko.dev/descriptor): `Panko::Descriptor` — the read-only introspection view of a serializer's shape (attributes, method attributes, associations, nested descriptors), honoring filters; for association preloaders and other tooling.
 
 ## Optional
 

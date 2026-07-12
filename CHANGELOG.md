@@ -40,6 +40,13 @@ output byte-for-byte was a design gate for the rewrite.
   output mode).
 - **`Panko::CodeGen.dump`.** Writes the generated Ruby source for a serializer
   to a file — the engine emits plain, readable Ruby, and you can look at it.
+- **`Panko::Descriptor`.** A public, read-only view of a serializer's shape —
+  attributes, method attributes, and associations, with nested descriptors —
+  for tooling such as association preloaders. `PostSerializer.descriptor`
+  returns the declared shape; `serializer.descriptor` returns the effective
+  shape for that instance, honoring `only` / `except` / `filters_for`. The
+  unfiltered view is cached and allocation-free to read; filtered views
+  resolve lazily, and the serialization hot path is unaffected either way.
 - **Instance and writer pooling.** Serialization checks generated-class
   instances and `Oj::StringWriter`s out of fiber-local pools, so steady-state
   JSON serialization allocates a near-constant handful of objects regardless

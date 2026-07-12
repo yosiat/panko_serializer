@@ -22,3 +22,5 @@ Detailed reference for Panko's API and DSL.
     `Panko::JsonValue` for composing responses.
 -   [Configuration]({% link configuration.md %}) — `Panko.configure` and the
     auto-specialization settings.
+-   [Descriptor]({% link descriptor.md %}) — `Panko::Descriptor`, the
+    read-only view of a serializer's shape for preloaders and other tooling.
