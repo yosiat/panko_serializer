@@ -588,5 +588,44 @@ describe "Filtering Serialization" do
 
       expect(foo).to serialized_as(-> { FooWithFiltersForSerializer.new }, "name" => foo.name)
     end
+
+    it "applies the nested serializer's filters_for to associations" do
+      Temping.create(:filtered_child) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :filtered_parent
+        end
+      end
+
+      Temping.create(:filtered_parent) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :filtered_children
+      end
+
+      class NestedFiltersForChildSerializer < Panko::Serializer
+        attributes :name, :address
+
+        def self.filters_for(context, scope)
+          {except: [:address]}
+        end
+      end
+
+      class NestedFiltersForParentSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :filtered_children, serializer: NestedFiltersForChildSerializer
+      end
+
+      child = FilteredChild.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      parent = FilteredParent.create(name: Faker::Lorem.word, filtered_children: [child])
+
+      expect(parent).to serialized_as(NestedFiltersForParentSerializer,
+        "name" => parent.name,
+        "filtered_children" => [{"name" => child.name}])
+    end
   end
 end

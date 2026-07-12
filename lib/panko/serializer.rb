@@ -136,8 +136,28 @@ module Panko
       def add_association(kind, name, options)
         serializer = resolve_association_serializer(name, options, kind)
         descriptor = Panko::CodeGen::DescriptorBuilder.build(serializer)
-        descriptor = Panko::CodeGen::DescriptorBuilder.narrow(descriptor, options[:only], options[:except])
+        only, except = association_filters(serializer, options)
+        descriptor = Panko::CodeGen::DescriptorBuilder.narrow(descriptor, only, except)
         _cg_associations << AssociationDecl.new(name.to_sym, options.fetch(:name, name).to_s, kind, descriptor)
+      end
+
+      # The nested serializer's +filters_for+ is evaluated once, here, with nil
+      # context/scope: the C-ext engine baked it into the association's
+      # descriptor at declaration time (SerializationDescriptor.build merged it
+      # into the has_one/has_many options) and never re-evaluated it with the
+      # runtime context. That merge also means +filters_for+ wins over the
+      # declared +only:+/+except:+ on a key collision.
+      def association_filters(serializer, options)
+        only = options[:only]
+        except = options[:except]
+
+        if serializer.respond_to?(:filters_for)
+          filters = serializer.filters_for(nil, nil)
+          only = filters[:only] if filters.key?(:only)
+          except = filters[:except] if filters.key?(:except)
+        end
+
+        [only, except]
       end
 
       def resolve_association_serializer(name, options, kind)
