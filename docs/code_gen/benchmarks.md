@@ -62,7 +62,6 @@ benchmarks/
                                  # file (Oj.load(mode: :strict) on every row's JSON; abort
                                  # with a labeled diff if any row diverges) — future
                                  # scenarios should mirror this guard
-  parent_class_dispatch.rb       # Symbol-body vs Callable-body Method Attribute dispatch
 
   # Cross-library comparison
   game_serializer.rb             # single + collection Game/Player graph across panko,

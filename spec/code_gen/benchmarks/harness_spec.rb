@@ -49,15 +49,4 @@ RSpec.describe "benchmark harness smoke" do
       "plain/hash"
     ]
   end
-
-  describe "benchmarks/parent_class_dispatch.rb" do
-    include_examples "a bench scenario subprocess", "parent_class_dispatch.rb", "ParentClassDispatch", [
-      "serializers_code_gen/json[callable_body]",
-      "serializers_code_gen/hash[callable_body]",
-      "serializers_code_gen/json[symbol_body]",
-      "serializers_code_gen/hash[symbol_body]",
-      "panko/json",
-      "panko/object"
-    ]
-  end
 end
