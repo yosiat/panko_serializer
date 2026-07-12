@@ -2,16 +2,42 @@
 
 require_relative "support/benchmark"
 
-# Single-record GameSerializer benchmark — direct port of
-# https://github.com/ElMassimo/oj_serializers/blob/main/benchmarks/game_serializer_benchmark.rb
-# with scg added alongside oj_serializers and panko. Owns its own Game/Player
-# schema (with the upstream `scores` alias) so absolute numbers stay
-# comparable to oj_serializers' published run; reuses the shared harness's
-# benchmark() for ips + allocs + retained output and env knobs
-# (IPS_TIME / IPS_WARMUP / BENCH / TARGET).
+# Cross-library serializer benchmark: Panko vs its competitors, serializing a
+# nested object graph (Game -> scores, best_player, players[]) to JSON. Two
+# workloads per library — a single record and a collection — measured side by
+# side under YJIT.
+#
+# Every competitor row is gated on producing output BYTE-IDENTICAL to Panko's:
+# a library whose bytes diverge (different key order, spacing, escaping) is
+# skipped with a warning rather than compared, so the numbers stay honest and
+# apples-to-apples.
+#
+# Adapted from oj_serializers' game_serializer_benchmark.rb
+# (https://github.com/ElMassimo/oj_serializers/blob/master/benchmarks/game_serializer_benchmark.rb),
+# MIT-licensed, Copyright (c) 2020 Maximo Mussini. Owns its own Game/Player
+# schema — including the upstream `scores` alias that walks back to the game
+# itself — so absolute numbers stay comparable to oj_serializers' published run.
 #
 # Run (YJIT — the production target):
-#   bundle exec ruby --yjit benchmarks/game_serializer.rb
+#   BUNDLE_GEMFILE=gemfiles/8.0.0.gemfile bundle exec ruby --yjit benchmarks/game_serializer.rb
+#
+# Collection size defaults to 100 games; override with COUNT=<n>. TARGET=<substr>
+# filters rows (e.g. TARGET=single, TARGET=alba).
+
+# Competitors are optional: the bench runs with whichever gems are installed,
+# so a missing one degrades to a skipped row instead of a load error.
+def try_require(lib)
+  require lib
+  true
+rescue LoadError
+  warn "#{lib} not installed — its benchmark row will be skipped"
+  false
+end
+
+HAVE_ALBA = try_require("alba")
+HAVE_BLUEPRINTER = try_require("blueprinter")
+
+# --- Schema + models ------------------------------------------------------
 
 ActiveRecord::Schema.define do
   create_table :games, force: true do |t|
@@ -40,9 +66,9 @@ class Game < ActiveRecord::Base
   belongs_to :best_player, class_name: "Player", optional: true
   has_many :players
 
-  # Mirrors `Game.prepend Module.new { def scores; self; end }` from the
-  # source benchmark — has_one :scores walks back to the game itself so the
-  # Scores serializer reads high_score/score off the game's own row.
+  # Mirrors `Game.prepend Module.new { def scores; self; end }` from the source
+  # benchmark — has_one :scores walks back to the game itself so the Scores
+  # serializer reads high_score/score off the game's own row.
   def scores
     self
   end
@@ -51,123 +77,33 @@ end
 Game.define_attribute_methods
 Player.define_attribute_methods
 
-Game.insert_all([{name: "Tetris", high_score: 1500, score: 3165}])
-GAME_ID = Game.pick(:id)
-Player.insert_all([
-  {first_name: "Alexey", last_name: "Pajitnov", game_id: GAME_ID},
-  {first_name: "Vadim", last_name: "Gerasimov", game_id: GAME_ID}
-])
-BEST_PLAYER_ID = Player.where(game_id: GAME_ID).order(:id).pick(:id)
-Game.where(id: GAME_ID).update_all(best_player_id: BEST_PLAYER_ID)
+# --- Seed data: one game for the single row, a collection for the many row --
 
-GAME = Game.includes(:best_player, :players).find(GAME_ID)
+COLLECTION_SIZE = (ENV["COUNT"] && !ENV["COUNT"].empty?) ? ENV["COUNT"].to_i : 100
 
-# --- SCG ------------------------------------------------------------------
-
-PLAYER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
-  name: "PlayerSerializer",
-  models: [Player],
-  attributes: [
-    Panko::CodeGen::Attribute.new(name: :id, source: :id),
-    Panko::CodeGen::Attribute.new(name: :first_name, source: :first_name),
-    Panko::CodeGen::Attribute.new(name: :last_name, source: :last_name)
-  ],
-  method_attributes: [
-    Panko::CodeGen::MethodAttribute.new(
-      name: :full_name,
-      body: ->(record, _ctx) { record.full_name }
-    )
-  ],
-  associations: []
-)
-
-SCORES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
-  name: "ScoresSerializer",
-  models: [Game],
-  attributes: [
-    Panko::CodeGen::Attribute.new(name: :high_score, source: :high_score),
-    Panko::CodeGen::Attribute.new(name: :score, source: :score)
-  ],
-  method_attributes: [],
-  associations: []
-)
-
-GAME_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
-  name: "GameSerializer",
-  models: [Game],
-  attributes: [
-    Panko::CodeGen::Attribute.new(name: :id, source: :id),
-    Panko::CodeGen::Attribute.new(name: :name, source: :name)
-  ],
-  method_attributes: [],
-  associations: [
-    Panko::CodeGen::Association.new(name: :scores, kind: :has_one, descriptor: SCORES_DESCRIPTOR),
-    Panko::CodeGen::Association.new(name: :best_player, kind: :has_one, descriptor: PLAYER_DESCRIPTOR),
-    Panko::CodeGen::Association.new(name: :players, kind: :has_many, descriptor: PLAYER_DESCRIPTOR)
-  ]
-)
-
-SCG_JSON = Panko::CodeGen.compile(GAME_DESCRIPTOR, output: :json).new(descriptor: GAME_DESCRIPTOR)
-# Symbol keys for the hash row: Symbol#hash is cached, so Hash construction
-# is ~9–11% faster than with String keys (see docs/deferred.md § Hash-mode
-# default key type). The parity check below normalizes both rows through
-# Oj.load(mode: :strict), which coerces Symbol/String keys to Strings, so
-# the byte-parity assertion still holds.
-SCG_HASH = Panko::CodeGen.compile(
-  GAME_DESCRIPTOR,
-  output: :hash,
-  config: Panko::CodeGen::Config.new(hash_output_key_type: :symbol)
-).new(descriptor: GAME_DESCRIPTOR)
-
-# --- SCG parent_class dispatch -------------------------------------------
-# Symbol-body MethodAttribute under parent_class: PlayerSerializerBase —
-# the S18 direct-dispatch shape Panko relies on once scg is absorbed (per
-# docs/merging-into-panko.md § Generated Class subclasses the user's Panko
-# serializer). The Generated Class becomes a subclass of
-# PlayerSerializerBase, @object / @context / @scope are written to ivars
-# at the top of _write_one / _to_hash, and `body: :full_name` dispatches
-# via direct method call on self. Only the Player descriptor changes
-# shape — Scores and Game have no MethodAttributes, so flipping their
-# parent_class would only swap the subclass line without exercising
-# dispatch.
-
-class PlayerSerializerBase
-  def full_name
-    "#{@object.first_name} #{@object.last_name}"
+Game.insert_all(
+  COLLECTION_SIZE.times.map do |i|
+    {name: "Game ##{i}", high_score: 1500 + i, score: 3000 + i}
   end
-end
-
-PLAYER_PARENT_CLASS_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
-  name: "PlayerParentClassSerializer",
-  models: [Player],
-  parent_class: PlayerSerializerBase,
-  attributes: PLAYER_DESCRIPTOR.attributes,
-  method_attributes: [
-    Panko::CodeGen::MethodAttribute.new(name: :full_name, body: :full_name)
-  ],
-  associations: []
 )
-
-GAME_PARENT_CLASS_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
-  name: "GameParentClassSerializer",
-  models: [Game],
-  attributes: GAME_DESCRIPTOR.attributes,
-  method_attributes: [],
-  associations: [
-    Panko::CodeGen::Association.new(name: :scores, kind: :has_one, descriptor: SCORES_DESCRIPTOR),
-    Panko::CodeGen::Association.new(name: :best_player, kind: :has_one, descriptor: PLAYER_PARENT_CLASS_DESCRIPTOR),
-    Panko::CodeGen::Association.new(name: :players, kind: :has_many, descriptor: PLAYER_PARENT_CLASS_DESCRIPTOR)
-  ]
+Player.insert_all(
+  Game.order(:id).pluck(:id).flat_map do |game_id|
+    [
+      {first_name: "Alexey", last_name: "Pajitnov", game_id: game_id},
+      {first_name: "Vadim", last_name: "Gerasimov", game_id: game_id}
+    ]
+  end
 )
+# Each game's best player is its first player — one correlated UPDATE.
+Game.connection.execute(<<~SQL)
+  UPDATE games SET best_player_id =
+    (SELECT MIN(id) FROM players WHERE players.game_id = games.id)
+SQL
 
-SCG_JSON_PARENT_CLASS = Panko::CodeGen.compile(GAME_PARENT_CLASS_DESCRIPTOR, output: :json).new(descriptor: GAME_PARENT_CLASS_DESCRIPTOR)
-SCG_HASH_PARENT_CLASS = Panko::CodeGen.compile(
-  GAME_PARENT_CLASS_DESCRIPTOR,
-  output: :hash,
-  config: Panko::CodeGen::Config.new(hash_output_key_type: :symbol)
-).new(descriptor: GAME_PARENT_CLASS_DESCRIPTOR)
+GAMES = Game.includes(:best_player, :players).order(:id).to_a
+GAME = GAMES.first
 
-# --- Panko ----------------------------------------------------------------
+# --- Panko (the subject) --------------------------------------------------
 
 class PlayerPanko < Panko::Serializer
   attributes :id, :first_name, :last_name, :full_name
@@ -188,18 +124,12 @@ class GamePanko < Panko::Serializer
   has_many :players, serializer: PlayerPanko
 end
 
-# --- oj_serializers — two trios ------------------------------------------
-# `default_format :json` makes `Serializer.one(record)` return an
-# `Oj::StringWriter` whose `.to_s` materializes a JSON String in one
-# dispatch — the apples-to-apples shape against panko's `serialize_to_json`
-# and scg's `serialize_one`. Without it the row would pay an extra `Oj.dump`
-# per call (or worse, return an Array#inspect for collection variants).
-# Pinned on every nested class for symmetry — removes the foot-gun where a
-# hash-mode nested ends up under a json-mode parent.
-#
-# See https://github.com/ElMassimo/oj_serializers#writing-to-json.
+# --- oj_serializers -------------------------------------------------------
+# `default_format :json` makes `.one` / `.many` return an Oj::StringWriter whose
+# `.to_s` materializes JSON in one dispatch — the apples-to-apples shape against
+# Panko's serialize_to_json. See https://github.com/ElMassimo/oj_serializers.
 
-class PlayerOjJsonSerializer < OjSerializers::Serializer
+class PlayerOj < OjSerializers::Serializer
   default_format :json
   attributes :id, :first_name, :last_name
 
@@ -209,75 +139,161 @@ class PlayerOjJsonSerializer < OjSerializers::Serializer
   end
 end
 
-class ScoresOjJsonSerializer < OjSerializers::Serializer
+class ScoresOj < OjSerializers::Serializer
   default_format :json
   attributes :high_score, :score
 end
 
-class GameOjJsonSerializer < OjSerializers::Serializer
+class GameOj < OjSerializers::Serializer
   default_format :json
   attributes :id, :name
-  has_one :scores, serializer: ScoresOjJsonSerializer
-  has_one :best_player, serializer: PlayerOjJsonSerializer
-  has_many :players, serializer: PlayerOjJsonSerializer
+  has_one :scores, serializer: ScoresOj
+  has_one :best_player, serializer: PlayerOj
+  has_many :players, serializer: PlayerOj
 end
 
-class PlayerOjHashSerializer < OjSerializers::Serializer
-  attributes :id, :first_name, :last_name
+# --- alba -----------------------------------------------------------------
 
-  attribute
-  def full_name
-    @object.full_name
+if HAVE_ALBA
+  Alba.backend = :oj
+
+  class PlayerAlba
+    include Alba::Resource
+
+    attributes :id, :first_name, :last_name
+    attribute :full_name do |player|
+      player.full_name
+    end
+  end
+
+  class ScoresAlba
+    include Alba::Resource
+
+    attributes :high_score, :score
+  end
+
+  class GameAlba
+    include Alba::Resource
+
+    attributes :id, :name
+    one :scores, resource: ScoresAlba
+    one :best_player, resource: PlayerAlba
+    many :players, resource: PlayerAlba
   end
 end
 
-class ScoresOjHashSerializer < OjSerializers::Serializer
-  attributes :high_score, :score
+# --- blueprinter ----------------------------------------------------------
+# Blueprinter's default sorts fields alphabetically; :definition keeps
+# declaration order so the bytes line up with Panko. Plain `field :id` (not
+# `identifier`) avoids the always-first id reordering.
+
+if HAVE_BLUEPRINTER
+  Blueprinter.configure { |config| config.sort_fields_by = :definition }
+
+  class PlayerBlueprint < Blueprinter::Base
+    field :id
+    field :first_name
+    field :last_name
+    field(:full_name) { |player| player.full_name }
+  end
+
+  class ScoresBlueprint < Blueprinter::Base
+    field :high_score
+    field :score
+  end
+
+  class GameBlueprint < Blueprinter::Base
+    field :id
+    field :name
+    association :scores, blueprint: ScoresBlueprint
+    association :best_player, blueprint: PlayerBlueprint
+    association :players, blueprint: PlayerBlueprint
+  end
 end
 
-class GameOjHashSerializer < OjSerializers::Serializer
-  attributes :id, :name
-  has_one :scores, serializer: ScoresOjHashSerializer
-  has_one :best_player, serializer: PlayerOjHashSerializer
-  has_many :players, serializer: PlayerOjHashSerializer
+# --- plain baselines (ceiling + floor) ------------------------------------
+# Hand-built Hash so key order and shape are exactly Panko's; Oj.dump is the
+# "speed of light" ceiling, JSON.generate the stdlib floor.
+
+def player_hash(player)
+  {
+    id: player.id,
+    first_name: player.first_name,
+    last_name: player.last_name,
+    full_name: player.full_name
+  }
 end
 
-# --- Output-parity guard --------------------------------------------------
+def game_hash(game)
+  {
+    id: game.id,
+    name: game.name,
+    scores: {high_score: game.high_score, score: game.score},
+    best_player: player_hash(game.best_player),
+    players: game.players.map { |player| player_hash(player) }
+  }
+end
 
-parity_outputs = {
-  "serializers_code_gen/json" => SCG_JSON.serialize_one(GAME),
-  "serializers_code_gen/hash" => Oj.dump(SCG_HASH.serialize_one(GAME)),
-  "serializers_code_gen/json[parent_class]" => SCG_JSON_PARENT_CLASS.serialize_one(GAME),
-  "serializers_code_gen/hash[parent_class]" => Oj.dump(SCG_HASH_PARENT_CLASS.serialize_one(GAME)),
-  "panko/json" => GamePanko.new.serialize_to_json(GAME),
-  "oj_serializers/json" => GameOjJsonSerializer.one(GAME).to_s,
-  "oj_serializers/hash" => Oj.dump(GameOjHashSerializer.one(GAME))
+# --- Byte-identical parity gate -------------------------------------------
+# Panko is the reference. A candidate whose output is not byte-for-byte equal is
+# dropped from the run (with a warning) so only comparable rows are timed. The
+# one tolerated difference is a trailing newline: oj_serializers' Oj::StringWriter
+# appends one, which is a transport artifact rather than a content difference, so
+# the gate compares modulo String#chomp. The timed lambdas are left untouched, so
+# each row still measures its library's natural output.
+
+def gated_rows(kind, panko_lambda, candidates)
+  reference = panko_lambda.call
+  rows = {"panko" => panko_lambda}
+  candidates.each do |label, callable|
+    output = callable.call
+    if output.chomp == reference.chomp
+      rows[label] = callable
+    else
+      warn "SKIP #{kind}/#{label}: output not byte-identical to panko"
+      warn "  panko: #{reference[0, 160]}"
+      warn "  #{label}: #{output.to_s[0, 160]}"
+    end
+  end
+  rows
+end
+
+single_panko = -> { GamePanko.new.serialize_to_json(GAME) }
+collection_panko = -> { Panko::ArraySerializer.new(GAMES, each_serializer: GamePanko).to_json }
+
+single_candidates = {
+  "oj_serializers" => -> { GameOj.one(GAME).to_s },
+  "oj" => -> { Oj.dump(game_hash(GAME), mode: :strict) },
+  "rails" => -> { JSON.generate(game_hash(GAME)) }
 }
-parsed = parity_outputs.transform_values { |s| Oj.load(s.to_s, mode: :strict) }
-reference_label, reference = parsed.first
-parsed.each do |label, value|
-  next if label == reference_label
-  next if value == reference
-  warn "JSON output mismatch between #{reference_label} and #{label}:"
-  warn "  #{reference_label}: #{Oj.dump(reference)}"
-  warn "  #{label}: #{Oj.dump(value)}"
-  abort "aborting bench — output shapes diverged"
+collection_candidates = {
+  "oj_serializers" => -> { GameOj.many(GAMES).to_s },
+  "oj" => -> { Oj.dump(GAMES.map { |game| game_hash(game) }, mode: :strict) },
+  "rails" => -> { JSON.generate(GAMES.map { |game| game_hash(game) }) }
+}
+if HAVE_ALBA
+  single_candidates["alba"] = -> { GameAlba.new(GAME).serialize }
+  collection_candidates["alba"] = -> { GameAlba.new(GAMES).serialize }
 end
-puts "JSON output parity verified: #{parity_outputs.keys.join(", ")}"
-puts "Sample: #{Oj.dump(reference)}"
+if HAVE_BLUEPRINTER
+  single_candidates["blueprinter"] = -> { GameBlueprint.render(GAME) }
+  collection_candidates["blueprinter"] = -> { GameBlueprint.render(GAMES) }
+end
+
+single_rows = gated_rows("single", single_panko, single_candidates)
+collection_rows = gated_rows("collection", collection_panko, collection_candidates)
+
+puts "Byte-identical vs panko:"
+puts "  single (1 game):          #{single_rows.keys.join(", ")}"
+puts "  collection (#{COLLECTION_SIZE} games):  #{collection_rows.keys.join(", ")}"
+puts "Sample (single): #{single_panko.call}"
 puts
 
 # --- Scenario rows --------------------------------------------------------
 
-rows = {
-  "serializers_code_gen/json" => -> { SCG_JSON.serialize_one(GAME) },
-  "serializers_code_gen/hash" => -> { SCG_HASH.serialize_one(GAME) },
-  "serializers_code_gen/json[parent_class]" => -> { SCG_JSON_PARENT_CLASS.serialize_one(GAME) },
-  "serializers_code_gen/hash[parent_class]" => -> { SCG_HASH_PARENT_CLASS.serialize_one(GAME) },
-  "panko/json" => -> { GamePanko.new.serialize_to_json(GAME) },
-  "oj_serializers/json" => -> { GameOjJsonSerializer.one(GAME).to_s },
-  "oj_serializers/hash" => -> { GameOjHashSerializer.one(GAME) }
-}
+rows = {}
+single_rows.each { |label, callable| rows["single/#{label}"] = callable }
+collection_rows.each { |label, callable| rows["collection/#{label}"] = callable }
 
 rows.each do |row_label, row_callable|
   next if BENCHMARK_CONFIG.target && !row_label.downcase.include?(BENCHMARK_CONFIG.target.downcase)

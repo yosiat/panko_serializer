@@ -5,15 +5,16 @@ source "https://rubygems.org"
 gemspec
 
 group :benchmarks do
-  gem "vernier"
   gem "stackprof"
   gem "pg"
 
   gem "benchmark-ips"
   gem "memory_profiler"
 
-  # Comparison target for the scenario benchmarks (panko/scg vs oj_serializers).
+  # Comparison targets for the cross-library benchmark (panko vs competitors).
   gem "oj_serializers"
+  gem "alba"
+  gem "blueprinter"
 end
 
 group :test do
@@ -25,7 +26,6 @@ group :development do
   gem "byebug"
   gem "rake"
   gem "rspec", "~> 3.0"
-  gem "rake-compiler"
   gem "lefthook"
 end
 

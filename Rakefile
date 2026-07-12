@@ -3,13 +3,6 @@
 require "bundler/gem_tasks"
 require "rspec/core/rake_task"
 require "rubocop/rake_task"
-require "rubygems/package_task"
-
-gem = Gem::Specification.load(File.dirname(__FILE__) + "/panko_serializer.gemspec")
-
-Gem::PackageTask.new(gem) do |pkg|
-  pkg.need_zip = pkg.need_tar = false
-end
 
 # Panko's own specs, run against the pure-Ruby Panko::CodeGen engine.
 RSpec::Core::RakeTask.new(:spec) do |t|
