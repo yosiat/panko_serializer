@@ -1,17 +1,19 @@
 # CLAUDE.md — panko_serializer
 
+> `AGENTS.md` is a symlink to this file so non-Claude agents read the same instructions.
+
 ## What this project is
 
 Panko is a fast Ruby/Rails serializer. Its public DSL — `Panko::Serializer`,
 `Panko::ArraySerializer`, `scope:` / `context:`, `#serialize` /
 `#serialize_to_json` — is stable and unchanged.
 
-### Read this first: current state
+### Architecture
 
-This branch (`merge-scg`) has **replaced Panko's C extension with a pure-Ruby
-code-generation engine**, `Panko::CodeGen` (formerly the standalone
-`serializers-code-gen` gem, merged in with its full history). `Panko::CodeGen`
-is now the **only** engine behind every `serialize` / `serialize_to_json` call:
+Panko's serialization engine is `Panko::CodeGen`, a pure-Ruby code-generation
+engine (originally the standalone `serializers-code-gen` gem, merged in with its
+full history). It is the **only** engine behind every `serialize` /
+`serialize_to_json` call — there is no C extension.
 
 - The DSL (`Panko::Serializer`) accumulates its declarations and builds an
   immutable `Panko::CodeGen::Descriptor` directly (via
@@ -27,13 +29,9 @@ is now the **only** engine behind every `serialize` / `serialize_to_json` call:
   `InstancePool` around the call, releasing per-record state at checkin.
   `Panko::CodeGen::Runtime` only supplies `runtime_filters`
   (`only`/`except`/`filters_for` → engine `Filter` via `FilterAdapter`).
-- The **C extension has been deleted** — `ext/` is gone and there is no native
-  extension to compile. `Panko::SerializationDescriptor` and the C
-  `Attribute`/`Association` classes no longer exist.
-
-Remaining before the branch merges to `master`: **Phase 4 hardening** —
-`pool_writer` default, benchmark parity/dedup, version bump + CHANGELOG, plus a
-small dead-code cleanup (`Panko::ObjectWriter` is now unused).
+- There is no C extension — no `ext/` directory and nothing to compile.
+  `Panko::SerializationDescriptor` and the C `Attribute`/`Association` classes
+  do not exist.
 
 ## Repo layout
 
@@ -44,7 +42,7 @@ small dead-code cleanup (`Panko::ObjectWriter` is now unused).
 | `spec/features/`, `spec/unit/` | Panko's specs — run against the `Panko::CodeGen` engine |
 | `spec/code_gen/` | the engine's specs — self-contained, with its own `spec_helper.rb` |
 | `docs/code_gen/` | engine design docs (compilation, descriptor, filters, dumping, output-modes, …) |
-| `benchmarks/` | one flattened, scenario-centric benchmark suite (`support/` harness + one file per shape) — each scenario runs `serializers_code_gen/*`, `panko/*`, `oj_serializers/*`, `plain/*` targets side by side |
+| `benchmarks/` | one flattened, scenario-centric benchmark suite (`support/` harness + one file per shape) — each scenario compares Panko against oj_serializers and plain Oj/`as_json` baselines; `game_serializer.rb` also pits it against alba and blueprinter, every competitor row gated on byte-identical output |
 
 ## Toolchain
 
@@ -82,7 +80,7 @@ connection and clobbers the engine suite's in-memory schema).
 
 ## Conventions
 
-- **Public API is frozen** through the merge. Preserve the `Panko::Serializer` /
+- **Public API is stable.** Preserve the `Panko::Serializer` /
   `Panko::ArraySerializer` surface, including `scope:` and `context:`.
 - `Panko::CodeGen` is **internal**, not part of Panko's public surface.
 - Comments explain *why*, not *what*. Keep the tree rubocop-clean.
