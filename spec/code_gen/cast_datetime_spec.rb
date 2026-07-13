@@ -3,12 +3,14 @@
 require "bigdecimal"
 require "panko/code_gen"
 
-# Pins the Hash-mode datetime contract Panko's C extension established:
-# datetime types render as their #as_json ISO-8601 String; everything else
-# passes through untouched. Emitted into every Hash-mode field write via the
-# +Panko::CodeGen.cast_datetime(...)+ wrapper (see FieldEmitters::Attribute /
-# MethodAttribute). JSON mode never calls it — Oj (mode: :rails) formats these
-# types identically on write.
+# Pins the Hash-mode leaf contract Panko's C extension established: every
+# value went through ObjectWriter#push_value's blanket #as_json (v0.8.5
+# lib/panko/object_writer.rb:33) — datetimes render as ISO-8601 Strings,
+# Symbol/BigDecimal as Strings, Hashes stringify their keys, arbitrary objects
+# flatten through their own #as_json. Emitted into every Hash-mode field write
+# via the +Panko::CodeGen.cast_datetime(...)+ wrapper (see
+# FieldEmitters::Attribute / MethodAttribute). JSON mode never calls it — Oj
+# (mode: :rails) applies the same conversions on write.
 RSpec.describe "Panko::CodeGen.cast_datetime" do
   subject(:cast) { Panko::CodeGen.cast_datetime(value) }
 
@@ -75,22 +77,43 @@ RSpec.describe "Panko::CodeGen.cast_datetime" do
       end
     end
 
-    # Load-bearing: Symbol#as_json / BigDecimal#as_json return Strings, so a
-    # blanket #as_json would silently change Hash mode's raw pass-through for
-    # these. Only the four datetime classes may convert.
+    # The C-ext ObjectWriter's blanket #as_json stringified these too —
+    # Symbol#as_json and BigDecimal#as_json both return Strings.
     context "when a Symbol" do
       let(:value) { :status }
 
-      it "does not stringify the Symbol" do
-        expect(cast).to eq(:status)
+      it "stringifies the Symbol like #as_json" do
+        expect(cast).to eq("status")
       end
     end
 
     context "when a BigDecimal" do
       let(:value) { BigDecimal("1.5") }
 
-      it "does not stringify the BigDecimal" do
-        expect(cast).to eq(BigDecimal("1.5"))
+      it "stringifies the BigDecimal like #as_json" do
+        expect(cast).to eq(BigDecimal("1.5").as_json)
+      end
+    end
+
+    context "when a symbol-keyed Hash" do
+      let(:value) { {api_key: "secret"} }
+
+      it "stringifies the keys like #as_json" do
+        expect(cast).to eq("api_key" => "secret")
+      end
+    end
+
+    context "when an object with its own as_json" do
+      let(:value) do
+        Class.new {
+          def as_json(*)
+            {"id" => 7}
+          end
+        }.new
+      end
+
+      it "flattens it through its as_json" do
+        expect(cast).to eq("id" => 7)
       end
     end
   end

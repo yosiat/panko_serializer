@@ -106,27 +106,26 @@ module Panko::CodeGen
     Dump.new(descriptor, output: output, config: config, path: path).dump
   end
 
-  # Casts a Hash-mode attribute value to match Panko's C extension: datetime
-  # types render as their ISO-8601 String (+#as_json+ — millisecond precision,
-  # offset preserved, UTC as +Z+), everything else passes through untouched.
+  # Casts a Hash-mode attribute value to match Panko's C extension, whose Hash
+  # mode pushed every leaf through +ObjectWriter#push_value+ — a blanket
+  # +value.as_json+ (v0.8.5 lib/panko/object_writer.rb:33). So datetimes render
+  # as their ISO-8601 String, Symbol/BigDecimal as Strings, Hash keys are
+  # stringified, and arbitrary objects flatten through their own +#as_json+.
   # Emitted only into Hash-mode field writes; JSON mode leaves values raw
-  # because Oj (+mode: :rails+) already formats these types identically on
-  # write, so wrapping there would double-format. Only the datetime classes are
-  # converted — a blanket +#as_json+ would also stringify Symbol/BigDecimal and
-  # change Hash mode's raw pass-through for them.
+  # because Oj (+mode: :rails+) already applies the same conversions on write,
+  # so wrapping there would double-format.
   #
-  # The common non-datetime classes short-circuit on the first +when+ —
-  # this wrapper sits on every Hash-mode field write, and the pass-through
-  # mix measured ~5x faster with the early exit than with the datetime
-  # checks (and their per-call +defined?+) running first. +TimeWithZone+
-  # stays +defined?+-guarded on the rare tail so the engine remains
-  # loadable (and load-order-proof) in bundles without ActiveSupport.
+  # The classes whose +#as_json+ is identity short-circuit on the first +when+
+  # (NOT Symbol — +Symbol#as_json+ is its String) — this wrapper sits on every
+  # Hash-mode field write, and the pass-through mix measured ~5x faster with
+  # the early exit. The +respond_to?+ guard on the tail keeps the engine
+  # loadable in bundles without ActiveSupport, where plain objects have no
+  # +#as_json+; those pass through raw.
   def self.cast_datetime(value)
     case value
-    when String, Integer, NilClass, Float, Symbol, TrueClass, FalseClass then value
-    when Time, Date then value.as_json
+    when String, Integer, NilClass, Float, TrueClass, FalseClass then value
     else
-      (defined?(ActiveSupport::TimeWithZone) && value.is_a?(ActiveSupport::TimeWithZone)) ? value.as_json : value
+      value.respond_to?(:as_json) ? value.as_json : value
     end
   end
 end

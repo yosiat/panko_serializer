@@ -54,4 +54,44 @@ describe "Hash Serialization" do
       "name" => nil,
       "address" => nil)
   end
+
+  context "leaf value normalization" do
+    # The C extension's Hash mode pushed every leaf through
+    # ObjectWriter#push_value, which called #as_json on the value
+    # (v0.8.5 lib/panko/object_writer.rb:33).
+    it "stringifies symbol keys in Hash values like the C-ext ObjectWriter" do
+      class SymbolHashMethodSerializer < Panko::Serializer
+        attributes :data
+
+        def data
+          {api_key: "secret", nested: {customer_id: 1}}
+        end
+      end
+
+      expect({}).to serialized_as(SymbolHashMethodSerializer,
+        "data" => {"api_key" => "secret", "nested" => {"customer_id" => 1}})
+    end
+
+    it "normalizes objects through their as_json like the C-ext ObjectWriter" do
+      class AsJsonValue
+        def initialize(id)
+          @id = id
+        end
+
+        def as_json(*)
+          {"id" => @id}
+        end
+      end
+
+      class AsJsonMethodSerializer < Panko::Serializer
+        attributes :value
+
+        def value
+          AsJsonValue.new(7)
+        end
+      end
+
+      expect(AsJsonMethodSerializer.new.serialize({})).to eq("value" => {"id" => 7})
+    end
+  end
 end
