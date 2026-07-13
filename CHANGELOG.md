@@ -8,7 +8,8 @@ pure-Ruby code-generation engine that compiles each serializer into
 specialized, straight-line Ruby once and reuses it. The public API —
 `Panko::Serializer`, `Panko::ArraySerializer`, the DSL, filters, `context` /
 `scope`, `Panko::Response` — is unchanged, and matching the old engine's JSON
-output byte-for-byte was a design gate for the rewrite.
+output byte-for-byte was a design gate for the rewrite; the few deliberate
+divergences are called out under Breaking changes.
 
 ### Breaking changes
 
@@ -25,6 +26,26 @@ output byte-for-byte was a design gate for the rewrite.
   `record.<attribute>` exactly — including custom attribute types, enums, and
   time-zone-aware attributes. Code that depended on an edge case of the C
   extension's own casting may see different values.
+- **Attribute sources must resolve to a column or a method.** The old engine
+  read attributes only from the ActiveRecord attribute set: a declared
+  attribute missing from it — a typo, a column that exists on a sibling
+  model — silently serialized as a permanent `null`, and model instance
+  methods were never consulted. The new engine dispatches like regular Ruby:
+  an instance method now serializes its return value where the old engine
+  wrote `null`, and a source that is neither a column nor a method raises —
+  `Panko::CodeGen::UnknownSourceError` at compile time on the specialized
+  path, `NoMethodError` from `record.<source>` on the generic path. To keep
+  emitting a `null` key on the wire, define the method and return `nil`.
+- **Declaring the same name as both an attribute and an association raises.**
+  The old engine silently wrote both keys into the JSON — the attribute
+  first, then the association — so JSON parsers kept the association value
+  (last key wins). The new engine rejects the serializer with
+  `Panko::CodeGen::NameCollisionError` when it is first compiled. Drop the
+  attribute declaration to keep the old parsed output.
+- **`serialize_to_json` output no longer ends with a newline.** The old
+  engine returned `Oj::StringWriter` output verbatim, which always carried a
+  trailing `"\n"`. Parsed JSON is identical; only byte-level consumers —
+  response caches, checksums, ETags — see the one-byte difference.
 
 ### Added
 
