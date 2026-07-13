@@ -126,7 +126,7 @@ lib/
         descriptor_walk.rb                     # post-order unique-Descriptor tree walk
         cycle_membership.rb                    # identity-keyed mutual-recursion cycle set
         field_index.rb                         # per-class Symbol → Integer FIELD_INDEX map
-                                               # (name-keyed; feeds filters/indexed.rb)
+                                               # (filter-key keyed: name for value Fields, Source for Associations; feeds filters/indexed.rb)
         release.rb                             # _release generator — checkin-side ivar cleanup
         fanout.rb                              # multi-file dump fan-out (one file per Descriptor)
         field_emitters/

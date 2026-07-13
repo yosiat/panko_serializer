@@ -68,7 +68,7 @@ module Panko::CodeGen
         #   choices depend on it (e.g. +Association#emit_json+ branches on
         #   +null_for_missing_has_one+)
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map per
+        #   +filter key → integer index+ map per
         #   +docs/code_gen/filters.md § Threading through Composition+; threaded
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
@@ -92,7 +92,7 @@ module Panko::CodeGen
               end
             end
             descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.name), builder)
+              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.source), builder)
             end
             descriptor.method_attributes.each do |method_attribute|
               FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
@@ -114,7 +114,7 @@ module Panko::CodeGen
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map (mirror of {emit_json})
+        #   +filter key → integer index+ map (mirror of {emit_json})
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
@@ -146,7 +146,7 @@ module Panko::CodeGen
                 "record.#{association.source}",
                 config.hash_output_key_type,
                 config,
-                field_index.fetch(association.name),
+                field_index.fetch(association.source),
                 builder
               )
             end

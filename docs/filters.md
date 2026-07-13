@@ -41,10 +41,10 @@ Panko::ArraySerializer.new(User.all, each_serializer: UserSerializer, only: [:na
 
 ## Filtering associations
 
-An association is filtered by its **key in the serializer**, not by the
-underlying method it reads.
+An association is filtered by its **declared name** — the first argument of
+`has_one` / `has_many` — never by its output key.
 
-If you declared the association with a `name:` alias, use the alias. For
+The two differ only when the association carries a `name:` alias. For
 example, given:
 
 ```ruby
@@ -57,6 +57,9 @@ the key to use in a filter is `:state_transitions` — the declared name — not
 ```ruby
 PostSerializer.new(except: [:state_transitions])
 ```
+
+The same declared name keys the association's entry in a
+[nested filter](#nested-filters) Hash.
 
 ## Nested filters
 

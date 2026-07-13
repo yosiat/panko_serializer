@@ -10,8 +10,9 @@ module Panko::CodeGen
     # +FieldEmitters::*+ helpers must carry the same integer that the
     # enclosing class's +FIELD_INDEX = {...}.freeze+ literal binds for
     # that wrapper's Field. The two are produced from one source —
-    # +Generators::FieldIndex.build+'s name-keyed map — and consumers in
-    # the per-emitter helpers fetch by +field.name+ rather than by
+    # +Generators::FieldIndex.build+'s filter-key map (+name+ for value
+    # Fields, +source+ for Associations) — and consumers in the
+    # per-emitter helpers fetch by that same key rather than by
     # iteration position. This matcher proves the discipline holds: if a
     # future emitter ever drifts to positional indexing or
     # {FieldIndex.build}'s declared order changes without a name-keyed
@@ -131,6 +132,10 @@ module Panko::CodeGen
       # - +@<name>_serializer+ — the per-Association nested ivar.
       # - +@cb_<name>.call+ — the per-MethodAttribute Callable ivar.
       # - +@cb_if_<name>.call+ — the per-Association +if:+ guard ivar.
+      # - +filters.child(:<name>,+ — the per-Association child-filter
+      #   call, keyed by +source+. The only token an *aliased*
+      #   Association's wrapper carries for its FIELD_INDEX key (the
+      #   other Association tokens use the output name).
       #
       # The wrapper body for any single Field always contains at least
       # one of these tokens, and (in the parity-spec's fixtures) only
@@ -160,10 +165,11 @@ module Panko::CodeGen
       def name_pattern(name)
         escaped = Regexp.escape(name.to_s)
         /
-          "#{escaped}"                # quoted output key
-          | @#{escaped}_serializer\b  # association ivar
-          | @cb_#{escaped}\.call      # method-attribute callable
-          | @cb_if_#{escaped}\.call   # association if: guard
+          "#{escaped}"                    # quoted output key
+          | @#{escaped}_serializer\b      # association ivar
+          | @cb_#{escaped}\.call          # method-attribute callable
+          | @cb_if_#{escaped}\.call       # association if: guard
+          | filters\.child\(:#{escaped},  # association child filter (source-keyed)
         /x
       end
     end

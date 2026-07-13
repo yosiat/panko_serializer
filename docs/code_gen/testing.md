@@ -352,9 +352,9 @@ and uses the minimum fixture (canonical or inline) needed per test.
 
 From [filters.md](filters.md):
 
-1. `only:` at a level — only listed **Field** names emit, across **Attribute** /
-   **Method Attribute** / **Association**.
-2. `except:` at a level — listed names omitted, across all three **Field** kinds.
+1. `only:` at a level — only listed **Field** keys emit (**Attribute** /
+   **Method Attribute** by **name**, **Association** by **Source**).
+2. `except:` at a level — listed keys omitted, across all three **Field** kinds.
 3. `only:` and `except:` at the same level → `ArgumentError` at `_write_one` /
    `_to_hash` entry.
 4. Empty Hash `{}` ≡ `nil` — no filtering.

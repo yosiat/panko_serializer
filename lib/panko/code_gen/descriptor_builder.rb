@@ -144,7 +144,7 @@ module Panko
         descriptor.with(
           attributes: descriptor.attributes.reject { |a| drop?(a.name, only_set, except_set) },
           method_attributes: descriptor.method_attributes.reject { |m| drop?(m.name, only_set, except_set) },
-          associations: descriptor.associations.reject { |as| drop?(as.name, only_set, except_set) }.map do |as|
+          associations: descriptor.associations.reject { |as| drop?(as.source, only_set, except_set) }.map do |as|
             sub = engine[as.source]
             (sub.is_a?(Hash) && !sub.empty?) ? as.with(descriptor: narrow_by(as.descriptor, sub)) : as
           end

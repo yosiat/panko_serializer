@@ -238,6 +238,71 @@ describe "Filtering Serialization" do
     end
   end
 
+  context "aliased association filtering" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :foos
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
+    it "filters an aliased association by its declared name, not its alias" do
+      class FoosHolderAliasedAssociationSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, name: :stuff
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo])
+
+      expect(holder).to serialized_as(-> { FoosHolderAliasedAssociationSerializer.new(only: [:foos]) },
+        "stuff" => [{"name" => foo.name, "address" => foo.address}])
+
+      expect(holder).to serialized_as(-> { FoosHolderAliasedAssociationSerializer.new(except: [:foos]) },
+        "name" => holder.name)
+
+      expect(holder).to serialized_as(-> { FoosHolderAliasedAssociationSerializer.new(only: [:stuff]) }, {})
+    end
+
+    it "narrows an aliased association's fields through its declared name" do
+      class FoosHolderAliasedNestedFilterSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, name: :stuff
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo])
+
+      expect(holder).to serialized_as(
+        -> { FoosHolderAliasedNestedFilterSerializer.new(only: {instance: [:foos], foos: [:name]}) },
+        "stuff" => [{"name" => foo.name}]
+      )
+    end
+  end
+
   context "filter interactions" do
     before do
       Temping.create(:user) do

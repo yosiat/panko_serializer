@@ -23,8 +23,8 @@ serializer.serialize_one(
 
 | Key                             | Value                       | Meaning                                                                                  |
 | ------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------- |
-| `:only`                         | `Array<Symbol>`             | Allowlist. Only listed **Attribute** / **Method Attribute** / **Association** names emit. |
-| `:except`                       | `Array<Symbol>`             | Denylist. Listed names are omitted. Everything else emits.                                |
+| `:only`                         | `Array<Symbol>`             | Allowlist. Only listed Fields emit — **Attribute** / **Method Attribute** names, **Association** **Source**s. |
+| `:except`                       | `Array<Symbol>`             | Denylist. Listed keys (same key kinds as `:only`) are omitted. Everything else emits.                                |
 | any other symbol                | `Hash` (same shape, nested) | Child filter for the **Association** whose **Source** matches the key.                    |
 
 ### Rules
@@ -38,9 +38,11 @@ serializer.serialize_one(
   `Panko::FilterAdapter`, which flattens co-supplied `(only, except)` to a single key first,
   so they never trip it. The shipped filter representation and the experiment behind it are
   recorded in [research/filter_experiments_results.md](research/filter_experiments_results.md).)
-- Names in `:only` / `:except` reference the node's **name** (the output key), not its
-  **Source**. Child-filter keys reference the **Association**'s **Source** (which defaults to
-  the **name** unless explicitly overridden).
+- Names in `:only` / `:except` reference a value Field's **name** (the output key) but an
+  **Association**'s **Source** (the declared relation) — so an aliased **Association** is
+  addressed by the same key at the level and in its child filter, matching Panko 0.8.5.
+  Child-filter keys reference the **Association**'s **Source** (which defaults to the
+  **name** unless explicitly overridden).
 - A key that does not match any node at its level is **ignored silently**. This keeps
   callers forward-compatible across **Descriptor** changes.
 - Empty Hash `{}` at a level is equivalent to `nil` at that level — no filtering.
@@ -50,10 +52,10 @@ serializer.serialize_one(
 
 ### Interaction with Associations
 
-- If an **Association**'s name appears in `:except` at the parent level, the **Association**
-  is dropped entirely — its nested **Generated Class** is not invoked.
-- If an **Association**'s name appears in `:only`, it is kept. Any child filter keyed by
-  that same **Source** still applies inside the nested call.
+- If an **Association**'s **Source** appears in `:except` at the parent level, the
+  **Association** is dropped entirely — its nested **Generated Class** is not invoked.
+- If an **Association**'s **Source** appears in `:only`, it is kept. Any child filter keyed
+  by that same **Source** still applies inside the nested call.
 - An **Association** not mentioned in `:only` / `:except` is included by default (subject
   to its own `if:` **Callable**).
 

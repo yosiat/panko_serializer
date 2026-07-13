@@ -12,19 +12,22 @@ require_relative "../support/field_index_parity_matcher"
 # Class's body must carry the same integer that the class's
 # +FIELD_INDEX = {...}.freeze+ literal binds for that wrapper's Field. The
 # integers come from one builder — +Generators::FieldIndex.build+ — and
-# the per-Field emitters fetch by +field.name+ rather than by iteration
+# the per-Field emitters fetch by the field's filter key (+name+ for value
+# Fields, +source+ for Associations) rather than by iteration
 # position; this spec proves the discipline holds across all Field-kind
 # combinations and both Output Modes so a future drift in either
 # +FieldIndex.build+'s declared order or any per-emitter iteration order
 # fails loudly here.
 #
-# Six Descriptor shapes × two Output Modes per shape — twelve cases total.
-# Three of the six shapes reuse canonical fixtures (+ShallowGeneric+,
-# +RecursiveSelf+, +RecursiveMutual+) so they double as a parity smoke
-# test for the snapshot corpus; the other three are inline Descriptors
-# pinning Field-kind combinations not represented as named fixtures
-# (Attributes + MethodAttributes only; Attributes + Associations only;
-# the full mix Attributes + MethodAttributes + Associations).
+# Seven Descriptor shapes × two Output Modes per shape — fourteen cases
+# total. Three of the seven shapes reuse canonical fixtures
+# (+ShallowGeneric+, +RecursiveSelf+, +RecursiveMutual+) so they double
+# as a parity smoke test for the snapshot corpus; the other four are
+# inline Descriptors pinning Field-kind combinations not represented as
+# named fixtures (Attributes + MethodAttributes only; Attributes +
+# Associations only; the full mix Attributes + MethodAttributes +
+# Associations; an aliased Association whose +source+ differs from its
+# +name+).
 RSpec.describe Panko::CodeGen::Generators::FieldIndex do
   describe "field-index parity invariant" do
     config = Panko::CodeGen::Config.new
@@ -105,11 +108,30 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
       ]
     )
 
+    aliased_leaf = Panko::CodeGen::Descriptor.new(
+      name: "FieldIndexParityAliasedLeafSerializer",
+      model: nil,
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
+      method_attributes: [],
+      associations: []
+    )
+
+    aliased_association = Panko::CodeGen::Descriptor.new(
+      name: "FieldIndexParityAliasedAssocSerializer",
+      model: nil,
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
+      method_attributes: [],
+      associations: [
+        Panko::CodeGen::Association.new(name: :history, kind: :has_many, descriptor: aliased_leaf, source: :comments)
+      ]
+    )
+
     cases = {
       "attributes only" => Fixtures::ShallowGeneric::DESCRIPTOR,
       "attributes + method attributes" => attributes_and_method_attributes,
       "attributes + associations (has_one + has_many)" => attributes_and_associations,
       "full mix (attributes + method attributes + associations)" => full_mix,
+      "aliased association (source != name)" => aliased_association,
       "recursive self-reference" => Fixtures::RecursiveSelf::DESCRIPTOR,
       "mutual recursion" => Fixtures::RecursiveMutual::DESCRIPTOR
     }
@@ -122,6 +144,12 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
             expect(source).to have_field_index_parity
           end
         end
+      end
+    end
+
+    context "with an aliased association (source != name)" do
+      it "keys the association by its source, not its output name" do
+        expect(described_class.build(aliased_association)).to eq(id: 0, comments: 1)
       end
     end
   end

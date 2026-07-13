@@ -28,11 +28,13 @@ module Panko::CodeGen
       # preserved by Ruby's +Hash+ so the produced map iterates in the
       # same order the constant emits.
       #
-      # Consumers MUST look up integers by +field.name+ (not by
-      # iteration position); the +unless filters.drops?(N)+ wrappers in
-      # emitted code bake +field_index.fetch(name)+ so the parity
-      # between this map and the wrappers is name-keyed, not
-      # order-keyed. Pinned by +spec/generators/field_index_spec.rb+.
+      # Consumers MUST look up integers by the field's filter key —
+      # +field.name+ for Attributes and Method Attributes,
+      # +association.source+ for Associations — not by iteration
+      # position; the +unless filters.drops?(N)+ wrappers in emitted
+      # code bake the same fetch, so the parity between this map and
+      # the wrappers can't drift on ordering. Pinned by
+      # +spec/generators/field_index_spec.rb+.
       #
       # @param descriptor [Panko::CodeGen::Descriptor]
       # @return [Hash{Symbol => Integer}]
@@ -47,8 +49,13 @@ module Panko::CodeGen
           index[method_attribute.name] = i
           i += 1
         end
+        # Associations key by +source+ (the declared relation), not +name+
+        # (the output key): filter callers address an aliased association by
+        # the name it was declared with — matching the sub-filter descent key
+        # (+Filter#child(:<source>)+) and Panko 0.8.5. Value Fields keep the
+        # +name+ key, mirroring 0.8.5's alias-keyed attribute filtering.
         descriptor.associations.each do |association|
-          index[association.name] = i
+          index[association.source] = i
           i += 1
         end
         index

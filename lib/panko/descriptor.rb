@@ -74,9 +74,12 @@ module Panko
         @method_attributes ||= @skeleton.method_attributes.select { |m| keep?(m.name) }.freeze
       end
 
+      # Associations keep/drop and descend by +source+ — the declared
+      # relation is the filter key at both the level and the sub-filter,
+      # matching the runtime FIELD_INDEX and Panko 0.8.5.
       def associations
         @associations ||= @skeleton.associations.filter_map do |as|
-          next unless keep?(as.name)
+          next unless keep?(as.source)
           sub = @filters[as.source]
           (sub.is_a?(Hash) && !sub.empty?) ? as.with(descriptor: Filtered.new(as.descriptor, sub)) : as
         end.freeze

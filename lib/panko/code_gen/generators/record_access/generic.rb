@@ -60,7 +60,7 @@ module Panko::CodeGen
         #   settings; +hash_record_key_type+ selects between
         #   +record["id"]+ and +record[:id]+
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map per
+        #   +filter key → integer index+ map per
         #   +docs/code_gen/filters.md § Threading through Composition+; threaded
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
@@ -94,7 +94,7 @@ module Panko::CodeGen
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map
+        #   +filter key → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @param method_name [String] emitted dispatcher name (the
         #   per-shape helper names are fixed)
@@ -129,7 +129,7 @@ module Panko::CodeGen
         #   being compiled
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map; threaded into each
+        #   +filter key → integer index+ map; threaded into each
         #   +FieldEmitters::*.emit_*+ call (mirror of {emit_json})
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @param method_name [String] emitted method name; +"_generic_to_hash"+
@@ -155,7 +155,7 @@ module Panko::CodeGen
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map
+        #   +filter key → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @param method_name [String] emitted dispatcher name (the
         #   per-shape helper names are fixed)
@@ -197,7 +197,7 @@ module Panko::CodeGen
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map
+        #   +filter key → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @yieldparam source [Symbol] a Field's Source name
         # @yieldreturn [String] the record-read expression for it
@@ -208,7 +208,7 @@ module Panko::CodeGen
             FieldEmitters::Attribute.emit_json(attribute, read_expr.call(attribute.source), field_index.fetch(attribute.name), builder)
           end
           descriptor.associations.each do |association|
-            FieldEmitters::Association.emit_json(association, read_expr.call(association.source), config, field_index.fetch(association.name), builder)
+            FieldEmitters::Association.emit_json(association, read_expr.call(association.source), config, field_index.fetch(association.source), builder)
           end
           descriptor.method_attributes.each do |method_attribute|
             FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
@@ -225,7 +225,7 @@ module Panko::CodeGen
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map
+        #   +filter key → integer index+ map
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @yieldparam source [Symbol] a Field's Source name
         # @yieldreturn [String] the record-read expression for it
@@ -247,7 +247,7 @@ module Panko::CodeGen
               read_expr.call(association.source),
               config.hash_output_key_type,
               config,
-              field_index.fetch(association.name),
+              field_index.fetch(association.source),
               builder
             )
           end

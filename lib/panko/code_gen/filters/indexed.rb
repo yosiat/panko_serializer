@@ -66,8 +66,9 @@ module Panko::CodeGen
       #   association sub-filters resolved lazily by {Bits#child} /
       #   {Array#child}
       # @param field_index [Hash{Symbol => Integer}] the
-      #   per-Generated-Class +FIELD_INDEX+ map (Field name → declared
-      #   index)
+      #   per-Generated-Class +FIELD_INDEX+ map (filter key → declared
+      #   index; value Fields key by +name+, Associations by +source+
+      #   — see {Generators::FieldIndex.build})
       # @return [Bits, Array] the bit-mask cell when
       #   +field_index.size <= INDEXED_BITS_THRESHOLD+, the boolean-array
       #   cell otherwise
@@ -99,7 +100,8 @@ module Panko::CodeGen
       # S14.3 — until then the +:only+ branch takes precedence and the
       # +:except+ Set is ignored).
       #
-      # @param name [Symbol] the Field's name
+      # @param name [Symbol] the Field's +FIELD_INDEX+ key (+name+ for
+      #   value Fields, +source+ for Associations)
       # @param only_set [Set<Symbol>, nil] resolved +:only+ list as a
       #   +Set+, or +nil+ when not supplied
       # @param except_set [Set<Symbol>, nil] resolved +:except+ list
