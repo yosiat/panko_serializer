@@ -150,8 +150,15 @@ module Panko::CodeGen
         # iteration consults the cache once at hoist time and never
         # rebuilds. Per +docs/code_gen/filters.md § Threading through Composition+
         # the parent's emitted code passes the child class's +FIELD_INDEX+
-        # constant at the call site; this cell is shape-agnostic about
-        # the child Descriptor.
+        # constant at the call site.
+        #
+        # The cached pair carries the +field_index+ the cell was built
+        # against, guarded by +equal?+: two Associations may share one
+        # +Source+ while nesting different child classes, and a cell
+        # built against the first child's +FIELD_INDEX+ would drop the
+        # wrong positions in the second. The common case (one child class
+        # per Source) still hits the memo with zero allocations —
+        # +FIELD_INDEX+ constants are stable objects.
         #
         # @param source [Symbol] the Association's +Source+
         # @param field_index [Hash{Symbol => Integer}] the nested Generated
@@ -160,8 +167,10 @@ module Panko::CodeGen
         # @return [Filter::None, Bits, Array]
         def child(source, field_index)
           cached = @children_cache[source]
-          return cached if cached
-          @children_cache[source] = Indexed.resolve_child(@hash, source, field_index)
+          return cached[1] if cached && cached[0].equal?(field_index)
+          resolved = Indexed.resolve_child(@hash, source, field_index)
+          @children_cache[source] = [field_index, resolved]
+          resolved
         end
 
         # Returns +false+ — every Indexed cell carries at least one
@@ -200,8 +209,9 @@ module Panko::CodeGen
         end
 
         # Returns the cached child filter for +source+ scoped against the
-        # nested Generated Class's +field_index+. Same cache-lifetime +
-        # +Composition+-threading contract as {Bits#child}.
+        # nested Generated Class's +field_index+. Same cache-lifetime,
+        # +Composition+-threading, and per-child-+FIELD_INDEX+ scoping
+        # contract as {Bits#child}.
         #
         # @param source [Symbol] the Association's +Source+
         # @param field_index [Hash{Symbol => Integer}] the nested Generated
@@ -209,8 +219,10 @@ module Panko::CodeGen
         # @return [Filter::None, Bits, Array]
         def child(source, field_index)
           cached = @children_cache[source]
-          return cached if cached
-          @children_cache[source] = Indexed.resolve_child(@hash, source, field_index)
+          return cached[1] if cached && cached[0].equal?(field_index)
+          resolved = Indexed.resolve_child(@hash, source, field_index)
+          @children_cache[source] = [field_index, resolved]
+          resolved
         end
 
         # Returns +false+ — see {Bits#none?}.

@@ -685,4 +685,56 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
       end
     end
   end
+
+  describe "(11) shared Source across two Associations — child cell scoped per child FIELD_INDEX" do
+    first_child = Panko::CodeGen::Descriptor.new(
+      name: "FilterSharedSourceFirstChildSerializer",
+      model: nil,
+      attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
+      method_attributes: [],
+      associations: []
+    )
+
+    second_child = Panko::CodeGen::Descriptor.new(
+      name: "FilterSharedSourceSecondChildSerializer",
+      model: nil,
+      attributes: [
+        Panko::CodeGen::Attribute.new(name: :body, source: :body),
+        Panko::CodeGen::Attribute.new(name: :id, source: :id)
+      ],
+      method_attributes: [],
+      associations: []
+    )
+
+    parent = Panko::CodeGen::Descriptor.new(
+      name: "FilterSharedSourceParentSerializer",
+      model: nil,
+      attributes: [],
+      method_attributes: [],
+      associations: [
+        Panko::CodeGen::Association.new(name: :recent, kind: :has_one, descriptor: first_child, source: :comments),
+        Panko::CodeGen::Association.new(name: :all, kind: :has_one, descriptor: second_child, source: :comments)
+      ]
+    )
+
+    %i[json hash].each do |mode|
+      context "with #{mode} Output Mode" do
+        it "narrows each Association against its own child's FIELD_INDEX" do
+          generated = Panko::CodeGen.compile(parent, output: mode, config: Panko::CodeGen::Config.new)
+            .new(descriptor: parent)
+          record = {"comments" => {"id" => 1, "body" => "hidden"}}
+
+          # The second child's :id sits at a different FIELD_INDEX position
+          # than the first child's, so a child cell cached per Source alone
+          # would apply the first child's mask to the second and leak :body.
+          expected = (mode == :json) ?
+            '{"recent":{"id":1},"all":{"id":1}}' :
+            {"recent" => {"id" => 1}, "all" => {"id" => 1}}
+          expect(
+            generated.serialize_one(record, filters: {comments: {only: [:id]}})
+          ).to eq(expected)
+        end
+      end
+    end
+  end
 end
