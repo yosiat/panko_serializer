@@ -46,6 +46,23 @@ divergences are called out under Breaking changes.
   engine returned `Oj::StringWriter` output verbatim, which always carried a
   trailing `"\n"`. Parsed JSON is identical; only byte-level consumers —
   response caches, checksums, ETags — see the one-byte difference.
+- **Runtime association sub-filters compose with declared filters instead of
+  replacing them.** When a runtime sub-filter (`only: {comments: [...]}`) was
+  present, the old engine rebuilt that association from the child
+  serializer's full field set, discarding the association's declared
+  `only:` / `except:`. The new engine bakes declared filters into the
+  association and applies the runtime sub-filter on top, so the result is
+  the intersection — a runtime sub-filter can narrow an association further
+  but can no longer resurrect fields its declaration filtered out. Widen or
+  drop the declared filter to restore the old output.
+- **A nested serializer's `filters_for` no longer overrides runtime
+  sub-filters.** On a colliding `only:` / `except:` key the old engine let
+  the child's `filters_for` win — a runtime `only: {users: [:name]}` was
+  silently discarded when `UserSerializer.filters_for` returned its own
+  `only:`. The new engine evaluates a nested serializer's `filters_for` once,
+  at declaration time (with `nil` context and scope), and intersects runtime
+  sub-filters with it, same as the previous bullet. Non-colliding
+  combinations behave as before.
 
 ### Added
 
