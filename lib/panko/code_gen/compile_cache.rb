@@ -6,13 +6,12 @@ module Panko::CodeGen
   # produces exactly one Generated Class (per
   # +docs/code_gen/compilation.md § Recursive Descriptors+).
   #
-  # Two block forms are exposed: +#fetch+ for the common one-shot
-  # "compute-and-cache" pattern (block return value is what gets cached),
-  # and +#lookup_or_compile+ for the recursive pattern where the block
-  # must surface its in-progress class to a back-edge lookup *before*
-  # descending into children — see +#lookup_or_compile+ for the contract.
-  # The recursive form is what unblocks self-referential and mutually
-  # recursive Descriptor trees per +docs/code_gen/compilation.md § Recursive
+  # Beyond plain +#get+ / +#set+, +#lookup_or_compile+ drives the
+  # recursive pattern where the block must surface its in-progress class
+  # to a back-edge lookup *before* descending into children — see
+  # +#lookup_or_compile+ for the contract. That entry-before-descend
+  # shape is what unblocks self-referential and mutually recursive
+  # Descriptor trees per +docs/code_gen/compilation.md § Recursive
   # Descriptors+.
   class CompileCache
     # Returns an empty cache. Backing store is a plain Hash keyed by
@@ -43,34 +42,20 @@ module Panko::CodeGen
       @store[descriptor.__id__] = generated_class
     end
 
-    # Returns the cached Generated Class for +descriptor+, or yields to
-    # build + cache + return one. The build block is called at most once
-    # per descriptor identity per cache.
+    # Returns the cached Generated Class for +descriptor+ on hit;
+    # otherwise yields once and returns whatever the block populated
+    # under +descriptor.__id__+ via +#set+. The cache entry must become
+    # visible to recursive callers *before* the block descends:
     #
-    # @param descriptor [Panko::CodeGen::Descriptor] the key
-    # @yield invoked on cache miss; the return value is cached + returned
-    # @yieldreturn [Class] the class to cache for +descriptor+
-    # @return [Class] the cached or freshly-built class
-    def fetch(descriptor)
-      cached = @store[descriptor.__id__]
-      return cached if cached
-      @store[descriptor.__id__] = yield
-    end
-
-    # Recursive-descent variant of +#fetch+. Returns the cached Generated
-    # Class for +descriptor+ on hit; otherwise yields once and returns
-    # whatever the block populated under +descriptor.__id__+ via +#set+.
-    # The contract differs from +#fetch+ in *when* the cache entry
-    # becomes visible to recursive callers:
-    #
-    # - +#fetch+ caches the block's return value *after* the block has
-    #   finished. A recursive +#fetch(same_descriptor)+ inside the block
-    #   misses, re-enters, and infinite-loops on cycles.
-    # - +#lookup_or_compile+ requires the block itself to call
-    #   +#set(descriptor, klass)+ *before* descending into children. A
-    #   recursive +#lookup_or_compile(same_descriptor)+ then hits the
-    #   in-progress entry and returns the back-edge reference, breaking
-    #   the cycle without infinite descent.
+    # - The block is required to call +#set(descriptor, klass)+ *before*
+    #   descending into children. A recursive
+    #   +#lookup_or_compile(same_descriptor)+ then hits the in-progress
+    #   entry and returns the back-edge reference, breaking the cycle
+    #   without infinite descent.
+    # - A naive "cache the block's return value *after* it finishes"
+    #   shape would instead miss on that recursive call, re-enter, and
+    #   infinite-loop on cycles — which is why the entry is published
+    #   mid-block here.
     #
     # Used by +Compiler#cache_descendants+ to walk the post-eval
     # Descriptor tree and populate the cache with one Generated Class

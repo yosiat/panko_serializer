@@ -31,22 +31,15 @@ module Panko::CodeGen
     #   orchestrator; defaults to a fresh empty-rule-list instance
     # @param generator [Generator] source-emission entry; defaults to a
     #   fresh instance
-    # @param cache [CompileCache] identity-keyed Descriptor → class map
-    #   threaded through the post-eval depth-first descent so each
-    #   unique nested Descriptor in the tree gets cached exactly once.
-    #   Self-recursive cycles (S8.1) short-circuit in
-    #   {#cache_descendants} via +CompileCache#lookup_or_compile+'s
-    #   entry-before-descend contract; mutual recursion (S8.2) layers
-    #   construction-time threading on top of the same cache shape.
     # @return [Compiler]
     def initialize(descriptor, output:, config:, validator: Validators::Validator.new,
-      generator: Generator.new, cache: CompileCache.new)
+      generator: Generator.new)
       @descriptor = descriptor
       @output = output
       @config = config
       @validator = validator
       @generator = generator
-      @cache = cache
+      @cache = CompileCache.new
     end
 
     # Validates, emits source for the whole tree, and materializes a

@@ -4,7 +4,7 @@ require_relative "setup"
 require_relative "datasets"
 
 # Frozen Data value carrying every env knob parsed once at harness load.
-# Read by `benchmark` / `benchmark_with_records` / `benchmark_scenario` to
+# Read by `benchmark` / `benchmark_scenario` to
 # decide which rows to measure and how to measure them. Documented at
 # docs/benchmarks.md § Harness.
 BenchmarkConfig = Data.define(:size, :bench, :target, :profile, :ips_time, :ips_warmup) do
@@ -114,22 +114,6 @@ def benchmark(label, &block)
     puts "--- memory profile: #{label} ---"
     mem_report.pretty_print(scale_bytes: true, normalize_paths: true)
     puts
-  end
-end
-
-# Iterates the configured sizes for +type:+, slicing the DATASETS entry to
-# each size and calling +benchmark+ per size with a label that includes the
-# size suffix.
-#
-# @param label [String] base label; the size suffix is appended automatically
-# @param type [Symbol] DATASETS registry key (e.g. +:posts+)
-# @yield [records] called per size with the sliced array of Records
-# @return [void]
-# @raise [KeyError] when +type+ isn't registered in DATASETS
-def benchmark_with_records(label, type:, &block)
-  BENCHMARK_CONFIG.sizes.each do |size|
-    records = DATASETS.fetch(type).first(size)
-    benchmark("#{label} size=#{size}") { block.call(records) }
   end
 end
 

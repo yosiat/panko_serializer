@@ -151,9 +151,6 @@ module Panko
       # empty Hash, without paying four lookups and four writes per +.new+.
       return if options.equal?(EMPTY_OPTIONS)
 
-      # +_skip_init+ builds a bare instance for descriptor duplication.
-      return if options[:_skip_init]
-
       @context = options[:context]
       @scope = options[:scope]
       @only = options[:only]

@@ -111,7 +111,7 @@ filter, `child` returns the same no-filter singleton, so recursion stays allocat
 ## No-filter fast path
 
 The no-filter singleton (`Panko::CodeGen::Filter::NONE`) has trivial implementations:
-`drops?` always returns `false`, `child` always returns itself, `none?` returns `true`.
+`drops?` always returns `false`, `child` always returns itself.
 These calls are prime YJIT inlining targets and the common case (caller passed no
 `filters:`) incurs no Hash lookups, no Array scans, no allocations.
 
@@ -127,8 +127,8 @@ literal population in Hash mode).
 
 ## Internal representation — the Indexed filter
 
-The public `filters:` Hash shape and the Filter-object interface (`drops?`, `child`,
-`none?`) are the contract; the **implementation** behind them is the **Indexed** filter
+The public `filters:` Hash shape and the Filter-object interface (`drops?`, `child`)
+are the contract; the **implementation** behind them is the **Indexed** filter
 (`lib/panko/code_gen/filters/indexed.rb`, with the no-filter singleton in
 `lib/panko/code_gen/filters/none.rb`). `Filter.wrap` walks the caller's Hash once against
 the Generated Class's `FIELD_INDEX` and picks one of two representations, chosen at
@@ -140,7 +140,7 @@ construction and never re-checked per call:
 - **`Indexed::Array`** — a Boolean `Array`, used for wider classes. `drops?(i)` is one
   indexed `Array#[]` load.
 
-Both satisfy the same `drops?(<integer>)` / `child(<symbol>, <field_index>)` / `none?`
+Both satisfy the same `drops?(<integer>)` / `child(<symbol>, <field_index>)`
 contract as `Filter::NONE`, so emitted code stays monomorphic across the three shapes.
 
 This "Indexed representation × single emit path" shape is the verdict of the phase-2 filter

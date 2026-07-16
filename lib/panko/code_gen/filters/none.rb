@@ -9,14 +9,11 @@ module Panko::CodeGen
     #
     # The interface mirrors the per-cell Filter contract:
     # +drops?(<integer>)+ always returns +false+, +child(<symbol>)+
-    # always returns +self+, +none?+ returns +true+. All three are
-    # constant-time, allocation-free, and prime YJIT inlining targets.
+    # always returns +self+. Both are constant-time,
+    # allocation-free, and prime YJIT inlining targets.
     #
     # Frozen at module load — the trailing +freeze+ inside the module
     # body below seals the singleton before any caller can observe it.
-    # The singleton's identity is the contract: emitted code may compare
-    # via +.equal?+ when a future cell ships a +none?+-shortcut
-    # dispatcher.
     module None
       # Returns +false+ unconditionally — by definition, the no-filter
       # singleton drops nothing. The integer parameter exists only to
@@ -44,16 +41,6 @@ module Panko::CodeGen
       # @return [Filter::None] +self+
       def self.child(_source, _field_index)
         self
-      end
-
-      # Returns +true+ — the no-filter sentinel. Future dual-path
-      # dispatchers may use this predicate to short-circuit to the
-      # unfiltered emit body; today the +indexed × single_path+ verdict
-      # from S13 keeps a single emit body, so callers don't branch on it.
-      #
-      # @return [true]
-      def self.none?
-        true
       end
 
       freeze

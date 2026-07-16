@@ -21,14 +21,8 @@ class Panko::SerializerResolver
 
     private
 
-    if Module.method_defined?(:module_parent_name)
-      def namespace_for(from)
-        from.module_parent_name
-      end
-    else
-      def namespace_for(from)
-        from.parent_name
-      end
+    def namespace_for(from)
+      from.module_parent_name
     end
 
     def safe_serializer_get(name)

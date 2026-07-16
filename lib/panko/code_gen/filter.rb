@@ -9,13 +9,13 @@ module Panko::CodeGen
   # the top of every Generated Class's +serialize_one+ /
   # +serialize_many+; it normalizes the caller-supplied +filters:+ Hash
   # into a +Filter+ object exposing the +drops?(<integer>)+ /
-  # +child(<symbol>)+ / +none?+ contract.
+  # +child(<symbol>)+ contract.
   #
   # Two cells exist in this slice:
   #
   # - {None} — the no-filter singleton ({NONE}); +nil+ and +{}+ map
-  #   here. +drops?+ returns +false+, +child+ returns +self+, +none?+
-  #   returns +true+. Allocation-free, frozen at module load.
+  #   here. +drops?+ returns +false+, +child+ returns +self+.
+  #   Allocation-free, frozen at module load.
   # - {Indexed} — the winning cell from S13's experiment
   #   (+indexed × single_path+, see
   #   +docs/code_gen/research/filter_experiments_results.md § 1+). Lifted from
@@ -31,7 +31,7 @@ module Panko::CodeGen
     NONE = None
 
     # Normalizes the caller-supplied +filters:+ kwarg into a Filter
-    # object satisfying the +drops?+ / +child+ / +none?+ contract.
+    # object satisfying the +drops?+ / +child+ contract.
     # +nil+ and +{}+ collapse to {NONE} per
     # +docs/code_gen/filters.md § Public shape+ ("Empty Hash +{}+ at a level is
     # equivalent to +nil+ at that level — no filtering."). A non-empty

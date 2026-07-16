@@ -108,10 +108,6 @@ RSpec.describe Panko::CodeGen::Filter do
       expect(none.child(:author, {id: 0, name: 1})).to equal(none)
       expect(none.child(:comments, {id: 0, body: 1})).to equal(none)
     end
-
-    it "none? returns true" do
-      expect(none.none?).to be(true)
-    end
   end
 
   describe "::Indexed" do
@@ -180,13 +176,6 @@ RSpec.describe Panko::CodeGen::Filter do
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
           expect(filter.drops?(2)).to be(true)
-        end
-      end
-
-      describe "#none?" do
-        it "returns false" do
-          filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-          expect(filter.none?).to be(false)
         end
       end
 

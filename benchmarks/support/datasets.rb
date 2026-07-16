@@ -128,8 +128,8 @@ BENCHMARK_SIZES = [50, 2300].freeze
 # size=2300 stays under a million inserts at seed time.
 COMMENTS_PER_POST = 5
 
-# Pre-seed the largest required size; benchmark_with_records / benchmark_scenario
-# slice to the specific size each iteration requested.
+# Pre-seed the largest required size; benchmark_scenario
+# slices to the specific size each iteration requested.
 max_size = BENCHMARK_SIZES.max
 post_attrs = Array.new(max_size) do |i|
   {
@@ -160,8 +160,8 @@ Bench::Comment.insert_all(comment_attrs)
 # 1 root + COMMENT_TREE_CHILDREN_PER_NODE children, each child carrying its
 # own COMMENT_TREE_CHILDREN_PER_NODE grandchildren = 1 + 2 + 4 = 7 nodes per
 # tree. Tree comments live in the same bench_comments table but with
-# bench_post_id NULL so the existing :comments dataset (filtered to post-
-# comments below) stays unaffected.
+# bench_post_id NULL so the per-post comments eager-loaded through the :posts
+# dataset stay unaffected.
 COMMENT_TREE_CHILDREN_PER_NODE = 2
 
 # Per-level placeholder counts at max_size=2300 (≤2 fields per row) stay
@@ -211,20 +211,16 @@ end
 wide_attrs.each_slice(WIDE_POST_INSERT_BATCH) { |slice| Bench::WidePost.insert_all(slice) }
 
 # Registry mapping `type:` symbols → pre-seeded record arrays. Scenario files
-# pass a `type:` to benchmark_with_records / benchmark_scenario; the harness
+# pass a `type:` to benchmark_scenario; the harness
 # slices to the requested size. Posts are eager-loaded with author + comments
 # so association-walking scenarios don't pay an N+1 query cost inside the
-# measured block. :comments filters out the tree comments (bench_post_id IS
-# NULL) so the has_many.rb-shaped per-post comment set stays exactly what
-# S11.2 saw. :comment_trees returns only the roots; eager-loading nests three
+# measured block. :comment_trees returns only the roots; eager-loading nests three
 # levels (replies → replies → replies) so even the leaf grandchildren have
 # their (empty) replies cache populated — without the third level, the
 # recursive serializer would issue one SELECT per grandchild inside the
 # measured block.
 DATASETS = {
   posts: Bench::Post.includes(:author, :comments).to_a,
-  authors: Bench::Author.includes(:post).to_a,
-  comments: Bench::Comment.where.not(bench_post_id: nil).includes(:post).to_a,
   comment_trees: Bench::Comment.where(bench_post_id: nil, parent_comment_id: nil).includes(replies: {replies: :replies}).to_a,
   wide_posts: Bench::WidePost.all.to_a
 }.freeze

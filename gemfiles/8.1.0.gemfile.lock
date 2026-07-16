@@ -133,8 +133,6 @@ GEM
       activesupport (>= 6.0, < 8.2)
     thor (1.5.0)
     timeout (0.6.1)
-    trilogy (2.12.6)
-      bigdecimal
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.2.0)
@@ -179,7 +177,6 @@ DEPENDENCIES
   standard
   standard-performance
   temping
-  trilogy
 
 BUNDLED WITH
   4.0.10

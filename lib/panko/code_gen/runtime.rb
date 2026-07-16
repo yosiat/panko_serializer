@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "../code_gen"
-require_relative "descriptor_builder"
 require_relative "serializer_cache"
 require_relative "filter_adapter"
 

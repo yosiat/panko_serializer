@@ -21,7 +21,7 @@ module Panko::CodeGen
     #   +Array#[]+ — one indexed load.
     #
     # Both representations satisfy the same +drops?(<integer>)+ /
-    # +child(<symbol>)+ / +none?+ contract as +Filter::NONE+ so emitted
+    # +child(<symbol>)+ contract as +Filter::NONE+ so emitted
     # code stays monomorphic per +docs/code_gen/filters.md § Threading through
     # Composition+. The hot-path representation is chosen at construction
     # time and never re-checked per call.
@@ -172,15 +172,6 @@ module Panko::CodeGen
           @children_cache[source] = [field_index, resolved]
           resolved
         end
-
-        # Returns +false+ — every Indexed cell carries at least one
-        # filter rule (or it would have collapsed to {Filter::NONE} in
-        # {Filter.wrap}).
-        #
-        # @return [false]
-        def none?
-          false
-        end
       end
 
       # Boolean-Array representation. Drops storage is an +Array+ of
@@ -223,13 +214,6 @@ module Panko::CodeGen
           resolved = Indexed.resolve_child(@hash, source, field_index)
           @children_cache[source] = [field_index, resolved]
           resolved
-        end
-
-        # Returns +false+ — see {Bits#none?}.
-        #
-        # @return [false]
-        def none?
-          false
         end
       end
 

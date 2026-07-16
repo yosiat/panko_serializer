@@ -18,8 +18,6 @@ Lifted and adapted from
 
 - `benchmark(label, &block)` — one row of output; ips + allocs + retained measured on
   the same block.
-- `benchmark_with_records(label, type:, &block)` — iterates configured sizes,
-  automatically slices the dataset.
 - **Env knobs**:
   - `SIZE=n` — run a single size instead of the default list.
   - `BENCH=<substr>` — filter benchmarks by case-insensitive label substring.
