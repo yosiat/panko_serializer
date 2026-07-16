@@ -38,10 +38,18 @@ module Panko::CodeGen
       out.bytesplice(11, 8, raw, 11, 8)
       if len > 20 && raw.getbyte(19) == 46
         # Truncate (never round) to milliseconds — same as #xmlschema(3),
-        # which #as_json delegates to.
-        fraction_digits = len - 20
-        fraction_digits = 3 if fraction_digits > 3
-        out.bytesplice(20, fraction_digits, raw, 20, fraction_digits)
+        # which #as_json delegates to. Copy only the digit run: PG trims
+        # trailing fraction zeros and appends its "+00" session-UTC offset
+        # ("...15.5+00"), so counting from the string end would splice the
+        # offset bytes in. 0.8.5's C splice copied isdigit() bytes and
+        # zero-padded the same way; the template supplies the padding.
+        fraction_digits = 0
+        while fraction_digits < 3
+          byte = raw.getbyte(20 + fraction_digits)
+          break if byte.nil? || byte < 48 || byte > 57
+          fraction_digits += 1
+        end
+        out.bytesplice(20, fraction_digits, raw, 20, fraction_digits) if fraction_digits > 0
       end
       out
     end
