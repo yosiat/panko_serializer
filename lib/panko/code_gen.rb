@@ -89,7 +89,11 @@ module Panko::CodeGen
   # flat single-file output; nested-Descriptor multi-file fan-out is
   # S15.5 territory.
   #
-  # @param descriptor [Panko::CodeGen::Descriptor] the input
+  # @param descriptor [Panko::CodeGen::Descriptor, Panko::Descriptor] the
+  #   engine descriptor, or the public view (+MySerializer.descriptor+) —
+  #   resolved back to the class's full engine descriptor. Runtime filters
+  #   never change the generated source, so a filtered view dumps the same
+  #   bytes as the unfiltered one.
   # @param output [Symbol] +:json+ or +:hash+
   # @param config [Panko::CodeGen::Config] resolved settings;
   #   defaults to {Config.new} (library defaults)
@@ -103,6 +107,13 @@ module Panko::CodeGen
   #   {Generator::OUTPUT_MODES}, or when +path:+ is +nil+, empty, or
   #   not a String
   def self.dump(descriptor, output:, path:, config: Config.new)
+    # The public view deliberately hides the engine descriptor, so resolve it
+    # back through its serializer class — dumping shouldn't require reaching
+    # into internals. defined?-guarded because the engine also loads
+    # standalone, without Panko's public surface.
+    if defined?(::Panko::Descriptor) && descriptor.is_a?(::Panko::Descriptor)
+      descriptor = SerializerCache.descriptor_for(descriptor.serializer)
+    end
     Dump.new(descriptor, output: output, config: config, path: path).dump
   end
 
