@@ -12,7 +12,7 @@
 
 class ScopeThreadingCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ScopeThreadingCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ScopeThreadingCommentSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_viewer_tag = descriptor.method_attributes[0].body

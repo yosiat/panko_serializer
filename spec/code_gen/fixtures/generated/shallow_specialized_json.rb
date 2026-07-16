@@ -12,7 +12,7 @@
 
 class ShallowSpecializedSerializer_JSON
   FIELD_INDEX = {id: 0, title: 1, headline: 2, static: 3, hidden: 4, contextual: 5}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ShallowSpecializedSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ShallowSpecializedSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_static = descriptor.method_attributes[0].body

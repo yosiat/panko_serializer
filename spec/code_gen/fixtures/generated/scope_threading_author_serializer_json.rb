@@ -12,7 +12,7 @@
 
 class ScopeThreadingAuthorSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ScopeThreadingAuthorSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ScopeThreadingAuthorSerializer_JSON)
 
   def initialize(descriptor:)
   end

@@ -12,7 +12,7 @@
 
 class NestedCompositionAuthorSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionAuthorSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionAuthorSerializer_JSON)
 
   def initialize(descriptor:)
   end
@@ -74,7 +74,7 @@ end
 
 class NestedCompositionCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionCommentSerializer_JSON)
 
   def initialize(descriptor:)
   end
@@ -136,7 +136,7 @@ end
 
 class NestedCompositionPostSerializer_JSON
   FIELD_INDEX = {id: 0, author: 1, comments: 2}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionPostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionPostSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_if_author = descriptor.associations[0].if

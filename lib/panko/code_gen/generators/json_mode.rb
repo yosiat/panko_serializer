@@ -157,15 +157,15 @@ module Panko::CodeGen
       # Returns the unique storage-bucket Symbol passed to the emitted
       # pool's constructor. Derived from the Descriptor name so two
       # Generated Classes never share a stack — e.g.
-      # +:_scg_writer__PostSerializer_JSON+ for a +PostSerializer+
-      # Descriptor. The +_scg_writer__+ prefix and +_JSON+ suffix make
+      # +:_panko_writer__PostSerializer_JSON+ for a +PostSerializer+
+      # Descriptor. The +_panko_writer__+ prefix and +_JSON+ suffix make
       # the bucket recognizable in +Thread.current+ inspectors and
       # avoid collision with arbitrary user keys.
       #
       # @param descriptor [Panko::CodeGen::Descriptor]
       # @return [Symbol] the per-Generated-Class storage key
       def pool_storage_key(descriptor)
-        :"_scg_writer__#{descriptor.name}_JSON"
+        :"_panko_writer__#{descriptor.name}_JSON"
       end
 
       # Emits the +initialize(descriptor:)+ constructor. Hoists each

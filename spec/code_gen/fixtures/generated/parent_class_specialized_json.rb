@@ -12,7 +12,7 @@
 
 class ParentClassSpecializedSerializer_JSON < ParentClassSpecializedBase
   FIELD_INDEX = {id: 0, name: 1, greeting: 2, static: 3}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ParentClassSpecializedSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ParentClassSpecializedSerializer_JSON)
 
   def initialize(descriptor:)
     @cb_static = descriptor.method_attributes[1].body

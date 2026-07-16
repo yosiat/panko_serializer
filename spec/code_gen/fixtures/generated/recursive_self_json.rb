@@ -12,7 +12,7 @@
 
 class RecursiveSelfCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1, replies: 2}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__RecursiveSelfCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__RecursiveSelfCommentSerializer_JSON)
 
   def initialize(descriptor:)
     @replies_serializer = self

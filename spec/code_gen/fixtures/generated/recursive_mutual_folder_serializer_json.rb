@@ -14,7 +14,7 @@ require_relative "recursive_mutual_item_serializer_json"
 
 class RecursiveMutualFolderSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1, items: 2}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__RecursiveMutualFolderSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__RecursiveMutualFolderSerializer_JSON)
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self

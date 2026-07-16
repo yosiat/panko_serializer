@@ -12,7 +12,7 @@
 
 class NestedCompositionCommentSerializer_JSON
   FIELD_INDEX = {id: 0, body: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__NestedCompositionCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionCommentSerializer_JSON)
 
   def initialize(descriptor:)
   end

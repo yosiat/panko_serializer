@@ -12,7 +12,7 @@
 
 class ConfigNullForHasOneOffInnerSerializer_JSON
   FIELD_INDEX = {id: 0, name: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ConfigNullForHasOneOffInnerSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigNullForHasOneOffInnerSerializer_JSON)
 
   def initialize(descriptor:)
   end
@@ -74,7 +74,7 @@ end
 
 class ConfigNullForHasOneOffSerializer_JSON
   FIELD_INDEX = {id: 0, inner: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ConfigNullForHasOneOffSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigNullForHasOneOffSerializer_JSON)
 
   def initialize(descriptor:)
     @inner_serializer = ConfigNullForHasOneOffInnerSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)

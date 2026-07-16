@@ -12,7 +12,7 @@
 
 class ConfigJsonColumnNonJsonSpecializedSerializer_JSON
   FIELD_INDEX = {id: 0, metadata: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ConfigJsonColumnNonJsonSpecializedSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigJsonColumnNonJsonSpecializedSerializer_JSON)
 
   def initialize(descriptor:)
   end

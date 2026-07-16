@@ -12,7 +12,7 @@
 
 class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2, replies: 3}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ParentClassRecursiveSelfCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ParentClassRecursiveSelfCommentSerializer_JSON)
 
   def initialize(descriptor:)
     @replies_serializer = self

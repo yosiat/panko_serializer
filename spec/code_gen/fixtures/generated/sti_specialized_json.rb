@@ -12,7 +12,7 @@
 
 class StiSpecializedSerializer_JSON
   FIELD_INDEX = {vin: 0, make: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__StiSpecializedSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__StiSpecializedSerializer_JSON)
 
   def initialize(descriptor:)
   end

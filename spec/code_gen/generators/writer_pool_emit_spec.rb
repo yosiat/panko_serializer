@@ -24,7 +24,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the IsolatedExecutionState subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_scg_writer__ShallowGenericSerializer_JSON)"
+          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ShallowGenericSerializer_JSON)"
         )
       end
 
@@ -48,7 +48,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the ThreadLocal subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_scg_writer__ShallowGenericSerializer_JSON)"
+          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_panko_writer__ShallowGenericSerializer_JSON)"
         )
       end
 

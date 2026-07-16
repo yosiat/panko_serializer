@@ -60,7 +60,7 @@ ActiveRecord::Schema.define do
 
   create_table :bench_comments, force: true do |t|
     t.references :bench_post
-    # Backs the scg_recursive.rb scenario's 3-level Comment tree. Nullable
+    # Backs the code_gen_recursive.rb scenario's 3-level Comment tree. Nullable
     # so the per-post comments seeded for has_many.rb keep parent_comment_id
     # = nil; only the bench_post_id-less tree comments use it.
     t.references :parent_comment
@@ -100,7 +100,7 @@ module Bench
   class Comment < ActiveRecord::Base
     self.table_name = "bench_comments"
     belongs_to :post, class_name: "Bench::Post", foreign_key: :bench_post_id, optional: true
-    # parent_comment / replies back the scg_recursive.rb 3-level comment-tree
+    # parent_comment / replies back the code_gen_recursive.rb 3-level comment-tree
     # dataset; both are unused by the has_many.rb per-post comments, where
     # parent_comment_id stays nil.
     belongs_to :parent_comment, class_name: "Bench::Comment", foreign_key: :parent_comment_id, optional: true
@@ -156,7 +156,7 @@ comment_attrs = post_ids.flat_map do |post_id|
 end
 Bench::Comment.insert_all(comment_attrs)
 
-# 3-level Comment tree backing the scg_recursive.rb scenario. Each tree has
+# 3-level Comment tree backing the code_gen_recursive.rb scenario. Each tree has
 # 1 root + COMMENT_TREE_CHILDREN_PER_NODE children, each child carrying its
 # own COMMENT_TREE_CHILDREN_PER_NODE grandchildren = 1 + 2 + 4 = 7 nodes per
 # tree. Tree comments live in the same bench_comments table but with

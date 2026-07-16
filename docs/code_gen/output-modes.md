@@ -9,7 +9,7 @@ Two **Output Modes** are supported: `:json` and `:hash`. Each produces a differe
 
 ```ruby
 class PostSerializer_JSON
-  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_scg_writer__PostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_panko_writer__PostSerializer_JSON)
 
   # Public
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -47,7 +47,7 @@ end
 
 - Each **Generated Class** holds a class-level `POOL` constant pointing at a per-class
   `WritersPool` instance ([`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)).
-  The pool is keyed off a unique Symbol — `:_scg_writer__<Name>_JSON` — so two **Generated
+  The pool is keyed off a unique Symbol — `:_panko_writer__<Name>_JSON` — so two **Generated
   Classes** never share a stack and one class's pool can't corrupt another.
 - `serialize_one` / `serialize_many` call `POOL.checkout` at the top, thread the
   **Writer** through `_write_one` (and through **Composition** as an explicit positional
