@@ -22,9 +22,10 @@ divergences are called out under Breaking changes.
   them will break.
 - **Attribute values are read through ActiveRecord itself.** The C extension
   implemented its own type casting over raw column values; the new engine
-  reads attributes the way the rest of your app does, so every value matches
-  `record.<attribute>` exactly — including custom attribute types, enums, and
-  time-zone-aware attributes. Code that depended on an edge case of the C
+  reads attributes the way the rest of your app does, so every value starts
+  from exactly what `record.<attribute>` returns — including custom attribute
+  types, enums, and time-zone-aware attributes. (Hash mode then normalizes
+  non-primitive leaves through `#as_json`, as 0.8.5's writer did.) Code that depended on an edge case of the C
   extension's own casting may see different values.
 - **Attribute sources must resolve to a column or a method.** The old engine
   read attributes only from the ActiveRecord attribute set: a declared

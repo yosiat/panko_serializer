@@ -147,25 +147,38 @@ module Panko::CodeGen
         DATETIME_TYPES.include?(model.type_for_attribute(attribute_name.to_s).type)
       end
 
-      # AR type symbols whose cast values can never be datetime objects, so
-      # Hash mode may skip the +cast_datetime+ wrapper for the column
-      # entirely. An allowlist rather than "not datetime" — a custom
-      # attribute type with an unknown symbol keeps the wrapper, since its
-      # cast value could be anything.
+      # AR type symbols whose cast value comes back unchanged from the
+      # +cast_datetime+ wrapper (a blanket +#as_json+ since Panko 0.8.5
+      # ObjectWriter parity was restored), so Hash mode may skip the wrapper
+      # for the column entirely. An allowlist — a custom attribute type with
+      # an unknown symbol keeps the wrapper, since its cast value could be
+      # anything. Deliberately absent, because +#as_json+ changes their cast
+      # value: +:decimal+ (+BigDecimal#as_json+ is its String — 0.8.5 emitted
+      # the String), +:float+ (non-finite Floats render as +nil+), +:inet+ /
+      # +:cidr+ (PG casts to +IPAddr+, whose +#as_json+ is its String).
+      # +:json+ / +:jsonb+ stay listed because parsed JSON holds only
+      # primitives — +#as_json+ rebuilds an +==+-equal structure, so skipping
+      # it changes allocations, not output.
       PLAIN_TYPES = %i[
-        string text integer bigint float decimal boolean uuid binary
-        json jsonb inet cidr macaddr
+        string text integer bigint boolean uuid binary
+        json jsonb macaddr
       ].freeze
 
       # Returns +true+ when +attribute_name+ on +model+ is typed such that
-      # its cast value is provably not a datetime.
+      # the Hash-mode cast provably cannot change its value. Wrapper types
+      # betray themselves via +#subtype+ while delegating the wrapped
+      # column's +#type+ symbol — +Type::Serialized+ (a +serialize :col,
+      # coder:+ column casts to whatever the coder round-trips) and PG's
+      # +OID::Array+ (casts to a Ruby Array of element casts) — so a type
+      # exposing +#subtype+ is never plain.
       #
       # @param model [Class] AR model class — must respond to
       #   +#type_for_attribute+
       # @param attribute_name [Symbol, String] the +Attribute#source+ to probe
       # @return [Boolean]
       def self.plain_typed?(model, attribute_name)
-        PLAIN_TYPES.include?(model.type_for_attribute(attribute_name.to_s).type)
+        type = model.type_for_attribute(attribute_name.to_s)
+        PLAIN_TYPES.include?(type.type) && !type.respond_to?(:subtype)
       end
     end
   end

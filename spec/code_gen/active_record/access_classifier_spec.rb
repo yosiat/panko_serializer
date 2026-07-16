@@ -163,4 +163,67 @@ RSpec.describe Panko::CodeGen::ActiveRecord::AccessClassifier do
       expect(::ActiveRecord::Encryption::EncryptedAttributeType.ancestors).not_to include(::ActiveRecord::Type::Json)
     end
   end
+
+  describe ".plain_typed?" do
+    it "returns true for a t.string column" do
+      expect(described_class.plain_typed?(Post, :title)).to be(true)
+    end
+
+    it "returns false for a decimal attribute (BigDecimal#as_json is its String)" do
+      model = Class.new(::ActiveRecord::Base) do
+        self.table_name = "posts"
+        attribute :title, :decimal
+      end
+      expect(described_class.plain_typed?(model, :title)).to be(false)
+    end
+
+    it "returns false for an inet-typed attribute (IPAddr#as_json is its String)" do
+      inet_type = Class.new(::ActiveModel::Type::Value) do
+        def type
+          :inet
+        end
+      end
+      model = Class.new(::ActiveRecord::Base) do
+        self.table_name = "posts"
+        attribute :title, inet_type.new
+      end
+      expect(described_class.plain_typed?(model, :title)).to be(false)
+    end
+
+    it "returns false for a serialize-coder column despite its plain type symbol" do
+      # +Type::Serialized+ delegates +#type+ to the underlying column
+      # (+:string+ / +:text+), but its cast value is whatever the coder
+      # round-trips — Symbols, arbitrary objects — which +#as_json+ must
+      # still normalize. The wrapper is detected via +#subtype+.
+      stub_serialized = ::ActiveRecord::Type::Serialized.new(
+        ::ActiveModel::Type::String.new,
+        ::ActiveRecord::Coders::JSON
+      )
+      stub_model = Class.new do
+        define_singleton_method(:type_for_attribute) { |_name| stub_serialized }
+      end
+      expect(stub_serialized.type).to eq(:string)
+      expect(described_class.plain_typed?(stub_model, :body)).to be(false)
+    end
+
+    it "returns false for a wrapper type exposing #subtype (PG array columns)" do
+      # PG's +OID::Array+ delegates +#type+ to its element type, so an
+      # +inet[]+ / +float[]+ column reports a plain symbol while casting to
+      # a Ruby Array. Same +#subtype+ detection as serialize-coder columns.
+      array_like = Class.new(::ActiveModel::Type::Value) do
+        def type
+          :string
+        end
+
+        def subtype
+          ::ActiveModel::Type::String.new
+        end
+      end
+      model = Class.new(::ActiveRecord::Base) do
+        self.table_name = "posts"
+        attribute :title, array_like.new
+      end
+      expect(described_class.plain_typed?(model, :title)).to be(false)
+    end
+  end
 end

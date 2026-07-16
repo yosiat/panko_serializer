@@ -129,12 +129,16 @@ module Panko::CodeGen
   # The classes whose +#as_json+ is identity short-circuit on the first +when+
   # (NOT Symbol — +Symbol#as_json+ is its String) — this wrapper sits on every
   # Hash-mode field write, and the pass-through mix measured ~5x faster with
-  # the early exit. The +respond_to?+ guard on the tail keeps the engine
-  # loadable in bundles without ActiveSupport, where plain objects have no
-  # +#as_json+; those pass through raw.
+  # the early exit. Float gets its own branch because +Float#as_json+ is
+  # +finite? ? self : nil+ — 0.8.5 emitted +nil+ for Infinity/NaN, and JSON
+  # mode writes +null+ for them, so passing them through raw would diverge
+  # both ways. The +respond_to?+ guard on the tail keeps the engine loadable
+  # in bundles without ActiveSupport, where plain objects have no +#as_json+;
+  # those pass through raw.
   def self.cast_datetime(value)
     case value
-    when String, Integer, NilClass, Float, TrueClass, FalseClass then value
+    when String, Integer, NilClass, TrueClass, FalseClass then value
+    when Float then value.finite? ? value : nil
     else
       value.respond_to?(:as_json) ? value.as_json : value
     end

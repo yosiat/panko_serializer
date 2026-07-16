@@ -210,8 +210,8 @@ modes agree on their shape:
     becomes a String, and so on.
 -   In **`:hash`** mode there is no writer, so Panko applies the same
     convention itself: a value that is already a JSON primitive (String,
-    Integer, Float, `nil`, booleans) passes through untouched, and anything
-    else goes through its own `#as_json` — datetimes become the same ISO-8601
+    Integer, finite Float, `nil`, booleans) passes through untouched, and
+    anything else goes through its own `#as_json` — datetimes become the same ISO-8601
     string, a Symbol becomes a String, a Hash returned by a method attribute
     comes back string-keyed. This keeps `serialize` and `serialize_to_json`
     producing matching values, and matches Panko 0.8.5's Hash output. (The
