@@ -184,8 +184,9 @@ module Panko
           pool, admissible = auto_variant_pool(serializer_class, output, model, base)
           if admissible
             COMPILE_MUTEX.synchronize do
-              # instance_pool above guarantees the State exists.
-              slot = serializer_class._cg_state.slot(output)
+              # state_for!, not a bare _cg_state read: a reset! can land
+              # during the (deliberately unlocked) variant compile above.
+              slot = state_for!(serializer_class).slot(output)
               current = slot.variants || EMPTY_VARIANTS
               if (existing = current[model])
                 pool = existing
@@ -232,8 +233,10 @@ module Panko
           serializer_class._cg_last_json = nil
           serializer_class._cg_last_hash = nil
           serializer_class._cg_public_descriptor = nil
-          # Heals on first use: instance_pool re-seeds via respond_to?.
-          serializer_class._cg_has_filters_for = nil
+          # Re-seeded eagerly, not nil-ed: the #descriptor introspection
+          # path reads the flag without passing through instance_pool's
+          # heal, so a stale nil would return an unfiltered public view.
+          serializer_class._cg_has_filters_for = serializer_class.respond_to?(:filters_for)
         end
       end
 

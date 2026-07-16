@@ -75,7 +75,7 @@ module Panko::CodeGen
       # for every non-self associated +Descriptor+ (deduped, in
       # Association declaration order — the source-of-truth ordering
       # the slice's acceptance guarantees), then the single
-      # +<Name>_<Suffix>+ class body via the per-mode emitter.
+      # +<Name>_<Suffix>+ class body via {ClassEmitter} with the mode's Sink.
       #
       # @param descriptor [Panko::CodeGen::Descriptor]
       # @param output [Symbol]

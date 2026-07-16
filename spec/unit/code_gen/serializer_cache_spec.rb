@@ -54,6 +54,8 @@ describe Panko::CodeGen::SerializerCache do
   end
 
   describe ".reset!" do
+    let(:hash_record) { {"id" => 1, "name" => "a"} }
+
     it "clears the compile cache so the next fetch compiles a fresh Generated Class" do
       first = fetch(SerializerCacheFooSerializer, :json)
 
@@ -70,6 +72,66 @@ describe Panko::CodeGen::SerializerCache do
 
       expect(described_class.instance_pool(SerializerCacheFooSerializer, :json)).not_to be(json_pool)
       expect(described_class.instance_pool(SerializerCacheFooSerializer, :hash)).not_to be(hash_pool)
+    end
+
+    it "does not hand out pre-reset pooled instances — the rebuilt pool gets a fresh fiber-local stack" do
+      SerializerCacheFooSerializer.new.serialize_to_json(hash_record)
+      stale = described_class.instance_pool(SerializerCacheFooSerializer, :json).stack.last
+      expect(stale).not_to be_nil
+
+      described_class.reset!(SerializerCacheFooSerializer)
+      SerializerCacheFooSerializer.new.serialize_to_json(hash_record)
+
+      pooled = described_class.instance_pool(SerializerCacheFooSerializer, :json).stack.last
+      expect(pooled).not_to be(stale)
+      expect(pooled).to be_an_instance_of(fetch(SerializerCacheFooSerializer, :json))
+    end
+
+    it "survives a reset! landing inside an in-flight variant compile" do
+      Temping.create(:cache_reset_host) do
+        with_columns do |t|
+          t.string :name
+        end
+      end
+      described_class.instance_pool(SerializerCacheBarSerializer, :json)
+
+      allow(Panko::CodeGen).to receive(:compile).and_wrap_original do |original, *args, **kwargs|
+        described_class.reset!(SerializerCacheBarSerializer)
+        original.call(*args, **kwargs)
+      end
+
+      expect {
+        described_class.variant_pool(SerializerCacheBarSerializer, :json, CacheResetHost)
+      }.not_to raise_error
+    end
+  end
+
+  describe ".reset! on a serializer with filters_for" do
+    let(:hash_record) { {"id" => 1, "name" => "x"} }
+    let(:filtered_class) do
+      stub_const("CacheFilteredSerializer", Class.new(Panko::Serializer) do
+        attributes :id, :name
+
+        def self.filters_for(_context, _scope)
+          {only: [:id]}
+        end
+      end)
+    end
+
+    it "keeps the public descriptor view filtered immediately after reset!" do
+      filtered_class.new.serialize(hash_record)
+
+      described_class.reset!(filtered_class)
+
+      expect(filtered_class.new.descriptor.attributes.map(&:name)).to eq([:id])
+    end
+
+    it "keeps serialize filtered after reset!" do
+      filtered_class.new.serialize(hash_record)
+
+      described_class.reset!(filtered_class)
+
+      expect(filtered_class.new.serialize(hash_record)).to eq("id" => 1)
     end
   end
 

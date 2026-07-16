@@ -5,7 +5,7 @@ module Panko::CodeGen
     # Identity-keyed cycle-membership analysis on a Descriptor tree:
     # returns the set of Descriptor +__id__+s that participate in a
     # mutual-recursion cycle reachable from a given root. Used by the
-    # per-mode emitters to decide which Generated Classes need the
+    # emit paths to decide which Generated Classes need the
     # +_construct_cache:+ kwarg + cache-threaded nested +.new+ calls
     # per +docs/code_gen/compilation.md § Recursive Descriptors+ (S8.2).
     #

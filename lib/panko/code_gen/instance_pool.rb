@@ -24,13 +24,17 @@ module Panko::CodeGen
   # tree — until the thread dies. Bounded by reloads x classes x threads
   # and dev-only, so accepted rather than paying a registry per call.
   class InstancePool
-    # @param key [Symbol] unique per (serializer class, output mode) —
-    #   the +Thread.current[]+ storage slot (fiber-local in MRI)
+    # @param key [Symbol] recognizable per-(serializer class, output mode)
+    #   prefix for the +Thread.current[]+ storage slot (fiber-local in MRI)
     # @param compiled [Class] the Generated Class to construct on pool miss
     # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor the
     #   class was compiled from (its constructor contract)
     def initialize(key, compiled, descriptor)
-      @key = key
+      # The pool's own object_id (monotonic, never reused) makes the slot
+      # unique per pool INSTANCE, not just per (class, mode): a pool
+      # rebuilt after SerializerCache.reset! must not adopt the old
+      # pool's stacks — they hold instances of the old compiled class.
+      @key = :"#{key}_#{object_id}"
       @compiled = compiled
       @descriptor = descriptor
     end

@@ -215,5 +215,3 @@ The small-file split exists so every file has an obvious unit-test target:
 
 Full testing strategy — tiers, snapshot harness, feature-test fixtures — is in
 [testing.md](testing.md).
-</content>
-</invoke>
