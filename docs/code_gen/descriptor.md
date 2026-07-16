@@ -120,7 +120,7 @@ A **Field** whose value comes from either a **Callable** or — when the owning
 - **Symbol-body method existence / arity**: deferred to runtime. **Compile** does not
   introspect `parent_class.instance_method(<sym>)`. A missing method surfaces as Ruby's
   `NameError` ("undefined local variable or method") at serialize time; wrong arity
-  surfaces as `ArgumentError`. No scg-specific error class — the error vocabulary stays
+  surfaces as `ArgumentError`. No engine-specific error class — the error vocabulary stays
   Ruby-native.
 - **Return value semantics** (both body kinds): if the return value is `equal?` to
   `Panko::CodeGen::SKIP`, the field is omitted from the output (no key, no value).

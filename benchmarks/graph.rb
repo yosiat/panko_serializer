@@ -81,8 +81,8 @@ GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   ]
 )
 
-SCG_JSON_GRAPH = Panko::CodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: GRAPH_POST_DESCRIPTOR)
-SCG_HASH_GRAPH = Panko::CodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: GRAPH_POST_DESCRIPTOR)
+CODE_GEN_JSON_GRAPH = Panko::CodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :json).new(descriptor: GRAPH_POST_DESCRIPTOR)
+CODE_GEN_HASH_GRAPH = Panko::CodeGen.compile(GRAPH_POST_DESCRIPTOR, output: :hash).new(descriptor: GRAPH_POST_DESCRIPTOR)
 
 class GraphAuthorPankoSerializer < Panko::Serializer
   attributes :id, :name
@@ -133,10 +133,10 @@ GRAPH_FILTER_HASH = {
   comments: {only: %i[body]}
 }.freeze
 
-Targets::SCG_JSON[:graph] = ->(records) { SCG_JSON_GRAPH.serialize_many(records) }
-Targets::SCG_HASH[:graph] = ->(records) { SCG_HASH_GRAPH.serialize_many(records) }
-Targets::SCG_JSON[:graph_with_only] = ->(records) { SCG_JSON_GRAPH.serialize_many(records, filters: GRAPH_FILTER_HASH) }
-Targets::SCG_HASH[:graph_with_only] = ->(records) { SCG_HASH_GRAPH.serialize_many(records, filters: GRAPH_FILTER_HASH) }
+Targets::CODE_GEN_JSON[:graph] = ->(records) { CODE_GEN_JSON_GRAPH.serialize_many(records) }
+Targets::CODE_GEN_HASH[:graph] = ->(records) { CODE_GEN_HASH_GRAPH.serialize_many(records) }
+Targets::CODE_GEN_JSON[:graph_with_only] = ->(records) { CODE_GEN_JSON_GRAPH.serialize_many(records, filters: GRAPH_FILTER_HASH) }
+Targets::CODE_GEN_HASH[:graph_with_only] = ->(records) { CODE_GEN_HASH_GRAPH.serialize_many(records, filters: GRAPH_FILTER_HASH) }
 Targets::PANKO_JSON[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_a }
 Targets::OJ_JSON[:graph] = ->(records) { GraphPostOjSerializer.many(records).to_s }
@@ -151,10 +151,10 @@ Targets::PLAIN_HASH[:graph] = ->(records) { records.map { |r| r.as_json(include:
 
 benchmark_scenario "Graph", type: :posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:graph].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:graph].call(records) },
-    "serializers_code_gen/json[with-only]" => -> { Targets::SCG_JSON[:graph_with_only].call(records) },
-    "serializers_code_gen/hash[with-only]" => -> { Targets::SCG_HASH[:graph_with_only].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:graph].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:graph].call(records) },
+    "code_gen/json[with-only]" => -> { Targets::CODE_GEN_JSON[:graph_with_only].call(records) },
+    "code_gen/hash[with-only]" => -> { Targets::CODE_GEN_HASH[:graph_with_only].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:graph].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:graph].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:graph].call(records) },

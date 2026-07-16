@@ -4,7 +4,7 @@ module Fixtures
   module Config
     # Config-isolation fixture pinning +Config#json_column_emit: :html_safe+ —
     # the opt-in mode that keeps today's +push_value(record._read_attribute(...))+
-    # shape so consumers that embed scg output directly into HTML script
+    # shape so consumers that embed engine output directly into HTML script
     # tags retain Oj +:rails+-mode HTML escaping. Same Descriptor as
     # {Fixtures::Config::ConfigJsonColumnWireFormat}; only the Config
     # field flips. The snapshot delta is the absence of +push_json+ /

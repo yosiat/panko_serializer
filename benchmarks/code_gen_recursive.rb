@@ -3,7 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- ScgRecursive — scg-only ----------------------------------------------
+# --- CodeGenRecursive — engine-only ----------------------------------------------
 # Reuses the `recursive_self` Descriptor shape from S8.1: a single
 # Bench::Comment Descriptor that names itself through a `has_many :replies`
 # Association. The Compiler emits the self-recursion shortcut
@@ -16,13 +16,13 @@ require_relative "support/targets"
 # 1 + 2 + 4 = 7-node tree walks without an N+1 query inside the measured
 # block (per docs/benchmarks.md § Fixture data).
 #
-# Only carries `serializers_code_gen/*` rows — there's no equivalent
+# Only carries `code_gen/*` rows — there's no equivalent
 # panko / oj recursive primitive worth comparing (panko's recursive
 # pattern requires a separate intermediate serializer per level, which
-# isn't shape-parity with scg's self-reference).
+# isn't shape-parity with the engine's self-reference).
 
-SCG_RECURSIVE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
-  name: "ScgRecursiveCommentBenchSerializer",
+CODE_GEN_RECURSIVE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
+  name: "CodeGenRecursiveCommentBenchSerializer",
   model: Bench::Comment,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
@@ -35,27 +35,27 @@ SCG_RECURSIVE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 # but Field-kind arrays are not frozen, so post-construction `<<` is the
 # standard idiom for self-recursive Descriptors (mirror of
 # `spec/fixtures/descriptors/recursive_self.rb`).
-SCG_RECURSIVE_DESCRIPTOR.associations << Panko::CodeGen::Association.new(
+CODE_GEN_RECURSIVE_DESCRIPTOR.associations << Panko::CodeGen::Association.new(
   name: :replies,
   kind: :has_many,
-  descriptor: SCG_RECURSIVE_DESCRIPTOR
+  descriptor: CODE_GEN_RECURSIVE_DESCRIPTOR
 )
 
-SCG_JSON_RECURSIVE = Panko::CodeGen.compile(SCG_RECURSIVE_DESCRIPTOR, output: :json).new(descriptor: SCG_RECURSIVE_DESCRIPTOR)
-SCG_HASH_RECURSIVE = Panko::CodeGen.compile(SCG_RECURSIVE_DESCRIPTOR, output: :hash).new(descriptor: SCG_RECURSIVE_DESCRIPTOR)
+CODE_GEN_JSON_RECURSIVE = Panko::CodeGen.compile(CODE_GEN_RECURSIVE_DESCRIPTOR, output: :json).new(descriptor: CODE_GEN_RECURSIVE_DESCRIPTOR)
+CODE_GEN_HASH_RECURSIVE = Panko::CodeGen.compile(CODE_GEN_RECURSIVE_DESCRIPTOR, output: :hash).new(descriptor: CODE_GEN_RECURSIVE_DESCRIPTOR)
 
 # --- Target registry entries ----------------------------------------------
 # n/a — panko / oj_serializers / plain rows omitted; this scenario measures
-# scg's self-recursion shortcut, which has no shape-parity peer.
+# the engine's self-recursion shortcut, which has no shape-parity peer.
 
-Targets::SCG_JSON[:scg_recursive] = ->(records) { SCG_JSON_RECURSIVE.serialize_many(records) }
-Targets::SCG_HASH[:scg_recursive] = ->(records) { SCG_HASH_RECURSIVE.serialize_many(records) }
+Targets::CODE_GEN_JSON[:code_gen_recursive] = ->(records) { CODE_GEN_JSON_RECURSIVE.serialize_many(records) }
+Targets::CODE_GEN_HASH[:code_gen_recursive] = ->(records) { CODE_GEN_HASH_RECURSIVE.serialize_many(records) }
 
 # --- Scenario -------------------------------------------------------------
 
-benchmark_scenario "ScgRecursive", type: :comment_trees do |records|
+benchmark_scenario "CodeGenRecursive", type: :comment_trees do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:scg_recursive].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:scg_recursive].call(records) }
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:code_gen_recursive].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:code_gen_recursive].call(records) }
   }
 end

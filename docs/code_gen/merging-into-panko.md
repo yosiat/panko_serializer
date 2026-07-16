@@ -29,18 +29,18 @@ near-invisible engine swap; an API break here is unrelated overhead users
 shouldn't pay. This **reverses an earlier "drop scope" intent** that was
 abandoned the same day in favour of the no-API-break release strategy.
 
-**Consequence inside scg**: scg promotes **both** Context and Scope to
+**Consequence inside the engine**: the engine promotes **both** Context and Scope to
 first-class UL terms — sibling pass-through axes, byte-identical in behaviour
 but distinct in identity. The Callable contract widens from `(record, context)`
 to `(record, context, scope)`; `serialize_one` / `serialize_many` gain a
 `scope:` kwarg alongside `context:`. **No `Panko::SerializationContext`
-wrapper, no Hash bundle** — two scg-native primitives, threaded through
+wrapper, no Hash bundle** — two engine-native primitives, threaded through
 emitted code with no library-side semantics. The two-axis promotion is tracked
 in [deferred.md § Pre-Panko-merge](deferred.md#pre-panko-merge).
 
 - Panko's public surface — `Foo.new(context:, scope:)`, `#context`, `#scope` —
   unchanged.
-- scg's runtime — receives `context: <ctx>, scope: <scope>` and threads each
+- the engine's runtime — receives `context: <ctx>, scope: <scope>` and threads each
   unmodified through every Callable invocation per the widened Callable
   contract.
 - The Panko-side dispatcher (Q7's chosen shape) installs `@context` and
@@ -48,9 +48,9 @@ in [deferred.md § Pre-Panko-merge](deferred.md#pre-panko-merge).
   bodies reach `context` / `scope` via simple `attr_reader`-shaped accessors
   on `Panko::Serializer`. **`Panko::SerializationContext` is deleted as part
   of the merge** — there's no wrapper class; the two values flow as separate
-  scg primitives.
+  engine primitives.
 
-**Consequence on scg's UL**: gains the `Scope` term, defined as a sibling of
+**Consequence on the engine's UL**: gains the `Scope` term, defined as a sibling of
 `Context` — "arbitrary caller-supplied value, threaded unmodified through every
 Callable invocation, byte-identical to Context in behaviour but distinct in
 identity." Context's definition unchanged.
@@ -101,12 +101,12 @@ dispatcher cache + Lambda Callable wrapper — both rejected):
 - **Native compat** for `super`, helper methods, `private` methods, and
   `prepend`-ed modules — it's just Ruby method dispatch on `self`.
 
-**Surface changes inside scg**:
+**Surface changes inside the engine**:
 
 - `Panko::CodeGen::Descriptor` gains a `parent_class:` field, defaulting
   to `nil`. Non-Panko callers stay on the existing `Class.new` parent
   (`Object`) and on the Callable contract — no behavioural change for the
-  scg test surface.
+  engine test surface.
 - `MethodAttribute#body` accepts either a Callable (today's contract,
   kept for non-Panko callers and for fixtures) **or a Symbol** (the user
   method name) when the Descriptor's `parent_class:` is non-`nil`.
@@ -116,7 +116,7 @@ dispatcher cache + Lambda Callable wrapper — both rejected):
   arity-3 widening per the
   [scope-and-context decision above](#both-scope-and-context-survive-pankos-public-dsl)).
 - `_write_one` per-call mutation of `@object` / `@context` / `@scope` is a
-  bounded deviation from scg's "GC ivars are init-time constants" audit
+  bounded deviation from the engine's "GC ivars are init-time constants" audit
   pattern. Documented in `docs/code-generation.md` when this lands.
 
 **Surface changes inside Panko**:
@@ -139,13 +139,13 @@ trips on it.
 **Decision (2026-05-09 PM)**: Panko's C-extension behaviour where
 `alias_attribute :full_name, :name` on an AR model + `attributes :full_name`
 on a serializer reads from the underlying `name` column and emits the JSON
-key `"full_name"` is preserved post-merge **with no scg-side code change**.
-The Panko→scg converter (Phase 2.2) emits
+key `"full_name"` is preserved post-merge **with no engine-side code change**.
+The Panko→engine converter (Phase 2.2) emits
 `Attribute(name: :full_name, source: :full_name)` regardless of any AR
 alias; correctness comes from Ruby's normal method dispatch.
 
 **Why**: AR installs alias-reader methods on
-`<Model>::GeneratedAttributeMethods` at class-definition time. scg's
+`<Model>::GeneratedAttributeMethods` at class-definition time. the engine's
 `AccessClassifier` already returns `:method` for an aliased name (because
 `columns_hash` doesn't carry the alias but `method_defined?` does, and
 `user_override?` correctly identifies the owner as
@@ -157,9 +157,9 @@ correctly today; the C ext's bespoke `attribute_try_invalidate` +
 
 **Measured equivalence and cost**: byte-identical JSON output across
 single record, array of 50, nil-aliased value, type-cast values
-(datetime / integer / JSON column). Per-aliased-field overhead vs scg's
+(datetime / integer / JSON column). Per-aliased-field overhead vs the engine's
 own no-alias baseline is ~0.8% per field, 4.1% worst-case at 5/5
-aliased. scg remains 1.21×–1.29× faster than Panko's C-ext baseline
+aliased. the engine remains 1.21×–1.29× faster than Panko's C-ext baseline
 across all aliased configurations (Panko itself slows ~3.4% when one
 attribute is aliased — alias resolution isn't free in either engine).
 Harness: `/tmp/alias_bench/bench.rb`.
@@ -169,7 +169,7 @@ AR `alias_attribute` — nothing to write, nothing to test beyond the
 existing Panko alias spec which the codegen path already passes
 unchanged. (Distinct from Panko's `aliases({col: :alias_name})` DSL,
 which is a class-time rename of the **output** key — that's handled by
-scg's existing `Attribute(name:, source:)` split, the same as the Q7
+the engine's existing `Attribute(name:, source:)` split, the same as the Q7
 method-field-translation cascade.) STI/mixed-class serializers behave
 sensibly: a class in `models:` that lacks the alias raises
 `UnknownSourceError` at compile time (loud), not at runtime.
@@ -178,10 +178,10 @@ sensibly: a class in `models:` that lacks the alias raises
 
 **Decision (2026-05-10)**: Panko's behaviour where Hash records (plain
 or `HashWithIndifferentAccess`) get serialized via per-key Hash lookup
-is preserved post-merge **with no scg-side code change**. The Phase 2.2
+is preserved post-merge **with no engine-side code change**. The Phase 2.2
 converter emits a `Panko::CodeGen::Config` with
 `hash_record_key_type: :string`, which produces `record["name"]`
-lookups in scg's Generic emit path — byte-identical to Panko's
+lookups in the engine's Generic emit path — byte-identical to Panko's
 hardcoded C-side `rb_hash_aref(obj, attribute->name_str)`.
 
 **Why**:
@@ -194,7 +194,7 @@ hardcoded C-side `rb_hash_aref(obj, attribute->name_str)`.
   (`ActiveSupport::HashWithIndifferentAccess#convert_key`), so
   Panko's string lookup hits HWIA's storage table directly. HWIA
   support is incidental but reliable.
-- scg's Generic path
+- the engine's Generic path
   (`generators/record_access/generic.rb:67-77, 253-258`) branches on
   `record.is_a?(Hash)` (HWIA satisfies — subclass) and emits
   `record["name"]` under the default `Config#hash_record_key_type:
@@ -203,7 +203,7 @@ hardcoded C-side `rb_hash_aref(obj, attribute->name_str)`.
   produce identical output for every Hash shape Panko users feed in.
 
 **Measured equivalence**: 5 input shapes × 2 output modes = 10/10
-byte-identical results between Panko's C ext and scg's codegen:
+byte-identical results between Panko's C ext and the engine's codegen:
 plain Hash with string keys, plain Hash with symbol keys (both
 silently emit `null` per field — string lookup misses), HWIA built
 from symbols, HWIA built from strings, plain Hash with mixed keys.
@@ -212,7 +212,7 @@ Harness: `/tmp/hwia_check/probe.rb`.
 **Consequence**:
 
 - Phase 2.2 converter has zero HWIA-handling logic. It emits
-  descriptors against scg's existing Generic path.
+  descriptors against the engine's existing Generic path.
 - Phase 2.2 converter pins the emitted Config to
   `hash_record_key_type: :string` — Panko's DSL has no equivalent
   knob, and string is what Panko's C ext hardcodes.
@@ -237,7 +237,7 @@ Harness: `/tmp/hwia_check/probe.rb`.
 decision): both engines silently emit `null` for every field when
 fed a `{ name: "x" }` plain Hash — string lookup misses Symbol
 storage. Panko has shipped this for years without a spec or doc;
-scg inherits the behaviour. If Panko ever wants to "fix" the
+the engine inherits the behaviour. If Panko ever wants to "fix" the
 silent-nil case (probe both Symbol and String on each lookup),
 that's a post-merge feature decision driven by `Config`, not a
 merge blocker.
@@ -262,7 +262,7 @@ Panko**: bypassing the guard with
 byte-identical to a fresh-instance baseline on every scenario. The
 underlying bug was fixed indirectly somewhere in the C-ext history;
 the guard was never retired. Post-merge the C ext is deleted entirely
-(Phase 2.6); scg's Generated Class is reusable by design (no per-call
+(Phase 2.6); the engine's Generated Class is reusable by design (no per-call
 ivar state survives `_write_one`, even under the `parent_class` dispatch's
 per-call `@object`/`@context`/`@scope` writes — each call overwrites them
 at the top). Consistency: `Panko::ArraySerializer` has never had this
@@ -288,45 +288,45 @@ iteration of a same-instance loop now produces the correct output
 for every iteration. Nobody depends on the raise as a feature; the
 two existing specs test the guard itself, not user-visible behaviour.
 
-### Filter co-supply — Panko-side adapter flattens, scg stays strict
+### Filter co-supply — Panko-side adapter flattens, the engine stays strict
 
 **Decision (2026-05-16)**: Panko users keep supplying both `only:` and
 `except:` (the existing public API). A Panko-side adapter
 (`Panko::FilterAdapter`) flattens co-supplied `(only, except)` into a
 single-key Hash using Panko's sequential resolution (`only` then `except`)
-**before** handing the result to scg's `Filter.wrap`. scg's strict
+**before** handing the result to the engine's `Filter.wrap`. the engine's strict
 co-supply raise (`lib/panko/code_gen/filter.rb:85-90`) and
 `Indexed.build`'s "only wins" fallback (pinned at
 `spec/filter_spec.rb:172`) both stay unchanged.
 
 **Why**: keeps Panko-shape concerns in the Panko-side adapter (the
-established split — adapter owns translation from Panko shape to scg
-shape); scg stays a general-purpose engine with a strict contract.
+established split — adapter owns translation from Panko shape to the engine
+shape); the engine stays a general-purpose engine with a strict contract.
 Empirical bench (`/tmp/cosupply_bench/bench.rb`, 2026-05-16) shows the
 two paths are perf-equivalent in the common one-sided case (identical
 allocations: 5 obj / 544 B; identical ips within noise) and Path 1 wins
 the rare co-supply case on ips (+10%) at the cost of ~4 extra Arrays
 per call (≤56 bytes). Choosing Path 1 (adapter flattens) over Path 2
-(scg accepts both keys and resolves sequentially) means we don't break
+(the engine accepts both keys and resolves sequentially) means we don't break
 `spec/filter_spec.rb:172`'s pinned "only wins" fallback or remove
-scg's strict API surface.
+the engine's strict API surface.
 
 **Adapter scope**: ~50 LoC total — a single combined module
 `Panko::FilterAdapter` that owns **both** the co-supply flatten **and**
-the Panko-shape → scg-shape translation (Q8.b decision, 2026-05-16).
+the Panko-shape → engine-shape translation (Q8.b decision, 2026-05-16).
 One entry point (`Panko::FilterAdapter.adapt(only, except, field_index)`)
 returns the wrapped `Filter` object ready for the Generated Class.
 
 The flatten is recursive — must walk the filter Hash at every level
 because Panko supports co-supply at nested association levels too, and
-scg's `validate_no_only_except_co_supply!` raises depth-first
+the engine's `validate_no_only_except_co_supply!` raises depth-first
 (`lib/panko/code_gen/filter.rb:91-93`). The shape translation
 fuses into the same walk in the co-supply case (no separate
 `merge_trees` pass — see the perf footnote).
 
 **Shape translation rules** (Q8.b):
 
-| Panko input | scg output |
+| Panko input | engine output |
 |---|---|
 | `[:a, :b]` (Array, top-level) | `{only: [:a, :b]}` (or `{except: ...}` for the except side) |
 | `{instance: [:a]}` | `{only: [:a]}` |
@@ -410,7 +410,7 @@ mode, models-permutation)`. Two corrections from the original
 - **Filters are out** (Q8.d). `Filter.wrap` runs at runtime inside
   `serialize_*`, returning a `Filter` the compiled class queries via
   `filter.drops?(i)`; same compiled bytes serve every filter set.
-- **Model permutation is in** (2026-07-05, user-caught). scg emits
+- **Model permutation is in** (2026-07-05, user-caught). the engine emits
   *different bytes* per `descriptor.models`: a **Generic** class
   (`models: nil`, `is_a?(Hash)` dispatch, serves any record) vs a
   **Specialized** class per model-class set (monomorphic
@@ -439,7 +439,7 @@ composite-key map (4.25M i/s / 1 Array alloc/read). An optional
 monomorphic inline-cache (last-model-class ivars) lifts reads to 29.7M / 0
 alloc if single-record throughput ever demands it — deferred until measured.
 
-**Config is an invariant, not a key dimension.** scg's output *also* varies
+**Config is an invariant, not a key dimension.** the engine's output *also* varies
 with `Config` (notably `pool_writer`, which changes emitted source), so
 `(class, mode, models)` holds only under the Panko-side invariant that each
 serializer compiles with one fixed Config at compile time. If per-request
@@ -464,9 +464,9 @@ model classes.) **Q9 fully resolved.**
 ### Ruby version floor — `>= 3.4` (Q10)
 
 **Decision (LOCKED 2026-07-05)**: the merged gem requires **Ruby >= 3.4**.
-This bumps Panko's current `>= 3.1.0`; it *matches scg's existing gemspec*
+This bumps Panko's current `>= 3.1.0`; it *matches the engine's existing gemspec*
 (`required_ruby_version = ">= 3.4"`) and CI matrix (`[3.4, 4.0]`), so the
-engine already runs on 3.4 — no porting. `Data.define` (scg's binding
+engine already runs on 3.4 — no porting. `Data.define` (the engine's binding
 language feature, 3.2+) is comfortably satisfied.
 
 **Why 3.4, not lower**: 3.4 and 4.0 are the only Ruby lines in **normal
@@ -478,27 +478,27 @@ merely non-EOL ones.
 
 **Consequences**: dropping 3.1–3.3 is a compatibility break for Panko
 users on those versions → feeds **Q11** (versioning — argues for a major
-bump). CI adopts scg's `[3.4, 4.0]` Ruby lanes → feeds **Q12** (CI matrix).
+bump). CI adopts the engine's `[3.4, 4.0]` Ruby lanes → feeds **Q12** (CI matrix).
 
 ### CI matrix — collapse onto Panko's superset (Q12)
 
 **Decision (LOCKED 2026-07-05)**: the merged gem keeps **Panko's** CI as
-the base — it's a superset of scg's. Both already use **Appraisals** and
+the base — it's a superset of the engine's. Both already use **Appraisals** and
 both already test **Rails `[7.2, 8.0, 8.1]`** (Panko's Rails floor is
 already 7.2), so there is no tooling migration and no Rails-axis
 reconciliation. Changes to Panko's incumbent CI:
 
 - **Narrow Ruby to `[3.4, 4.0]`** — deletes Panko's `3.2` / `3.3` lanes per
   Q10 (§ Ruby version floor).
-- **Add the `ruby 4.0 × rails 7.2` exclude** from scg's matrix (Rails 7.2
+- **Add the `ruby 4.0 × rails 7.2` exclude** from the engine's matrix (Rails 7.2
   predates Ruby 4.0); Panko's `tests.yml` currently lacks it.
 - **Keep Panko's `database_matrix.yml`** (mysql / trilogy DB-driver
-  coverage) — scg has sqlite only, and the codegen engine's Specialized
+  coverage) — the engine has sqlite only, and the codegen engine's Specialized
   path reads AR columns, so real-driver coverage matters.
 - **Drop the `clang-format` lint step** when the C extension is deleted
   (Phase 2.6); keep `standardrb`.
-- scg's `Appraisals` / `gemfiles/` are absorbed into Panko's; nothing
-  unique in scg's CI survives except the exclude rule.
+- the engine's `Appraisals` / `gemfiles/` are absorbed into Panko's; nothing
+  unique in the engine's CI survives except the exclude rule.
 
 No dual-lane transition — the matrices are already ~identical. Gemspec
 hygiene graft: declare an explicit `activesupport >= 7.2` floor (Panko's

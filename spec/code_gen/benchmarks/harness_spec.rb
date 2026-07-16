@@ -40,8 +40,8 @@ RSpec.describe "benchmark harness smoke" do
 
   describe "benchmarks/simple.rb" do
     include_examples "a bench scenario subprocess", "simple.rb", "Simple", [
-      "serializers_code_gen/json",
-      "serializers_code_gen/hash",
+      "code_gen/json",
+      "code_gen/hash",
       "panko/json",
       "panko/object",
       "oj_serializers/json",

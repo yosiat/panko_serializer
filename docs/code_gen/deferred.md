@@ -26,7 +26,7 @@ subclass-friendly (`is_a?(::ActiveRecord::Type::Json)`) to exact-class-name allo
 matching. Lets a maintainer narrow the fast path — rejecting trusted subclasses by default
 and only accepting class names they've explicitly listed.
 
-**Why punted**: scg's `:wire_format` default already matches Panko 0.8.5 byte-for-byte
+**Why punted**: the engine's `:wire_format` default already matches Panko 0.8.5 byte-for-byte
 today, so the allowlist is purely defense-in-depth against a hypothetical unsafe
 `Type::Json` subclass. The known siblings of `Type::Json` (`EncryptedAttributeType`,
 `Type::Serialized`) are correctly rejected by the default predicate; the only known

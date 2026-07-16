@@ -5,7 +5,7 @@ require_relative "support/targets"
 
 # --- HasOne-shape Descriptor / serializers --------------------------------
 # Post → Author single has_one Association. model: Bench::Post / Bench::Author
-# picks the specialized path on both sides so the scg row goes through the
+# picks the specialized path on both sides so the engine row goes through the
 # same model-aware fast path as panko/{json,object} for an apples-to-apples
 # comparison.
 
@@ -38,8 +38,8 @@ HAS_ONE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   ]
 )
 
-SCG_JSON_HAS_ONE = Panko::CodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :json).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
-SCG_HASH_HAS_ONE = Panko::CodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :hash).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
+CODE_GEN_JSON_HAS_ONE = Panko::CodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :json).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
+CODE_GEN_HASH_HAS_ONE = Panko::CodeGen.compile(HAS_ONE_POST_DESCRIPTOR, output: :hash).new(descriptor: HAS_ONE_POST_DESCRIPTOR)
 
 class HasOneAuthorPankoSerializer < Panko::Serializer
   attributes :id, :name
@@ -63,8 +63,8 @@ end
 
 # --- Target registry entries ----------------------------------------------
 
-Targets::SCG_JSON[:has_one] = ->(records) { SCG_JSON_HAS_ONE.serialize_many(records) }
-Targets::SCG_HASH[:has_one] = ->(records) { SCG_HASH_HAS_ONE.serialize_many(records) }
+Targets::CODE_GEN_JSON[:has_one] = ->(records) { CODE_GEN_JSON_HAS_ONE.serialize_many(records) }
+Targets::CODE_GEN_HASH[:has_one] = ->(records) { CODE_GEN_HASH_HAS_ONE.serialize_many(records) }
 Targets::PANKO_JSON[:has_one] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasOnePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:has_one] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasOnePostPankoSerializer).to_a }
 Targets::OJ_JSON[:has_one] = ->(records) { HasOnePostOjSerializer.many(records).to_s }
@@ -75,8 +75,8 @@ Targets::PLAIN_HASH[:has_one] = ->(records) { records.map { |r| r.as_json(includ
 
 benchmark_scenario "HasOne", type: :posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:has_one].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:has_one].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:has_one].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:has_one].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:has_one].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:has_one].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:has_one].call(records) },

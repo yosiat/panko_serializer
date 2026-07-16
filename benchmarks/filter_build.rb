@@ -11,7 +11,7 @@ require_relative "support/benchmark"
 # emit IPS, so this scenario isolates it for direct inspection.
 #
 # Three Descriptor shapes span the representation-choice space (per
-# `lib/serializers_code_gen/filters/indexed.rb` § INDEXED_BITS_THRESHOLD):
+# `lib/panko/code_gen/filters/indexed.rb` § INDEXED_BITS_THRESHOLD):
 #
 #   * `Flat5`  —  5 attrs (≤ 63) → Bits rep (Integer bit-mask, tagged
 #                 Fixnum on 64-bit Ruby).
@@ -34,7 +34,7 @@ require_relative "support/benchmark"
 #
 # Note: this scenario records construction-only IPS — there is no
 # `panko` / `oj_serializers` / `plain` row because filter construction
-# is internal to scg. The harness's `benchmark` primitive is invoked
+# is internal to the engine. The harness's `benchmark` primitive is invoked
 # directly (no `benchmark_scenario` wrapper) since there is no
 # per-`size` records list to pass through.
 

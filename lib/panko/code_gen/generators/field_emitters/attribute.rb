@@ -65,12 +65,12 @@ module Panko::CodeGen
         #   byte-for-byte. On any rejection (non-String, empty, malformed,
         #   in-memory unsaved Hash, etc.) falls through to today's
         #   +writer.push_value(record._read_attribute("<name>"), "<name>")+
-        #   slow path so the per-edge-case behavior is "scg degrades cleanly
-        #   where Panko crashes" per
+        #   slow path so the per-edge-case behavior is "the engine degrades
+        #   cleanly where the 0.8.5 C extension crashed" per
         #   +docs/code_gen/research/phase_1_report.md § 8.1+.
         # - +:html_safe+ — delegates back to {.emit_json}, keeping today's
         #   +push_value(_read_attribute(...), "<name>")+ shape. Used when
-        #   the consumer embeds scg output directly in HTML script tags
+        #   the consumer embeds the generated JSON directly in HTML script tags
         #   without a sanitizer at the HTML layer; documented as opt-in in
         #   +docs/code_gen/config.md+.
         #

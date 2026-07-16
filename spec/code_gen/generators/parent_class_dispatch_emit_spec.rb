@@ -315,7 +315,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
       # the receiver keeps user methods from being shadowed by the
       # body's locals), so Ruby raises +NoMethodError+; the matcher
       # pins its +NameError+ superclass. The contract that matters is
-      # "no scg-specific error" + "no Compile-time check" — both
+      # "no engine-specific error" + "no Compile-time check" — both
       # pinned here; the runtime error stays Ruby-native.
       descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",

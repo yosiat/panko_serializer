@@ -20,7 +20,7 @@ require_relative "support/benchmark"
 
 RECORD = DATASETS.fetch(:posts).first
 
-# --- SCG ------------------------------------------------------------------
+# --- CodeGen ------------------------------------------------------------------
 
 SINGLE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordAuthorBenchSerializer",
@@ -61,8 +61,8 @@ SINGLE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   ]
 )
 
-SCG_JSON_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :json).new(descriptor: SINGLE_POST_DESCRIPTOR)
-SCG_HASH_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :hash).new(descriptor: SINGLE_POST_DESCRIPTOR)
+CODE_GEN_JSON_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :json).new(descriptor: SINGLE_POST_DESCRIPTOR)
+CODE_GEN_HASH_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :hash).new(descriptor: SINGLE_POST_DESCRIPTOR)
 
 # --- Panko ----------------------------------------------------------------
 
@@ -135,14 +135,14 @@ PLAIN_AS_JSON_OPTIONS = {
 # --- Output-parity guard --------------------------------------------------
 # Build the same shape every target would emit, normalize through
 # Oj.load(mode: :strict), and abort with a labeled diff if any row
-# diverges. Hash-output rows (scg/hash, panko/object, oj_serializers/hash,
+# diverges. Hash-output rows (code_gen/hash, panko/object, oj_serializers/hash,
 # plain/hash) get Oj.dump'd ONLY here so the parity comparison stays
 # String-on-String — the bench loop below measures the raw Hash/Writer
 # output without that wrap.
 
 parity_outputs = {
-  "serializers_code_gen/json" => SCG_JSON_SINGLE.serialize_one(RECORD),
-  "serializers_code_gen/hash" => Oj.dump(SCG_HASH_SINGLE.serialize_one(RECORD)),
+  "code_gen/json" => CODE_GEN_JSON_SINGLE.serialize_one(RECORD),
+  "code_gen/hash" => Oj.dump(CODE_GEN_HASH_SINGLE.serialize_one(RECORD)),
   "panko/json" => PostPankoSerializer.new.serialize_to_json(RECORD),
   "panko/object" => Oj.dump(PostPankoSerializer.new.serialize(RECORD)),
   "oj_serializers/json" => PostOjJsonSerializer.one(RECORD).to_s,
@@ -170,8 +170,8 @@ puts
 # through `Targets::*` would add noise without payoff.
 
 rows = {
-  "serializers_code_gen/json" => -> { SCG_JSON_SINGLE.serialize_one(RECORD) },
-  "serializers_code_gen/hash" => -> { SCG_HASH_SINGLE.serialize_one(RECORD) },
+  "code_gen/json" => -> { CODE_GEN_JSON_SINGLE.serialize_one(RECORD) },
+  "code_gen/hash" => -> { CODE_GEN_HASH_SINGLE.serialize_one(RECORD) },
   "panko/json" => -> { PostPankoSerializer.new.serialize_to_json(RECORD) },
   "panko/object" => -> { PostPankoSerializer.new.serialize(RECORD) },
   "oj_serializers/json" => -> { PostOjJsonSerializer.one(RECORD).to_s },

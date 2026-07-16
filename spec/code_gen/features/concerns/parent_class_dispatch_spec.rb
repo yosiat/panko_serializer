@@ -340,7 +340,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
         # bare-identifier failure from the explicit-receiver failure
         # (+obj.<method>+ → +NoMethodError+) and raises the
         # +NameError+ supertype for the former. Either way the error
-        # vocabulary is Ruby-native — no scg-specific synthetic
+        # vocabulary is Ruby-native — no engine-specific synthetic
         # error class.
         it "raises NameError at serialize_one time, not at Compile time" do
           stub_const("ParentClassDispatchSpec_MissingMethodBase", Class.new {

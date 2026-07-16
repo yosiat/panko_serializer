@@ -23,8 +23,8 @@ SIMPLE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_SIMPLE = Panko::CodeGen.compile(SIMPLE_DESCRIPTOR, output: :json).new(descriptor: SIMPLE_DESCRIPTOR)
-SCG_HASH_SIMPLE = Panko::CodeGen.compile(SIMPLE_DESCRIPTOR, output: :hash).new(descriptor: SIMPLE_DESCRIPTOR)
+CODE_GEN_JSON_SIMPLE = Panko::CodeGen.compile(SIMPLE_DESCRIPTOR, output: :json).new(descriptor: SIMPLE_DESCRIPTOR)
+CODE_GEN_HASH_SIMPLE = Panko::CodeGen.compile(SIMPLE_DESCRIPTOR, output: :hash).new(descriptor: SIMPLE_DESCRIPTOR)
 
 class SimplePostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body, :views, :published
@@ -37,8 +37,8 @@ end
 
 # --- Target registry entries ----------------------------------------------
 
-Targets::SCG_JSON[:simple] = ->(records) { SCG_JSON_SIMPLE.serialize_many(records) }
-Targets::SCG_HASH[:simple] = ->(records) { SCG_HASH_SIMPLE.serialize_many(records) }
+Targets::CODE_GEN_JSON[:simple] = ->(records) { CODE_GEN_JSON_SIMPLE.serialize_many(records) }
+Targets::CODE_GEN_HASH[:simple] = ->(records) { CODE_GEN_HASH_SIMPLE.serialize_many(records) }
 Targets::PANKO_JSON[:simple] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:simple] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: SimplePostPankoSerializer).to_a }
 Targets::OJ_JSON[:simple] = ->(records) { SimplePostOjSerializer.many(records).to_s }
@@ -49,8 +49,8 @@ Targets::PLAIN_HASH[:simple] = ->(records) { records.map(&:as_json) }
 
 benchmark_scenario "Simple", type: :posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:simple].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:simple].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:simple].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:simple].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:simple].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:simple].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:simple].call(records) },

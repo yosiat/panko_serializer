@@ -6,7 +6,7 @@ require_relative "support/targets"
 # --- MethodAttribute-shape Descriptor / serializers -----------------------
 # Single Method Attribute computing `body_length` from the post's body. The
 # Callable receives `(record, context)` and is invoked once per record per
-# call. model: Bench::Post picks the specialized path so the scg row
+# call. model: Bench::Post picks the specialized path so the engine row
 # goes through the same model-aware fast path as panko/{json,object} for
 # an apples-to-apples comparison.
 
@@ -26,8 +26,8 @@ METHOD_ATTRIBUTE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_METHOD_ATTRIBUTE = Panko::CodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :json).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
-SCG_HASH_METHOD_ATTRIBUTE = Panko::CodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :hash).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
+CODE_GEN_JSON_METHOD_ATTRIBUTE = Panko::CodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :json).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
+CODE_GEN_HASH_METHOD_ATTRIBUTE = Panko::CodeGen.compile(METHOD_ATTRIBUTE_DESCRIPTOR, output: :hash).new(descriptor: METHOD_ATTRIBUTE_DESCRIPTOR)
 
 class MethodAttributePostPankoSerializer < Panko::Serializer
   attributes :id, :title, :body_length
@@ -49,8 +49,8 @@ end
 
 # --- Target registry entries ----------------------------------------------
 
-Targets::SCG_JSON[:method_attribute] = ->(records) { SCG_JSON_METHOD_ATTRIBUTE.serialize_many(records) }
-Targets::SCG_HASH[:method_attribute] = ->(records) { SCG_HASH_METHOD_ATTRIBUTE.serialize_many(records) }
+Targets::CODE_GEN_JSON[:method_attribute] = ->(records) { CODE_GEN_JSON_METHOD_ATTRIBUTE.serialize_many(records) }
+Targets::CODE_GEN_HASH[:method_attribute] = ->(records) { CODE_GEN_HASH_METHOD_ATTRIBUTE.serialize_many(records) }
 Targets::PANKO_JSON[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_a }
 Targets::OJ_JSON[:method_attribute] = ->(records) { MethodAttributePostOjSerializer.many(records).to_s }
@@ -61,8 +61,8 @@ Targets::PLAIN_HASH[:method_attribute] = ->(records) { records.map { |r| {id: r.
 
 benchmark_scenario "MethodAttribute", type: :posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:method_attribute].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:method_attribute].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:method_attribute].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:method_attribute].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:method_attribute].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:method_attribute].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:method_attribute].call(records) },

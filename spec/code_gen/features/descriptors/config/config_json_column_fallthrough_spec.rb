@@ -16,14 +16,14 @@ require "config/config_json_column_non_json_specialized"
 # Fallthrough paths covered:
 #
 # - Generic record-access path. The emitter at
-#   +lib/serializers_code_gen/generators/record_access/generic.rb+ has no
+#   +lib/panko/code_gen/generators/record_access/generic.rb+ has no
 #   +json_column_attribute?+ branch — every Attribute routes through
 #   +FieldEmitters::Attribute.emit_json+. The +Config#json_column_emit:
 #   :wire_format+ knob is silently ignored on +Models: nil+ Descriptors.
 # - Non-uniform-Specialized path. With +Models: [PlainPost, PlainNote]+
 #   the +ar_classes.all? { ... json_typed?(klass, source) }+ guard in
 #   {Panko::CodeGen::Generators::RecordAccess::Specialized.json_column_attribute?}
-#   (+lib/serializers_code_gen/generators/record_access/specialized.rb+
+#   (+lib/panko/code_gen/generators/record_access/specialized.rb+
 #   +json_column_attribute?+) returns +false+ because +PlainNote+'s
 #   +metadata+ resolves to +Type::String+, not +Type::Json+. The
 #   per-Attribute emit downgrades to today's +push_value+ shape.

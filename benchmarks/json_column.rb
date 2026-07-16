@@ -8,7 +8,7 @@ require_relative "support/targets"
 # column is deserialized to a Ruby Hash by AR; on emit the value is encoded
 # back to JSON. The scenario isolates the cost of dumping a structured Hash
 # value compared to scalar Attributes. model: Bench::Post picks the
-# specialized path so the scg row goes through the same model-aware fast
+# specialized path so the engine row goes through the same model-aware fast
 # path as panko/{json,object}.
 
 JSON_COLUMN_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
@@ -22,8 +22,8 @@ JSON_COLUMN_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_JSON_COLUMN = Panko::CodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :json).new(descriptor: JSON_COLUMN_DESCRIPTOR)
-SCG_HASH_JSON_COLUMN = Panko::CodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :hash).new(descriptor: JSON_COLUMN_DESCRIPTOR)
+CODE_GEN_JSON_JSON_COLUMN = Panko::CodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :json).new(descriptor: JSON_COLUMN_DESCRIPTOR)
+CODE_GEN_HASH_JSON_COLUMN = Panko::CodeGen.compile(JSON_COLUMN_DESCRIPTOR, output: :hash).new(descriptor: JSON_COLUMN_DESCRIPTOR)
 
 class JsonColumnPostPankoSerializer < Panko::Serializer
   attributes :id, :metadata
@@ -36,8 +36,8 @@ end
 
 # --- Target registry entries ----------------------------------------------
 
-Targets::SCG_JSON[:json_column] = ->(records) { SCG_JSON_JSON_COLUMN.serialize_many(records) }
-Targets::SCG_HASH[:json_column] = ->(records) { SCG_HASH_JSON_COLUMN.serialize_many(records) }
+Targets::CODE_GEN_JSON[:json_column] = ->(records) { CODE_GEN_JSON_JSON_COLUMN.serialize_many(records) }
+Targets::CODE_GEN_HASH[:json_column] = ->(records) { CODE_GEN_HASH_JSON_COLUMN.serialize_many(records) }
 Targets::PANKO_JSON[:json_column] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: JsonColumnPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:json_column] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: JsonColumnPostPankoSerializer).to_a }
 Targets::OJ_JSON[:json_column] = ->(records) { JsonColumnPostOjSerializer.many(records).to_s }
@@ -48,8 +48,8 @@ Targets::PLAIN_HASH[:json_column] = ->(records) { records.map { |r| {id: r.id, m
 
 benchmark_scenario "JsonColumn", type: :posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:json_column].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:json_column].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:json_column].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:json_column].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:json_column].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:json_column].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:json_column].call(records) },

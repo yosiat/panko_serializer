@@ -11,7 +11,7 @@ end
 
 # The Panko::CodeGen engine specs are a separate suite with their own
 # spec_helper (spec/code_gen/spec_helper.rb, loaded explicitly so a bare
-# `require "spec_helper"` doesn't resolve to Panko's). They don't need the C ext.
+# `require "spec_helper"` doesn't resolve to Panko's).
 RSpec::Core::RakeTask.new(:spec_code_gen) do |t|
   t.pattern = "spec/code_gen/**/*_spec.rb"
   t.rspec_opts = "--require ./spec/code_gen/spec_helper"

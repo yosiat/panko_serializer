@@ -13,7 +13,7 @@ module Fixtures
     # +docs/research/json_column_emit_plan.md § 11+'s lock-in.
     #
     # Why the fallthrough fires: the Generic emitter at
-    # +lib/serializers_code_gen/generators/record_access/generic.rb+ has
+    # +lib/panko/code_gen/generators/record_access/generic.rb+ has
     # no +json_column_attribute?+ branch — every Attribute is routed
     # through +FieldEmitters::Attribute.emit_json+ regardless of the
     # backing column type. Pinning this snapshot guards against a future

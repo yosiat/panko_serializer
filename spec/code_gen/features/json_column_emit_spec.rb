@@ -26,7 +26,7 @@ require "memory_profiler"
 #   save) → falls through, byte-identical to +:html_safe+;
 # - in-place mutation: documented and pinned as inherited-from-Panko
 #   stale-bytes behavior;
-# - byte-divergence vs today's scg: +</script>+, U+2028, U+2029, +-0.0+,
+# - byte-divergence vs today's engine: +</script>+, U+2028, U+2029, +-0.0+,
 #   +1e-300+, +1e300+ produce the bytes recorded in this spec — the
 #   regression contract for the +:wire_format+ default that S12.5
 #   inherited from Panko 0.8.5.

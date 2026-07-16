@@ -68,11 +68,11 @@ benchmarks/
                                  # oj_serializers, alba, blueprinter, and plain Oj /
                                  # as_json baselines — gated on byte-identical output
 
-  # engine-only scenarios (compare scg variants against each other; a panko/*
+  # engine-only scenarios (compare engine variants against each other; a panko/*
   # row, where present, measures the DSL/runtime-seam overhead over the engine)
-  scg_generic_vs_specialized.rb  # model: nil vs model: Bench::Post, same shape
-  scg_skip_elision.rb            # MethodAttribute returning SKIP on half the records
-  scg_recursive.rb               # Comment self-ref, 3 levels deep (recursive_self shape)
+  code_gen_generic_vs_specialized.rb  # model: nil vs model: Bench::Post, same shape
+  code_gen_skip_elision.rb            # MethodAttribute returning SKIP on half the records
+  code_gen_recursive.rb               # Comment self-ref, 3 levels deep (recursive_self shape)
 
   support/
     benchmark.rb                 # harness core
@@ -89,7 +89,7 @@ That shape has two problems:
 
 1. **Cross-target comparison requires reading N tables** from N separate runs and
    transposing mentally. The question users actually ask ("how does
-   serializers_code_gen compare to panko on HasMany?") is the *hard* one to answer.
+   code_gen compare to panko on HasMany?") is the *hard* one to answer.
 2. **Adding a scenario edits N files**, one per target.
 
 Scenario-centric inverts both: one file per scenario, all targets as rows inside.
@@ -102,8 +102,8 @@ Four families, seven rows per sanity scenario:
 
 | Row label                           | Implementation                                       |
 | ----------------------------------- | ---------------------------------------------------- |
-| `serializers_code_gen/json`         | The engine (`Panko::CodeGen`) directly, `:json` **Output Mode**. |
-| `serializers_code_gen/hash`         | The engine directly, `:hash` **Output Mode**.        |
+| `code_gen/json`         | The engine (`Panko::CodeGen`) directly, `:json` **Output Mode**. |
+| `code_gen/hash`         | The engine directly, `:hash` **Output Mode**.        |
 | `panko/json`                        | Panko's public DSL — `ArraySerializer#to_json`.      |
 | `panko/object`                      | Panko's public DSL — object/Hash mode (`#to_a`).     |
 | `oj_serializers/json`               | Oj-Serializers gem, JSON output.                     |
@@ -111,7 +111,7 @@ Four families, seven rows per sanity scenario:
 | `plain/hash`                        | `records.map(&:as_json)`.                            |
 
 The `panko/*` rows drive Panko's public DSL and runtime seam, so the gap to the raw
-`serializers_code_gen/*` rows is the overhead the seam adds over the engine. The
+`code_gen/*` rows is the overhead the seam adds over the engine. The
 `oj_serializers/json` row is the external competitive reference (measured and recorded,
 non-blocking). Plain rows are context, not competitive targets.
 
@@ -136,7 +136,7 @@ Each scenario file defines all its target serializers inline, purpose-built to e
 one shape across every row. Two reasons:
 
 1. **Shape parity matters.** The `panko/json` row must express the same semantic
-   scenario as the `serializers_code_gen/json` row; defining both from the same field
+   scenario as the `code_gen/json` row; defining both from the same field
    list in one file keeps them from drifting into subtly different shapes.
 2. **The scenario list drives coverage** — including the wide-attribute and graph
    shapes above that Panko's pre-merge bench suite lacked. Owning the serializer set
@@ -154,8 +154,8 @@ require_relative "support/targets"
 
 benchmark_scenario "HasMany", type: :posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:has_many].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:has_many].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:has_many].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:has_many].call(records) },
     "panko/json"                => -> { Targets::PANKO_JSON[:has_many].call(records) },
     "panko/object"              => -> { Targets::PANKO_OBJECT[:has_many].call(records) },
     "oj_serializers/json"       => -> { Targets::OJ_JSON[:has_many].call(records) },
@@ -215,5 +215,5 @@ These aspects may still evolve as the suite grows:
 - Whether `graph.rb` is one shape or several (e.g., "narrow entrypoint, wide children"
   vs. "wide entrypoint, narrow children").
 - Record-shape coverage in benchmarks: AR-only for now (the hot path). Adding
-  Hash/PORO benchmark rows to scg scripts is deferred until a specific question
+  Hash/PORO benchmark rows to engine scripts is deferred until a specific question
   motivates it.

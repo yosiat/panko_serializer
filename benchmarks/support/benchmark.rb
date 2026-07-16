@@ -76,7 +76,7 @@ end
 # GC is left running during the IPS measurement: empirically, disabling
 # it during a 5s/iter window lets the heap grow unbounded for high-alloc
 # rows (heap-growth syscalls become the dominant noise source — error
-# bands explode to ±30–60% on +scg/hash+, +oj_serializers/json+,
+# bands explode to ±30–60% on +code_gen/hash+, +oj_serializers/json+,
 # +plain/*+). Leaving GC enabled drops those bands to ±3–7% and
 # replicates production behavior. The MemoryProfiler block keeps GC
 # disabled because it's explicitly measuring allocations and the

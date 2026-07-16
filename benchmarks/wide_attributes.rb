@@ -9,7 +9,7 @@ require_relative "support/targets"
 # date). Stresses per-Field emit/dispatch cost beyond what Panko's existing
 # bench covers — the column count is open to refinement (per
 # docs/benchmarks.md § Open refinements). model: Bench::WidePost picks
-# the specialized path so the scg row goes through the same model-aware
+# the specialized path so the engine row goes through the same model-aware
 # fast path as panko/{json,object} for an apples-to-apples comparison.
 #
 # The 71 fields (`:id` + 70 `WIDE_POST_ATTRIBUTE_NAMES`) cross the
@@ -29,8 +29,8 @@ WIDE_ATTRIBUTES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :json).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
-SCG_HASH_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :hash).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
+CODE_GEN_JSON_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :json).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
+CODE_GEN_HASH_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTOR, output: :hash).new(descriptor: WIDE_ATTRIBUTES_DESCRIPTOR)
 
 WIDE_ATTRIBUTES_PANKO_NAMES = [:id, *WIDE_POST_ATTRIBUTE_NAMES.map(&:to_sym)].freeze
 
@@ -51,12 +51,12 @@ end
 
 # --- Target registry entries ----------------------------------------------
 
-Targets::SCG_JSON[:wide_attributes] = ->(records) { SCG_JSON_WIDE_ATTRIBUTES.serialize_many(records) }
-Targets::SCG_HASH[:wide_attributes] = ->(records) { SCG_HASH_WIDE_ATTRIBUTES.serialize_many(records) }
-Targets::SCG_JSON[:wide_attributes_with_only] = ->(records) { SCG_JSON_WIDE_ATTRIBUTES.serialize_many(records, filters: {only: WIDE_ATTRIBUTES_ONLY_KEYS}) }
-Targets::SCG_HASH[:wide_attributes_with_only] = ->(records) { SCG_HASH_WIDE_ATTRIBUTES.serialize_many(records, filters: {only: WIDE_ATTRIBUTES_ONLY_KEYS}) }
-Targets::SCG_JSON[:wide_attributes_with_except] = ->(records) { SCG_JSON_WIDE_ATTRIBUTES.serialize_many(records, filters: {except: WIDE_ATTRIBUTES_EXCEPT_KEYS}) }
-Targets::SCG_HASH[:wide_attributes_with_except] = ->(records) { SCG_HASH_WIDE_ATTRIBUTES.serialize_many(records, filters: {except: WIDE_ATTRIBUTES_EXCEPT_KEYS}) }
+Targets::CODE_GEN_JSON[:wide_attributes] = ->(records) { CODE_GEN_JSON_WIDE_ATTRIBUTES.serialize_many(records) }
+Targets::CODE_GEN_HASH[:wide_attributes] = ->(records) { CODE_GEN_HASH_WIDE_ATTRIBUTES.serialize_many(records) }
+Targets::CODE_GEN_JSON[:wide_attributes_with_only] = ->(records) { CODE_GEN_JSON_WIDE_ATTRIBUTES.serialize_many(records, filters: {only: WIDE_ATTRIBUTES_ONLY_KEYS}) }
+Targets::CODE_GEN_HASH[:wide_attributes_with_only] = ->(records) { CODE_GEN_HASH_WIDE_ATTRIBUTES.serialize_many(records, filters: {only: WIDE_ATTRIBUTES_ONLY_KEYS}) }
+Targets::CODE_GEN_JSON[:wide_attributes_with_except] = ->(records) { CODE_GEN_JSON_WIDE_ATTRIBUTES.serialize_many(records, filters: {except: WIDE_ATTRIBUTES_EXCEPT_KEYS}) }
+Targets::CODE_GEN_HASH[:wide_attributes_with_except] = ->(records) { CODE_GEN_HASH_WIDE_ATTRIBUTES.serialize_many(records, filters: {except: WIDE_ATTRIBUTES_EXCEPT_KEYS}) }
 Targets::PANKO_JSON[:wide_attributes] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:wide_attributes] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: WideAttributesPostPankoSerializer).to_a }
 Targets::OJ_JSON[:wide_attributes] = ->(records) { WideAttributesPostOjSerializer.many(records).to_s }
@@ -67,12 +67,12 @@ Targets::PLAIN_HASH[:wide_attributes] = ->(records) { records.map(&:as_json) }
 
 benchmark_scenario "WideAttributes", type: :wide_posts do |records|
   {
-    "serializers_code_gen/json" => -> { Targets::SCG_JSON[:wide_attributes].call(records) },
-    "serializers_code_gen/hash" => -> { Targets::SCG_HASH[:wide_attributes].call(records) },
-    "serializers_code_gen/json[with-only]" => -> { Targets::SCG_JSON[:wide_attributes_with_only].call(records) },
-    "serializers_code_gen/hash[with-only]" => -> { Targets::SCG_HASH[:wide_attributes_with_only].call(records) },
-    "serializers_code_gen/json[with-except]" => -> { Targets::SCG_JSON[:wide_attributes_with_except].call(records) },
-    "serializers_code_gen/hash[with-except]" => -> { Targets::SCG_HASH[:wide_attributes_with_except].call(records) },
+    "code_gen/json" => -> { Targets::CODE_GEN_JSON[:wide_attributes].call(records) },
+    "code_gen/hash" => -> { Targets::CODE_GEN_HASH[:wide_attributes].call(records) },
+    "code_gen/json[with-only]" => -> { Targets::CODE_GEN_JSON[:wide_attributes_with_only].call(records) },
+    "code_gen/hash[with-only]" => -> { Targets::CODE_GEN_HASH[:wide_attributes_with_only].call(records) },
+    "code_gen/json[with-except]" => -> { Targets::CODE_GEN_JSON[:wide_attributes_with_except].call(records) },
+    "code_gen/hash[with-except]" => -> { Targets::CODE_GEN_HASH[:wide_attributes_with_except].call(records) },
     "panko/json" => -> { Targets::PANKO_JSON[:wide_attributes].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:wide_attributes].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:wide_attributes].call(records) },

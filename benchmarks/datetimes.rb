@@ -53,8 +53,8 @@ EVENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   associations: []
 )
 
-SCG_JSON_EVENTS = Panko::CodeGen.compile(EVENT_DESCRIPTOR, output: :json).new(descriptor: EVENT_DESCRIPTOR)
-SCG_HASH_EVENTS = Panko::CodeGen.compile(EVENT_DESCRIPTOR, output: :hash).new(descriptor: EVENT_DESCRIPTOR)
+CODE_GEN_JSON_EVENTS = Panko::CodeGen.compile(EVENT_DESCRIPTOR, output: :json).new(descriptor: EVENT_DESCRIPTOR)
+CODE_GEN_HASH_EVENTS = Panko::CodeGen.compile(EVENT_DESCRIPTOR, output: :hash).new(descriptor: EVENT_DESCRIPTOR)
 
 class EventPankoSerializer < Panko::Serializer
   attributes :id, :name, :starts_at, :ends_at, :created_at, :updated_at
@@ -68,8 +68,8 @@ end
 # --- Output-parity guard --------------------------------------------------
 
 parity = {
-  "serializers_code_gen/json" => SCG_JSON_EVENTS.serialize_many(EVENTS),
-  "serializers_code_gen/hash" => Oj.dump(SCG_HASH_EVENTS.serialize_many(EVENTS), mode: :rails),
+  "code_gen/json" => CODE_GEN_JSON_EVENTS.serialize_many(EVENTS),
+  "code_gen/hash" => Oj.dump(CODE_GEN_HASH_EVENTS.serialize_many(EVENTS), mode: :rails),
   "panko/json" => Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_json,
   "panko/object" => Oj.dump(Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_a, mode: :rails),
   "oj_serializers/json" => EventOjSerializer.many(EVENTS).to_s
@@ -89,8 +89,8 @@ puts
 # --- Scenario rows --------------------------------------------------------
 
 rows = {
-  "serializers_code_gen/json" => -> { SCG_JSON_EVENTS.serialize_many(EVENTS) },
-  "serializers_code_gen/hash" => -> { SCG_HASH_EVENTS.serialize_many(EVENTS) },
+  "code_gen/json" => -> { CODE_GEN_JSON_EVENTS.serialize_many(EVENTS) },
+  "code_gen/hash" => -> { CODE_GEN_HASH_EVENTS.serialize_many(EVENTS) },
   "panko/json" => -> { Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_json },
   "panko/object" => -> { Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_a },
   "oj_serializers/json" => -> { EventOjSerializer.many(EVENTS).to_s }

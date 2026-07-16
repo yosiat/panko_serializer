@@ -97,7 +97,7 @@ exactly one shape.
   `:wire_format`.
 
 The default presumes Panko-mediated access (the only access pattern this gem supports per
-its gemspec metadata). `:html_safe` exists for the case where scg's output is embedded
+its gemspec metadata). `:html_safe` exists for the case where the engine's output is embedded
 directly in HTML script tags without a sanitizer at the HTML layer (uncommon).
 
 Detection of JSON-typed columns uses `is_a?(::ActiveRecord::Type::Json)` —
