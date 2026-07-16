@@ -15,7 +15,7 @@ module Fixtures
     # Why the fallthrough fires: the Generic emitter at
     # +lib/panko/code_gen/generators/record_access/generic.rb+ has
     # no +json_column_attribute?+ branch — every Attribute is routed
-    # through +FieldEmitters::Attribute.emit_json+ regardless of the
+    # through the plain JsonSink attribute emit regardless of the
     # backing column type. Pinning this snapshot guards against a future
     # refactor accidentally porting the +emit_json_column+ branch over
     # from {Generators::RecordAccess::Specialized}.

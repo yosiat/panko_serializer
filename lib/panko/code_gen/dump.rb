@@ -35,7 +35,7 @@ module Panko::CodeGen
     #   fresh instance — shared with +Compiler+ so the emit shape stays
     #   single-source. Only consulted by the flat (single-file) path;
     #   the multi-file fan-out routes through {Generators::Fanout},
-    #   which reuses {JsonMode#emit_class} / {HashMode#emit_class}
+    #   which reuses {Generators::ClassEmitter#emit_class}
     #   directly to avoid re-walking the tree per file.
     # @return [Dump]
     def initialize(descriptor, output:, config:, path:,

@@ -2,7 +2,7 @@
 
 module Panko::CodeGen
   module Generators
-    # Header banner emitter shared by +JsonMode+ and +HashMode+. Produces
+    # Header banner emitter shared by both Output Mode adapters via {ClassEmitter}. Produces
     # the per-file comment block that follows +# frozen_string_literal:
     # true+ and precedes the first +class+ line, per
     # +docs/code_gen/dumping.md § Dumped file shape+. Written once at the top of

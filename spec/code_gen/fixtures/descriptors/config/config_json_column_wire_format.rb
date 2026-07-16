@@ -6,7 +6,7 @@ module Fixtures
     # on the Specialized record-access path. The Descriptor uses
     # +PlainPost+ (a +Models: [PlainPost]+ Specialized Descriptor) with a
     # +t.json :metadata+ Attribute so the per-Field emit routes through
-    # {Generators::FieldEmitters::Attribute.emit_json_column}. The snapshot
+    # {Generators::JsonSink}'s wire-format column emit. The snapshot
     # delta vs the +:html_safe+ sibling fixture is the +read_attribute_before_type_cast+ +
     # +Oj.sc_parse+ + +push_json+ pattern in the body of +_write_one+.
     #

@@ -13,9 +13,9 @@ module Panko::CodeGen
     # +<Name>_<Suffix>+ class body.
     #
     # The per-class class bytes are sourced by reusing
-    # {JsonMode#emit_class} / {HashMode#emit_class} unchanged — the
-    # fan-out path adds wrapping (pragma, banner, +require_relative+),
-    # not new code-gen behavior. Self-loop Associations (Recursive
+    # {ClassEmitter#emit_class} unchanged — the fan-out path adds
+    # wrapping (pragma, banner, +require_relative+), not new code-gen
+    # behavior. Self-loop Associations (Recursive
     # Descriptor → itself) emit zero +require_relative+ directives:
     # the +@<name>_serializer = self+ shortcut from S8.1 resolves the
     # cycle inside the constructor with no inter-file dependency.
@@ -92,7 +92,8 @@ module Panko::CodeGen
           builder.line %(require_relative "#{snake_case(dep.name)}_#{output}")
         end
         builder.blank if deps.any?
-        per_mode_emitter(output).emit_class(descriptor, config, builder, cyclic_ids)
+        emitter = ClassEmitter.new(Panko::CodeGen::Generator.sink_for(output))
+        emitter.emit_class(descriptor, config, builder, cyclic_ids)
         builder.to_s + "\n"
       end
       private_class_method :build_file
@@ -120,25 +121,6 @@ module Panko::CodeGen
         deps
       end
       private_class_method :ordered_dependencies
-
-      # Returns the per-mode emitter instance whose +#emit_class+ the
-      # fan-out path calls. Symmetric with the dispatch in
-      # {Generator#emit}; raises the same +ArgumentError+ on an
-      # unknown mode.
-      #
-      # @param output [Symbol]
-      # @return [JsonMode, HashMode]
-      # @raise [ArgumentError] when +output+ is not in
-      #   {Generator::OUTPUT_MODES}
-      def per_mode_emitter(output)
-        case output
-        when :json then JsonMode.new
-        when :hash then HashMode.new
-        else
-          raise ArgumentError, "unknown output mode #{output.inspect}; must be one of #{Generator::OUTPUT_MODES.inspect}"
-        end
-      end
-      private_class_method :per_mode_emitter
     end
   end
 end

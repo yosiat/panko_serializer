@@ -7,7 +7,7 @@ module Panko::CodeGen
     # Pins the +Field-index parity+ contract from
     # +docs/filters.md § Threading through Composition+: every
     # +unless filters.drops?(N) ... end+ wrapper emitted by the
-    # +FieldEmitters::*+ helpers must carry the same integer that the
+    # sink leaf emits must carry the same integer that the
     # enclosing class's +FIELD_INDEX = {...}.freeze+ literal binds for
     # that wrapper's Field. The two are produced from one source —
     # +Generators::FieldIndex.build+'s filter-key map (+name+ for value
@@ -29,7 +29,7 @@ module Panko::CodeGen
       # Top-level +class <Name>_<Suffix>+ block — the +<Name>_<Suffix>+
       # capture pairs the +FIELD_INDEX+ literal with the wrappers that
       # live inside it. Matches the emit shape from
-      # +Generators::JsonMode#emit+ / +Generators::HashMode#emit+: every
+      # +Generator#emit+ under either Output Mode: every
       # Generated Class is a top-level class declaration with an
       # un-indented +end+ closing the block.
       CLASS_BLOCK_RE = /^class (\w+_(?:JSON|Hash))$\n(.*?)\n^end$/m
@@ -122,7 +122,7 @@ module Panko::CodeGen
       # match.
       #
       # The token set covers every emit shape in
-      # +Generators::FieldEmitters::{Attribute,MethodAttribute,Association}+
+      # the sink adapters' leaf emits
       # for the default (+:string+ output keys, no JSON-column wire
       # format) configurations exercised by the parity spec:
       #

@@ -17,9 +17,10 @@ require_relative "code_gen/validators/name_uniqueness"
 require_relative "code_gen/validators/symbol_body_dispatch"
 require_relative "code_gen/validators/validator"
 require_relative "code_gen/generators/generated_names"
-require_relative "code_gen/generators/field_emitters/attribute"
-require_relative "code_gen/generators/field_emitters/method_attribute"
-require_relative "code_gen/generators/field_emitters/association"
+require_relative "code_gen/generators/sink"
+require_relative "code_gen/generators/json_sink"
+require_relative "code_gen/generators/hash_sink"
+require_relative "code_gen/generators/field_walk"
 require_relative "code_gen/generators/record_access/generic"
 require_relative "code_gen/generators/record_access/specialized"
 require_relative "code_gen/generators/cycle_membership"
@@ -27,8 +28,7 @@ require_relative "code_gen/generators/descriptor_walk"
 require_relative "code_gen/generators/field_index"
 require_relative "code_gen/generators/release"
 require_relative "code_gen/generators/banner"
-require_relative "code_gen/generators/json_mode"
-require_relative "code_gen/generators/hash_mode"
+require_relative "code_gen/generators/class_emitter"
 require_relative "code_gen/generators/fanout"
 require_relative "code_gen/generator"
 require_relative "code_gen/compile_cache"
@@ -46,9 +46,9 @@ module Panko::CodeGen
   # an +Object.new+ instance responds to none of them, so Oj's C path
   # skips every callback and validates well-formedness without
   # materializing the parsed structure or invoking any Ruby callback.
-  # Used by the +:wire_format+ JSON-column emit path emitted by
-  # {Generators::FieldEmitters::Attribute.emit_json_column}; see
-  # {file:docs/code_gen/config.md} for rationale and benchmark numbers.
+  # Used by the +:wire_format+ JSON-column path emitted by
+  # {Generators::JsonSink}; see {file:docs/code_gen/config.md} for
+  # rationale and benchmark numbers.
   JSON_NOOP_PARSER = Object.new.freeze
 
   # Frozen options for the +:wire_format+ JSON-column validation
@@ -56,8 +56,8 @@ module Panko::CodeGen
   # allocates a fresh Hash on every call into Oj's C entry point (one per
   # record); a hoisted frozen constant passed positionally reuses the same
   # object, so the per-record validation matches the old C extension's
-  # allocation count. Emitted positionally by
-  # {Generators::FieldEmitters::Attribute.emit_json_column}.
+  # allocation count. Emitted positionally by {Generators::JsonSink}'s
+  # wire-format column path.
   JSON_STRICT_PARSE_OPTS = {mode: :strict}.freeze
 
   # Compiles +descriptor+ into a fresh Generated Class for the named

@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 
 # Narrow emit-shape tests for the S18.3 +parent_class+ dispatch wiring:
-# the +FieldEmitters::MethodAttribute+ Symbol-vs-Callable branch and the
+# the Sink#method_attribute_call_expression Symbol-vs-Callable branch and the
 # per-record +@object+ / +@context+ / +@scope+ ivar writes prepended at
 # the top of +_write_one+ / +_to_hash+ when +descriptor.parent_class+ is
 # non-+nil+ *and* a Symbol-body Method Attribute is declared (the only
@@ -27,7 +27,7 @@ RSpec.describe "Generator parent_class dispatch emit (S18.3)" do
     parent
   }
 
-  describe "FieldEmitters::MethodAttribute Symbol-vs-Callable branch" do
+  describe "Sink#method_attribute_call_expression Symbol-vs-Callable branch" do
     let(:descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "MixedBodySerializer",

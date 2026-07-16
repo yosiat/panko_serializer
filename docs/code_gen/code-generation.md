@@ -88,7 +88,12 @@ class JsonGenerator
 end
 ```
 
-A parallel `HashGenerator` exists for `:hash` mode.
+The sketch above is illustrative. In the shipped code the walk is emitted once —
+`ClassEmitter` (class shell, constructor, recursion wiring) + `FieldWalk` (field
+ordering + record frame) + the `RecordAccess` strategies — and everything
+mode-divergent sits behind the **Sink** seam: `JsonSink` emits `writer.push_*`
+forms, `HashSink` emits `result[key] = ...` forms. One walk, two adapters — the
+two modes' structure cannot drift because only the leaf shapes differ.
 
 ## Source pragmas
 

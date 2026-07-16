@@ -9,7 +9,7 @@ require "panko/code_gen"
 # Symbol/BigDecimal as Strings, Hashes stringify their keys, arbitrary objects
 # flatten through their own #as_json. Emitted into every Hash-mode field write
 # via the +Panko::CodeGen.cast_datetime(...)+ wrapper (see
-# FieldEmitters::Attribute / MethodAttribute). JSON mode never calls it — Oj
+# HashSink leaf emits). JSON mode never calls it — Oj
 # (mode: :rails) applies the same conversions on write.
 RSpec.describe "Panko::CodeGen.cast_datetime" do
   subject(:cast) { Panko::CodeGen.cast_datetime(value) }
