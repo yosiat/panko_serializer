@@ -15,8 +15,7 @@ module Fixtures
     # (not a String), the +is_a?(String)+ guard rejects it, and emit
     # falls through to today's +push_value+ slow path. The expected
     # output therefore matches today's bytes — which is exactly the
-    # "the engine degrades cleanly" contract from
-    # +docs/research/phase_1_report.md § 8.1+. End-to-end byte-identical
+    # "the engine degrades cleanly" contract. End-to-end byte-identical
     # behavior on saved records is exercised in
     # +spec/features/json_column_emit_spec.rb+.
     module ConfigJsonColumnWireFormat

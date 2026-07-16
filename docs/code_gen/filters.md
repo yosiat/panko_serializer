@@ -36,8 +36,7 @@ serializer.serialize_one(
   attribute-level filters apply both sequentially. `Panko::CodeGen`'s uniform raise is
   stricter than either Panko path; Panko's own callers reach the engine through
   `Panko::FilterAdapter`, which flattens co-supplied `(only, except)` to a single key first,
-  so they never trip it. The shipped filter representation and the experiment behind it are
-  recorded in [research/filter_experiments_results.md](research/filter_experiments_results.md).)
+  so they never trip it.)
 - Names in `:only` / `:except` reference a value Field's **name** (the output key) but an
   **Association**'s **Source** (the declared relation) — so an aliased **Association** is
   addressed by the same key at the level and in its child filter, matching Panko 0.8.5.
@@ -143,10 +142,8 @@ construction and never re-checked per call:
 Both satisfy the same `drops?(<integer>)` / `child(<symbol>, <field_index>)`
 contract as `Filter::NONE`, so emitted code stays monomorphic across the three shapes.
 
-This "Indexed representation × single emit path" shape is the verdict of the phase-2 filter
-experiment (internal representation × emit strategy). The full 2×2 matrix, the
-pre-registered decision rule, and the raw numbers live in
-[research/filter_experiments_results.md](research/filter_experiments_results.md).
+This "Indexed representation × single emit path" shape is the verdict of a benchmark
+across the internal-representation × emit-strategy matrix.
 
 ## No compile-time disable knob
 

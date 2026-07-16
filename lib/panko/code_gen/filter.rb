@@ -16,10 +16,8 @@ module Panko::CodeGen
   # - {None} — the no-filter singleton ({NONE}); +nil+ and +{}+ map
   #   here. +drops?+ returns +false+, +child+ returns +self+.
   #   Allocation-free, frozen at module load.
-  # - {Indexed} — the winning cell from S13's experiment
-  #   (+indexed × single_path+, see
-  #   +docs/code_gen/research/filter_experiments_results.md § 1+). Lifted from
-  #   +docs/code_gen/research/filter_experiments_bench.rb+ (lines 281–433).
+  # - {Indexed} — the winning +indexed × single_path+ cell from the filter
+  #   representation benchmark.
   #   Picks {Indexed::Bits} (Integer bit-mask) when the Generated
   #   Class's +FIELD_INDEX+ has +<= INDEXED_BITS_THRESHOLD+ entries,
   #   {Indexed::Array} (Boolean Array) otherwise.

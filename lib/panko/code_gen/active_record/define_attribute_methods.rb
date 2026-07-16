@@ -9,7 +9,6 @@ module Panko::CodeGen
     # populated before classification or step (2) of the 3-step rule
     # would mis-classify column-backed Sources as missing.
     #
-    # Research-backed by +docs/code_gen/research/define_attribute_methods_safety.md+:
     # +define_attribute_methods+ is byte-identical across Rails 7.2 / 8.0 /
     # 8.1, idempotent (returns +false+ on the second-and-subsequent call),
     # and thread-safe via AR's +GeneratedAttributeMethods::LOCK = Monitor.new+

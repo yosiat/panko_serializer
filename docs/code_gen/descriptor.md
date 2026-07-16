@@ -63,12 +63,13 @@ A Ruby class, or `nil`.
 ### `Descriptor#parent_class`
 
 The required Ruby `Class` the emitted **Generated Class** inherits from, emitted as
-`class <Name>_<Mode> < <parent_class.name>`. The trigger for the **`parent_class`
-dispatch** shape from
-[merging-into-panko.md § Generated Class subclasses the user's Panko serializer](merging-into-panko.md#generated-class-subclasses-the-users-panko-serializer).
-Panko always supplies the user's serializer class, so there is no parent-less emit shape:
-`nil` (and any non-`Class`) raises `DescriptorError` at `Data.new`, and omitting the
-kwarg raises `ArgumentError`.
+`class <Name>_<Mode> < <parent_class.name>`. This is the **`parent_class` dispatch**
+shape: the **Generated Class** subclasses the user's own Panko serializer so Symbol-body
+**Method Attributes** dispatch to user `def`-d methods on `self` (see
+[code-generation.md § Per-record ivar writes](code-generation.md#per-record-ivar-writes--the-bounded-parent_class-deviation)
+for the emit and the safety argument). Panko always supplies the user's serializer class,
+so there is no parent-less emit shape: `nil` (and any non-`Class`) raises
+`DescriptorError` at `Data.new`, and omitting the kwarg raises `ArgumentError`.
 
 When the **Descriptor** also declares a Symbol-body **Method Attribute**, `_write_one` /
 `_to_hash` prepend `@object = record; @context = context; @scope = scope` at the top of
@@ -195,6 +196,9 @@ A **Record** is anything the **Generated Class** can read fields from. Supported
 
 - **ActiveRecord instances**: accessed via the fastest available path given the **Model**.
 - **Ruby Hashes**: accessed via `record["key"]` (default) or `record[:key]` (via config).
+  `HashWithIndifferentAccess` is a `Hash` subclass that stores its keys as Strings, so it
+  satisfies the `record.is_a?(Hash)` branch and hits the default string-keyed lookup —
+  HWIA records serialize correctly with no special handling.
 - **Plain Ruby objects**: accessed via method dispatch (`record.foo`). Works in the
   generic path; not specialized.
 

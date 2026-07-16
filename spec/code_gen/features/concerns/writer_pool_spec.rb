@@ -16,8 +16,7 @@ require "nested_composition"
 # vs unpooled output parity.
 #
 # The +ThreadLocal+ backend is forced (via +hide_const+ around +Compile+)
-# wherever the test exercises fiber-locality semantics — Test 3 of
-# +docs/research/fiber_locality_proof.rb+ proves +Thread.current[]+ is
+# wherever the test exercises fiber-locality semantics — +Thread.current[]+ is
 # fiber-local in MRI; +ActiveSupport::IsolatedExecutionState+'s default
 # +isolation_level+ is +:thread+ in CI cells without an explicit Falcon
 # binding, so an IES-backed pool would spuriously share storage between
@@ -53,7 +52,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "fiber isolation under manual scheduler" do
-    # Mirror of +docs/research/fiber_locality_proof.rb+ Test 3 — two
+    # Two
     # +Fiber+s yielding mid-emit (a Method Attribute body that calls
     # +Fiber.yield+) each produce correct output. +Thread.current[]+ is
     # fiber-local per MRI +thread.c:3812+; the +ThreadLocal+ backend

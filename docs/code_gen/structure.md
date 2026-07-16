@@ -107,8 +107,7 @@ lib/
       filters/
         none.rb                                # no-filter singleton (Null Object)
         indexed.rb                             # Indexed filter — bit-mask (≤63 Fields) or
-                                               # Boolean Array (>63 Fields); see filters.md and
-                                               # research/filter_experiments_results.md
+                                               # Boolean Array (>63 Fields); see filters.md
 
       # === Compilation orchestration ===
       compiler.rb                              # Compiler#compile: drive Generator + module_eval
@@ -167,12 +166,9 @@ lib/
 ### Why no per-Rails-version adapter folder
 
 An earlier sketch had `ar_adapter/rails_7_2.rb`, `rails_8_0.rb`, etc. That was
-speculative. The research notes in
-[`research/define_attribute_methods_safety.md`](research/define_attribute_methods_safety.md)
-show `define_attribute_methods` is byte-identical across Rails 7.2 / 8.0 / 8.1, and
-[`research/ar_access_results.md`](research/ar_access_results.md) confirms `_read_attribute`
-is stable across the supported versions. There is no version-specific surface today, so
-there are no version-specific files.
+speculative: `define_attribute_methods` is byte-identical across Rails 7.2 / 8.0 / 8.1, and
+`_read_attribute` is stable across the supported versions. There is no version-specific
+surface today, so there are no version-specific files.
 
 If a future Rails version breaks one of these contracts, the fix is a feature-detect
 switch inside the affected `active_record/*.rb` helper — not a new file tree.
@@ -198,8 +194,7 @@ are relative to `lib/panko/code_gen/`.
 | [output-modes.md](output-modes.md)           | `generators/sink.rb`, `generators/json_sink.rb`, `generators/hash_sink.rb` |
 | [generated-class.md](generated-class.md)     | shape emitted by `generators/*`; runtime support in `writers_pool.rb`, `instance_pool.rb` |
 | [dumping.md](dumping.md)                      | `dump.rb`, `generators/fanout.rb`, `generators/banner.rb`                  |
-| [merging-into-panko.md](merging-into-panko.md) | `runtime.rb`, `descriptor_builder.rb`, `serializer_cache.rb`, `filter_adapter.rb`, `instance_pool.rb` |
-| [auto-specialization.md](auto-specialization.md) | `serializer_cache.rb`                                                  |
+| [auto-specialization.md](auto-specialization.md) | Panko runtime seam — `serializer_cache.rb`, `runtime.rb`, `descriptor_builder.rb`, `filter_adapter.rb`, `instance_pool.rb` |
 
 ## Testing shape (preview)
 

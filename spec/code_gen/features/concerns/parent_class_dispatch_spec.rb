@@ -4,8 +4,8 @@ require "spec_helper"
 require "panko/code_gen"
 
 # Cross-cutting +parent_class+ dispatch contract — the 9-item
-# enumeration from the parent S18 PRD (#95) / +docs/merging-into-panko.md
-# § Generated Class subclasses the user's Panko serializer+. JSON/Hash
+# enumeration for the +docs/code_gen/descriptor.md § Descriptor#parent_class+
+# dispatch shape. JSON/Hash
 # parity is iterated at the +describe+ block per
 # +docs/testing.md § JSON/Hash parity+ (the 9 × 2 = 18 cases give the
 # full contract for the Symbol-body Method Attribute dispatch shape

@@ -52,8 +52,7 @@ benchmarks/
   wide_attributes.rb             # ~70 Attributes — stresses per-Field emit/dispatch cost
   graph.rb                       # entrypoint Descriptor with Attributes + multiple has_one
                                  # + multiple has_many — stresses combined Composition
-  medium_graph_shallow_only.rb   # 8-field entrypoint under only: — reproduces the filter
-                                 # verdict cell from research/filter_experiments_results.md
+  medium_graph_shallow_only.rb   # 8-field entrypoint under only: — the filter verdict-cell shape
   single_record.rb               # one-record APIs (`serialize_one`, `Serializer.one`,
                                  # `record.as_json`) on a Bench::Post + author + comments
                                  # graph; carries an output-parity guard at the top of the
@@ -181,15 +180,6 @@ comment above the hash. Row set shape is per-scenario, not required to be identi
 No persisted baseline files. **Numbers live in release notes** — when a perf-relevant
 change lands, the PR author copies the before/after tables into the PR description and
 (on release) into the release notes.
-
-**Benchmark-gated decisions** that pick a representation (e.g. the filter internal rep
-and dual-path emit — see [filters.md](filters.md), settled on the `Indexed` filter)
-capture their evidence under [research/](research/): an experiment-specific bench
-script plus a markdown report with numbers and the decision. Examples to match:
-[`research/ar_access_bench.rb`](research/ar_access_bench.rb) +
-[`research/ar_access_results.md`](research/ar_access_results.md), and
-[`research/filter_experiments_results.md`](research/filter_experiments_results.md) for
-the shipped filter verdict.
 
 ## Fixture data
 

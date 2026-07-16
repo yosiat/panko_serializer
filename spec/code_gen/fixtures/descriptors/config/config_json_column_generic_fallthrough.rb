@@ -7,10 +7,8 @@ module Fixtures
     # +Config#json_column_emit: :wire_format+, a Descriptor with +Models+
     # set to +nil+ (Generic record-access path) keeps today's
     # +push_value(record["metadata"])+ / +push_value(record.metadata)+
-    # shape. The optimization is Specialized-path-only by design — see the
-    # parent S12.5 PRD's "Detection only fires on the Specialized
-    # record-access path" clause and
-    # +docs/research/json_column_emit_plan.md § 11+'s lock-in.
+    # shape. The optimization is Specialized-path-only by design: detection
+    # only fires on the Specialized record-access path.
     #
     # Why the fallthrough fires: the Generic emitter at
     # +lib/panko/code_gen/generators/record_access/generic.rb+ has

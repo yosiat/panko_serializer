@@ -106,9 +106,6 @@ rejects `encrypts :metadata` (sibling type, not a subclass) and `serialize :m, c
 (also a sibling). Generic-path **Descriptors** (`model: nil`) are unaffected — the knob
 applies only to the **Specialized path**.
 
-Design rationale, byte-divergence table, and benchmark numbers:
-[`docs/research/phase_1_report.md § 8.1`](research/phase_1_report.md).
-
 ### `pool_writer` (default: `true`)
 
 Controls whether the **JSON Output Mode** emit reuses **Writers** across `serialize_one` /
@@ -128,7 +125,7 @@ for the pool implementation.
 - `false`: emits the byte-identical pre-pooling source — `writer =
   Oj::StringWriter.new(mode: :rails)` inline, no `POOL` constant, no `begin`/`ensure`
   wrap. Intended as an emergency rollback path, a debugging affordance, or for
-  ABI-strict callers who need the exact pre-S16 emit shape.
+  ABI-strict callers who need the exact pre-pooling emit shape.
 
 When to flip to `false`: production rollback if a pool-related defect surfaces, local
 debugging where every-call-allocates makes leak / state-corruption hypotheses easier to

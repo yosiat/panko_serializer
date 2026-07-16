@@ -149,10 +149,10 @@ The call expression is specialized per **Callable** arity (validated in
 @cb_<name>.call                            # arity 0
 @cb_<name>.call(record)                    # arity 1
 @cb_<name>.call(record, context)           # arity 2
-@cb_<name>.call(record, context, scope)    # arity 3 (S17.2)
+@cb_<name>.call(record, context, scope)    # arity 3
 ```
 
-The arity-3 shape was added in S17.2 alongside the `scope:` kwarg on
+The arity-3 shape pairs with the `scope:` kwarg on
 `serialize_one` / `serialize_many` — `scope` is threaded positionally
 through `_write_one` / `_to_hash` between `context` and `filters` and
 into every nested **Association** call (`@<name>_serializer._write_one(record, writer, context, scope, child_filter)`).
@@ -184,8 +184,7 @@ three per-record ivar writes at the top of `_write_one` / `_to_hash`:
 
 These ivars are mutated **on every call** to `_write_one` / `_to_hash`, not set once in
 the constructor. The deviation is intentional and exists to support the `parent_class`
-dispatch shape from [merging-into-panko.md § Generated Class subclasses the user's Panko
-serializer](merging-into-panko.md#generated-class-subclasses-the-users-panko-serializer):
+dispatch shape (see [descriptor.md § `Descriptor#parent_class`](descriptor.md#descriptorparent_class)):
 a Symbol-body **Method Attribute** dispatches via `value = <method_name>` on `self`, and
 the user-defined method on `parent_class` reaches `@object` / `@context` / `@scope` to
 read the **Record** and threaded values. Without per-record writes, the user method
@@ -212,31 +211,22 @@ Bounded by three properties:
   helpers return, the helpers stay un-prepended — they inherit the ivars from the
   `_write_one` / `_to_hash` that called them.
 
-**Self-recursion safety**: under the S8 `@<name>_serializer = self` shortcut a
+**Self-recursion safety**: under the `@<name>_serializer = self` shortcut a
 self-recursive **Descriptor** uses one **Generated Class** instance across every depth,
 but each entry into `_write_one` / `_to_hash` re-writes the ivars at the top of the
 method body. Inner frames running *during* their own `_write_one` / `_to_hash` call
-observe their own per-record ivars. The "load-bearing" K1 safety property: this is the
-only shape that's safe for self-recursion without per-call snapshot/restore guards — the
-rejected J (init-time dispatcher ivar) and A (thread-local dispatcher cache + Lambda
-wrapper) shapes share a dispatcher across recursion depths and clobber `@object` mid-
-walk in ways the user method can't recover from.
+observe their own per-record ivars. This per-record-write-at-the-top shape is the only one
+safe for self-recursion without per-call snapshot/restore guards: any shape that instead
+shares a dispatcher across recursion depths would clobber `@object` mid-walk in ways the
+user method can't recover from.
 
 The checkin-side counterpart of these writes is `_release`, which nils the three ivars
 before a pooled instance goes back on its stack — see
 [generated-class.md](generated-class.md).
 
-Bench: `/tmp/k1_ivar_bench/bench.rb` (2026-05-16, YJIT-on, Ruby 4.0.2). Single-record
-`serialize_one` with `Oj::StringWriter`:
-
-| Shape                                   | IPS                | ns/i | Allocations |
-| --------------------------------------- | ------------------ | ---- | ----------- |
-| Baseline (no ivar writes)               | 2.53M (±3.9%)      | 395  | 12          |
-| Symbol-body (3 ivar writes prepended)   | 2.36M (±8.7%)      | 424  | 12          |
-
-`benchmark-ips` verdict: "same-ish: difference falls within error". The ~29 ns delta is
-within noise; allocations are identical (no extra object per call). Pinned at the
-benchmark layer in S18.5 as a permanent regression guard.
+The three prepended ivar writes are cost-neutral — no extra allocation per call and a
+per-record delta within benchmark noise — and the parity is pinned in the benchmark suite
+as a permanent regression guard.
 
 ## Backtrace quality
 

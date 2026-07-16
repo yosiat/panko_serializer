@@ -160,9 +160,7 @@ classifies every **Attribute** via a three-step rule:
 
 1. **Column-backed** (name appears in `Model.columns_hash`) with AR's own auto-generated
    reader → emit `record._read_attribute("title")`. This is the fastest access form on
-   Ruby 4 + YJIT + AR 8.1 by a wide margin (see
-   [research/ar_access_results.md](research/ar_access_results.md)):
-   4.43M ips persisted / 4.13M non-persisted, 1 alloc/call, and the `_read_attribute` call
+   Ruby 4 + YJIT + AR 8.1 by a wide margin (1 alloc/call), and the `_read_attribute` call
    dispatches through AR's type-cast path so enum columns correctly return mapped labels.
 2. **Else, instance method exists** (name appears in `Model.instance_methods`, including a
    user-overridden column reader) → emit `record.title` method dispatch.
@@ -180,6 +178,16 @@ stay observably identical to the generic body for the same records.
 STI hierarchies specialize per concrete class — each class gets its own **Descriptor** and
 Generated Class, so a subclass override affects only that subclass's compile.
 
+#### AR `alias_attribute` resolves transparently
+
+`alias_attribute :full_name, :name` on a model installs an alias-reader method on the
+model's `GeneratedAttributeMethods` at class-definition time. An **Attribute** whose
+`source` is the alias falls to step 2 (the alias isn't in `columns_hash`, but the method
+is defined) and emits `record.full_name` method dispatch, which resolves through AR's alias
+to the underlying column. No alias-specific handling is needed — normal method dispatch
+does the work. (This is distinct from the serializer-level output-key rename, which the
+`Attribute(name:, source:)` split already expresses.)
+
 #### Other specialized-path invariants
 
 - No Hash-access branch — **Model** implies the **Records** are instances of that class
@@ -188,8 +196,7 @@ Generated Class, so a subclass override affects only that subclass's compile.
   Rails boot order; flag loudly if a class isn't loadable).
 - AR attribute methods are generated lazily. **Compile** calls `Model.define_attribute_methods`
   defensively before introspecting so steps 1–3 see a fully-populated method table. The call
-  is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1; see
-  [research/define_attribute_methods_safety.md](research/define_attribute_methods_safety.md)).
+  is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1).
 
 ### Non-AR class in `model`
 

@@ -58,55 +58,62 @@ expect(actual_source).to match_snapshot("shallow_generic_json.rb")
 
 ### Disk layout
 
+Representative shape (the directory itself is the source of truth — busy dirs are
+elided with `…`):
+
 ```
 spec/code_gen/
   spec_helper.rb
   code_builder_spec.rb                         # tier: CodeBuilder
   compile_errors_spec.rb                       # tier: compile-time errors
+  compile_cache_spec.rb                        # identity-keyed Descriptor → Generated Class cache
+  config_spec.rb                               # Config coercion / defaults
+  datetime_format_spec.rb, cast_datetime_spec.rb   # datetime String → ISO-8601 splicer
+  filter_spec.rb                               # Filter.wrap + Indexed representation
 
-  validators/                                  # tier: validators
+  validators/                                  # tier: validators — one spec per rule
     name_uniqueness_spec.rb
     source_resolution_spec.rb
     callable_arity_spec.rb
 
-  generators/                                  # tier: snapshot
+  active_record/                               # AR helpers
+    access_classifier_spec.rb
+    define_attribute_methods_spec.rb
+
+  generators/                                  # tier: snapshot + per-emitter unit specs
     snapshot_spec.rb                           # iterates FIXTURES × MODES
+    field_index_spec.rb, generated_names_spec.rb, sink_contract_spec.rb
+    guarded_model_emit_spec.rb, parent_class_emit_spec.rb, writer_pool_emit_spec.rb, …
 
   features/                                    # tier: feature (end-to-end)
     descriptors/                               # one file per canonical Descriptor (record-shape coverage)
       shallow_generic_spec.rb                  # compiles fresh, never loads snapshots
-      shallow_specialized_spec.rb
-      nested_composition_spec.rb
-      recursive_self_spec.rb
-      recursive_mutual_spec.rb
-      sti_specialized_spec.rb
+      shallow_specialized_spec.rb, nested_composition_spec.rb
+      recursive_self_spec.rb, recursive_mutual_spec.rb, sti_specialized_spec.rb
       config/                                  # config-isolation Descriptors sub-family
-        config_root_key_on_spec.rb
-        config_null_for_has_one_off_spec.rb
-        config_hash_record_key_symbol_spec.rb
-        config_hash_output_key_symbol_spec.rb
+        config_root_key_on_spec.rb, config_null_for_has_one_off_spec.rb
+        config_hash_record_key_symbol_spec.rb, config_hash_output_key_symbol_spec.rb
+        config_json_column_fallthrough_spec.rb
     concerns/                                  # cross-cutting behavioral specs
-      filter_spec.rb                           # Filter
-      skip_spec.rb                             # SKIP
-      association_if_spec.rb                   # Association if: Callable short-circuit
-      root_key_spec.rb                         # Root Key wrapping
-      scope_spec.rb                            # Scope threading contract
+      filter_spec.rb, skip_spec.rb, association_if_spec.rb
+      root_key_spec.rb, scope_spec.rb
+      parent_class_dispatch_spec.rb, writer_pool_spec.rb
+    dump_fan_out_spec.rb, dump_flat_spec.rb, dump_loads_and_runs_spec.rb
+    json_column_emit_spec.rb, source_location_spec.rb
+
+  benchmarks/harness_spec.rb                   # benchmark harness self-tests
 
   fixtures/
     descriptors/                               # Ruby modules — each exports DESCRIPTOR, CONFIG, MODES,
-      shallow_generic.rb                       # sanity_record, expected_output(mode); the
-      shallow_specialized.rb                   # snapshot spec requires each one by name
-      ...
-    generated/                                 # committed snapshot files — each is a runnable Generated Class
-      shallow_generic_json.rb
-      shallow_generic_hash.rb
-      ...
+      shallow_generic.rb, shallow_specialized.rb, …   # sanity_record, expected_output(mode);
+      parent_class_*.rb, scope_threading.rb           # the snapshot spec requires each by name
+      config/                                         # one config field flipped per fixture
+    generated/                                 # committed snapshot files — each a runnable Generated Class
+      shallow_generic_json.rb, shallow_generic_hash.rb, …
 
   support/
-    snapshot_matcher.rb
-    schema.rb
-    models.rb
-    fixture_builders.rb                        # reserved — add only if arrange blocks start dominating
+    snapshot_matcher.rb, field_index_parity_matcher.rb, quiet_pending_formatter.rb
+    schema.rb, models.rb
 ```
 
 `spec/code_gen/spec_helper.rb` unshifts `spec/code_gen/fixtures/generated` and `spec/code_gen/fixtures/descriptors`
@@ -154,7 +161,12 @@ No separate parity spec is needed.
 
 ## Canonical snapshot corpus
 
-Ten fixtures. Each compiled in the relevant **Output Modes**, yielding ~16 snapshot files.
+The corpus lives under `spec/code_gen/fixtures/descriptors/` (one Ruby module per fixture)
+and `spec/code_gen/fixtures/generated/` (the committed snapshot per fixture × mode). The
+tables below describe the **core** shapes; the corpus has since grown to also cover
+`parent_class` dispatch, `scope` threading, and the `json_column_emit` config axes (see
+[Additional fixtures](#additional-fixtures) below). The fixtures directory is the source of
+truth for the exact set.
 
 ### Core emit-shape fixtures (both `:json` and `:hash`)
 
@@ -178,6 +190,18 @@ shared with #1–#6, so core-fixture churn doesn't cascade into config snapshots
 | 8  | `config_null_for_has_one_off`   | `model: nil`, 1 Attribute, 1 `has_one` to a minimal inner Descriptor  | `null_for_missing_has_one: false` | JSON  | Omit-key-when-nil branch of has_one emit.       |
 | 9  | `config_hash_record_key_symbol` | `model: nil`, 2 Attributes                                            | `hash_record_key_type: :symbol`   | JSON  | Symbol-key lookup in `_write_one`'s Hash arm.   |
 | 10 | `config_hash_output_key_symbol` | `model: nil`, 2 Attributes                                            | `hash_output_key_type: :symbol`   | Hash  | Symbol-key output emit in Hash mode.            |
+
+### Additional fixtures
+
+Beyond the core set, the corpus also carries fixtures for the features that landed after
+the initial split — each pins the emit at the snapshot tier and drives a matching feature
+spec:
+
+- **`parent_class_generic` / `parent_class_specialized` / `parent_class_recursive_self`** —
+  the `parent_class` dispatch shape (Symbol-body Method Attributes, per-record ivar writes).
+- **`scope_threading`** — `scope` threaded positionally through Composition and recursion.
+- **`config_json_column_wire_format` / `_html_safe` / `_generic_fallthrough` /
+  `_non_json_specialized`** — the `json_column_emit` config axis.
 
 ### Fixture module shape
 
@@ -230,13 +254,13 @@ require "models"
 Rationale:
 
 - The library depends on real AR semantics — `_read_attribute`, `columns_hash`,
-  `define_attribute_methods`. Mocking AR would reintroduce the bug class that
-  [research/](research/) was specifically written to avoid.
+  `define_attribute_methods`. Mocking AR would reintroduce the bug class that using real
+  AR guards against.
 - sqlite-in-memory is zero-config, fast everywhere CI runs, and the library doesn't test
   SQL semantics — it tests AR-object-access.
 
 **Future: DB matrix in CI.** A matrix run across mysql/postgres adapters may be added to
-verify `_read_attribute` behavior across DBs. Not v1. When added, schema definitions stay
+verify `_read_attribute` behavior across DBs — not yet done. When added, schema definitions stay
 portable or the schema file gates per-adapter.
 
 ### Schema and model classes

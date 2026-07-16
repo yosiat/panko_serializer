@@ -4,9 +4,8 @@ require "spec_helper"
 require "panko/code_gen"
 require "memory_profiler"
 
-# End-to-end behavior + regression spec for the S12.5 JSON-column emit path
-# on the Specialized record-access path. Covers the five rows from
-# +docs/research/phase_1_report.md § 8.1+'s Panko-parity table plus the
+# End-to-end behavior + regression spec for the JSON-column emit path
+# on the Specialized record-access path. Covers the five Panko-parity rows plus the
 # byte-divergence rows that distinguish +:wire_format+ from today's
 # +push_value(Hash)+ shape:
 #

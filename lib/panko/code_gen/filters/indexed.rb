@@ -2,13 +2,8 @@
 
 module Panko::CodeGen
   module Filter
-    # The +indexed x single_path+ cell — verdict from S13's filter
-    # experiment per
-    # +docs/code_gen/research/filter_experiments_results.md § 1+. Lifts
-    # +IndexedBitsFilter+ / +IndexedArrayFilter+ /
-    # +IndexedFilter.build+ from
-    # +docs/code_gen/research/filter_experiments_bench.rb+ (lines 281–433) into
-    # production code.
+    # The +indexed x single_path+ cell — the verdict of the filter
+    # representation benchmark.
     #
     # The constructor inspects the per-Generated-Class +FIELD_INDEX+
     # (built by {Generators::FieldIndex} and emitted as a frozen constant
@@ -44,9 +39,7 @@ module Panko::CodeGen
       # the bit-mask is a tagged +Fixnum+ on 64-bit Ruby — one
       # +Integer#[]+ stays constant-time. At 64 the literal would box
       # into a +Bignum+, so +Integer#[]+ on it stops being O(1) and the
-      # +Array#[]+ path wins. Per
-      # +docs/code_gen/research/filter_experiments_bench.rb+ comment block at
-      # lines 336–339.
+      # +Array#[]+ path wins.
       INDEXED_BITS_THRESHOLD = 63
 
       # Builds the appropriate {Bits} or {Array} filter for +hash+

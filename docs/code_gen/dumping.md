@@ -150,10 +150,10 @@ When a **Descriptor** has **Associations**, the **Generated Class** for the inne
 Default: (1), single file per **Generated Class**, with explicit `require_relative` directives.
 More modular and matches the "one file per class" Ruby convention.
 
-## Not in v1: fully self-contained dumps
+## Not yet: fully self-contained dumps
 
 A **Dump** that bakes **Callable** source directly into the file (so the file has zero
 external dependencies beyond Oj and stdlib) is a future enhancement. It requires recovering
 Proc source via the `method_source` gem and only works when the **Callable** is written in
 a way that `method_source` can recover (real method definitions; inline lambdas usually OK;
-dynamically-built procs not). See [deferred.md](deferred.md).
+dynamically-built procs not).

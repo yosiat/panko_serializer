@@ -9,8 +9,8 @@ module Panko
   module CodeGen
     # Per-serializer-class cache of compiled Generated Classes, plus the
     # (mode-agnostic) converted Descriptor. This is the caller-side cache
-    # the engine deliberately does not keep
-    # (docs/code_gen/merging-into-panko.md § Compile cache stays in Panko).
+    # the engine deliberately does not keep — Compile is a pure function
+    # (docs/code_gen/auto-specialization.md).
     #
     # All cache state lives in one {State} object per serializer class
     # (the +_cg_state+ class ivar): the converted Descriptor, the

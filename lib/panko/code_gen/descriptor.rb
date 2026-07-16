@@ -78,8 +78,8 @@ module Panko::CodeGen
     # Raises +DescriptorError+ when +value+ is not a +Class+. Used for the
     # required +Descriptor#parent_class+ — the parent class the Generated
     # Class inherits from so its emitted +< <parent_class.name>+ shape
-    # subclasses the user-supplied class per +docs/code_gen/merging-into-panko.md
-    # § Generated Class subclasses the user's Panko serializer+.
+    # subclasses the user-supplied class per
+    # +docs/code_gen/descriptor.md § Descriptor#parent_class+.
     #
     # Modules (other than +Class+) and +nil+ are rejected — Ruby class
     # inheritance requires a +Class+, and there is no parent-less emit
@@ -186,8 +186,7 @@ module Panko::CodeGen
   # the Field — or by dispatching to a Symbol-named method on +self+,
   # resolved against the owning +Descriptor+'s +parent_class+ (the
   # Symbol-body shape that drives Panko's direct-dispatch method
-  # contract per +docs/code_gen/merging-into-panko.md § Generated Class subclasses
-  # the user's Panko serializer+).
+  # contract per +docs/code_gen/descriptor.md § Descriptor#parent_class+).
   #
   # +body+ structurally accepts either a Callable (must respond to
   # +.call+, must not be an +UnboundMethod+) or a +Symbol+. Arity
@@ -268,8 +267,8 @@ module Panko::CodeGen
   # compile-time specialization, the three Field-kind arrays
   # (+attributes+, +method_attributes+, +associations+), and the required
   # +parent_class+ the Generated Class subclasses via its
-  # +< <parent_class.name>+ shape per +docs/code_gen/merging-into-panko.md
-  # § Generated Class subclasses the user's Panko serializer+. Frozen on
+  # +< <parent_class.name>+ shape per
+  # +docs/code_gen/descriptor.md § Descriptor#parent_class+. Frozen on
   # construction; structural validation runs once at +.new+ and raises
   # +DescriptorError+ on shape violations. Children are validated at their
   # own +.new+ — Descriptor only enforces array-element type, not the inner

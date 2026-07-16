@@ -44,7 +44,7 @@ describe "Hash Serialization" do
     # Panko looks attributes up by string key, so a plain Hash keyed by symbols
     # silently misses every key and yields null. Pinning this de-facto behavior
     # so the codegen engine (string-key lookup) preserves it. See
-    # merging-into-panko.md § HashWithIndifferentAccess records.
+    # docs/code_gen/descriptor.md § Record semantics.
     foo = {
       name: Faker::Lorem.word,
       address: Faker::Lorem.word

@@ -3,14 +3,13 @@
 How Panko compiles and dispatches per-record-class **Specialized** variants of
 a **Generated Class** — automatically, at first sight of each record class.
 
-Unlike most documents in this directory, this one post-dates the merge: it
-describes the caller-side runtime seam that lives in Panko
+This document describes the caller-side runtime seam that lives in Panko
 ([`lib/panko/code_gen/serializer_cache.rb`](../../lib/panko/code_gen/serializer_cache.rb)),
 not the engine itself. The engine stays mechanism-only — it knows how to
-compile a **Descriptor** with or without a **Model**; deciding *when* to
-specialize, caching the results, and dispatching per record class is Panko's
-job (see [merging-into-panko.md § Compile cache stays in
-Panko](merging-into-panko.md)).
+compile a **Descriptor** with or without a **Model**, and **Compile** is a pure
+function that memoizes nothing (see [compilation.md](compilation.md)); deciding
+*when* to specialize, caching the results, and dispatching per record class is
+Panko's job, which is what this seam does.
 
 ## Why
 
