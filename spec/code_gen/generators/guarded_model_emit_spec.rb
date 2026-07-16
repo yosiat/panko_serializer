@@ -7,6 +7,8 @@ RSpec.describe "Specialized guarded-model emit" do
   let(:generator) { Panko::CodeGen::Generator.new }
   let(:guarded_config) { Panko::CodeGen::Config.new(guarded_model: true) }
   let(:unguarded_config) { Panko::CodeGen::Config.new }
+  let(:generic_write_one) { Panko::CodeGen::Generators::GeneratedNames.generic_write_one }
+  let(:generic_to_hash) { Panko::CodeGen::Generators::GeneratedNames.generic_to_hash }
 
   let(:descriptor) do
     Panko::CodeGen::Descriptor.new(
@@ -26,9 +28,9 @@ RSpec.describe "Specialized guarded-model emit" do
       source = generator.emit(descriptor, output: :json, config: guarded_config)
 
       expect(source).to include(
-        "return _generic_write_one(record, writer, context, scope, filters) unless record.instance_of?(::PlainPost)"
+        "return #{generic_write_one}(record, writer, context, scope, filters) unless record.instance_of?(::PlainPost)"
       )
-      expect(source).to include("def _generic_write_one(record, writer, context, scope, filters)")
+      expect(source).to include("def #{generic_write_one}(record, writer, context, scope, filters)")
       expect(source).to include("if record.is_a?(Hash)")
     end
 
@@ -36,16 +38,16 @@ RSpec.describe "Specialized guarded-model emit" do
       source = generator.emit(descriptor, output: :hash, config: guarded_config)
 
       expect(source).to include(
-        "return _generic_to_hash(record, context, scope, filters) unless record.instance_of?(::PlainPost)"
+        "return #{generic_to_hash}(record, context, scope, filters) unless record.instance_of?(::PlainPost)"
       )
-      expect(source).to include("def _generic_to_hash(record, context, scope, filters)")
+      expect(source).to include("def #{generic_to_hash}(record, context, scope, filters)")
     end
 
     it "emits no guard and no twin without the flag" do
       source = generator.emit(descriptor, output: :json, config: unguarded_config)
 
       expect(source).not_to include("instance_of?")
-      expect(source).not_to include("_generic_write_one")
+      expect(source).not_to include(generic_write_one)
     end
 
     it "raises CompileError for an anonymous Model (the guard needs a constant path)" do

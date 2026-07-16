@@ -75,9 +75,9 @@ module Panko::CodeGen
         field_index = FieldIndex.build(descriptor)
         builder.line class_line(descriptor, "JSON")
         builder.indent do
-          builder.line "FIELD_INDEX = #{FieldIndex.to_hash_literal(field_index)}.freeze"
+          builder.line "#{GeneratedNames.field_index_const} = #{FieldIndex.to_hash_literal(field_index)}.freeze"
           if config.pool_writer
-            builder.line "POOL = Panko::CodeGen::WritersPool::#{pool_subclass_name}.new(#{pool_storage_key(descriptor).inspect})"
+            builder.line "POOL = Panko::CodeGen::WritersPool::#{pool_subclass_name}.new(#{GeneratedNames.writer_pool_key(descriptor).inspect})"
           end
           builder.blank
           emit_initialize(descriptor, builder, cyclic_ids)
@@ -124,12 +124,13 @@ module Panko::CodeGen
       #   identical to {HashMode#class_line}, which passes +"Hash"+
       # @return [String] one Ruby source line, no trailing newline
       def class_line(descriptor, suffix)
+        class_name = GeneratedNames.class_name(descriptor, suffix)
         if descriptor.parent_class.nil?
-          "class #{descriptor.name}_#{suffix}"
+          "class #{class_name}"
         elsif descriptor.parent_class.name
-          "class #{descriptor.name}_#{suffix} < #{descriptor.parent_class.name}"
+          "class #{class_name} < #{descriptor.parent_class.name}"
         else
-          "class #{descriptor.name}_#{suffix} < ANON_PARENTS.fetch(#{descriptor.name.inspect})"
+          "class #{class_name} < ANON_PARENTS.fetch(#{descriptor.name.inspect})"
         end
       end
 
@@ -152,20 +153,6 @@ module Panko::CodeGen
         else
           "ThreadLocal"
         end
-      end
-
-      # Returns the unique storage-bucket Symbol passed to the emitted
-      # pool's constructor. Derived from the Descriptor name so two
-      # Generated Classes never share a stack — e.g.
-      # +:_panko_writer__PostSerializer_JSON+ for a +PostSerializer+
-      # Descriptor. The +_panko_writer__+ prefix and +_JSON+ suffix make
-      # the bucket recognizable in +Thread.current+ inspectors and
-      # avoid collision with arbitrary user keys.
-      #
-      # @param descriptor [Panko::CodeGen::Descriptor]
-      # @return [Symbol] the per-Generated-Class storage key
-      def pool_storage_key(descriptor)
-        :"_panko_writer__#{descriptor.name}_JSON"
       end
 
       # Emits the +initialize(descriptor:)+ constructor. Hoists each
@@ -228,12 +215,12 @@ module Panko::CodeGen
           builder.line "_construct_cache[descriptor.__id__] = self" if cyclic_self
           descriptor.method_attributes.each_with_index do |method_attribute, index|
             next if method_attribute.body.is_a?(Symbol)
-            ivar = FieldEmitters::MethodAttribute.ivar_name(method_attribute)
+            ivar = GeneratedNames.callable_ivar(method_attribute)
             builder.line "#{ivar} = descriptor.method_attributes[#{index}].body"
           end
           descriptor.associations.each_with_index do |assoc, i|
             if assoc.if
-              builder.line "#{FieldEmitters::Association.ivar_name(assoc)} = descriptor.associations[#{i}].if"
+              builder.line "#{GeneratedNames.if_guard_ivar(assoc)} = descriptor.associations[#{i}].if"
             end
             builder.line emit_serializer_assignment(descriptor, assoc, i, "JSON", cyclic_ids)
           end
@@ -268,13 +255,14 @@ module Panko::CodeGen
       # @param cyclic_ids [Hash{Integer => true}] cyclic-membership map
       # @return [String] one Ruby source line, no trailing newline
       def emit_serializer_assignment(descriptor, assoc, i, suffix, cyclic_ids)
+        ivar = GeneratedNames.serializer_ivar(assoc)
         if assoc.descriptor.equal?(descriptor)
-          "@#{assoc.name}_serializer = self"
+          "#{ivar} = self"
         elsif cyclic_ids[descriptor.__id__] && cyclic_ids[assoc.descriptor.__id__]
-          "@#{assoc.name}_serializer = (_construct_cache[descriptor.associations[#{i}].descriptor.__id__] ||= " \
-            "#{assoc.descriptor.name}_#{suffix}.new(descriptor: descriptor.associations[#{i}].descriptor, _construct_cache: _construct_cache))"
+          "#{ivar} = (_construct_cache[descriptor.associations[#{i}].descriptor.__id__] ||= " \
+            "#{GeneratedNames.class_name(assoc.descriptor, suffix)}.new(descriptor: descriptor.associations[#{i}].descriptor, _construct_cache: _construct_cache))"
         else
-          "@#{assoc.name}_serializer = #{assoc.descriptor.name}_#{suffix}.new(descriptor: descriptor.associations[#{i}].descriptor)"
+          "#{ivar} = #{GeneratedNames.class_name(assoc.descriptor, suffix)}.new(descriptor: descriptor.associations[#{i}].descriptor)"
         end
       end
 
@@ -331,7 +319,7 @@ module Panko::CodeGen
           "def serialize_one(record, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)"
+          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, #{GeneratedNames.field_index_const})"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
@@ -375,7 +363,7 @@ module Panko::CodeGen
           end
           builder.line "end"
         end
-        builder.line "_write_one(record, writer, context, scope, filters)"
+        builder.line "#{GeneratedNames.write_one}(record, writer, context, scope, filters)"
         builder.line "writer.pop if root_key" if config.supports_root_key
         builder.line "result = writer.to_s"
         builder.line "result.chomp!"
@@ -415,7 +403,7 @@ module Panko::CodeGen
           "def serialize_many(records, context: nil, scope: nil, filters: nil)"
         builder.line signature
         builder.indent do
-          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)"
+          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, #{GeneratedNames.field_index_const})"
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
@@ -454,7 +442,7 @@ module Panko::CodeGen
         else
           builder.line "writer.push_array"
         end
-        builder.line "records.each { |r| _write_one(r, writer, context, scope, filters) }"
+        builder.line "records.each { |r| #{GeneratedNames.write_one}(r, writer, context, scope, filters) }"
         builder.line "writer.pop"
         builder.line "writer.pop if root_key" if config.supports_root_key
         builder.line "result = writer.to_s"

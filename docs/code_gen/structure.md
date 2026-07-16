@@ -120,6 +120,9 @@ lib/
       code_builder.rb                          # pure indented-line accumulator
       generator.rb                             # Generator entry — dispatches on Output Mode
       generators/
+        generated_names.rb                     # the emitted-symbol vocabulary: ivar tokens,
+                                               # write-method names, FIELD_INDEX, pool key,
+                                               # filter-key rule — one home, emitters consume it
         json_mode.rb                           # JSON-mode source emission (top-level)
         hash_mode.rb                           # Hash-mode source emission (top-level)
         banner.rb                              # header-comment banner (see dumping.md)

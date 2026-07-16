@@ -139,7 +139,8 @@ module Panko::CodeGen
         # @return [String] Ruby source like
         #   +'filters.child(:author, AuthorSerializer_JSON::FIELD_INDEX)'+
         def self.child_filter_expr(association, suffix)
-          "filters.child(:#{association.source}, #{association.descriptor.name}_#{suffix}::FIELD_INDEX)"
+          "filters.child(:#{GeneratedNames.filter_key(association)}, " \
+            "#{GeneratedNames.class_name(association.descriptor, suffix)}::#{GeneratedNames.field_index_const})"
         end
 
         # Emits the per-Kind JSON body for one Association — the un-wrapped
@@ -265,7 +266,8 @@ module Panko::CodeGen
           builder.line "else"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, scope, #{child_filter_expr(association, "JSON")})"
+            builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.write_one}" \
+              "(value, writer, context, scope, #{child_filter_expr(association, "JSON")})"
           end
           builder.line "end"
         end
@@ -290,7 +292,8 @@ module Panko::CodeGen
           builder.line "unless value.nil?"
           builder.indent do
             builder.line %(writer.push_key("#{association.name}"))
-            builder.line "@#{association.name}_serializer._write_one(value, writer, context, scope, #{child_filter_expr(association, "JSON")})"
+            builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.write_one}" \
+              "(value, writer, context, scope, #{child_filter_expr(association, "JSON")})"
           end
           builder.line "end"
         end
@@ -310,7 +313,8 @@ module Panko::CodeGen
           builder.indent { builder.line "nil" }
           builder.line "else"
           builder.indent do
-            builder.line "@#{association.name}_serializer._to_hash(value, context, scope, #{child_filter_expr(association, "Hash")})"
+            builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.to_hash}" \
+              "(value, context, scope, #{child_filter_expr(association, "Hash")})"
           end
           builder.line "end"
         end
@@ -328,7 +332,8 @@ module Panko::CodeGen
         def self.emit_hash_has_one_omit(association, key_lit, builder)
           builder.line "unless value.nil?"
           builder.indent do
-            builder.line "result[#{key_lit}] = @#{association.name}_serializer._to_hash(value, context, scope, #{child_filter_expr(association, "Hash")})"
+            builder.line "result[#{key_lit}] = #{GeneratedNames.serializer_ivar(association)}." \
+              "#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association, "Hash")})"
           end
           builder.line "end"
         end
@@ -359,7 +364,8 @@ module Panko::CodeGen
           builder.line %(writer.push_array("#{association.name}"))
           builder.line "#{source_read_expr}.each do |element|"
           builder.indent do
-            builder.line "@#{association.name}_serializer._write_one(element, writer, context, scope, child_filter)"
+            builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.write_one}" \
+              "(element, writer, context, scope, child_filter)"
           end
           builder.line "end"
           builder.line "writer.pop"
@@ -386,7 +392,7 @@ module Panko::CodeGen
           builder.line "child_filter = #{child_filter_expr(association, "Hash")}"
           builder.line(
             "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
-              "@#{association.name}_serializer._to_hash(element, context, scope, child_filter) }"
+              "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.to_hash}(element, context, scope, child_filter) }"
           )
         end
 
@@ -406,22 +412,12 @@ module Panko::CodeGen
         # @return [void]
         def self.with_if_guard(association, builder)
           if association.if
-            builder.line "if #{call_expression(ivar_name(association), association.if.arity)}"
+            builder.line "if #{call_expression(GeneratedNames.if_guard_ivar(association), association.if.arity)}"
             builder.indent { yield }
             builder.line "end"
           else
             yield
           end
-        end
-
-        # Returns the per-Association +if:+ ivar name used for both
-        # constructor hoisting and the guard call site. Pinned at one
-        # place so the constructor and the field emitter can't drift.
-        #
-        # @param association [Panko::CodeGen::Association] the Field node
-        # @return [String] the ivar token, e.g. +"@cb_if_author"+
-        def self.ivar_name(association)
-          "@cb_if_#{association.name}"
         end
 
         # Returns the arity-specialized call expression for one ivar.

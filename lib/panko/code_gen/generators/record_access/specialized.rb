@@ -77,31 +77,39 @@ module Panko::CodeGen
         # @return [void]
         def self.emit_json(descriptor, config, field_index, builder)
           ar_model = ar_model(descriptor)
-          builder.line "def _write_one(record, writer, context, scope, filters)"
+          builder.line "def #{GeneratedNames.write_one}(record, writer, context, scope, filters)"
           builder.indent do
-            emit_model_guard(descriptor, config, "_generic_write_one(record, writer, context, scope, filters)", builder)
+            emit_model_guard(
+              descriptor, config, "#{GeneratedNames.generic_write_one}(record, writer, context, scope, filters)", builder
+            )
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "writer.push_object"
             descriptor.attributes.each do |attribute|
+              index = field_index.fetch(GeneratedNames.filter_key(attribute))
               if json_column_attribute?(attribute, ar_model)
-                FieldEmitters::Attribute.emit_json_column(attribute, config, field_index.fetch(attribute.name), builder)
+                FieldEmitters::Attribute.emit_json_column(attribute, config, index, builder)
               elsif datetime_column_attribute?(attribute, ar_model)
-                FieldEmitters::Attribute.emit_json_datetime_column(attribute, field_index.fetch(attribute.name), builder)
+                FieldEmitters::Attribute.emit_json_datetime_column(attribute, index, builder)
               else
-                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, ar_model), field_index.fetch(attribute.name), builder)
+                FieldEmitters::Attribute.emit_json(attribute, attribute_read_expr(attribute, ar_model), index, builder)
               end
             end
             descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.source), builder)
+              FieldEmitters::Association.emit_json(
+                association, "record.#{association.source}", config,
+                field_index.fetch(GeneratedNames.filter_key(association)), builder
+              )
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
+              FieldEmitters::MethodAttribute.emit_json(
+                method_attribute, field_index.fetch(GeneratedNames.filter_key(method_attribute)), builder
+              )
             end
             builder.line "writer.pop"
           end
           builder.line "end"
           emit_generic_twin(config, builder) do
-            Generic.emit_json(descriptor, config, field_index, builder, method_name: "_generic_write_one")
+            Generic.emit_json(descriptor, config, field_index, builder, method_name: GeneratedNames.generic_write_one)
           end
         end
 
@@ -119,22 +127,21 @@ module Panko::CodeGen
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
           ar_model = ar_model(descriptor)
-          builder.line "def _to_hash(record, context, scope, filters)"
+          builder.line "def #{GeneratedNames.to_hash}(record, context, scope, filters)"
           builder.indent do
-            emit_model_guard(descriptor, config, "_generic_to_hash(record, context, scope, filters)", builder)
+            emit_model_guard(descriptor, config, "#{GeneratedNames.generic_to_hash}(record, context, scope, filters)", builder)
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "result = {}"
             descriptor.attributes.each do |attribute|
+              index = field_index.fetch(GeneratedNames.filter_key(attribute))
               if datetime_column_attribute?(attribute, ar_model)
-                FieldEmitters::Attribute.emit_hash_datetime_column(
-                  attribute, config.hash_output_key_type, field_index.fetch(attribute.name), builder
-                )
+                FieldEmitters::Attribute.emit_hash_datetime_column(attribute, config.hash_output_key_type, index, builder)
               else
                 FieldEmitters::Attribute.emit_hash(
                   attribute,
                   attribute_read_expr(attribute, ar_model),
                   config.hash_output_key_type,
-                  field_index.fetch(attribute.name),
+                  index,
                   builder,
                   cast: !plain_column_attribute?(attribute, ar_model)
                 )
@@ -146,18 +153,21 @@ module Panko::CodeGen
                 "record.#{association.source}",
                 config.hash_output_key_type,
                 config,
-                field_index.fetch(association.source),
+                field_index.fetch(GeneratedNames.filter_key(association)),
                 builder
               )
             end
             descriptor.method_attributes.each do |method_attribute|
-              FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, field_index.fetch(method_attribute.name), builder)
+              FieldEmitters::MethodAttribute.emit_hash(
+                method_attribute, config.hash_output_key_type,
+                field_index.fetch(GeneratedNames.filter_key(method_attribute)), builder
+              )
             end
             builder.line "result"
           end
           builder.line "end"
           emit_generic_twin(config, builder) do
-            Generic.emit_hash(descriptor, config, field_index, builder, method_name: "_generic_to_hash")
+            Generic.emit_hash(descriptor, config, field_index, builder, method_name: GeneratedNames.generic_to_hash)
           end
         end
 

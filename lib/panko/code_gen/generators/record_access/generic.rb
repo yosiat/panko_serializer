@@ -71,7 +71,7 @@ module Panko::CodeGen
         #   guarded-Specialized twin (see {Specialized} under
         #   +Config#guarded_model+)
         # @return [void]
-        def self.emit_json(descriptor, config, field_index, builder, method_name: "_write_one")
+        def self.emit_json(descriptor, config, field_index, builder, method_name: GeneratedNames.write_one)
           return emit_json_split(descriptor, config, field_index, builder, method_name: method_name) if split_dispatch?(descriptor)
 
           builder.line "def #{method_name}(record, writer, context, scope, filters)"
@@ -99,23 +99,23 @@ module Panko::CodeGen
         # @param method_name [String] emitted dispatcher name (the
         #   per-shape helper names are fixed)
         # @return [void]
-        def self.emit_json_split(descriptor, config, field_index, builder, method_name: "_write_one")
+        def self.emit_json_split(descriptor, config, field_index, builder, method_name: GeneratedNames.write_one)
           builder.line "def #{method_name}(record, writer, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
-            builder.indent { builder.line "_write_one_hash(record, writer, context, scope, filters)" }
+            builder.indent { builder.line "#{GeneratedNames.write_one_hash}(record, writer, context, scope, filters)" }
             builder.line "else"
-            builder.indent { builder.line "_write_one_object(record, writer, context, scope, filters)" }
+            builder.indent { builder.line "#{GeneratedNames.write_one_object}(record, writer, context, scope, filters)" }
             builder.line "end"
           end
           builder.line "end"
           builder.blank
-          builder.line "def _write_one_hash(record, writer, context, scope, filters)"
+          builder.line "def #{GeneratedNames.write_one_hash}(record, writer, context, scope, filters)"
           builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| hash_read_expr(source, config) } }
           builder.line "end"
           builder.blank
-          builder.line "def _write_one_object(record, writer, context, scope, filters)"
+          builder.line "def #{GeneratedNames.write_one_object}(record, writer, context, scope, filters)"
           builder.indent { emit_json_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
           builder.line "end"
         end
@@ -135,7 +135,7 @@ module Panko::CodeGen
         # @param method_name [String] emitted method name; +"_generic_to_hash"+
         #   is the guarded-Specialized twin (mirror of {emit_json})
         # @return [void]
-        def self.emit_hash(descriptor, config, field_index, builder, method_name: "_to_hash")
+        def self.emit_hash(descriptor, config, field_index, builder, method_name: GeneratedNames.to_hash)
           return emit_hash_split(descriptor, config, field_index, builder, method_name: method_name) if split_dispatch?(descriptor)
 
           builder.line "def #{method_name}(record, context, scope, filters)"
@@ -160,23 +160,23 @@ module Panko::CodeGen
         # @param method_name [String] emitted dispatcher name (the
         #   per-shape helper names are fixed)
         # @return [void]
-        def self.emit_hash_split(descriptor, config, field_index, builder, method_name: "_to_hash")
+        def self.emit_hash_split(descriptor, config, field_index, builder, method_name: GeneratedNames.to_hash)
           builder.line "def #{method_name}(record, context, scope, filters)"
           builder.indent do
             emit_parent_class_ivar_writes(descriptor, builder)
             builder.line "if record.is_a?(Hash)"
-            builder.indent { builder.line "_to_hash_hash(record, context, scope, filters)" }
+            builder.indent { builder.line "#{GeneratedNames.to_hash_hash}(record, context, scope, filters)" }
             builder.line "else"
-            builder.indent { builder.line "_to_hash_object(record, context, scope, filters)" }
+            builder.indent { builder.line "#{GeneratedNames.to_hash_object}(record, context, scope, filters)" }
             builder.line "end"
           end
           builder.line "end"
           builder.blank
-          builder.line "def _to_hash_hash(record, context, scope, filters)"
+          builder.line "def #{GeneratedNames.to_hash_hash}(record, context, scope, filters)"
           builder.indent { emit_hash_fields(descriptor, config, field_index, builder) { |source| hash_read_expr(source, config) } }
           builder.line "end"
           builder.blank
-          builder.line "def _to_hash_object(record, context, scope, filters)"
+          builder.line "def #{GeneratedNames.to_hash_object}(record, context, scope, filters)"
           builder.indent { emit_hash_fields(descriptor, config, field_index, builder) { |source| "record.#{source}" } }
           builder.line "end"
         end
@@ -205,13 +205,20 @@ module Panko::CodeGen
         def self.emit_json_fields(descriptor, config, field_index, builder, &read_expr)
           builder.line "writer.push_object"
           descriptor.attributes.each do |attribute|
-            FieldEmitters::Attribute.emit_json(attribute, read_expr.call(attribute.source), field_index.fetch(attribute.name), builder)
+            FieldEmitters::Attribute.emit_json(
+              attribute, read_expr.call(attribute.source), field_index.fetch(GeneratedNames.filter_key(attribute)), builder
+            )
           end
           descriptor.associations.each do |association|
-            FieldEmitters::Association.emit_json(association, read_expr.call(association.source), config, field_index.fetch(association.source), builder)
+            FieldEmitters::Association.emit_json(
+              association, read_expr.call(association.source), config,
+              field_index.fetch(GeneratedNames.filter_key(association)), builder
+            )
           end
           descriptor.method_attributes.each do |method_attribute|
-            FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
+            FieldEmitters::MethodAttribute.emit_json(
+              method_attribute, field_index.fetch(GeneratedNames.filter_key(method_attribute)), builder
+            )
           end
           builder.line "writer.pop"
         end
@@ -237,7 +244,7 @@ module Panko::CodeGen
               attribute,
               read_expr.call(attribute.source),
               config.hash_output_key_type,
-              field_index.fetch(attribute.name),
+              field_index.fetch(GeneratedNames.filter_key(attribute)),
               builder
             )
           end
@@ -247,12 +254,15 @@ module Panko::CodeGen
               read_expr.call(association.source),
               config.hash_output_key_type,
               config,
-              field_index.fetch(association.source),
+              field_index.fetch(GeneratedNames.filter_key(association)),
               builder
             )
           end
           descriptor.method_attributes.each do |method_attribute|
-            FieldEmitters::MethodAttribute.emit_hash(method_attribute, config.hash_output_key_type, field_index.fetch(method_attribute.name), builder)
+            FieldEmitters::MethodAttribute.emit_hash(
+              method_attribute, config.hash_output_key_type,
+              field_index.fetch(GeneratedNames.filter_key(method_attribute)), builder
+            )
           end
           builder.line "result"
         end

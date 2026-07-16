@@ -148,23 +148,13 @@ module Panko::CodeGen
         def self.call_expression(method_attribute)
           body = method_attribute.body
           return "self.#{body}" if body.is_a?(Symbol)
-          ivar = ivar_name(method_attribute)
+          ivar = GeneratedNames.callable_ivar(method_attribute)
           case body.arity
           when 0 then "#{ivar}.call"
           when 1 then "#{ivar}.call(record)"
           when 2 then "#{ivar}.call(record, context)"
           else "#{ivar}.call(record, context, scope)"
           end
-        end
-
-        # Returns the per-Method-Attribute ivar name used for both
-        # constructor hoisting and call-site invocation. Pinned at one
-        # place so the constructor and the field emitter can't drift.
-        #
-        # @param method_attribute [Panko::CodeGen::MethodAttribute] the Field node
-        # @return [String] the ivar token, e.g. +"@cb_full_title"+
-        def self.ivar_name(method_attribute)
-          "@cb_#{method_attribute.name}"
         end
       end
     end

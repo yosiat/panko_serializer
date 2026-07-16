@@ -13,6 +13,7 @@ require "shallow_generic"
 RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:generator) { Panko::CodeGen::Generator.new }
+  let(:pool_key) { Panko::CodeGen::Generators::GeneratedNames.writer_pool_key(descriptor) }
 
   describe "with Config#pool_writer: true" do
     let(:config) { Panko::CodeGen::Config.new(pool_writer: true) }
@@ -24,7 +25,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the IsolatedExecutionState subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ShallowGenericSerializer_JSON)"
+          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(#{pool_key.inspect})"
         )
       end
 
@@ -48,7 +49,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the ThreadLocal subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_panko_writer__ShallowGenericSerializer_JSON)"
+          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(#{pool_key.inspect})"
         )
       end
 
