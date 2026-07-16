@@ -32,9 +32,11 @@ divergences are called out under Breaking changes.
   model — silently serialized as a permanent `null`, and model instance
   methods were never consulted. The new engine dispatches like regular Ruby:
   an instance method now serializes its return value where the old engine
-  wrote `null`, and a source that is neither a column nor a method raises —
-  `Panko::CodeGen::UnknownSourceError` at compile time on the specialized
-  path, `NoMethodError` from `record.<source>` on the generic path. To keep
+  wrote `null`, and a source that is neither a column nor a method raises
+  `NoMethodError` from `record.<source>` at serialize time. (Internally the
+  specialized compile rejects such a source with
+  `Panko::CodeGen::UnknownSourceError` and falls back to the generic path, so
+  the error reaching your code is always the `NoMethodError`.) To keep
   emitting a `null` key on the wire, define the method and return `nil`.
 - **Declaring the same name as both an attribute and an association raises.**
   The old engine silently wrote both keys into the JSON — the attribute
@@ -77,7 +79,8 @@ divergences are called out under Breaking changes.
   `auto_specialization.capacity` (default 16 variants per serializer class and
   output mode).
 - **`Panko::CodeGen.dump`.** Writes the generated Ruby source for a serializer
-  to a file — the engine emits plain, readable Ruby, and you can look at it.
+  to a file — the engine emits plain, readable Ruby, and you can look at it:
+  `Panko::CodeGen.dump(PostSerializer.descriptor, output: :json, path: "...")`.
 - **`Panko::Descriptor`.** A public, read-only view of a serializer's shape —
   attributes, method attributes, and associations, with nested descriptors —
   for tooling such as association preloaders. `PostSerializer.descriptor`
@@ -98,6 +101,11 @@ divergences are called out under Breaking changes.
   **1.9x** faster on JSON output and **3.1x** on Hash output (geomean across
   Panko's suite), while allocating far fewer objects — steady-state JSON stays
   O(1) in allocations where the C extension grew per record.
+- **Serializer instances are reusable.** 0.8.5 raised `ArgumentError`
+  ("Panko::Serializer instances are single-use") on a second `serialize` /
+  `serialize_to_json` call; the new engine has no such guard — one instance
+  can serialize any number of objects, and reusing one skips the
+  construction cost.
 - **Nothing to compile at install.** The gem is pure Ruby — installation no
   longer builds a native extension.
 - **Documentation rewritten** at [panko.dev](https://panko.dev), including the
