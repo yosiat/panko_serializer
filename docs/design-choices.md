@@ -135,8 +135,15 @@ end
 There are no per-field lookups or conditionals on the hot path — the field
 names are baked into the method, and each value is read with ActiveRecord's own
 reader (`record.title`) and pushed as-is. You can inspect this for any
-serializer with `Panko::CodeGen.dump`. (The real output also wraps each field
-in an `only`/`except` filter check, elided here for readability.)
+serializer by passing its [descriptor]({% link descriptor.md %}) to
+`Panko::CodeGen.dump`:
+
+```ruby
+Panko::CodeGen.dump(PostSerializer.descriptor, output: :json, path: "post_serializer_generated.rb")
+```
+
+(The real output also wraps each field in an `only`/`except` filter check,
+elided here for readability.)
 
 ### Specializing per record class
 
@@ -194,16 +201,22 @@ an object, `record["title"]` for a plain Hash — and writes the value straight
 out. It does **not** re-implement type casting: the value you'd get from
 `record.title` is the value Panko serializes.
 
-The one transform Panko applies is to datetimes, and only so the two output
+The one transform Panko applies is on the way out the door, so the two output
 modes agree on their shape:
 
 -   In **`:json`** mode, values are pushed into `Oj::StringWriter` untouched;
-    Oj formats a `Time` / `Date` / `TimeWithZone` to an ISO-8601 string as it
-    writes.
--   In **`:hash`** mode there is no writer, so Panko formats those same datetime
-    types to the equivalent ISO-8601 string itself; every other value passes
-    through unchanged. This is what keeps `serialize` and `serialize_to_json`
-    producing matching datetime strings.
+    Oj (in `mode: :rails`) applies Rails' `as_json` conventions as it writes —
+    a `Time` / `Date` / `TimeWithZone` becomes an ISO-8601 string, a Symbol
+    becomes a String, and so on.
+-   In **`:hash`** mode there is no writer, so Panko applies the same
+    convention itself: a value that is already a JSON primitive (String,
+    Integer, Float, `nil`, booleans) passes through untouched, and anything
+    else goes through its own `#as_json` — datetimes become the same ISO-8601
+    string, a Symbol becomes a String, a Hash returned by a method attribute
+    comes back string-keyed. This keeps `serialize` and `serialize_to_json`
+    producing matching values, and matches Panko 0.8.5's Hash output. (The
+    `as_json` methods come from ActiveSupport, which Rails always loads; in a
+    plain non-Rails process, values without an `as_json` pass through raw.)
 
 ### Compiling ahead of time, and reusing instances
 

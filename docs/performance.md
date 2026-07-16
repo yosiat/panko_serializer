@@ -87,8 +87,9 @@ Two things stand out:
 The **Wide** row is the honest exception: with ~70 columns including decimals
 and dates, JSON output allocates per value, because each decimal and date must
 be *formatted* into a string for the JSON, and formatting allocates. (Hash mode
-allocates fewer objects there because it leaves decimals and dates as
-`BigDecimal` / `Date` rather than formatting them.)
+allocates fewer objects there because decimal columns skip the formatting and
+stay `BigDecimal`; dates are still formatted to their ISO-8601 String, matching
+the JSON output.)
 
 ## Reproducing these numbers
 
