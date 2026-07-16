@@ -27,7 +27,7 @@ describe "Serializer instance pooling" do
   # Auto-specialization routes Foo records to Foo's variant pool, so the
   # pooled instance lives there rather than on the base slot.
   def pooled_stack(klass)
-    klass._cg_variants_json.fetch(Foo).stack
+    Panko::CodeGen::SerializerCache.variant_pool(klass, :json, Foo).stack
   end
 
   it "reuses one generated instance across sequential serializes on a thread" do

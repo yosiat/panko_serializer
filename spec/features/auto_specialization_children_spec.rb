@@ -68,7 +68,7 @@ describe "Auto-specialization — children via reflections" do
   it "compiles a specialized variant for the root on first sight" do
     serializer_class.new.serialize_to_json(foo)
 
-    expect(serializer_class._cg_variants_json.fetch(Foo)).not_to be(serializer_class._cg_pool_json)
+    expect(Panko::CodeGen::SerializerCache.specialized?(serializer_class, :json, Foo)).to be(true)
   end
 
   it "keeps output correct when an association reader returns non-reflected objects" do

@@ -12,10 +12,12 @@ module Panko
     # the engine deliberately does not keep
     # (docs/code_gen/merging-into-panko.md § Compile cache stays in Panko).
     #
-    # Two tiers per (serializer class, mode):
+    # All cache state lives in one {State} object per serializer class
+    # (the +_cg_state+ class ivar): the converted Descriptor, the
+    # capacity warn-once flag, and one {Slots} per mode —
     #
     # - the **base** Generated Class / {InstancePool} — Generic record
-    #   access — held in a class ivar, compiled once, read lock-free.
+    #   access — compiled once, read lock-free.
     # - the **auto-specialization variant map** ({variant_pool}) — a frozen
     #   copy-on-write Hash of record class → {InstancePool}, grown at first
     #   sight of each record class. Eligible AR classes get a guarded
@@ -23,9 +25,14 @@ module Panko
     #   records, POROs, anonymous/non-AR classes, compile failures,
     #   capacity overflow) is pinned to the base pool so lookup stays
     #   uniform. Reads never lock — the map is replaced wholesale
-    #   (GVL-atomic ivar swap of a frozen Hash) under +COMPILE_MUTEX+.
+    #   (GVL-atomic write of a frozen Hash) under +COMPILE_MUTEX+.
     #   Capacity comes from +Panko::Config.auto_specialization+; overflow
     #   pins to base and warns once per serializer class.
+    #
+    # The only cache state outside {State} is the seams' one-entry inline
+    # cache (+_cg_last_json+ / +_cg_last_hash+) — deliberately a direct
+    # class ivar so the hot path stays one ivar read + one pointer
+    # compare, with no hop through the State object.
     #
     # The converted Descriptor is cached too and shared between compile and
     # instantiation: a Generated Class with associations reads
@@ -48,17 +55,55 @@ module Panko
     # mismatched record delegates to the inline generic twin instead of
     # producing wrong output.
     module SerializerCache
-      # Guards the rare compile/convert miss. Reads never take it — a class-ivar
-      # read (through the serializer's accessor) is atomic under the GVL, so a
-      # concurrent writer is observed as either nil or the finished value, never
-      # a half-built one.
+      # One mode's cache cells. Written only under +COMPILE_MUTEX+; read
+      # lock-free (each cell is observed as either nil or the finished
+      # value — GVL-atomic ivar access, same discipline as the old
+      # per-mode class ivars).
+      class Slots
+        attr_accessor :compiled, :pool, :variants
+      end
+
+      # The whole per-serializer-class cache: the converted Descriptor,
+      # the capacity warn-once flag, and one {Slots} per Output Mode.
+      class State
+        attr_accessor :descriptor, :capacity_warned
+        attr_reader :json, :hash
+
+        def initialize
+          @json = Slots.new
+          @hash = Slots.new
+        end
+
+        # The one place an Output Mode Symbol maps to its cache cells.
+        #
+        # @param output [Symbol] :json or :hash
+        # @return [Slots]
+        def slot(output)
+          case output
+          when :json then @json
+          when :hash then @hash
+          else raise ArgumentError, "unknown output mode: #{output.inspect}"
+          end
+        end
+      end
+
+      # Guards the rare compile/convert miss. Reads never take it — a
+      # class-ivar / Slots-cell read is atomic under the GVL, so a
+      # concurrent writer is observed as either nil or the finished value,
+      # never a half-built one. Not reentrant: helpers that run inside a
+      # locked section must not re-synchronize.
       COMPILE_MUTEX = Mutex.new
+
+      # Frozen empty variant map — the pre-first-sight state of the
+      # copy-on-write per-mode variant Hash.
+      EMPTY_VARIANTS = {}.freeze
 
       # @param serializer_class [Class] a Panko::Serializer subclass
       # @param output [Symbol] :json or :hash
       # @return [Class] the compiled Generated Class for that (class, mode)
       def self.fetch(serializer_class, output:)
-        compiled = compiled_slot(serializer_class, output)
+        state = serializer_class._cg_state
+        compiled = state&.slot(output)&.compiled
         return compiled if compiled
 
         # Convert outside the compile lock (it takes the lock itself); the two
@@ -66,12 +111,8 @@ module Panko
         descriptor = descriptor_for(serializer_class)
 
         COMPILE_MUTEX.synchronize do
-          compiled = compiled_slot(serializer_class, output)
-          return compiled if compiled
-
-          compiled = Panko::CodeGen.compile(descriptor, output: output, config: Config.new)
-          store_compiled(serializer_class, output, compiled)
-          compiled
+          slot = state_for!(serializer_class).slot(output)
+          slot.compiled ||= Panko::CodeGen.compile(descriptor, output: output, config: Config.new)
         end
       end
 
@@ -87,7 +128,8 @@ module Panko
       # @param output [Symbol] :json or :hash
       # @return [Panko::CodeGen::InstancePool]
       def self.instance_pool(serializer_class, output)
-        pool = pool_slot(serializer_class, output)
+        state = serializer_class._cg_state
+        pool = state&.slot(output)&.pool
         return pool if pool
 
         compiled = fetch(serializer_class, output: output)
@@ -98,19 +140,13 @@ module Panko
           # +filters_for+ acquired some other way (e.g. +extend+) before the
           # first serialize. ||= so a hook-set +true+ is never downgraded.
           serializer_class._cg_has_filters_for ||= serializer_class.respond_to?(:filters_for)
-          pool_slot(serializer_class, output) || store_pool(
-            serializer_class, output,
-            InstancePool.new(
-              :"_panko_cg_pool_#{output}_#{serializer_class.object_id}",
-              compiled, descriptor
-            )
+          slot = state_for!(serializer_class).slot(output)
+          slot.pool ||= InstancePool.new(
+            :"_panko_cg_pool_#{output}_#{serializer_class.object_id}",
+            compiled, descriptor
           )
         end
       end
-
-      # Frozen empty variant map — the pre-first-sight state of the
-      # copy-on-write per-mode variant Hash.
-      EMPTY_VARIANTS = {}.freeze
 
       # Returns the {InstancePool} for (serializer class, mode, record
       # class) — the auto-specialization dispatch behind the seams' inline
@@ -139,7 +175,8 @@ module Panko
       #   the base pool)
       # @return [Panko::CodeGen::InstancePool]
       def self.variant_pool(serializer_class, output, model)
-        variants = variants_slot(serializer_class, output)
+        state = serializer_class._cg_state
+        variants = state&.slot(output)&.variants
         pool = variants && variants[model]
 
         unless pool
@@ -147,11 +184,13 @@ module Panko
           pool, admissible = auto_variant_pool(serializer_class, output, model, base)
           if admissible
             COMPILE_MUTEX.synchronize do
-              current = variants_slot(serializer_class, output) || EMPTY_VARIANTS
+              # instance_pool above guarantees the State exists.
+              slot = serializer_class._cg_state.slot(output)
+              current = slot.variants || EMPTY_VARIANTS
               if (existing = current[model])
                 pool = existing
               elsif (admitted = admit_variant(serializer_class, model, pool, base, current))
-                store_variants(serializer_class, output, current.merge(model => admitted).freeze)
+                slot.variants = current.merge(model => admitted).freeze
                 pool = admitted
               else
                 pool = base
@@ -167,75 +206,81 @@ module Panko
       # @param serializer_class [Class] a Panko::Serializer subclass
       # @return [Panko::CodeGen::Descriptor] the converted, cached Descriptor
       def self.descriptor_for(serializer_class)
-        cached = serializer_class._cg_descriptor
+        state = serializer_class._cg_state
+        cached = state&.descriptor
         return cached if cached
 
         COMPILE_MUTEX.synchronize do
-          serializer_class._cg_descriptor ||=
+          state = state_for!(serializer_class)
+          state.descriptor ||=
             DescriptorBuilder.uniquify_names(DescriptorBuilder.build(serializer_class))
         end
       end
 
-      # Reads/writes the per-mode compiled-class slot through the serializer
-      # class's own accessor — a direct class-ivar access, no reflection.
-      def self.compiled_slot(serializer_class, output)
-        case output
-        when :json then serializer_class._cg_compiled_json
-        when :hash then serializer_class._cg_compiled_hash
-        else raise ArgumentError, "unknown output mode: #{output.inspect}"
+      # Drops every cached artifact for +serializer_class+ — compiled
+      # classes, pools, variant maps, the converted Descriptor, the
+      # inline-cache pair, and the cached public view — so the next
+      # serialize rebuilds from the current DSL declarations. The test
+      # seam for cache isolation; the DSL accumulators themselves
+      # (declared attributes/associations) are not cache and survive.
+      #
+      # @param serializer_class [Class] a Panko::Serializer subclass
+      # @return [void]
+      def self.reset!(serializer_class)
+        COMPILE_MUTEX.synchronize do
+          serializer_class._cg_state = nil
+          serializer_class._cg_last_json = nil
+          serializer_class._cg_last_hash = nil
+          serializer_class._cg_public_descriptor = nil
+          # Heals on first use: instance_pool re-seeds via respond_to?.
+          serializer_class._cg_has_filters_for = nil
         end
       end
-      private_class_method :compiled_slot
 
-      def self.store_compiled(serializer_class, output, compiled)
-        case output
-        when :json then serializer_class._cg_compiled_json = compiled
-        when :hash then serializer_class._cg_compiled_hash = compiled
-        else raise ArgumentError, "unknown output mode: #{output.inspect}"
-        end
+      # Whether (serializer class, mode) serialized +model+ through a
+      # compiled Specialized variant — false for unseen classes and for
+      # entries pinned to the base pool (ineligible or failed compiles).
+      #
+      # @param serializer_class [Class] a Panko::Serializer subclass
+      # @param output [Symbol] :json or :hash
+      # @param model [Class] a record class
+      # @return [Boolean]
+      def self.specialized?(serializer_class, output, model)
+        state = serializer_class._cg_state
+        return false unless state
+        slot = state.slot(output)
+        pool = slot.variants && slot.variants[model]
+        return false unless pool
+        !pool.equal?(slot.pool)
       end
-      private_class_method :store_compiled
 
-      def self.pool_slot(serializer_class, output)
-        case output
-        when :json then serializer_class._cg_pool_json
-        when :hash then serializer_class._cg_pool_hash
-        else raise ArgumentError, "unknown output mode: #{output.inspect}"
-        end
+      # The record classes with a stored variant-map entry (compiled
+      # variants and deterministic base pins) — the storage-discipline
+      # counterpart of {specialized?}.
+      #
+      # @param serializer_class [Class] a Panko::Serializer subclass
+      # @param output [Symbol] :json or :hash
+      # @return [Array<Class>]
+      def self.variant_models(serializer_class, output)
+        state = serializer_class._cg_state
+        variants = state&.slot(output)&.variants
+        variants ? variants.keys : []
       end
-      private_class_method :pool_slot
 
-      def self.store_pool(serializer_class, output, pool)
-        case output
-        when :json then serializer_class._cg_pool_json = pool
-        when :hash then serializer_class._cg_pool_hash = pool
-        else raise ArgumentError, "unknown output mode: #{output.inspect}"
-        end
+      # Lazily creates the per-class {State}. Callers MUST hold
+      # +COMPILE_MUTEX+ — creation outside the lock could strand a
+      # concurrent writer's cells on a lost State object.
+      def self.state_for!(serializer_class)
+        serializer_class._cg_state ||= State.new
       end
-      private_class_method :store_pool
-
-      def self.variants_slot(serializer_class, output)
-        case output
-        when :json then serializer_class._cg_variants_json
-        when :hash then serializer_class._cg_variants_hash
-        else raise ArgumentError, "unknown output mode: #{output.inspect}"
-        end
-      end
-      private_class_method :variants_slot
-
-      def self.store_variants(serializer_class, output, variants)
-        case output
-        when :json then serializer_class._cg_variants_json = variants
-        when :hash then serializer_class._cg_variants_hash = variants
-        else raise ArgumentError, "unknown output mode: #{output.inspect}"
-        end
-      end
-      private_class_method :store_variants
+      private_class_method :state_for!
 
       # Refreshes the seam's one-entry inline cache. The (model, pool)
       # pair lives in a single frozen Array so the swap is one GVL-atomic
       # ivar write — concurrent writers can lose the race but can never
-      # produce a torn (model from A, pool from B) state.
+      # produce a torn (model from A, pool from B) state. The hot pair
+      # stays a direct class ivar (not a State cell) so the serialize
+      # seam's hit path is one ivar read + one pointer compare.
       def self.remember_last(serializer_class, output, model, pool)
         pair = [model, pool].freeze
         case output
@@ -292,7 +337,8 @@ module Panko
       # Pinned entries share the base pool object, so "not the base" is
       # what counts against capacity.
       def self.specialized_count(serializer_class, output, base)
-        variants = variants_slot(serializer_class, output) || EMPTY_VARIANTS
+        state = serializer_class._cg_state
+        variants = state&.slot(output)&.variants || EMPTY_VARIANTS
         variants.count { |_, pool| !pool.equal?(base) }
       end
       private_class_method :specialized_count
@@ -313,9 +359,13 @@ module Panko
 
       # The flag write races benignly across threads — at worst the message
       # prints twice; it can never be dropped for a class that hit capacity.
+      # Reads the State directly (never creates it): both call paths run
+      # after {instance_pool}, so it exists — and one caller already holds
+      # +COMPILE_MUTEX+, which is not reentrant.
       def self.warn_capacity_once(serializer_class, model)
-        return if serializer_class._cg_capacity_warned
-        serializer_class._cg_capacity_warned = true
+        state = serializer_class._cg_state
+        return if state.nil? || state.capacity_warned
+        state.capacity_warned = true
         warn "#{serializer_class} auto-specialization capacity " \
           "(#{Panko::Config.auto_specialization.capacity}) reached at #{model}; " \
           "further record classes use the generic path. Raise " \

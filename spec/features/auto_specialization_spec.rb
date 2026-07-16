@@ -34,23 +34,26 @@ describe "Auto-specialization" do
     end)
   end
 
+  def cache
+    Panko::CodeGen::SerializerCache
+  end
+
   def variant_pool_for(klass, mode, model)
-    Panko::CodeGen::SerializerCache.variant_pool(klass, mode, model)
+    cache.variant_pool(klass, mode, model)
   end
 
   describe "dispatch by record class" do
     it "compiles a specialized variant for an AR record class on first sight" do
       serializer_class.new.serialize_to_json(foo)
 
-      variant = serializer_class._cg_variants_json.fetch(Foo)
-      expect(variant).not_to be(serializer_class._cg_pool_json)
+      expect(cache.specialized?(serializer_class, :json, Foo)).to be(true)
     end
 
     it "routes a Hash record class to the base generic pool without a map entry" do
       serializer_class.new.serialize_to_json(hash_record)
 
-      expect(variant_pool_for(serializer_class, :json, Hash)).to be(serializer_class._cg_pool_json)
-      expect(serializer_class._cg_variants_json || {}).not_to have_key(Hash)
+      expect(variant_pool_for(serializer_class, :json, Hash)).to be(cache.instance_pool(serializer_class, :json))
+      expect(cache.variant_models(serializer_class, :json)).not_to include(Hash)
     end
 
     it "routes an anonymous AR class to the base generic pool (guard needs a constant path)" do
@@ -58,8 +61,8 @@ describe "Auto-specialization" do
       record = anonymous_model.create(name: name, address: address).reload
 
       expect(Oj.load(serializer_class.new.serialize_to_json(record))).to eq(expected)
-      expect(variant_pool_for(serializer_class, :json, anonymous_model)).to be(serializer_class._cg_pool_json)
-      expect(serializer_class._cg_variants_json || {}).not_to have_key(anonymous_model)
+      expect(variant_pool_for(serializer_class, :json, anonymous_model)).to be(cache.instance_pool(serializer_class, :json))
+      expect(cache.variant_models(serializer_class, :json)).not_to include(anonymous_model)
     end
 
     it "pins to generic when the specialized compile fails, deferring to the runtime error" do
@@ -68,7 +71,8 @@ describe "Auto-specialization" do
       end)
 
       expect { invalid.new.serialize_to_json(foo) }.to raise_error(NoMethodError, /not_a_column/)
-      expect(invalid._cg_variants_json.fetch(Foo)).to be(invalid._cg_pool_json)
+      expect(cache.variant_models(invalid, :json)).to include(Foo)
+      expect(cache.specialized?(invalid, :json, Foo)).to be(false)
     end
 
     it "routes every record class to the generic pool when disabled" do
@@ -76,8 +80,8 @@ describe "Auto-specialization" do
 
       serializer_class.new.serialize_to_json(foo)
 
-      expect(variant_pool_for(serializer_class, :json, Foo)).to be(serializer_class._cg_pool_json)
-      expect(serializer_class._cg_variants_json || {}).not_to have_key(Foo)
+      expect(variant_pool_for(serializer_class, :json, Foo)).to be(cache.instance_pool(serializer_class, :json))
+      expect(cache.variant_models(serializer_class, :json)).not_to include(Foo)
     end
   end
 
@@ -145,7 +149,7 @@ describe "Auto-specialization" do
       json = Panko::ArraySerializer.new(records, each_serializer: serializer_class).to_json
 
       expect(Oj.load(json).size).to eq(records.size)
-      expect(serializer_class._cg_variants_json.fetch(Foo)).not_to be(serializer_class._cg_pool_json)
+      expect(cache.specialized?(serializer_class, :json, Foo)).to be(true)
     end
 
     it "serializes an empty array" do
@@ -178,8 +182,8 @@ describe "Auto-specialization" do
 
       expect(first_output).to eq(expected)
       expect(second_output).to eq(expected)
-      expect(serializer_class._cg_variants_json.fetch(Foo)).not_to be(serializer_class._cg_pool_json)
-      expect(serializer_class._cg_variants_json).not_to have_key(SecondFoo)
+      expect(cache.specialized?(serializer_class, :json, Foo)).to be(true)
+      expect(cache.variant_models(serializer_class, :json)).not_to include(SecondFoo)
     end
 
     it "warns exactly once per serializer class when capacity is reached" do
@@ -254,7 +258,7 @@ describe "Auto-specialization" do
 
     it "does not store a variant-map entry for it" do
       serializer_class.new.serialize_to_json(phantom_record)
-      expect(serializer_class._cg_variants_json || {}).not_to have_key(phantom_class)
+      expect(cache.variant_models(serializer_class, :json)).not_to include(phantom_class)
     end
   end
 
@@ -263,14 +267,14 @@ describe "Auto-specialization" do
 
     it "does not store entries for ephemeral non-AR record classes" do
       serializer_class.new.serialize_to_json(foo)
-      size_before = serializer_class._cg_variants_json.size
+      models_before = cache.variant_models(serializer_class, :json)
 
       ephemeral_serializes.times do
         ephemeral = Struct.new(:name, :address)
         serializer_class.new.serialize_to_json(ephemeral.new(name, address))
       end
 
-      expect(serializer_class._cg_variants_json.size).to eq(size_before)
+      expect(cache.variant_models(serializer_class, :json)).to eq(models_before)
     end
   end
 
