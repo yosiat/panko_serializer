@@ -5,33 +5,6 @@ require_relative "code_gen/descriptor_builder"
 require_relative "code_gen/runtime"
 require "oj"
 
-class SerializationContext
-  attr_accessor :context, :scope
-
-  def initialize(context, scope)
-    @context = context
-    @scope = scope
-  end
-
-  def self.create(options)
-    if options.key?(:context) || options.key?(:scope)
-      SerializationContext.new(options[:context], options[:scope])
-    else
-      EmptySerializerContext.new
-    end
-  end
-end
-
-class EmptySerializerContext
-  def scope
-    nil
-  end
-
-  def context
-    nil
-  end
-end
-
 module Panko
   class Serializer
     # Unified with the engine's sentinel so a method field returning SKIP is
