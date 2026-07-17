@@ -100,6 +100,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
       @non_ar_descriptor ||= Panko::CodeGen::Descriptor.new(
         name: "NonArShallowSerializer",
         model: non_ar_record_class,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :title, source: :title)

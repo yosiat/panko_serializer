@@ -57,9 +57,9 @@ identity." Context's definition unchanged.
 
 ### Generated Class subclasses the user's Panko serializer
 
-**Decision (2026-05-09 PM)**: when a `Panko::CodeGen::Descriptor` carries a
-`parent_class:` (set by `Panko::CodeGen::DescriptorBuilder` from any user
-`Panko::Serializer` subclass), `Panko::CodeGen.compile` emits a Generated
+**Decision (2026-05-09 PM)**: every `Panko::CodeGen::Descriptor` carries a
+`parent_class:` (set by `Panko::CodeGen::DescriptorBuilder` from the user's
+`Panko::Serializer` subclass), and `Panko::CodeGen.compile` emits a Generated
 Class that **inherits from `parent_class`** rather than from `Object`.
 Method fields invoke user `def`-d methods via direct method dispatch on
 `self`:
@@ -103,13 +103,10 @@ dispatcher cache + Lambda Callable wrapper — both rejected):
 
 **Surface changes inside the engine**:
 
-- `Panko::CodeGen::Descriptor` gains a `parent_class:` field, defaulting
-  to `nil`. Non-Panko callers stay on the existing `Class.new` parent
-  (`Object`) and on the Callable contract — no behavioural change for the
-  engine test surface.
-- `MethodAttribute#body` accepts either a Callable (today's contract,
-  kept for non-Panko callers and for fixtures) **or a Symbol** (the user
-  method name) when the Descriptor's `parent_class:` is non-`nil`.
+- `Panko::CodeGen::Descriptor` carries a required `parent_class:` field —
+  there is no parent-less emit shape.
+- `MethodAttribute#body` accepts either a Callable or **a Symbol** (the
+  user method name), resolved against the Descriptor's `parent_class`.
 - The emitter branches at compile time: Symbol-body emits
   `value = <method_name>` on `self`; Callable-body emits
   `value = @cb_<n>.call(record, context, scope)` as today (with the

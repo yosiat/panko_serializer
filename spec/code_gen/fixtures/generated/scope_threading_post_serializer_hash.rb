@@ -13,7 +13,7 @@
 require_relative "scope_threading_author_serializer_hash"
 require_relative "scope_threading_comment_serializer_hash"
 
-class ScopeThreadingPostSerializer_Hash
+class ScopeThreadingPostSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, legacy_label: 1, viewer_label: 2, author: 3, comments: 4}.freeze
 
   def initialize(descriptor:)

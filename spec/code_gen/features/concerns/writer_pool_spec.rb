@@ -66,6 +66,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       yielding_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolFiberYieldSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -106,6 +107,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       inner_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassInnerSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :tag, source: :tag)
@@ -119,6 +121,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       outer_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassOuterSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -151,6 +154,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       reentrant_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolSameClassReentrantSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -199,6 +203,7 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       raising_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolExceptionRecoverySerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(

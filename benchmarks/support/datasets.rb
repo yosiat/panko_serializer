@@ -110,6 +110,12 @@ module Bench
   class WidePost < ActiveRecord::Base
     self.table_name = "bench_wide_posts"
   end
+
+  # Stand-in for the user serializer class a Panko-built Descriptor always
+  # carries as its +parent_class+; the benchmark Descriptors subclass it so
+  # they match the Generated Class shape Panko emits in production.
+  class BaseSerializer
+  end
 end
 
 # Force AR attribute-method codegen up front so the first measured serialize

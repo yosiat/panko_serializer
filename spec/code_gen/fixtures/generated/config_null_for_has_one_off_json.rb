@@ -10,7 +10,7 @@
 #   require_relative "config_null_for_has_one_off_serializer_json.generated"
 #   ConfigNullForHasOneOffSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ConfigNullForHasOneOffInnerSerializer_JSON
+class ConfigNullForHasOneOffInnerSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigNullForHasOneOffInnerSerializer_JSON)
 
@@ -72,7 +72,7 @@ class ConfigNullForHasOneOffInnerSerializer_JSON
   end
 end
 
-class ConfigNullForHasOneOffSerializer_JSON
+class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, inner: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigNullForHasOneOffSerializer_JSON)
 

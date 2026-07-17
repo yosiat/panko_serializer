@@ -7,12 +7,10 @@ module Panko::CodeGen
     # Config) triple at the top of every +Compile+ call, raising on the
     # first violation per +docs/code_gen/errors.md § Validator orchestrator+.
     #
-    # The rule list grows one entry per validator slice — S4.1 plugs in
-    # +callable_arity+; S6.1 adds +source_resolution+ (registered after
-    # +callable_arity+ so arity violations raise first); S9 adds
-    # +name_uniqueness+ (registered after +source_resolution+); S18.2
-    # appends +symbol_body_dispatch+ as the fourth rule, after
-    # +name_uniqueness+. Each rule module exposes a single
+    # The rule list grows one entry per validator slice — +callable_arity+
+    # is first; +source_resolution+ is registered after it so arity
+    # violations raise first; +name_uniqueness+ is registered after
+    # +source_resolution+. Each rule module exposes a single
     # +.validate(descriptor, output:, config:)+ entry point that raises
     # the appropriate +CompileError+ subclass on violation.
     class Validator
@@ -20,7 +18,7 @@ module Panko::CodeGen
       # first rule that raises short-circuits the rest. Each rule slice
       # adds its own require in +lib/panko/code_gen.rb+ + an entry
       # to this constant.
-      DEFAULT_RULES = [CallableArity, SourceResolution, NameUniqueness, SymbolBodyDispatch].freeze
+      DEFAULT_RULES = [CallableArity, SourceResolution, NameUniqueness].freeze
 
       # @param rules [Array<#validate>] override the rule list at
       #   construction time — primarily a test-affordance escape hatch.

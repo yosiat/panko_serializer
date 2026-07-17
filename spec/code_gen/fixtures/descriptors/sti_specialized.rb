@@ -21,6 +21,7 @@ module Fixtures
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "StiSpecializedSerializer",
       model: Car,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :vin, source: :vin),
         Panko::CodeGen::Attribute.new(name: :make, source: :make)

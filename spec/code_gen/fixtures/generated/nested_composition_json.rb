@@ -10,7 +10,7 @@
 #   require_relative "nested_composition_post_serializer_json.generated"
 #   NestedCompositionPostSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class NestedCompositionAuthorSerializer_JSON
+class NestedCompositionAuthorSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionAuthorSerializer_JSON)
 
@@ -72,7 +72,7 @@ class NestedCompositionAuthorSerializer_JSON
   end
 end
 
-class NestedCompositionCommentSerializer_JSON
+class NestedCompositionCommentSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionCommentSerializer_JSON)
 
@@ -134,7 +134,7 @@ class NestedCompositionCommentSerializer_JSON
   end
 end
 
-class NestedCompositionPostSerializer_JSON
+class NestedCompositionPostSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, author: 1, comments: 2}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionPostSerializer_JSON)
 

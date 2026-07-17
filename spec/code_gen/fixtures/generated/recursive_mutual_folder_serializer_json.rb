@@ -12,7 +12,7 @@
 
 require_relative "recursive_mutual_item_serializer_json"
 
-class RecursiveMutualFolderSerializer_JSON
+class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1, items: 2}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__RecursiveMutualFolderSerializer_JSON)
 

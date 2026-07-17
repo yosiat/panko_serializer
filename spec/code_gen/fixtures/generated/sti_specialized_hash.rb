@@ -10,7 +10,7 @@
 #   require_relative "sti_specialized_serializer_hash.generated"
 #   StiSpecializedSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class StiSpecializedSerializer_Hash
+class StiSpecializedSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {vin: 0, make: 1}.freeze
 
   def initialize(descriptor:)

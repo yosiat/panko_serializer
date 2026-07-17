@@ -19,6 +19,7 @@ require_relative "support/targets"
 CODE_GEN_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "CodeGenGenericPostBenchSerializer",
   model: nil,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),
@@ -33,6 +34,7 @@ CODE_GEN_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 CODE_GEN_SPECIALIZED_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "CodeGenSpecializedPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: CODE_GEN_GENERIC_DESCRIPTOR.attributes,
   method_attributes: [],
   associations: []

@@ -6,6 +6,7 @@ module Fixtures
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ShallowSpecializedSerializer",
       model: Post,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title),

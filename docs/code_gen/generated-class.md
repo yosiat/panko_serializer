@@ -152,7 +152,7 @@ A **Generated Class** instance holds ivars that are read but not mutated during 
 (callables and nested instances). It is safe to share one instance across threads.
 
 Exception: a class that emits the per-record `@object` / `@context` / `@scope` writes
-(`parent_class:` set and a Symbol-body **Method Attribute** declared — see
+(a Symbol-body **Method Attribute** declared — see
 [code-generation.md](code-generation.md)) mutates those ivars on every call and must not
 be shared across concurrent serializations; the Panko seam's fiber-local **InstancePool**
 exists for exactly this.

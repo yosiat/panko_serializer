@@ -14,6 +14,7 @@ require_relative "support/targets"
 JSON_COLUMN_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "JsonColumnPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)

@@ -10,7 +10,7 @@
 #   require_relative "scope_threading_author_serializer_hash.generated"
 #   ScopeThreadingAuthorSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class ScopeThreadingAuthorSerializer_Hash
+class ScopeThreadingAuthorSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
 
   def initialize(descriptor:)

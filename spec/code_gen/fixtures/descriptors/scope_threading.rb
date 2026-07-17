@@ -24,6 +24,7 @@ module Fixtures
     AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingAuthorSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -35,6 +36,7 @@ module Fixtures
     COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingCommentSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -52,6 +54,7 @@ module Fixtures
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingPostSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id)
       ],

@@ -12,6 +12,7 @@ require_relative "support/targets"
 HAS_ONE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasOneAuthorBenchSerializer",
   model: Bench::Author,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -23,6 +24,7 @@ HAS_ONE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 HAS_ONE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasOnePostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

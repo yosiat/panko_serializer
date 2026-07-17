@@ -35,6 +35,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     Panko::CodeGen::Descriptor.new(
       name: "JsonColumnEmitSpecSerializer",
       model: PlainPost,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
@@ -102,6 +103,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
       Panko::CodeGen::Descriptor.new(
         name: "AliasedJsonColumnSerializer",
         model: PlainPost,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :extra, source: :metadata)

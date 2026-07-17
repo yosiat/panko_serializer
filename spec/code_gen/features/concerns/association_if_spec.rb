@@ -32,6 +32,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     Panko::CodeGen::Descriptor.new(
       name: "InnerSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -42,6 +43,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: associations

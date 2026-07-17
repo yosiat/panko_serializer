@@ -8,6 +8,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
   let(:descriptor) {
     Panko::CodeGen::Descriptor.new(
       name: "ADescriptor", model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [], method_attributes: [], associations: []
     )
   }
@@ -26,6 +27,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
     it "treats structurally-equal-but-distinct Descriptors as distinct keys" do
       twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [], method_attributes: [], associations: []
       )
       klass = Class.new
@@ -85,6 +87,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
     it "is identity-keyed — two distinct Descriptor instances each get their own block invocation" do
       twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [], method_attributes: [], associations: []
       )
       one_klass = Class.new

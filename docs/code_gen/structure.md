@@ -101,7 +101,6 @@ lib/
         name_uniqueness.rb                     # two Fields sharing a name
         source_resolution.rb                   # specialized-path Attribute source must resolve
         callable_arity.rb                      # Callable arity ∈ {0, 1, 2, 3}
-        symbol_body_dispatch.rb                # Symbol body ⇒ Descriptor#parent_class non-nil
 
       # === Filter ===
       filter.rb                                # Filter.wrap(hash) factory + interface

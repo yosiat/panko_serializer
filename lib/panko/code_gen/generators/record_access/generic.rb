@@ -13,11 +13,10 @@ module Panko::CodeGen
       # branch arm owns its own call sites, so the inline caches never
       # see a mixed receiver.
       #
-      # When +descriptor.parent_class+ is non-+nil+ AND the Descriptor
-      # declares a Symbol-body Method Attribute, the body is prepended
-      # with per-record +@object+ / +@context+ / +@scope+ writes so the
-      # user-defined method can read them on +self+ — see
-      # {emit_parent_class_ivar_writes}.
+      # When the Descriptor declares a Symbol-body Method Attribute, the
+      # body is prepended with per-record +@object+ / +@context+ /
+      # +@scope+ writes so the user-defined method can read them on +self+
+      # — see {emit_parent_class_ivar_writes}.
       #
       # Above {FUSED_DISPATCH_MAX_FIELDS} fields the emit reverts to the
       # dispatcher + per-shape-helper split: on very wide serializers the
@@ -132,18 +131,16 @@ module Panko::CodeGen
         end
 
         # Prepends per-record +@object+ / +@context+ / +@scope+ ivar
-        # writes when +descriptor.parent_class+ is non-+nil+ AND the
-        # Descriptor declares a Symbol-body Method Attribute — the only
-        # code that runs on the Generated Class instance during a
-        # serialize (Callable bodies receive explicit args), so on
-        # descriptors without one the writes would be pure per-record
-        # overhead compounding across nested Composition.
+        # writes when the Descriptor declares a Symbol-body Method
+        # Attribute — the only code that runs on the Generated Class
+        # instance during a serialize (Callable bodies receive explicit
+        # args), so on descriptors without one the writes would be pure
+        # per-record overhead compounding across nested Composition.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_parent_class_ivar_writes(descriptor, builder)
-          return if descriptor.parent_class.nil?
           return if descriptor.method_attributes.none? { |method_attribute| method_attribute.body.is_a?(Symbol) }
           builder.line "@object = record"
           builder.line "@context = context"

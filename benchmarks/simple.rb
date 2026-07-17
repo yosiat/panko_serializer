@@ -12,6 +12,7 @@ require_relative "support/targets"
 SIMPLE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SimplePostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

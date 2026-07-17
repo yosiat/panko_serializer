@@ -14,6 +14,7 @@ RSpec.describe Panko::CodeGen::Generators::GeneratedNames do
     Panko::CodeGen::Descriptor.new(
       name: "GeneratedNamesLeafSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -24,6 +25,7 @@ RSpec.describe Panko::CodeGen::Generators::GeneratedNames do
     Panko::CodeGen::Descriptor.new(
       name: "GeneratedNamesPostSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []

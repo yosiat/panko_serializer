@@ -69,6 +69,7 @@ end
 MEDIUM_GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphAuthorBenchSerializer",
   model: Bench::Author,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :name),
@@ -81,6 +82,7 @@ MEDIUM_GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 MEDIUM_GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphCommentBenchSerializer",
   model: Bench::Comment,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -92,6 +94,7 @@ MEDIUM_GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 MEDIUM_GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

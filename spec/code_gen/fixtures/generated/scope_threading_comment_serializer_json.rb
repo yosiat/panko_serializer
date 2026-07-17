@@ -10,7 +10,7 @@
 #   require_relative "scope_threading_comment_serializer_json.generated"
 #   ScopeThreadingCommentSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ScopeThreadingCommentSerializer_JSON
+class ScopeThreadingCommentSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ScopeThreadingCommentSerializer_JSON)
 

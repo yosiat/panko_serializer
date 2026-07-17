@@ -10,7 +10,7 @@
 #   require_relative "config_hash_output_key_symbol_serializer_hash.generated"
 #   ConfigHashOutputKeySymbolSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class ConfigHashOutputKeySymbolSerializer_Hash
+class ConfigHashOutputKeySymbolSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
 
   def initialize(descriptor:)

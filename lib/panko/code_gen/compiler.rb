@@ -83,7 +83,7 @@ module Panko::CodeGen
       anonymous = {}
       Generators::DescriptorWalk.in_emit_order(@descriptor).each do |descriptor|
         parent = descriptor.parent_class
-        next if parent.nil? || parent.name
+        next if parent.name
         anonymous[descriptor.name] = parent
       end
       namespace.const_set(:ANON_PARENTS, anonymous.freeze) unless anonymous.empty?

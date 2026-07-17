@@ -173,9 +173,8 @@ Why ivars (not class constants set via `const_set`):
 ## Per-record ivar writes — the bounded `parent_class` deviation
 
 The "GC ivars are init-time constants" pattern above has one **bounded deviation**: when
-`Descriptor#parent_class` is non-`nil` **and** the **Descriptor** declares a Symbol-body
-**Method Attribute**, the **Generator** emits three per-record ivar writes at the top of
-`_write_one` / `_to_hash`:
+the **Descriptor** declares a Symbol-body **Method Attribute**, the **Generator** emits
+three per-record ivar writes at the top of `_write_one` / `_to_hash`:
 
 ```ruby
 @object  = record
@@ -194,13 +193,12 @@ couldn't see the current record.
 
 Bounded by three properties:
 
-- **Opt-in via `parent_class` + a Symbol-body Method Attribute.** Bare **Descriptors**
-  (`parent_class: nil`, the default) emit the pre-S18 shape — no ivar writes, ivar-set is
-  init-time only, "GC ivars are init-time constants" holds. So do `parent_class:`
-  **Descriptors** with no Symbol-body **Method Attribute**: a Symbol-body method is the
-  only code that runs on the **Generated Class** instance during a serialize — Callable
-  bodies and `if:` guards receive `(record, context, scope)` as explicit args — so
-  without one the writes would be pure per-record overhead.
+- **Gated on a Symbol-body Method Attribute.** **Descriptors** with no Symbol-body
+  **Method Attribute** emit no ivar writes — ivar-set is init-time only and "GC ivars are
+  init-time constants" holds. A Symbol-body method is the only code that runs on the
+  **Generated Class** instance during a serialize — Callable bodies and `if:` guards
+  receive `(record, context, scope)` as explicit args — so without one the writes would
+  be pure per-record overhead.
 - **Per-call deterministic write site.** When emitted, the writes are *always* the three
   lines above at the *top* of `_write_one` / `_to_hash`. The shape is invariant — no
   per-Field branching, no conditional emit, no other ivars added — so YJIT's object-shape
@@ -231,10 +229,10 @@ before a pooled instance goes back on its stack — see
 Bench: `/tmp/k1_ivar_bench/bench.rb` (2026-05-16, YJIT-on, Ruby 4.0.2). Single-record
 `serialize_one` with `Oj::StringWriter`:
 
-| Shape                                  | IPS                | ns/i | Allocations |
-| -------------------------------------- | ------------------ | ---- | ----------- |
-| Baseline (no ivar writes)              | 2.53M (±3.9%)      | 395  | 12          |
-| `parent_class` (3 ivar writes prepended) | 2.36M (±8.7%)    | 424  | 12          |
+| Shape                                   | IPS                | ns/i | Allocations |
+| --------------------------------------- | ------------------ | ---- | ----------- |
+| Baseline (no ivar writes)               | 2.53M (±3.9%)      | 395  | 12          |
+| Symbol-body (3 ivar writes prepended)   | 2.36M (±8.7%)      | 424  | 12          |
 
 `benchmark-ips` verdict: "same-ish: difference falls within error". The ~29 ns delta is
 within noise; allocations are identical (no extra object per call). Pinned at the

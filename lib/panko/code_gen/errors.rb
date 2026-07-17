@@ -41,15 +41,4 @@ module Panko::CodeGen
   # allowed arities are pinned in +docs/code_gen/descriptor.md § Callable
   # arity+.
   class ArityError < CompileError; end
-
-  # Raised when a +MethodAttribute+ has a +Symbol+ +body+ but its
-  # owning +Descriptor+ has +parent_class: nil+. Symbol-body Method
-  # Attributes dispatch via +value = <method_name>+ on +self+ — the
-  # Generated Class must subclass a user-supplied +parent_class+ for
-  # the method to resolve. +MethodAttribute.new+ has no view of the
-  # owning Descriptor's +parent_class+, so this legitimacy check
-  # cannot live in structural validation; +Validators::SymbolBodyDispatch+
-  # walks the Descriptor tree at +Compile+ time and raises this error
-  # before any source is emitted.
-  class SymbolBodyError < CompileError; end
 end

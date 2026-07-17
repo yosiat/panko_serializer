@@ -10,7 +10,7 @@
 #   require_relative "config_root_key_on_serializer_json.generated"
 #   ConfigRootKeyOnSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ConfigRootKeyOnSerializer_JSON
+class ConfigRootKeyOnSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigRootKeyOnSerializer_JSON)
 

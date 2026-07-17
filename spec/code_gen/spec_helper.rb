@@ -20,6 +20,7 @@ require "panko/code_gen"
 
 require_relative "support/schema"
 require_relative "support/models"
+require_relative "support/base_serializer"
 require_relative "support/snapshot_matcher"
 
 RSpec.configure do |config|

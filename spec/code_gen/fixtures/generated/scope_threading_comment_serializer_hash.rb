@@ -10,7 +10,7 @@
 #   require_relative "scope_threading_comment_serializer_hash.generated"
 #   ScopeThreadingCommentSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class ScopeThreadingCommentSerializer_Hash
+class ScopeThreadingCommentSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2}.freeze
 
   def initialize(descriptor:)

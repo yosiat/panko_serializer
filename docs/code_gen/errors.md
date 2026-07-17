@@ -12,8 +12,7 @@ Panko::CodeGen::Error < StandardError
 └── Panko::CodeGen::CompileError       # semantic validation at Compile time
     ├── NameCollisionError   # two Fields share a name at the same level
     ├── UnknownSourceError   # specialized-path Attribute Source not resolvable
-    ├── ArityError           # Callable arity not in {0, 1, 2, 3}
-    └── SymbolBodyError      # Symbol-body MethodAttribute with parent_class: nil
+    └── ArityError           # Callable arity not in {0, 1, 2, 3}
 ```
 
 **Runtime errors** (inside `_write_one` / `_to_hash`) are not wrapped. A missing method
@@ -50,9 +49,6 @@ emitted. The specific subclass identifies the reason:
   classification rule in [compilation.md](compilation.md).
 - **`ArityError`** — a **Callable** (Method Attribute `body` or Association `if:`) has
   an arity outside `{0, 1, 2, 3}`. See "Callable arity" in [descriptor.md](descriptor.md).
-- **`SymbolBodyError`** — a **Method Attribute** has a `Symbol` `body` but its owning
-  **Descriptor** has `parent_class: nil`, so the method has no `self` to resolve against.
-  See "Symbol-body dispatch" in [descriptor.md](descriptor.md).
 
 ## Message convention
 

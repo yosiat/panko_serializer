@@ -121,7 +121,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
         #   require_relative "shallow_generic_serializer_json.generated"
         #   ShallowGenericSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-        class ShallowGenericSerializer_JSON
+        class ShallowGenericSerializer_JSON < Fixtures::BaseSerializer
           FIELD_INDEX = {id: 0, title: 1}.freeze
 
           def initialize(descriptor:)

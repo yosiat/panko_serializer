@@ -48,9 +48,8 @@ module Panko::CodeGen
         # +docs/code_gen/descriptor.md § Recursive Descriptors+ ("Recursion is
         # detected via Ruby object identity").
         #
-        # Symbol-body +MethodAttribute+s (S18) are skipped — Symbols have
-        # no +#arity+, and the legitimacy check ("Symbol body requires a
-        # +parent_class+") lives in +Validators::SymbolBodyDispatch+.
+        # Symbol-body +MethodAttribute+s are skipped — Symbols have no
+        # +#arity+ (they dispatch to a method on the +parent_class+).
         # Association +#if+ stays Callable-only and is checked as before.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]

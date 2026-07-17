@@ -13,7 +13,7 @@
 require_relative "nested_composition_author_serializer_hash"
 require_relative "nested_composition_comment_serializer_hash"
 
-class NestedCompositionPostSerializer_Hash
+class NestedCompositionPostSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, author: 1, comments: 2}.freeze
 
   def initialize(descriptor:)

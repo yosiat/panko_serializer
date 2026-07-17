@@ -10,7 +10,7 @@
 #   require_relative "nested_composition_author_serializer_json.generated"
 #   NestedCompositionAuthorSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class NestedCompositionAuthorSerializer_JSON
+class NestedCompositionAuthorSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__NestedCompositionAuthorSerializer_JSON)
 

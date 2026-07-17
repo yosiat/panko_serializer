@@ -10,7 +10,7 @@
 #   require_relative "config_json_column_wire_format_serializer_json.generated"
 #   ConfigJsonColumnWireFormatSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ConfigJsonColumnWireFormatSerializer_JSON
+class ConfigJsonColumnWireFormatSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, metadata: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigJsonColumnWireFormatSerializer_JSON)
 

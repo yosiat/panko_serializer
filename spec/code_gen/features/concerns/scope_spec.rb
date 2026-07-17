@@ -18,6 +18,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: associations
@@ -216,6 +217,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
           comment = Panko::CodeGen::Descriptor.new(
             name: "ScopeRecursiveCommentSerializer_#{mode}",
             model: nil,
+            parent_class: Fixtures::BaseSerializer,
             attributes: [attribute(:id)],
             method_attributes: [method_attribute(:tag, body)],
             associations: []

@@ -64,6 +64,7 @@ RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
     renamed = Panko::CodeGen::Descriptor.new(
       name: "#{prefix}#{descriptor.name}",
       model: descriptor.model,
+      parent_class: Fixtures::BaseSerializer,
       attributes: descriptor.attributes,
       method_attributes: descriptor.method_attributes,
       associations: []

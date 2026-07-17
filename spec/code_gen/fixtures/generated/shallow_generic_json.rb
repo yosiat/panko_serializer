@@ -10,7 +10,7 @@
 #   require_relative "shallow_generic_serializer_json.generated"
 #   ShallowGenericSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ShallowGenericSerializer_JSON
+class ShallowGenericSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, title: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ShallowGenericSerializer_JSON)
 

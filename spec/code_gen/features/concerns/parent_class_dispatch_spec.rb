@@ -328,10 +328,8 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
       context "with #{mode} Output Mode" do
         # Runtime-defer contract from the PRD: +Compile+ does not
         # introspect +parent_class.instance_method(<sym>)+. A Symbol
-        # that does not resolve at +Compile+ time passes through
-        # +Validators::SymbolBodyDispatch+ (+parent_class+ is non-nil
-        # — legitimate Symbol-body shape) and produces a Generated
-        # Class. At +serialize_one+ time Ruby's normal method
+        # that does not resolve at +Compile+ time still produces a
+        # Generated Class. At +serialize_one+ time Ruby's normal method
         # resolution raises — and because the Symbol-body emit shape
         # is +value = <method_name>+ (bare identifier, no explicit
         # receiver), the failure form is +NameError: undefined local

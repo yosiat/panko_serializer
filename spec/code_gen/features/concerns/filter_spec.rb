@@ -270,6 +270,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
       Panko::CodeGen::Descriptor.new(
         name: "Source7AuthorSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -283,6 +284,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
       Panko::CodeGen::Descriptor.new(
         name: "Source7PostSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [],
         associations: [
@@ -355,6 +357,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           author_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfAuthorSerializer",
             model: nil,
+            parent_class: Fixtures::BaseSerializer,
             attributes: [
               Panko::CodeGen::Attribute.new(name: :id, source: :id),
               Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -365,6 +368,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           comment_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfCommentSerializer",
             model: nil,
+            parent_class: Fixtures::BaseSerializer,
             attributes: [
               Panko::CodeGen::Attribute.new(name: :id, source: :id),
               Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -375,6 +379,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfPostSerializer",
             model: nil,
+            parent_class: Fixtures::BaseSerializer,
             attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
             method_attributes: [],
             associations: [
@@ -690,6 +695,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     first_child = Panko::CodeGen::Descriptor.new(
       name: "FilterSharedSourceFirstChildSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -698,6 +704,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     second_child = Panko::CodeGen::Descriptor.new(
       name: "FilterSharedSourceSecondChildSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :body, source: :body),
         Panko::CodeGen::Attribute.new(name: :id, source: :id)
@@ -709,6 +716,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     parent = Panko::CodeGen::Descriptor.new(
       name: "FilterSharedSourceParentSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [],
       method_attributes: [],
       associations: [

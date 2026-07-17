@@ -7,6 +7,7 @@ RSpec.describe Panko::CodeGen::Generators::CycleMembership do
   def descriptor(name, associations: [])
     Panko::CodeGen::Descriptor.new(
       name: name, model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [], method_attributes: [], associations: associations
     )
   end

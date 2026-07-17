@@ -14,6 +14,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: []

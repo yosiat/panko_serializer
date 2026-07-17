@@ -5,6 +5,7 @@ module Fixtures
     AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "NestedCompositionAuthorSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -16,6 +17,7 @@ module Fixtures
     COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "NestedCompositionCommentSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -28,6 +30,7 @@ module Fixtures
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "NestedCompositionPostSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id)
       ],

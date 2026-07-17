@@ -14,6 +14,7 @@ RSpec.describe "Specialized guarded-model emit" do
     Panko::CodeGen::Descriptor.new(
       name: "GuardedPlainPostSerializer",
       model: PlainPost,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title)
