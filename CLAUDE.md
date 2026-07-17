@@ -83,6 +83,13 @@ connection and clobbers the engine suite's in-memory schema).
 - **Public API is stable.** Preserve the `Panko::Serializer` /
   `Panko::ArraySerializer` surface, including `scope:` and `context:`.
 - `Panko::CodeGen` is **internal**, not part of Panko's public surface.
-- Comments explain *why*, not *what*. Keep the tree rubocop-clean.
+- Comments explain *why*, not *what* — and drop a *why* that only restates a
+  language/library default or an otherwise obvious fact (e.g. noting "GC stays
+  enabled" when enabled is the default). Keep the tree rubocop-clean.
+- **`merge-scg` is the active integration branch.** Before a large mechanical
+  sweep (comment cleanup, renames, formatting), branch from / rebase onto
+  `merge-scg` — not an older base like `88f5622`. It has already removed
+  `docs/code_gen/research/` and `lib/panko/code_gen/validators/symbol_body_dispatch.rb`;
+  editing them wastes effort and creates rebase conflicts.
 - Commits are **local only** — the maintainer runs all `git push` / release
   steps. Never push, tag-push, or open PRs on their behalf.
