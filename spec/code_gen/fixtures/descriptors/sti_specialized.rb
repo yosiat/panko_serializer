@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Fixtures
-  # Canonical STI fixture (#6 in +docs/testing.md § Canonical snapshot
-  # corpus+). Pins the classifier's two access-form verdicts in a single
+  # Canonical STI fixture (#6 in the canonical snapshot corpus). Pins
+  # the classifier's two access-form verdicts in a single
   # Generated Class — both branches of the rule visible in one snapshot:
   #
   # - +vin+ — column-backed on +Car+ with AR's own auto-generated

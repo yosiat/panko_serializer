@@ -8,14 +8,14 @@ require "rspec"
 # iteration env so the suite stays under a few seconds per CI run, and asserts
 # the stdout includes one row per target × size. Goal: catch "harness doesn't
 # load", "scenario file syntax-errors", "missing requires", "broken target
-# lookups", "missing oj_serializers dep" — not to validate numbers (per
-# docs/ci.md § Benchmarks in CI, full benchmarks do not run in CI).
+# lookups", "missing oj_serializers dep" — not to validate numbers (full
+# benchmarks do not run in CI).
 #
 # Subprocess isolation matters: spec/spec_helper.rb has already established an
 # AR connection and seeded the spec schema in this process. Running the bench
 # harness in-process would re-establish the connection and trample the spec
 # state — every subsequent example in the suite would fail. The bench harness
-# is designed to be a fresh process anyway (per docs/benchmarks.md § Running),
+# is designed to be a fresh process anyway,
 # so the smoke spec exercises the production-shape path.
 RSpec.describe "benchmark harness smoke" do
   let(:env) do

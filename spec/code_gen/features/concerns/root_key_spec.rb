@@ -5,14 +5,11 @@ require "panko/code_gen"
 require "shallow_generic"
 require "config/config_root_key_on"
 
-# Cross-cutting Root Key contract — the 12-item enumeration from
-# +docs/testing.md § root_key_spec.rb+. JSON/Hash parity is iterated at
-# the describe block per +docs/testing.md § JSON/Hash parity+; the
-# accepted-values rule (non-empty String or +nil+) lives in
-# +docs/generated-class.md § serialize_one+ and +docs/config.md+.
+# Cross-cutting Root Key contract — the 12-item enumeration. JSON/Hash
+# parity is iterated at the describe block; the accepted-values rule is
+# a non-empty String or +nil+.
 #
-# Fixture strategy per +testing.md § root_key_spec.rb § Fixture
-# strategy+:
+# Fixture strategy:
 #
 # - +supports_root_key: true+ cases reuse +config_root_key_on+ (#7).
 #   Its snapshot +MODES = [:json]+ pins only the committed bytes; the
@@ -198,10 +195,9 @@ RSpec.describe "Root Key — supports_root_key + per-call kwarg contract" do
   describe "(9b) root_key: false (non-String, non-nil) → library ArgumentError" do
     # Regression: the original implementation gated validation on
     # +if root_key+ rather than +unless root_key.nil?+, so +false+
-    # silently bypassed the check and was treated as "no wrap". Per
-    # +docs/generated-class.md § serialize_one+ ("any non-String/non-nil
-    # value raises +ArgumentError+"), +false+ must raise like any other
-    # non-nil non-String value.
+    # silently bypassed the check and was treated as "no wrap". Since
+    # "any non-String/non-nil value raises +ArgumentError+", +false+
+    # must raise like any other non-nil non-String value.
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "raises ArgumentError on serialize_one" do

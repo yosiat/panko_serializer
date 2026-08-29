@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Panko::CodeGen
-  # Orchestrates one +Compile+ call per +docs/code_gen/compilation.md § What
-  # Compile does internally+: runs semantic validation, asks the
+  # Orchestrates one +Compile+ call: runs semantic validation, asks the
   # +Generator+ for source bytes, materializes them into a fresh
   # anonymous class via +Module#module_eval+ with a synthetic
   # backtrace path, then walks the Descriptor tree depth-first to
@@ -14,14 +13,12 @@ module Panko::CodeGen
   # The same +Generator+ output drives both materialization paths —
   # +Compiler+ here, +Dump+ in S15. Anything observable in the in-memory
   # form must also be observable in the on-disk form (the
-  # +Compile ≡ Dump byte-identical+ contract from
-  # +docs/code_gen/structure.md § Layered architecture+).
+  # +Compile ≡ Dump byte-identical+ contract).
   class Compiler
     # Per-mode suffix appended to +Descriptor#name+ to form the inner
     # Generated Class constant — +"JSON"+ for +:json+, +"Hash"+ for
-    # +:hash+ — per +docs/code_gen/generated-class.md+. An explicit table
-    # rather than +to_s.upcase+ so the +:hash+ → +"Hash"+ casing matches
-    # the docs verbatim.
+    # +:hash+. An explicit table rather than +to_s.upcase+ so the
+    # +:hash+ → +"Hash"+ casing matches the docs verbatim.
     OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
 
     # @param descriptor [Panko::CodeGen::Descriptor] the input
@@ -89,9 +86,8 @@ module Panko::CodeGen
       namespace.const_set(:ANON_PARENTS, anonymous.freeze) unless anonymous.empty?
     end
 
-    # Returns the synthetic backtrace path stamped into +Method#source_location+
-    # per +docs/code_gen/code-generation.md § Backtrace quality+. The path
-    # identifies the Generator-emitted code without colliding with any
+    # Returns the synthetic backtrace path stamped into +Method#source_location+.
+    # The path identifies the Generator-emitted code without colliding with any
     # real file on disk. Shared across every class in one Compile (the
     # whole tree's source is +module_eval+'d in one call).
     #

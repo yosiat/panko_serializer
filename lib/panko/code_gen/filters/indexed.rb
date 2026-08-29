@@ -17,9 +17,8 @@ module Panko::CodeGen
     #
     # Both representations satisfy the same +drops?(<integer>)+ /
     # +child(<symbol>)+ contract as +Filter::None+ so emitted
-    # code stays monomorphic per +docs/code_gen/filters.md § Threading through
-    # Composition+. The hot-path representation is chosen at construction
-    # time and never re-checked per call.
+    # code stays monomorphic. The hot-path representation is chosen at
+    # construction time and never re-checked per call.
     #
     # +child(<symbol>, <field_index>)+ caches its result keyed by +Source+
     # symbol (cache lifetime = one +serialize_*+ call — the +Filter+ object
@@ -30,8 +29,7 @@ module Panko::CodeGen
     # against it and memoized for the remainder of the +serialize_*+ call.
     # When the parent's caller-supplied +Hash+ has no entry for +source+,
     # an empty sub-+Hash+, or a non-+Hash+ value, the cache memoizes the
-    # {Filter::None} singleton instead per
-    # +docs/code_gen/filters.md § Public shape+.
+    # {Filter::None} singleton instead.
     module Indexed
       module_function
 
@@ -50,9 +48,9 @@ module Panko::CodeGen
       # again.
       #
       # Names in +:only+ / +:except+ that are not present in
-      # +field_index+ are silently ignored (forward-compatibility per
-      # +docs/code_gen/filters.md § Rules+ — caller's may name Fields that have
-      # since been removed from the Descriptor without breaking).
+      # +field_index+ are silently ignored (forward-compatibility —
+      # caller's may name Fields that have since been removed from the
+      # Descriptor without breaking).
       #
       # @param hash [Hash] the caller-supplied non-empty +filters:+ Hash;
       #   +:only+ and +:except+ are read here, other keys are
@@ -141,9 +139,8 @@ module Panko::CodeGen
         # cache-lifetime contract: the resolved child is memoized for the
         # remainder of the parent's +serialize_*+ call so a +has_many+
         # iteration consults the cache once at hoist time and never
-        # rebuilds. Per +docs/code_gen/filters.md § Threading through Composition+
-        # the parent's emitted code passes the child class's +FIELD_INDEX+
-        # constant at the call site.
+        # rebuilds. The parent's emitted code passes the child class's
+        # +FIELD_INDEX+ constant at the call site.
         #
         # The cached pair carries the +field_index+ the cell was built
         # against, guarded by +equal?+: two Associations may share one
@@ -214,13 +211,12 @@ module Panko::CodeGen
       # caller-supplied +hash+ and the nested Generated Class's
       # +field_index+. Returns +Filter::None+ when the parent hash carries
       # no entry for +source+, when the entry is +nil+, when it is the
-      # empty Hash, or when it is non-Hash (the public contract per
-      # +docs/code_gen/filters.md § Public shape+ is that nested values are Hashes
-      # — non-Hashes are silently ignored).
+      # empty Hash, or when it is non-Hash (the public contract is that
+      # nested values are Hashes — non-Hashes are silently ignored).
       #
       # When the sub-hash is a non-empty +Hash+, builds a real child
       # {Bits} / {Array} cell directly via {build} — co-supply validation
-      # (per +docs/code_gen/filters.md § Rules+) already ran at the top-level
+      # already ran at the top-level
       # +Filter.wrap+ call and walked every nested level depth-first, so
       # this resolution path can skip re-validating and pay only the
       # one-shot index walk that {build} performs against +field_index+.

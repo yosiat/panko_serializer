@@ -4,12 +4,11 @@ require_relative "filters/none"
 require_relative "filters/indexed"
 
 module Panko::CodeGen
-  # Public-facing namespace for the +Filter+ family per
-  # +docs/code_gen/filters.md+. {Filter.wrap} is the single entry point used at
-  # the top of every Generated Class's +serialize_one+ /
-  # +serialize_many+; it normalizes the caller-supplied +filters:+ Hash
-  # into a +Filter+ object exposing the +drops?(<integer>)+ /
-  # +child(<symbol>)+ contract.
+  # Public-facing namespace for the +Filter+ family. {Filter.wrap} is
+  # the single entry point used at the top of every Generated Class's
+  # +serialize_one+ / +serialize_many+; it normalizes the
+  # caller-supplied +filters:+ Hash into a +Filter+ object exposing the
+  # +drops?(<integer>)+ / +child(<symbol>)+ contract.
   #
   # Two cells exist in this slice:
   #
@@ -24,8 +23,7 @@ module Panko::CodeGen
   module Filter
     # Normalizes the caller-supplied +filters:+ kwarg into a Filter
     # object satisfying the +drops?+ / +child+ contract.
-    # +nil+ and +{}+ collapse to {None} per
-    # +docs/code_gen/filters.md § Public shape+ ("Empty Hash +{}+ at a level is
+    # +nil+ and +{}+ collapse to {None} ("Empty Hash +{}+ at a level is
     # equivalent to +nil+ at that level — no filtering."). A non-empty
     # Hash routes to {Indexed.build} against +field_index+ — the
     # per-Generated-Class +FIELD_INDEX+ map emitted by
@@ -38,10 +36,9 @@ module Panko::CodeGen
     #
     # Recursively walks +filters+ before delegating to {Indexed.build}
     # and raises +ArgumentError+ at the first level (depth-first) that
-    # carries both +:only+ and +:except+ keys per
-    # +docs/code_gen/filters.md § Rules+. Validation runs once per +serialize_*+
-    # call so the emitted +_write_one+ / +_to_hash+ bodies stay free of
-    # validation branches.
+    # carries both +:only+ and +:except+ keys. Validation runs once per
+    # +serialize_*+ call so the emitted +_write_one+ / +_to_hash+ bodies
+    # stay free of validation branches.
     #
     # @param filters [Hash, nil] the caller-supplied +filters:+ kwarg
     # @param field_index [Hash{Symbol => Integer}, nil] the
@@ -64,8 +61,8 @@ module Panko::CodeGen
     # level that has both +:only+ and +:except+ keys. Recurses into any
     # value that is itself a +Hash+ (Association sub-filters) and
     # ignores non-Hash values (the +:only+ / +:except+ Arrays
-    # themselves, plus forward-compat unknown-shape values that
-    # +docs/code_gen/filters.md § Rules+ documents as silently ignored).
+    # themselves, plus forward-compat unknown-shape values that are
+    # silently ignored).
     #
     # Module-private: only {wrap} should call this. Pinned at module
     # scope (rather than inlined) so the recursion-around-Hash-values

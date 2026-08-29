@@ -7,7 +7,7 @@ module Panko::CodeGen
     # mutual-recursion cycle reachable from a given root. Used by the
     # emit paths to decide which Generated Classes need the
     # +_construct_cache:+ kwarg + cache-threaded nested +.new+ calls
-    # per +docs/code_gen/compilation.md § Recursive Descriptors+ (S8.2).
+    # (S8.2).
     #
     # "Mutual recursion" here means a cycle of length ≥ 2 — a Descriptor
     # is reachable from itself via a path that traverses at least one

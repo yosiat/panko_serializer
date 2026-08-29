@@ -22,9 +22,8 @@ require "parent_class_specialized"
 require "parent_class_generic"
 require "parent_class_recursive_self"
 
-# Snapshot tier — the +Generator+ / +Dump+ byte-emit tier from
-# +docs/testing.md § Three tests per (fixture, mode)+. Three tests per
-# (fixture, mode):
+# Snapshot tier — the +Generator+ / +Dump+ byte-emit tier. Three tests
+# per (fixture, mode):
 #
 # 1. +Generator#emit+ bytes equal the on-disk +<fixture>_<mode>.rb+
 #    snapshot (the single-file concatenated form Compile evaluates via

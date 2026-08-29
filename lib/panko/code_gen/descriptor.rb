@@ -4,12 +4,12 @@ module Panko::CodeGen
   # Sentinel a Method Attribute body returns to omit its Field from the
   # output. Identity-compared via +equal?+ at runtime so it never collides
   # with caller data; module-level + frozen so the identity is stable across
-  # the program lifetime. Documented in +docs/code_gen/descriptor.md § SKIP sentinel+.
+  # the program lifetime.
   SKIP = Object.new.freeze
 
   # Internal namespace for structural-validation helpers shared by the
   # Descriptor-family +Data+ types. Helpers raise +DescriptorError+ with
-  # messages following +docs/code_gen/errors.md § Message convention+:
+  # messages following the convention
   # +"<Kind>#<Field>: <rule>; got <observed>:<ObservedClass>"+. Each
   # +Data+ type validates its own fields at +.new+; +Descriptor+ does not
   # re-walk its children's interiors (they have already validated
@@ -44,7 +44,7 @@ module Panko::CodeGen
     # rather than a supported shape.
     #
     # +UnboundMethod+ is rejected — it +respond_to?(:call)+ but cannot be
-    # invoked without binding first, per +docs/code_gen/descriptor.md § MethodAttribute+.
+    # invoked without binding first.
     #
     # @param field [String] qualified name like +"MethodAttribute#body"+
     # @param value [Symbol, #call] the value to type-check
@@ -78,8 +78,7 @@ module Panko::CodeGen
     # Raises +DescriptorError+ when +value+ is not a +Class+. Used for the
     # required +Descriptor#parent_class+ — the parent class the Generated
     # Class inherits from so its emitted +< <parent_class.name>+ shape
-    # subclasses the user-supplied class per
-    # +docs/code_gen/descriptor.md § Descriptor#parent_class+.
+    # subclasses the user-supplied class.
     #
     # Modules (other than +Class+) and +nil+ are rejected — Ruby class
     # inheritance requires a +Class+, and there is no parent-less emit
@@ -163,7 +162,7 @@ module Panko::CodeGen
 
   # A Field whose value is read directly from the Record via the Source
   # method. Both +name+ and +source+ are Symbols; +source+ defaults to
-  # +name+ when omitted (per +docs/code_gen/descriptor.md § Attribute+). Frozen on
+  # +name+ when omitted. Frozen on
   # construction; structural validation runs once at +.new+ and raises
   # +DescriptorError+ on shape violations.
   Attribute = Data.define(:name, :source) do
@@ -186,7 +185,7 @@ module Panko::CodeGen
   # the Field — or by dispatching to a Symbol-named method on +self+,
   # resolved against the owning +Descriptor+'s +parent_class+ (the
   # Symbol-body shape that drives Panko's direct-dispatch method
-  # contract per +docs/code_gen/descriptor.md § Descriptor#parent_class+).
+  # contract).
   #
   # +body+ structurally accepts either a Callable (must respond to
   # +.call+, must not be an +UnboundMethod+) or a +Symbol+. Arity
@@ -213,17 +212,15 @@ module Panko::CodeGen
   end
 
   # A Field linking one Descriptor to another — the data shape of a
-  # has_one / has_many edge between two Records (per
-  # +docs/code_gen/descriptor.md § Association+). The +descriptor+ field may
+  # has_one / has_many edge between two Records. The +descriptor+ field may
   # reference the parent itself for self-recursive shapes (Comment with
   # +has_many :replies+ pointing back at Comment); the recursive emit /
   # construction handling lands later in S5 + S8. Frozen on construction.
   #
   # Field defaults applied at +.new+ time:
   #
-  # - +source+: defaults to +name+ if omitted or passed as +nil+ — matches
-  #   +docs/code_gen/descriptor.md § Association+ ("output key matches the model
-  #   method" common case).
+  # - +source+: defaults to +name+ if omitted or passed as +nil+ — the
+  #   "output key matches the model method" common case.
   # - +if+: defaults to +nil+ — no guard, no runtime cost.
   Association = Data.define(:name, :kind, :descriptor, :source, :if) do
     # Validates +name+ is a Symbol, +kind+ is in +{:has_one, :has_many}+,
@@ -262,13 +259,12 @@ module Panko::CodeGen
   Association::KINDS = %i[has_one has_many].freeze
 
   # The input to Compile — an immutable, normalized description of one
-  # serializer (per +docs/code_gen/descriptor.md § Descriptor+). Carries the
+  # serializer. Carries the
   # human-readable identifier, the optional Model hint that unlocks
   # compile-time specialization, the three Field-kind arrays
   # (+attributes+, +method_attributes+, +associations+), and the required
   # +parent_class+ the Generated Class subclasses via its
-  # +< <parent_class.name>+ shape per
-  # +docs/code_gen/descriptor.md § Descriptor#parent_class+. Frozen on
+  # +< <parent_class.name>+ shape. Frozen on
   # construction; structural validation runs once at +.new+ and raises
   # +DescriptorError+ on shape violations. Children are validated at their
   # own +.new+ — Descriptor only enforces array-element type, not the inner

@@ -8,8 +8,7 @@
 # dispatcher), and Symbol-body / Callable-body coexistence in one
 # +Descriptor+. +model: ParentClassSpecializedRecord+ — a plain Ruby
 # class (non-AR), so the Specialized path's per-Attribute access form
-# falls through to method dispatch per
-# +docs/compilation.md § Non-AR class in `models`+; the snapshot pins
+# falls through to method dispatch; the snapshot pins
 # the +record.id+ / +record.name+ shape rather than the
 # +_read_attribute(...)+ shape, which is irrelevant to the parent_class
 # axis under test.

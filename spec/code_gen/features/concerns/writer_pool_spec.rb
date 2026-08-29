@@ -6,7 +6,7 @@ require "shallow_generic"
 require "nested_composition"
 
 # Cross-cutting +WritersPool+ contract — the feature-level integration
-# tier from +PRD #82 § Testing Decisions+. The pool's unit semantics are
+# tier from +PRD #82+. The pool's unit semantics are
 # pinned in +spec/writers_pool_spec.rb+; the JSON-mode emit shape in
 # +spec/generators/writer_pool_emit_spec.rb+ + the regenerated
 # +spec/fixtures/generated/*_json.rb+ snapshots; this file pins what the

@@ -3,16 +3,14 @@
 module Panko::CodeGen
   # Identity-keyed map of Descriptor → Generated Class, threaded through
   # +Compiler+'s recursive descent so each unique Descriptor in a tree
-  # produces exactly one Generated Class (per
-  # +docs/code_gen/compilation.md § Recursive Descriptors+).
+  # produces exactly one Generated Class.
   #
   # Beyond plain +#get+ / +#set+, +#lookup_or_compile+ drives the
   # recursive pattern where the block must surface its in-progress class
   # to a back-edge lookup *before* descending into children — see
   # +#lookup_or_compile+ for the contract. That entry-before-descend
   # shape is what unblocks self-referential and mutually recursive
-  # Descriptor trees per +docs/code_gen/compilation.md § Recursive
-  # Descriptors+.
+  # Descriptor trees.
   class CompileCache
     # Returns an empty cache. Backing store is a plain Hash keyed by
     # +descriptor.__id__+ — identity, never +#hash+ + +#eql?+, so

@@ -725,7 +725,7 @@ RSpec.describe "Compile-time errors" do
       )
     end
 
-    it "ArityError matches the docs/errors.md § Message convention example (S4)" do
+    it "ArityError matches the Message convention example (S4)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
         model: nil,

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Canonical fixture for S17.2 (#91) — pins the new +scope+ axis added in
-# +docs/code-generation.md § Callable hoisting+. Exercises every emit
-# surface the widening touches:
+# Canonical fixture for S17.2 (#91) — pins the new +scope+ axis.
+# Exercises every emit surface the widening touches:
 #
 # - one arity-2 Method Attribute (+legacy_label+) — proves +context+
 #   still threads as +.call(record, context)+ unchanged.

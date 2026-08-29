@@ -3,18 +3,16 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +Association#if+ contract — the 10-item enumeration from
-# +docs/testing.md § association_if_spec.rb+. JSON/Hash parity is iterated
-# at the describe block per +docs/testing.md § JSON/Hash parity+ (this is
-# item (10) and pins the parallel emit shapes per +docs/output-modes.md+).
+# Cross-cutting +Association#if+ contract — the 10-item enumeration.
+# JSON/Hash parity is iterated at the describe block (this is
+# item (10) and pins the parallel emit shapes).
 # Fixtures are inline minimal Descriptors (1 +has_one+ or +has_many+
 # Association each, plus 1 +id+ Attribute on parent + child); the
 # +nested_composition+ fixture's snapshot pins the emit bytes for the
 # +has_one+ + +if:+ shape, this file pins the runtime semantics across
 # Kinds, arities, return values, and the cardinality contract.
 #
-# Precedence ladder (per +docs/testing.md § association_if_spec.rb §
-# Precedence ladder+, also +docs/filters.md+):
+# Precedence ladder:
 #
 #   1. Filter.drops?(:assoc) → omit; if: not invoked, Source not called.
 #   2. if: present and returns falsy → omit; Source not called.

@@ -43,8 +43,7 @@ describe "Hash Serialization" do
   it "serializes a plain symbol-keyed Hash as null values" do
     # Panko looks attributes up by string key, so a plain Hash keyed by symbols
     # silently misses every key and yields null. Pinning this de-facto behavior
-    # so the codegen engine (string-key lookup) preserves it. See
-    # docs/code_gen/descriptor.md § Record semantics.
+    # so the codegen engine (string-key lookup) preserves it.
     foo = {
       name: Faker::Lorem.word,
       address: Faker::Lorem.word

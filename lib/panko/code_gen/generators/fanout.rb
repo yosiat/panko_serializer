@@ -2,8 +2,7 @@
 
 module Panko::CodeGen
   module Generators
-    # Multi-file fan-out emitter for {Dump} per
-    # +docs/code_gen/dumping.md § Nested Descriptor dumps+: walks the
+    # Multi-file fan-out emitter for {Dump}: walks the
     # +Descriptor+ tree once, identity-keyed (+__id__+) to dedupe
     # shared and recursive nodes, and produces one complete
     # +.rb+ file's content per unique +Descriptor+. Each file

@@ -28,7 +28,7 @@ RSpec.describe Panko::CodeGen::Filter do
     end
 
     describe ":only + :except co-supplied" do
-      # Per +docs/filters.md § Rules+ ("+:only+ and +:except+ at the
+      # "+:only+ and +:except+ at the
       # same level are mutually exclusive. Supplying both is a caller
       # error and raises +ArgumentError+ at the first +_write_one+ /
       # +_to_hash+ entry on that level."). +Filter.wrap+ runs once per
@@ -182,8 +182,7 @@ RSpec.describe Panko::CodeGen::Filter do
       describe "#child" do
         # The +child_field_index+ is the per-Generated-Class +FIELD_INDEX+
         # the parent's emitted code passes at the nested call site (S14.4
-        # +Composition+ threading per
-        # +docs/filters.md § Threading through Composition+). Unit tests
+        # +Composition+ threading). Unit tests
         # pin behavior with a hand-rolled child shape that mirrors what
         # +nested_composition+'s author would carry — small enough to
         # stay in both representations' coverage.

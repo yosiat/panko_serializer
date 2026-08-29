@@ -17,8 +17,7 @@ require "memory_profiler"
 #   +push_json+;
 # - allocation invariant: pinned via +MemoryProfiler+ in-spec —
 #   +:wire_format+ allocates no more than today's +:html_safe+ shape on
-#   a saved-record fixture (the carve-out clause from
-#   +docs/phase-1-bar.md § json_column allocation carve-out+);
+#   a saved-record fixture (the json_column allocation carve-out);
 # - malformed JSON in DB: raw bytes that +Oj.sc_parse+ rejects → emit
 #   falls through, produces +null+;
 # - in-memory unsaved Hash assignment: +record.metadata = {...}+ (no
@@ -192,7 +191,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
   end
 
-  describe "byte-divergence vs today's :html_safe (per phase_1_report § 8.1)" do
+  describe "byte-divergence vs today's :html_safe (per phase_1_report 8.1)" do
     # Each row inserts pre-encoded JSON bytes via raw SQL so the bytes
     # hit the column unmodified; the read-side path is then exercised
     # against both modes. These rows codify the byte-divergence contract
@@ -270,9 +269,9 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "allocation invariant (phase-1-bar carve-out)" do
-    # Pin the carve-out clause from +docs/phase-1-bar.md+: +:wire_format+
+    # Pin the carve-out clause: +:wire_format+
     # allocates no more than today's +:html_safe+ shape on the same
-    # records. The bench numbers in +phase_1_report.md § 3.1.6+ are the
+    # records. The bench numbers in +phase_1_report+ 3.1.6 are the
     # canonical macro signal; this in-spec assertion is the focused
     # regression spec a future codegen drift would trip first.
     it ":wire_format total allocations ≤ :html_safe total allocations on saved records" do

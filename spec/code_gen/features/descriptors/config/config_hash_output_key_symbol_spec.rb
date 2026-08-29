@@ -5,14 +5,14 @@ require "panko/code_gen"
 require "config/config_hash_output_key_symbol"
 
 # Feature spec for the +config_hash_output_key_symbol+ config-isolation
-# fixture (#10 in +docs/testing.md § Config-isolation fixtures+). Pins
+# fixture (#10 in the Config-isolation fixtures). Pins
 # the +Config#hash_output_key_type: :symbol+ knob's behavior end-to-end:
 # every Hash-mode field write — Attributes, Method Attributes, and
 # Associations — emits +result[:<name>] = ...+ instead of the default
 # +result["<name>"] = ...+. The snapshot tier pins the emitted shape;
 # this file pins the runtime semantics. Hash-mode-only by construction —
 # JSON keys are always Strings per the JSON spec, so the knob has no
-# effect there per +docs/config.md § hash_output_key_type+.
+# effect there.
 RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
   let(:descriptor) { Fixtures::ConfigHashOutputKeySymbol::DESCRIPTOR }
   let(:config) { Fixtures::ConfigHashOutputKeySymbol::CONFIG }
@@ -58,13 +58,13 @@ RSpec.describe "Generated Class for Fixtures::ConfigHashOutputKeySymbol" do
     end
   end
 
-  describe "uniform propagation through nested Descriptors (per docs/config.md § hash_output_key_type)" do
+  describe "uniform propagation through nested Descriptors" do
     # Inline minimal nested-Descriptor shape — the +ConfigHashOutputKeySymbol+
     # fixture itself is flat (no Associations) per the canonical corpus,
     # so nesting is exercised here so the propagation contract has its
     # own assertion. Both depths must carry Symbol keys in the output;
     # +Compile+ threads the same +Config+ to every nested Generated
-    # Class it emits per +docs/config.md+.
+    # Class it emits.
     it "emits Symbol keys at every depth (has_one and has_many)" do
       inner = Panko::CodeGen::Descriptor.new(
         name: "ConfigHashOutputKeySymbolInnerSerializer",

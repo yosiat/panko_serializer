@@ -4,15 +4,13 @@ module Panko::CodeGen
   module Generators
     # Header banner emitter shared by both Output Mode adapters via {ClassEmitter}. Produces
     # the per-file comment block that follows +# frozen_string_literal:
-    # true+ and precedes the first +class+ line, per
-    # +docs/code_gen/dumping.md § Dumped file shape+. Written once at the top of
+    # true+ and precedes the first +class+ line. Written once at the top of
     # every emit, never per inner class — multi-class trees show only the
     # root Descriptor in the +Descriptor:+ line because that's the
     # Descriptor +compile+ / +dump+ was called with.
     #
     # The bytes the banner produces are part of the
-    # +Compile ≡ Dump byte-identical+ contract from
-    # +CLAUDE.md § Architectural shape+ — the same banner appears in the
+    # +Compile ≡ Dump byte-identical+ contract — the same banner appears in the
     # in-memory +module_eval+'d source (where it's invisible to
     # +Method#source_location+ but visible to +method_source+ retrieval)
     # and in the on-disk +.generated+ file, so reading either form

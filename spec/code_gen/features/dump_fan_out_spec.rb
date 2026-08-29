@@ -210,7 +210,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
         # Mutual +require_relative+ trips Ruby's "circular require
         # considered harmful" warning by design — both files name each
         # other, and the cycle is intentionally resolved at instantiation,
-        # not load (per +docs/dumping.md § Nested Descriptor dumps+).
+        # not load.
         # Silence just this require so the spec output stays clean.
         previous_verbose = $VERBOSE
         $VERBOSE = nil

@@ -6,15 +6,12 @@ require "shallow_generic"
 require "shallow_specialized"
 require "nested_composition"
 
-# Cross-cutting +Filter+ contract — the 10-item enumeration from
-# +docs/testing.md § filter_spec.rb+. JSON/Hash parity (item 10) is
-# iterated at every describe block per
-# +docs/testing.md § JSON/Hash parity+ (the same file holds both modes
-# rather than splitting per-mode files — divergence between modes would
-# be a regression worth catching at the spec tier).
+# Cross-cutting +Filter+ contract — the 10-item enumeration. JSON/Hash
+# parity (item 10) is iterated at every describe block (the same file
+# holds both modes rather than splitting per-mode files — divergence
+# between modes would be a regression worth catching at the spec tier).
 #
-# Fixture strategy mirrors +docs/testing.md § filter_spec.rb § Fixture
-# strategy+:
+# Fixture strategy:
 #
 # - +shallow_generic+ for the Attributes-only +:only+ / +:except+
 #   stories;
@@ -24,8 +21,7 @@ require "nested_composition"
 #   filter targets);
 # - +nested_composition+ for the no-inheritance and threading-through-
 #   +Composition+ stories (the fixture's +has_one :author+ + +has_many
-#   :comments+ matches the precedence-ladder shape from
-#   +docs/testing.md § association_if_spec.rb+);
+#   :comments+ matches the precedence-ladder shape);
 # - inline minimal Descriptors when the canonical corpus does not
 #   carry the right shape (the +Source ≠ name+ case + the
 #   filter-before-+if:+ spy + the recursive-Descriptor cases).
@@ -172,8 +168,8 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
       context "with #{mode} Output Mode" do
         it "ignores a top-level Field name not present in FIELD_INDEX" do
           # +:nonexistent+ is not in +ShallowGeneric+'s FIELD_INDEX
-          # +{id, title}+; per +docs/filters.md § Rules+ ("A key that
-          # does not match any node at its level is ignored silently"),
+          # +{id, title}+; since "A key that
+          # does not match any node at its level is ignored silently",
           # the only-list still scopes the output to +:id+ alone.
           generated = compile(Fixtures::ShallowGeneric, mode)
           record = Fixtures::ShallowGeneric.sanity_record
@@ -212,8 +208,8 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(6) No inheritance — a parent's filter does not implicitly apply to children unless threaded" do
-    # Per +docs/filters.md § Rules+ ("Filters do not inherit: +:only+
-    # at the parent level does not propagate to child Associations.").
+    # "Filters do not inherit: +:only+ at the parent level does not
+    # propagate to child Associations."
     # The trap below: the parent's bit pattern at child-shared indices
     # would silently drop the child's Fields if the parent's Filter
     # object were passed verbatim to the nested +_write_one+ /
@@ -257,15 +253,14 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(7) Child-filter key — looked up by Source, not name (when Source ≠ name)" do
-    # Per +docs/filters.md § Rules+ ("Child-filter keys reference the
+    # "Child-filter keys reference the
     # Association's Source (which defaults to the name unless explicitly
-    # overridden)"). Built inline because the canonical corpus has every
+    # overridden)". Built inline because the canonical corpus has every
     # Association at +source == name+; the +Source ≠ name+ shape only
     # exists when an Association explicitly overrides +source:+. The
     # parent emit at S14.4 threads +filters.child(:#{association.source},
-    # ChildClass::FIELD_INDEX)+ — the Source is the lookup key per
-    # +docs/filters.md § Threading through Composition+, the +name+ is
-    # the output key.
+    # ChildClass::FIELD_INDEX)+ — the Source is the lookup key, the
+    # +name+ is the output key.
     let(:author_descriptor) do
       Panko::CodeGen::Descriptor.new(
         name: "Source7AuthorSerializer",
@@ -321,7 +316,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         it "ignores a sub-filter keyed by name (:writer) when Source is :author (forward-compat silent ignore)" do
           # Inverse pinning of the rule: the +name+-keyed sub-filter
           # does not match the Source-keyed lookup, so it is silently
-          # ignored per +docs/filters.md § Rules+ ("A key that does not
+          # ignored ("A key that does not
           # match any node at its level is ignored silently"). The
           # writer child emits unfiltered.
           generated = Panko::CodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
@@ -337,8 +332,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(8) Filter-before-if: — a filter-dropped Association does not invoke its if: Callable" do
-    # Per +docs/filters.md § Filter before if:+ + the precedence ladder
-    # in +docs/testing.md § association_if_spec.rb § Precedence ladder+
+    # Filter before +if:+, per the precedence ladder
     # (item 1 wins over item 2): when the +Filter+ drops an Association
     # the +if:+ Callable is not invoked, the Source is not loaded, and
     # the nested Generated Class is not entered. Spy +if:+ Callable
@@ -423,8 +417,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
 
         it "invokes if: exactly once on the filter-kept path (control)" do
           # Sanity: with no filter, the +if:+ Callable is invoked once
-          # per Record per +docs/testing.md § association_if_spec.rb+
-          # item 9. Pinned here so the zero-invocation tests above
+          # per Record, item 9. Pinned here so the zero-invocation tests above
           # demonstrate filter-induced suppression, not a broken spy.
           spy = []
           d = build_with_spy(spy)
@@ -523,7 +516,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  # Per +docs/filters.md § Threading through Composition+: filters thread
+  # Filters thread
   # through +Composition+ at every nested call site, including
   # self-recursion (+recursive_self+: +Comment has_many :replies+ → same
   # +CommentDescriptor+) and mutual recursion (+recursive_mutual+:

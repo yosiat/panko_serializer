@@ -7,7 +7,7 @@ module Panko::CodeGen
   # source string. Knows nothing about +module_eval+ or +File.write+ —
   # that materialization happens one layer up in +Compiler+ / +Dump+,
   # and both consume the same bytes (the Compile ≡ Dump byte-identical
-  # contract from +docs/code_gen/structure.md § Layered architecture+).
+  # contract).
   class Generator
     # The set of accepted +output:+ values.
     OUTPUT_MODES = %i[json hash].freeze

@@ -4,10 +4,9 @@ module Panko::CodeGen
   module Validators
     # Semantic-validation rule: every +Attribute+ on a +Descriptor+ with
     # +model:+ set must resolve to either a column or an instance method
-    # on the AR Model (3-step rule per
-    # +docs/code_gen/compilation.md § Specialized path+). Unresolved Sources raise
+    # on the AR Model (3-step rule). Unresolved Sources raise
     # +UnknownSourceError+ before any source emit, naming the +Descriptor+,
-    # +Field+, and observed Source per +docs/code_gen/errors.md § Message convention+.
+    # +Field+, and observed Source.
     #
     # Second concrete rule plugged into the +Validator+ orchestrator
     # (registered after +CallableArity+ in +Validator::DEFAULT_RULES+).
@@ -17,11 +16,9 @@ module Panko::CodeGen
     #
     # Scope notes:
     # - +model: nil+ (Generic path) — no validation; missing methods
-    #   surface at runtime as Ruby's own +NoMethodError+ per
-    #   +docs/code_gen/errors.md+.
+    #   surface at runtime as Ruby's own +NoMethodError+.
     # - Non-AR class in +model:+ (e.g. a +Struct+ or plain +Class.new+) —
-    #   skipped. The Specialized path falls back to method dispatch per
-    #   +docs/code_gen/compilation.md § Non-AR class in `model`+.
+    #   skipped. The Specialized path falls back to method dispatch.
     module SourceResolution
       # Walks +descriptor+ depth-first and raises on the first unresolvable
       # Attribute Source against the +model:+ class. Uses an identity-keyed
@@ -47,10 +44,9 @@ module Panko::CodeGen
         private
 
         # Recursive depth-first traversal. The +seen+ Hash is keyed by
-        # Descriptor identity (+__id__+) — matches the contract from
-        # +docs/code_gen/descriptor.md § Recursive Descriptors+ ("Recursion is
-        # detected via Ruby object identity") and the convention
-        # established by +CallableArity+.
+        # Descriptor identity (+__id__+) — matches the contract
+        # ("Recursion is detected via Ruby object identity") and the
+        # convention established by +CallableArity+.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
         # @param seen [Hash{Integer => true}] identity-keyed visit set
@@ -68,15 +64,13 @@ module Panko::CodeGen
         #
         # When +descriptor.model+ is not AR-like (e.g. a +Struct+ or a
         # plain +Class.new+), classification is skipped — the Specialized
-        # path falls back to method dispatch per +docs/code_gen/compilation.md §
-        # Non-AR class in `model`+.
+        # path falls back to method dispatch.
         #
         # @param descriptor [Panko::CodeGen::Descriptor] a Descriptor
         #   with +model:+ set (caller already gated)
         # @return [void]
         # @raise [Panko::CodeGen::UnknownSourceError] re-raised with
-        #   +Descriptor+ / +Field+ context per +docs/code_gen/errors.md § Message
-        #   convention+
+        #   +Descriptor+ / +Field+ context per the Message convention
         def classify_attributes!(descriptor)
           model = descriptor.model
           return unless ar_class?(model)
@@ -87,8 +81,8 @@ module Panko::CodeGen
         end
 
         # Calls +AccessClassifier.classify+ and re-raises any
-        # +UnknownSourceError+ with the full +docs/code_gen/errors.md § Message
-        # convention+ format. The classifier itself is +(klass, source)+
+        # +UnknownSourceError+ with the full Message convention
+        # format. The classifier itself is +(klass, source)+
         # only and knows nothing about Descriptors / Fields; this wrapper
         # bridges that gap.
         #
@@ -114,8 +108,7 @@ module Panko::CodeGen
         # is the gate +DefineAttributeMethods.ensure!+ short-circuits on.
         # Non-AR classes in +model:+ (e.g. +Struct+, plain +Class.new+)
         # fail this test and are skipped — the Specialized path emits
-        # method dispatch for them per +docs/code_gen/compilation.md § Non-AR
-        # class in `model`+.
+        # method dispatch for them.
         #
         # @param klass [Class]
         # @return [Boolean]

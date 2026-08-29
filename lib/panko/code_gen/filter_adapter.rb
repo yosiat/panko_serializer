@@ -16,7 +16,7 @@ module Panko
     # except are both supplied, Panko selects(only) then rejects(except), so the
     # effective whitelist is only - except.
     #
-    # Engine shape (per level, per docs/code_gen/code_gen filters): {only: [...], except:
+    # Engine shape (per level): {only: [...], except:
     # [...], <source> => <sub-hash>}. :only and :except must not co-exist at one
     # level (Filter.wrap raises), so co-supply is folded into :only. Association
     # sub-filters are keyed by Source symbol, matching Filter#child(:<source>).

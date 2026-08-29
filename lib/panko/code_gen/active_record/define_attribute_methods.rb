@@ -19,8 +19,7 @@ module Panko::CodeGen
     # Surface is one method (+.ensure!(klass)+); deliberately the deepest
     # part of S6 alongside +AccessClassifier+. If a future Rails ever
     # renames or moves the underlying method, the feature-detect switch
-    # goes here — no per-Rails-version file tree per
-    # +docs/code_gen/structure.md § Why no per-Rails-version adapter folder+.
+    # goes here — no per-Rails-version file tree.
     module DefineAttributeMethods
       # Calls +klass.define_attribute_methods+ when the class has not yet
       # generated its column readers, otherwise returns immediately.

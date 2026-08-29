@@ -1,20 +1,19 @@
 # frozen_string_literal: true
 
 module Panko::CodeGen
-  # Orchestrates one +Dump+ call per +docs/code_gen/dumping.md § Dump to file+:
-  # validates the caller-supplied +path:+, runs the same semantic
-  # validator stack as +Compiler+, and writes one +.rb+ file per
-  # unique +Generated Class+ in the +Descriptor+ tree. Flat
-  # +Descriptors+ (no Associations) produce a single file at the
-  # caller-supplied +path:+; nested / Recursive +Descriptors+ fan
-  # out to one file per unique +Descriptor+ via {Generators::Fanout},
+  # Orchestrates one +Dump+ call: validates the caller-supplied
+  # +path:+, runs the same semantic validator stack as +Compiler+, and
+  # writes one +.rb+ file per unique +Generated Class+ in the
+  # +Descriptor+ tree. Flat +Descriptors+ (no Associations) produce a
+  # single file at the caller-supplied +path:+; nested / Recursive
+  # +Descriptors+ fan out to one file per unique +Descriptor+ via
+  # {Generators::Fanout},
   # with the outer file at +path:+ and inner files as siblings in the
   # same directory (snake_case +Descriptor+ name + +"_<output>.rb"+).
   #
   # Per-Generated-Class class bytes share {Generator}'s emit
   # machinery with {Compiler}, satisfying the
-  # +Compile ≡ Dump byte-identical+ contract from
-  # +docs/code_gen/structure.md § Layered architecture+ at the per-class
+  # +Compile ≡ Dump byte-identical+ contract at the per-class
   # boundary. The fan-out wrapping (banner, +require_relative+) is
   # the materialization layer's responsibility and lives in
   # {Generators::Fanout}.
@@ -24,7 +23,7 @@ module Panko::CodeGen
     # @param config [Panko::CodeGen::Config] resolved settings
     # @param path [String] the on-disk target file path; required, must
     #   be a non-empty +String+ — anything else fails fast at {#dump}
-    #   per +docs/code_gen/dumping.md § Dumping API+ before any side effect.
+    #   before any side effect.
     #   For a +Descriptor+ tree with Associations, +path:+ names the
     #   *outer* file; inner sibling files land alongside it under
     #   their snake_case +Descriptor+ basenames.

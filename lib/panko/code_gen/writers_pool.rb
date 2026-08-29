@@ -29,8 +29,7 @@ module Panko::CodeGen
   # The base class is abstract: callers always instantiate one of the
   # subclasses. The +storage+ method is the only extension point — it
   # must return the per-fiber LIFO Array, lazily creating it under the
-  # configured storage key. See +docs/code_gen/output-modes.md § Writer
-  # lifecycle+ for the integration story.
+  # configured storage key.
   class WritersPool
     # Returns a new pool keyed by +key+. The key is a symbol baked into
     # the emitted +POOL = WritersPool::<subclass>.new(:<key>)+ constant

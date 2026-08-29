@@ -18,8 +18,8 @@ require "config/config_json_column_html_safe"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_json_specialized"
 
-# Environment loads-and-runs tier per +docs/dumping.md § Contract:
-# the dumped file is runnable with a Descriptor at construction+. For
+# Environment loads-and-runs tier: the dumped file is runnable with a
+# Descriptor at construction. For
 # every (fixture, mode), {Panko::CodeGen.dump} writes a +.rb+ file
 # tree to a tmp dir, the spec +require+s the outer file, instantiates
 # the resulting +Generated Class+ with the fixture's structural shape,
@@ -100,8 +100,7 @@ RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
               # both ways across the cycle peers; Ruby's "circular
               # require considered harmful" warning is a load-time
               # heads-up, not a correctness failure (the cycle resolves
-              # at +.new+, not at load), so silence it here per the
-              # +docs/dumping.md § Nested Descriptor dumps+ contract.
+              # at +.new+, not at load), so silence it here.
               previous_verbose = $VERBOSE
               $VERBOSE = nil
               begin
