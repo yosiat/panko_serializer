@@ -26,7 +26,7 @@ module Panko
       # @param only [Array, Hash, nil] Panko's constructor `only:`
       # @param except [Array, Hash, nil] Panko's constructor `except:`
       # @return [Hash] engine-shaped filters; an empty Hash means no filtering
-      #   (Filter.wrap collapses it to Filter::NONE)
+      #   (Filter.wrap collapses it to Filter::None)
       def to_engine_filters(only, except)
         only_attrs, only_assocs = split(only)
         except_attrs, except_assocs = split(except)
@@ -58,7 +58,7 @@ module Panko
       # :except (Panko's select-then-reject == only - except). A non-empty only
       # always emits :only even when the difference is empty (Panko then keeps no
       # fields, which the engine expresses as an empty whitelist). Absent filters
-      # emit nothing so the level collapses to Filter::NONE.
+      # emit nothing so the level collapses to Filter::None.
       def merge_level!(result, only_attrs, except_attrs)
         if !only_attrs.empty?
           result[:only] = only_attrs - except_attrs

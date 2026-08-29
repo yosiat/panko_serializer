@@ -109,13 +109,12 @@ filter, `child` returns the same no-filter singleton, so recursion stays allocat
 
 ## No-filter fast path
 
-The no-filter singleton (`Panko::CodeGen::Filter::NONE`) has trivial implementations:
+The no-filter singleton (`Panko::CodeGen::Filter::None`) has trivial implementations:
 `drops?` always returns `false`, `child` always returns itself.
 These calls are prime YJIT inlining targets and the common case (caller passed no
 `filters:`) incurs no Hash lookups, no Array scans, no allocations.
 
-This singleton is the `Filter::None` module (aliased as the frozen `Filter::NONE`
-constant), sealed at module load — see
+This singleton is the `Filter::None` module, frozen at module load. See
 [§ Internal representation — the Indexed filter](#internal-representation--the-indexed-filter).
 
 ## JSON vs Hash output parity
@@ -140,7 +139,7 @@ construction and never re-checked per call:
   indexed `Array#[]` load.
 
 Both satisfy the same `drops?(<integer>)` / `child(<symbol>, <field_index>)`
-contract as `Filter::NONE`, so emitted code stays monomorphic across the three shapes.
+contract as `Filter::None`, so emitted code stays monomorphic across the three shapes.
 
 This "Indexed representation × single emit path" shape is the verdict of a benchmark
 across the internal-representation × emit-strategy matrix.
@@ -149,5 +148,5 @@ across the internal-representation × emit-strategy matrix.
 
 Filter support is a **default, unconditional feature** of every **Generated Class**. There
 is no `Config` flag to switch it off — the no-filter case is already cheap via the
-`Filter::NONE` singleton, and the filtered path costs one indexed `drops?` lookup per Field.
+`Filter::None` singleton, and the filtered path costs one indexed `drops?` lookup per Field.
 No caller-visible knob is warranted.

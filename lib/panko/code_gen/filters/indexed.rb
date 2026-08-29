@@ -16,7 +16,7 @@ module Panko::CodeGen
     #   +Array#[]+ — one indexed load.
     #
     # Both representations satisfy the same +drops?(<integer>)+ /
-    # +child(<symbol>)+ contract as +Filter::NONE+ so emitted
+    # +child(<symbol>)+ contract as +Filter::None+ so emitted
     # code stays monomorphic per +docs/code_gen/filters.md § Threading through
     # Composition+. The hot-path representation is chosen at construction
     # time and never re-checked per call.
@@ -30,7 +30,7 @@ module Panko::CodeGen
     # against it and memoized for the remainder of the +serialize_*+ call.
     # When the parent's caller-supplied +Hash+ has no entry for +source+,
     # an empty sub-+Hash+, or a non-+Hash+ value, the cache memoizes the
-    # {Filter::NONE} singleton instead per
+    # {Filter::None} singleton instead per
     # +docs/code_gen/filters.md § Public shape+.
     module Indexed
       module_function
@@ -212,7 +212,7 @@ module Panko::CodeGen
 
       # Resolves the child filter for +source+ given the parent's
       # caller-supplied +hash+ and the nested Generated Class's
-      # +field_index+. Returns +Filter::NONE+ when the parent hash carries
+      # +field_index+. Returns +Filter::None+ when the parent hash carries
       # no entry for +source+, when the entry is +nil+, when it is the
       # empty Hash, or when it is non-Hash (the public contract per
       # +docs/code_gen/filters.md § Public shape+ is that nested values are Hashes
@@ -233,7 +233,7 @@ module Panko::CodeGen
       # @return [Filter::None, Bits, Array]
       def resolve_child(hash, source, field_index)
         sub = hash[source]
-        return NONE unless sub.is_a?(Hash) && !sub.empty?
+        return None unless sub.is_a?(Hash) && !sub.empty?
         build(sub, field_index)
       end
     end

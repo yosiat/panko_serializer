@@ -133,7 +133,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(4) Empty Hash {} ≡ nil — no filtering, both route to Filter::NONE" do
+  describe "(4) Empty Hash {} ≡ nil — no filtering, both route to Filter::None" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "produces output identical to filters: nil for serialize_one" do
@@ -153,15 +153,15 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           expect(generated.serialize_many(records, filters: {})).to eq(expected)
         end
 
-        it "routes both filters: nil and filters: {} to the Filter::NONE singleton" do
+        it "routes both filters: nil and filters: {} to the Filter::None singleton" do
           # Pinned at the public-API tier per S14.3 acceptance ("filters:
-          # nil and filters: {} route to Filter::NONE"). The +Filter.wrap+
+          # nil and filters: {} route to Filter::None"). The +Filter.wrap+
           # call inside +serialize_one+ is the only place that decides
           # this; if a future refactor accidentally allocates a fresh
           # Indexed cell for the empty-Hash path, the +equal?+ assertion
           # below catches it.
-          expect(Panko::CodeGen::Filter.wrap(nil)).to equal(Panko::CodeGen::Filter::NONE)
-          expect(Panko::CodeGen::Filter.wrap({})).to equal(Panko::CodeGen::Filter::NONE)
+          expect(Panko::CodeGen::Filter.wrap(nil)).to equal(Panko::CodeGen::Filter::None)
+          expect(Panko::CodeGen::Filter.wrap({})).to equal(Panko::CodeGen::Filter::None)
         end
       end
     end
@@ -218,7 +218,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     # would silently drop the child's Fields if the parent's Filter
     # object were passed verbatim to the nested +_write_one+ /
     # +_to_hash+. The S14.3 +filters.child(:<source>)+ threading
-    # rescopes the nested call to +Filter::NONE+ when the caller
+    # rescopes the nested call to +Filter::None+ when the caller
     # supplied no sub-hash for that Source — the child is unfiltered,
     # not parent-bit-shifted.
     %i[json hash].each do |mode|
@@ -243,7 +243,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           # author). For each comment child (FIELD_INDEX = {id, body}),
           # the inherited mask would drop +id+ (bit 0 = 1) and keep
           # +body+ (bit 1 = 0). With +filters.child(:comments)+
-          # threading, each comment is serialized under +Filter::NONE+
+          # threading, each comment is serialized under +Filter::None+
           # and emits both Fields.
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
@@ -455,7 +455,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     # against the nested Generated Class's +FIELD_INDEX+, so a sub-Hash
     # supplied by the caller actually filters the nested call's output.
     # In S14.2 the resolver collapsed every non-empty sub-Hash to
-    # +Filter::NONE+ for lack of a child +FIELD_INDEX+ to wrap against;
+    # +Filter::None+ for lack of a child +FIELD_INDEX+ to wrap against;
     # S14.4 threads the constant at the nested call site so the cell
     # finally materializes.
     %i[json hash].each do |mode|
@@ -530,7 +530,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   # +Folder → Item → Folder+). At each level the parent's
   # +filters.child(:<source>, FIELD_INDEX)+ scopes the next call to the
   # caller-supplied sub-Hash for that Source — when no sub-Hash is
-  # supplied, the +Filter::NONE+ singleton propagates and the subtree
+  # supplied, the +Filter::None+ singleton propagates and the subtree
   # below runs unfiltered. The child Filter cache (S14.2) ensures that a
   # deep-nested cycle pays the +Indexed.build+ cost at most once per
   # +(level × Source)+ pair per +serialize_*+ call.
@@ -636,7 +636,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           # +:only [:id, :subfolder]+. The Item's +subfolder+
           # Association is kept; its inner Folder still emits
           # unfiltered (no +items+/+subfolder+ sub-Hash supplied at
-          # depth 2 → +Filter::NONE+ propagates).
+          # depth 2 → +Filter::None+ propagates).
           expected_inner_folder = {"id" => 2, "name" => "inner", "items" => [
             {"id" => 20, "name" => "deep-item", "subfolder" => nil}
           ]}

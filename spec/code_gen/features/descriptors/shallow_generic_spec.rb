@@ -47,7 +47,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(filtered).to eq(expected_filtered)
         end
 
-        it "returns the expected output when filters: {} is passed (collapses to Filter::NONE)" do
+        it "returns the expected output when filters: {} is passed (collapses to Filter::None)" do
           generated = generated_class.new(descriptor: descriptor)
           record = {"id" => 1, "title" => "hi"}
           expect(generated.serialize_one(record, filters: {})).to eq(expected)
@@ -115,7 +115,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(filtered).to eq(expected_filtered)
         end
 
-        it "returns the expected output when filters: {} is passed (collapses to Filter::NONE)" do
+        it "returns the expected output when filters: {} is passed (collapses to Filter::None)" do
           records = [{"id" => 1, "title" => "hi"}]
           expect(generated.serialize_many(records, filters: {})).to eq(expected_single[mode])
         end

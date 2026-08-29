@@ -13,7 +13,7 @@ module Panko::CodeGen
   #
   # Two cells exist in this slice:
   #
-  # - {None} — the no-filter singleton ({NONE}); +nil+ and +{}+ map
+  # - {None} — the no-filter singleton; +nil+ and +{}+ map
   #   here. +drops?+ returns +false+, +child+ returns +self+.
   #   Allocation-free, frozen at module load.
   # - {Indexed} — the winning +indexed × single_path+ cell from the filter
@@ -22,15 +22,9 @@ module Panko::CodeGen
   #   Class's +FIELD_INDEX+ has +<= INDEXED_BITS_THRESHOLD+ entries,
   #   {Indexed::Array} (Boolean Array) otherwise.
   module Filter
-    # The no-filter singleton — frozen reference to the {Filter::None}
-    # module. Emitted code receives this instance whenever the caller
-    # passed +nil+ or +{}+, so the no-filter hot path pays zero filter
-    # allocations per +docs/code_gen/filters.md § No-filter fast path+.
-    NONE = None
-
     # Normalizes the caller-supplied +filters:+ kwarg into a Filter
     # object satisfying the +drops?+ / +child+ contract.
-    # +nil+ and +{}+ collapse to {NONE} per
+    # +nil+ and +{}+ collapse to {None} per
     # +docs/code_gen/filters.md § Public shape+ ("Empty Hash +{}+ at a level is
     # equivalent to +nil+ at that level — no filtering."). A non-empty
     # Hash routes to {Indexed.build} against +field_index+ — the
@@ -60,7 +54,7 @@ module Panko::CodeGen
     # @raise [ArgumentError] when any level of +filters+ supplies both
     #   +:only+ and +:except+
     def self.wrap(filters, field_index = nil)
-      return NONE if filters.nil? || filters.empty?
+      return None if filters.nil? || filters.empty?
       validate_no_only_except_co_supply!(filters)
       raise ArgumentError, "Filter.wrap: a non-empty filters Hash requires a field_index (the Generated Class's FIELD_INDEX)" if field_index.nil?
       Indexed.build(filters, field_index)

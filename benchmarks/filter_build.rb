@@ -115,12 +115,12 @@ FILTER_BUILD_PARENT_WARM.child(:child, FILTER_BUILD_CHILD_FIELD_INDEX)
 
 # --- Rows -----------------------------------------------------------------
 
-# NONE singleton — `filters: nil` and `filters: {}` both collapse here.
-benchmark "FilterBuild/NONE/nil" do
+# None singleton — `filters: nil` and `filters: {}` both collapse here.
+benchmark "FilterBuild/None/nil" do
   Panko::CodeGen::Filter.wrap(nil, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-benchmark "FilterBuild/NONE/empty-hash" do
+benchmark "FilterBuild/None/empty-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_EMPTY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 

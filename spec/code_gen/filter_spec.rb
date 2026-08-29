@@ -5,16 +5,16 @@ require "panko/code_gen"
 
 RSpec.describe Panko::CodeGen::Filter do
   describe ".wrap" do
-    it "returns Filter::NONE for nil" do
-      expect(described_class.wrap(nil)).to equal(Panko::CodeGen::Filter::NONE)
+    it "returns Filter::None for nil" do
+      expect(described_class.wrap(nil)).to equal(Panko::CodeGen::Filter::None)
     end
 
-    it "returns Filter::NONE for an empty Hash" do
-      expect(described_class.wrap({})).to equal(Panko::CodeGen::Filter::NONE)
+    it "returns Filter::None for an empty Hash" do
+      expect(described_class.wrap({})).to equal(Panko::CodeGen::Filter::None)
     end
 
-    it "returns Filter::NONE for nil even when a +field_index+ is supplied" do
-      expect(described_class.wrap(nil, {id: 0})).to equal(Panko::CodeGen::Filter::NONE)
+    it "returns Filter::None for nil even when a +field_index+ is supplied" do
+      expect(described_class.wrap(nil, {id: 0})).to equal(Panko::CodeGen::Filter::None)
     end
 
     it "returns a Filter::Indexed for a non-empty Hash" do
@@ -88,15 +88,15 @@ RSpec.describe Panko::CodeGen::Filter do
     end
   end
 
-  describe "::NONE" do
-    let(:none) { Panko::CodeGen::Filter::NONE }
+  describe "::None" do
+    let(:none) { Panko::CodeGen::Filter::None }
 
     it "is frozen" do
       expect(none).to be_frozen
     end
 
     it "is a stable singleton via #equal?" do
-      expect(none).to equal(Panko::CodeGen::Filter::NONE)
+      expect(none).to equal(Panko::CodeGen::Filter::None)
     end
 
     it "drops? returns false for any integer index" do
@@ -204,20 +204,20 @@ RSpec.describe Panko::CodeGen::Filter do
           expect(child.drops?(1)).to be(true)  # :name dropped by :only
         end
 
-        it "returns Filter::NONE for a Source not present in the caller hash" do
+        it "returns Filter::None for a Source not present in the caller hash" do
           filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
+          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::None)
         end
 
-        it "returns Filter::NONE for a Source whose sub-hash is empty" do
+        it "returns Filter::None for a Source whose sub-hash is empty" do
           filter = Panko::CodeGen::Filter::Indexed.build({author: {}}, field_index)
-          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
+          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::None)
         end
 
-        it "returns Filter::NONE for a Source whose value is non-Hash (silently ignored)" do
+        it "returns Filter::None for a Source whose value is non-Hash (silently ignored)" do
           filter = Panko::CodeGen::Filter::Indexed.build({author: 123, comments: nil}, field_index)
-          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
-          expect(filter.child(:comments, child_field_index)).to equal(Panko::CodeGen::Filter::NONE)
+          expect(filter.child(:author, child_field_index)).to equal(Panko::CodeGen::Filter::None)
+          expect(filter.child(:comments, child_field_index)).to equal(Panko::CodeGen::Filter::None)
         end
       end
     end
