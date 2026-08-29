@@ -9,10 +9,6 @@ module Panko::CodeGen
   # +ActiveRecord.default_timezone+ is +:utc+, which is the caller's
   # compile-time gate — and that is the target format modulo the "T"
   # separator, millisecond truncation, and the trailing "Z".
-  #
-  # Ported from Panko 0.8.5's pure-Ruby DateTimeWriter fallback
-  # (+lib/panko/engine/attributes_writer/active_record/values_writer/
-  # datetime_writer.rb+ at 124a54ae).
   module DateTimeFormat
     # "YYYY-MM-DDTHH:MM:SS.mmmZ" — 24 bytes; the splices below overwrite
     # date, time, and up to three fraction digits in place.
