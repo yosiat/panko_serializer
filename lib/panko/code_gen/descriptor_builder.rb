@@ -8,9 +8,10 @@ module Panko
     # Assembles an immutable +Panko::CodeGen::Descriptor+ from a
     # +Panko::Serializer+ class's accumulated DSL declarations (its
     # +_cg_attributes+ / +_cg_method_attributes+ / +_cg_associations+). The DSL
-    # already stores Fields as the engine's own +Attribute+ / +MethodAttribute+
-    # value objects and builds each Association's nested Descriptor eagerly when
-    # the association is declared (see +Panko::Serializer.has_one+/+has_many+),
+    # already stores Fields as the engine's own +Attribute+ / +MethodAttribute+ /
+    # +Association+ value objects and builds each Association's nested
+    # Descriptor eagerly when the association is declared (see
+    # +Panko::Serializer.has_one+/+has_many+),
     # snapshotting the target serializer as it stands then — matching Panko's
     # finite, one-level self-recursion — so this assembly never recurses.
     module DescriptorBuilder
@@ -26,7 +27,7 @@ module Panko
           model: nil,
           attributes: serializer_class._cg_attributes.dup,
           method_attributes: serializer_class._cg_method_attributes.dup,
-          associations: serializer_class._cg_associations.map { |decl| to_association(decl) },
+          associations: serializer_class._cg_associations.dup,
           parent_class: serializer_class
         )
       end
@@ -131,12 +132,6 @@ module Panko
       rescue NameError
         false
       end
-
-      # @param decl [Panko::Serializer::AssociationDecl]
-      def to_association(decl)
-        Association.new(name: decl.name_str.to_sym, kind: decl.kind, descriptor: decl.descriptor, source: decl.name_sym)
-      end
-      private_class_method :to_association
 
       def narrow_by(descriptor, engine)
         only_set = engine[:only]&.to_set

@@ -11,11 +11,6 @@ module Panko
     # recognized by the generated code's `value.equal?(Panko::CodeGen::SKIP)` check.
     SKIP = Panko::CodeGen::SKIP
 
-    # A has_one / has_many declaration captured at class-definition time. Its
-    # +descriptor+ is the nested Panko::CodeGen::Descriptor, built (and any
-    # static only/except narrowed) eagerly when the association is declared.
-    AssociationDecl = Struct.new(:name_sym, :name_str, :kind, :descriptor)
-
     class << self
       # Each serializer accumulates its Fields as the engine's own value
       # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
@@ -109,7 +104,12 @@ module Panko
         descriptor = Panko::CodeGen::DescriptorBuilder.build(serializer)
         only, except = association_filters(serializer, options)
         descriptor = Panko::CodeGen::DescriptorBuilder.narrow(descriptor, only, except)
-        _cg_associations << AssociationDecl.new(name.to_sym, options.fetch(:name, name).to_s, kind, descriptor)
+        _cg_associations << Panko::CodeGen::Association.new(
+          name: options.fetch(:name, name).to_s.to_sym,
+          kind: kind,
+          descriptor: descriptor,
+          source: name.to_sym
+        )
       end
 
       # The nested serializer's +filters_for+ is evaluated once, here, with nil
