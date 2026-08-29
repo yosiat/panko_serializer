@@ -127,7 +127,7 @@ end
 # Filter narrowing for the with-filter rows. Top-level `:only` keeps two
 # Attributes + the two-level Composition (`author` + `comments`); the
 # nested entries narrow each child Descriptor to one Attribute. This shape
-# exercises the `Filter::Indexed::Bits#child` cache **during emit** — the
+# exercises the `Filter::Indexed::Array#child` cache **during emit** — the
 # `has_many :comments` walk hoists the resolved child filter out of the
 # loop (S14.4) so subsequent records hit the cache without rebuild.
 GRAPH_FILTER_HASH = {

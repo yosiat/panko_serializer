@@ -15,11 +15,8 @@ module Panko::CodeGen
   # - {None} — the no-filter singleton; +nil+ and +{}+ map
   #   here. +drops?+ returns +false+, +child+ returns +self+.
   #   Allocation-free, frozen at module load.
-  # - {Indexed} — the winning +indexed × single_path+ cell from the filter
-  #   representation benchmark.
-  #   Picks {Indexed::Bits} (Integer bit-mask) when the Generated
-  #   Class's +FIELD_INDEX+ has +<= INDEXED_BITS_THRESHOLD+ entries,
-  #   {Indexed::Array} (Boolean Array) otherwise.
+  # - {Indexed} — the indexed cell, backed by a Boolean
+  #   Array over the Generated Class's +FIELD_INDEX+ positions.
   module Filter
     # Normalizes the caller-supplied +filters:+ kwarg into a Filter
     # object satisfying the +drops?+ / +child+ contract.
@@ -44,7 +41,7 @@ module Panko::CodeGen
     # @param field_index [Hash{Symbol => Integer}, nil] the
     #   per-Generated-Class +FIELD_INDEX+ map; required when +filters+
     #   is a non-empty Hash
-    # @return [Filter::None, Filter::Indexed::Bits, Filter::Indexed::Array]
+    # @return [Filter::None, Filter::Indexed::Array]
     # @raise [ArgumentError] when +filters+ is a non-empty Hash but
     #   +field_index+ is +nil+ — the indexed cell needs the per-class
     #   field map to translate symbols to integer positions

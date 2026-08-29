@@ -106,8 +106,7 @@ lib/
       filter.rb                                # Filter.wrap(hash) factory + interface
       filters/
         none.rb                                # no-filter singleton (Null Object)
-        indexed.rb                             # Indexed filter — bit-mask (≤63 Fields) or
-                                               # Boolean Array (>63 Fields); see filters.md
+        indexed.rb                             # Indexed filter (Boolean Array); see filters.md
 
       # === Compilation orchestration ===
       compiler.rb                              # Compiler#compile: drive Generator + module_eval

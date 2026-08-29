@@ -129,17 +129,14 @@ The public `filters:` Hash shape and the Filter-object interface (`drops?`, `chi
 are the contract; the **implementation** behind them is the **Indexed** filter
 (`lib/panko/code_gen/filters/indexed.rb`, with the no-filter singleton in
 `lib/panko/code_gen/filters/none.rb`). `Filter.wrap` walks the caller's Hash once against
-the Generated Class's `FIELD_INDEX` and picks one of two representations, chosen at
-construction and never re-checked per call:
+the Generated Class's `FIELD_INDEX` and builds the single representation behind that
+contract:
 
-- **`Indexed::Bits`** — a single `Integer` bit-mask, used when the class has ≤ 63 Fields.
-  `drops?(i)` is `Integer#[i]` — one bitwise extraction with no Bignum boxing on 64-bit
-  Ruby (the 63 cutoff keeps the mask a tagged `Fixnum`).
-- **`Indexed::Array`** — a Boolean `Array`, used for wider classes. `drops?(i)` is one
-  indexed `Array#[]` load.
+- **`Indexed::Array`** - a Boolean `Array` sized to the class's Field count, `true` at
+  each dropped Field's index. `drops?(i)` is one indexed `Array#[]` load.
 
-Both satisfy the same `drops?(<integer>)` / `child(<symbol>, <field_index>)`
-contract as `Filter::None`, so emitted code stays monomorphic across the three shapes.
+It satisfies the same `drops?(<integer>)` / `child(<symbol>, <field_index>)`
+contract as `Filter::None`, so emitted code stays monomorphic across the two shapes.
 
 This "Indexed representation × single emit path" shape is the verdict of a benchmark
 across the internal-representation × emit-strategy matrix.

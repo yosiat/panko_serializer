@@ -2,23 +2,15 @@
 
 module Panko::CodeGen
   module Filter
-    # The +indexed x single_path+ cell — the verdict of the filter
-    # representation benchmark.
+    # The one indexed cell. Drops storage is a Boolean +Array+ indexed
+    # by the position each Field holds in the per-Generated-Class
+    # +FIELD_INDEX+ (built by {Generators::FieldIndex} and emitted as a
+    # frozen constant on every Generated Class). +#drops?+ is
+    # +Array#[]+, one indexed load.
     #
-    # The constructor inspects the per-Generated-Class +FIELD_INDEX+
-    # (built by {Generators::FieldIndex} and emitted as a frozen constant
-    # on every Generated Class) and picks one of two representations:
-    #
-    # - {Bits} — single +Integer+ bit-mask, used when +FIELD_INDEX.size+
-    #   is +<= INDEXED_BITS_THRESHOLD+. +#drops?+ is +Integer#[]+ — one
-    #   bitwise extraction with no Bignum boxing on 64-bit Ruby.
-    # - {Array} — Boolean +Array+, used otherwise. +#drops?+ is
-    #   +Array#[]+ — one indexed load.
-    #
-    # Both representations satisfy the same +drops?(<integer>)+ /
+    # {Array} satisfies the same +drops?(<integer>)+ /
     # +child(<symbol>)+ contract as +Filter::None+ so emitted
-    # code stays monomorphic. The hot-path representation is chosen at
-    # construction time and never re-checked per call.
+    # code stays monomorphic.
     #
     # +child(<symbol>, <field_index>)+ caches its result keyed by +Source+
     # symbol (cache lifetime = one +serialize_*+ call — the +Filter+ object
@@ -33,19 +25,11 @@ module Panko::CodeGen
     module Indexed
       module_function
 
-      # The cutoff between the {Bits} and {Array} representations. At 63
-      # the bit-mask is a tagged +Fixnum+ on 64-bit Ruby — one
-      # +Integer#[]+ stays constant-time. At 64 the literal would box
-      # into a +Bignum+, so +Integer#[]+ on it stops being O(1) and the
-      # +Array#[]+ path wins.
-      INDEXED_BITS_THRESHOLD = 63
-
-      # Builds the appropriate {Bits} or {Array} filter for +hash+
-      # against the given +field_index+. Walks +field_index+ once at
-      # construction to translate the caller-supplied +:only+ / +:except+
-      # symbol lists into the per-representation drops storage; the hot
-      # +#drops?+ path then never touches +field_index+ or +hash+
-      # again.
+      # Builds the {Array} filter for +hash+ against the given
+      # +field_index+. Walks +field_index+ once at construction to
+      # translate the caller-supplied +:only+ / +:except+ symbol lists
+      # into the drops storage; the hot +#drops?+ path then never
+      # touches +field_index+ or +hash+ again.
       #
       # Names in +:only+ / +:except+ that are not present in
       # +field_index+ are silently ignored (forward-compatibility —
@@ -54,15 +38,12 @@ module Panko::CodeGen
       #
       # @param hash [Hash] the caller-supplied non-empty +filters:+ Hash;
       #   +:only+ and +:except+ are read here, other keys are
-      #   association sub-filters resolved lazily by {Bits#child} /
-      #   {Array#child}
+      #   association sub-filters resolved lazily by {Array#child}
       # @param field_index [Hash{Symbol => Integer}] the
       #   per-Generated-Class +FIELD_INDEX+ map (filter key → declared
       #   index; value Fields key by +name+, Associations by +source+
       #   — see {Generators::FieldIndex.build})
-      # @return [Bits, Array] the bit-mask cell when
-      #   +field_index.size <= INDEXED_BITS_THRESHOLD+, the boolean-array
-      #   cell otherwise
+      # @return [Array] the indexed cell
       def build(hash, field_index)
         n = field_index.size
         only = hash[:only]
@@ -70,19 +51,11 @@ module Panko::CodeGen
         only_set = only&.to_set
         except_set = except&.to_set
 
-        if n <= INDEXED_BITS_THRESHOLD
-          mask = 0
-          field_index.each do |name, i|
-            mask |= (1 << i) if drop?(name, only_set, except_set)
-          end
-          Bits.new(hash, mask)
-        else
-          arr = ::Array.new(n)
-          field_index.each do |name, i|
-            arr[i] = drop?(name, only_set, except_set)
-          end
-          Array.new(hash, arr)
+        arr = ::Array.new(n)
+        field_index.each do |name, i|
+          arr[i] = drop?(name, only_set, except_set)
         end
+        Array.new(hash, arr)
       end
 
       # Returns whether +name+ should be dropped given the resolved
@@ -107,66 +80,9 @@ module Panko::CodeGen
         end
       end
 
-      # Bit-mask representation. Drops storage is a single +Integer+
-      # whose +i+'th bit is set when the Field at index +i+ should be
-      # dropped. +#drops?+ is +@drops_mask[index]+ — one +Integer#[]+
-      # extraction returning +0+ or +1+ on a tagged +Fixnum+, no
-      # allocations on the hot path.
-      class Bits
-        # @param hash [Hash] the caller-supplied +filters:+ Hash, kept
-        #   for lazy {#child} resolution against association sub-hashes
-        # @param drops_mask [Integer] precomputed bit-mask where bit +i+
-        #   is set iff the Field at index +i+ is filtered out
-        def initialize(hash, drops_mask)
-          @hash = hash
-          @drops_mask = drops_mask
-          @children_cache = {}
-        end
-
-        # Returns +true+ when the Field at +index+ is filtered out.
-        # Constant-time: one +Integer#[]+ bit extraction, comparing to
-        # +1+ to coerce the +0+/+1+ result into a Boolean.
-        #
-        # @param index [Integer] the Field's codegen-time +FIELD_INDEX+
-        #   position
-        # @return [Boolean]
-        def drops?(index)
-          @drops_mask[index] == 1
-        end
-
-        # Returns the cached child filter for +source+ scoped against the
-        # nested Generated Class's +field_index+. See {Indexed} for the
-        # cache-lifetime contract: the resolved child is memoized for the
-        # remainder of the parent's +serialize_*+ call so a +has_many+
-        # iteration consults the cache once at hoist time and never
-        # rebuilds. The parent's emitted code passes the child class's
-        # +FIELD_INDEX+ constant at the call site.
-        #
-        # The cached pair carries the +field_index+ the cell was built
-        # against, guarded by +equal?+: two Associations may share one
-        # +Source+ while nesting different child classes, and a cell
-        # built against the first child's +FIELD_INDEX+ would drop the
-        # wrong positions in the second. The common case (one child class
-        # per Source) still hits the memo with zero allocations —
-        # +FIELD_INDEX+ constants are stable objects.
-        #
-        # @param source [Symbol] the Association's +Source+
-        # @param field_index [Hash{Symbol => Integer}] the nested Generated
-        #   Class's +FIELD_INDEX+ — required when the parent's
-        #   caller-supplied sub-+Hash+ for +source+ is non-empty
-        # @return [Filter::None, Bits, Array]
-        def child(source, field_index)
-          cached = @children_cache[source]
-          return cached[1] if cached && cached[0].equal?(field_index)
-          resolved = Indexed.resolve_child(@hash, source, field_index)
-          @children_cache[source] = [field_index, resolved]
-          resolved
-        end
-      end
-
       # Boolean-Array representation. Drops storage is an +Array+ of
       # +true+ / +false+ at each Field's index position. +#drops?+ is
-      # +@drops_array[index]+ — one indexed load, no bit math.
+      # +@drops_array[index]+ — one indexed load.
       class Array
         # @param hash [Hash] the caller-supplied +filters:+ Hash, kept
         #   for lazy {#child} resolution against association sub-hashes
@@ -190,14 +106,25 @@ module Panko::CodeGen
         end
 
         # Returns the cached child filter for +source+ scoped against the
-        # nested Generated Class's +field_index+. Same cache-lifetime,
-        # +Composition+-threading, and per-child-+FIELD_INDEX+ scoping
-        # contract as {Bits#child}.
+        # nested Generated Class's +field_index+. See {Indexed} for the
+        # cache-lifetime contract: the resolved child is memoized for the
+        # remainder of the parent's +serialize_*+ call so a +has_many+
+        # iteration consults the cache once at hoist time and never
+        # rebuilds. The parent's emitted code passes the child class's
+        # +FIELD_INDEX+ constant at the call site.
+        #
+        # The cached pair carries the +field_index+ the cell was built
+        # against, guarded by +equal?+: two Associations may share one
+        # +Source+ while nesting different child classes, and a cell
+        # built against the first child's +FIELD_INDEX+ would drop the
+        # wrong positions in the second. The common case (one child class
+        # per Source) still hits the memo with zero allocations -
+        # +FIELD_INDEX+ constants are stable objects.
         #
         # @param source [Symbol] the Association's +Source+
         # @param field_index [Hash{Symbol => Integer}] the nested Generated
         #   Class's +FIELD_INDEX+
-        # @return [Filter::None, Bits, Array]
+        # @return [Filter::None, Array]
         def child(source, field_index)
           cached = @children_cache[source]
           return cached[1] if cached && cached[0].equal?(field_index)
@@ -215,7 +142,7 @@ module Panko::CodeGen
       # nested values are Hashes — non-Hashes are silently ignored).
       #
       # When the sub-hash is a non-empty +Hash+, builds a real child
-      # {Bits} / {Array} cell directly via {build} — co-supply validation
+      # {Array} cell directly via {build} — co-supply validation
       # already ran at the top-level
       # +Filter.wrap+ call and walked every nested level depth-first, so
       # this resolution path can skip re-validating and pay only the
@@ -226,7 +153,7 @@ module Panko::CodeGen
       # @param field_index [Hash{Symbol => Integer}] the nested Generated
       #   Class's +FIELD_INDEX+ — required when +hash[source]+ is a
       #   non-empty +Hash+
-      # @return [Filter::None, Bits, Array]
+      # @return [Filter::None, Array]
       def resolve_child(hash, source, field_index)
         sub = hash[source]
         return None unless sub.is_a?(Hash) && !sub.empty?

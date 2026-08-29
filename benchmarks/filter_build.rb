@@ -10,19 +10,19 @@ require_relative "support/benchmark"
 # `filter_only` / `filter_except` scenarios bundle this cost inside the
 # emit IPS, so this scenario isolates it for direct inspection.
 #
-# Three Descriptor shapes span the representation-choice space (per
-# `lib/panko/code_gen/filters/indexed.rb` § INDEXED_BITS_THRESHOLD):
+# Three Descriptor shapes show how build cost scales with field width
+# and with nesting:
 #
-#   * `Flat5`  —  5 attrs (≤ 63) → Bits rep (Integer bit-mask, tagged
-#                 Fixnum on 64-bit Ruby).
-#   * `Flat70` — 70 attrs (>  63) → Array rep (Boolean Array).
+#   * `Flat5`  -  5 attrs. The common width.
+#   * `Flat70` - 70 attrs. The widest shape here, so the one-shot
+#                 `field_index` walk in `Indexed.build` dominates.
 #   * `Deep`   —  3-level nesting (Root + has_one Child + has_one GC,
 #                 3 attrs/level) → exercises the child-Filter cache;
 #                 the cache is lifetime-scoped to one `serialize_*`
 #                 call, so a `has_many` iteration consults it once at
 #                 hoist time and pays zero per-record after.
 #
-# Two filter-Hash flavors per Bits row:
+# Two filter-Hash flavors per 5-field row:
 #
 #   * `frozen-hash`  — pre-allocated, frozen Hash reused per call.
 #                      Measures pure `Filter.wrap` work.
@@ -124,26 +124,26 @@ benchmark "FilterBuild/None/empty-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_EMPTY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-# Bits rep (≤ 63 fields) — flat 5-attr Descriptor.
-benchmark "FilterBuild/Bits/5fields/only-2of5/frozen-hash" do
+# Flat 5-attr Descriptor.
+benchmark "FilterBuild/Indexed/5fields/only-2of5/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT5_ONLY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-benchmark "FilterBuild/Bits/5fields/only-2of5/fresh-hash" do
+benchmark "FilterBuild/Indexed/5fields/only-2of5/fresh-hash" do
   Panko::CodeGen::Filter.wrap({only: [:a, :b]}, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-benchmark "FilterBuild/Bits/5fields/except-1of5/frozen-hash" do
+benchmark "FilterBuild/Indexed/5fields/except-1of5/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT5_EXCEPT_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-# Array rep (> 63 fields) — flat 70-attr Descriptor. Sparse vs dense
+# Flat 70-attr Descriptor. Sparse vs dense
 # `:only` lists exercise the same per-Field walk in `Indexed.build`.
-benchmark "FilterBuild/Array/70fields/only-3of70/frozen-hash" do
+benchmark "FilterBuild/Indexed/70fields/only-3of70/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT70_SPARSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
 end
 
-benchmark "FilterBuild/Array/70fields/only-60of70/frozen-hash" do
+benchmark "FilterBuild/Indexed/70fields/only-60of70/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT70_DENSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
 end
 

@@ -18,8 +18,7 @@ require_relative "support/targets"
 #
 #   * Post Descriptor — 5 Attributes (id, title, body, views, published) +
 #     3 Associations (author has_one, first_comment has_one, comments
-#     has_many) = 8 fields, the count that drives `Filter::Indexed` into
-#     its Bits representation per the S13 verdict-cell row.
+#     has_many) = 8 fields.
 #   * Author Descriptor — 3 Attributes (id, name, email).
 #   * Comment Descriptor — 2 Attributes (id, body), shared between the
 #     `:first_comment` has_one and `:comments` has_many Associations.

@@ -19,7 +19,7 @@ RSpec.describe Panko::CodeGen::Filter do
 
     it "returns a Filter::Indexed for a non-empty Hash" do
       indexed = described_class.wrap({only: [:id]}, {id: 0, title: 1})
-      expect(indexed).to be_a(Panko::CodeGen::Filter::Indexed::Bits)
+      expect(indexed).to be_a(Panko::CodeGen::Filter::Indexed::Array)
     end
 
     it "raises ArgumentError when a non-empty Hash is wrapped without a +field_index+" do
@@ -111,19 +111,15 @@ RSpec.describe Panko::CodeGen::Filter do
   end
 
   describe "::Indexed" do
-    it "exposes INDEXED_BITS_THRESHOLD = 63 (Integer#[] tagged-Fixnum boundary)" do
-      expect(Panko::CodeGen::Filter::Indexed::INDEXED_BITS_THRESHOLD).to eq(63)
-    end
-
     describe ".build" do
-      it "picks the Bits representation when FIELD_INDEX.size <= 63" do
+      it "returns an Indexed::Array for a narrow field_index" do
         field_index = (0..62).each_with_object({}) { |i, h| h[:"f#{i}"] = i }
         expect(field_index.size).to eq(63)
         filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
-        expect(filter).to be_a(Panko::CodeGen::Filter::Indexed::Bits)
+        expect(filter).to be_a(Panko::CodeGen::Filter::Indexed::Array)
       end
 
-      it "picks the Array representation when FIELD_INDEX.size > 63" do
+      it "returns an Indexed::Array for a field_index past 63 entries" do
         field_index = (0..63).each_with_object({}) { |i, h| h[:"f#{i}"] = i }
         expect(field_index.size).to eq(64)
         filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0]}, field_index)
@@ -131,7 +127,7 @@ RSpec.describe Panko::CodeGen::Filter do
       end
     end
 
-    shared_examples "an Indexed Filter representation" do |field_count:|
+    shared_examples "an Indexed Filter" do |field_count:|
       let(:field_index) do
         (0...field_count).each_with_object({}) { |i, h| h[:"f#{i}"] = i }
       end
@@ -184,8 +180,7 @@ RSpec.describe Panko::CodeGen::Filter do
         # the parent's emitted code passes at the nested call site (S14.4
         # +Composition+ threading). Unit tests
         # pin behavior with a hand-rolled child shape that mirrors what
-        # +nested_composition+'s author would carry — small enough to
-        # stay in both representations' coverage.
+        # +nested_composition+'s author would carry.
         let(:child_field_index) { {id: 0, name: 1} }
 
         it "returns the same cached object on repeated calls within one call" do
@@ -198,7 +193,7 @@ RSpec.describe Panko::CodeGen::Filter do
         it "materializes a real child Indexed cell when the sub-hash is non-empty" do
           filter = Panko::CodeGen::Filter::Indexed.build({author: {only: [:id]}}, field_index)
           child = filter.child(:author, child_field_index)
-          expect(child).to be_a(Panko::CodeGen::Filter::Indexed::Bits)
+          expect(child).to be_a(Panko::CodeGen::Filter::Indexed::Array)
           expect(child.drops?(0)).to be(false) # :id kept by :only
           expect(child.drops?(1)).to be(true)  # :name dropped by :only
         end
@@ -221,12 +216,12 @@ RSpec.describe Panko::CodeGen::Filter do
       end
     end
 
-    context "with the Bits representation (field_count = 5, fits in 63 bits)" do
-      include_examples "an Indexed Filter representation", field_count: 5
+    context "with field_count = 5" do
+      include_examples "an Indexed Filter", field_count: 5
     end
 
-    context "with the Array representation (field_count = 70, exceeds 63 bits)" do
-      include_examples "an Indexed Filter representation", field_count: 70
+    context "with field_count = 70" do
+      include_examples "an Indexed Filter", field_count: 70
     end
   end
 
@@ -242,21 +237,21 @@ RSpec.describe Panko::CodeGen::Filter do
       )
     end
 
-    it "serializes only the +only:+ Fields on a small Descriptor (Bits rep)" do
+    it "serializes only the +only:+ Fields on a narrow Descriptor" do
       descriptor = descriptor_with_attribute_names([:id, :title, :body])
       generated = Panko::CodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
       record = {"id" => 1, "title" => "hi", "body" => "long"}
       expect(generated.serialize_one(record, filters: {only: [:id]})).to eq('{"id":1}')
     end
 
-    it "omits the +except:+ Fields on a small Descriptor (Bits rep)" do
+    it "omits the +except:+ Fields on a narrow Descriptor" do
       descriptor = descriptor_with_attribute_names([:id, :title, :body])
       generated = Panko::CodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
       record = {"id" => 1, "title" => "hi", "body" => "long"}
       expect(generated.serialize_one(record, filters: {except: [:body]})).to eq('{"id":1,"title":"hi"}')
     end
 
-    it "exercises the Array representation on a Descriptor with > 63 Fields" do
+    it "serializes only the +only:+ Fields on a wide Descriptor" do
       names = (1..70).map { |i| :"f#{i}" }
       descriptor = descriptor_with_attribute_names(names)
       generated = Panko::CodeGen.compile(descriptor, output: :json).new(descriptor: descriptor)
@@ -265,7 +260,7 @@ RSpec.describe Panko::CodeGen::Filter do
       expect(output).to eq('{"f1":"f1","f70":"f70"}')
     end
 
-    it "exercises the Array representation in :hash mode on a > 63-Field Descriptor" do
+    it "omits the +except:+ Fields on a wide Descriptor in :hash mode" do
       names = (1..70).map { |i| :"f#{i}" }
       descriptor = descriptor_with_attribute_names(names)
       generated = Panko::CodeGen.compile(descriptor, output: :hash).new(descriptor: descriptor)

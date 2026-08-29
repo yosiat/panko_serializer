@@ -210,21 +210,21 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   describe "(6) No inheritance — a parent's filter does not implicitly apply to children unless threaded" do
     # "Filters do not inherit: +:only+ at the parent level does not
     # propagate to child Associations."
-    # The trap below: the parent's bit pattern at child-shared indices
+    # The trap below: the parent's drops list at child-shared indices
     # would silently drop the child's Fields if the parent's Filter
     # object were passed verbatim to the nested +_write_one+ /
     # +_to_hash+. The S14.3 +filters.child(:<source>)+ threading
     # rescopes the nested call to +Filter::None+ when the caller
     # supplied no sub-hash for that Source — the child is unfiltered,
-    # not parent-bit-shifted.
+    # not scoped by the parent's positions.
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "the author child emits all its Fields when the parent restricts to :only [:author]" do
           # Parent FIELD_INDEX = {id: 0, author: 1, comments: 2}.
-          # Parent +:only [:author]+ → drops_mask = bit 0 (id) + bit 2
-          # (comments) = 0b101. If the child Author serializer received
-          # that mask verbatim, +filters.drops?(0)+ would return +true+
-          # and the author's +id+ Field would be dropped — that is the
+          # Parent +:only [:author]+ drops index 0 (+id+) and index 2
+          # (+comments+). If the child Author serializer received that
+          # drops list verbatim, +filters.drops?(0)+ would return +true+
+          # and the author's +id+ Field would be dropped, that is the
           # inheritance bug this test guards against.
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
@@ -235,10 +235,10 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "the comments children emit all their Fields when the parent restricts to :only [:comments]" do
-          # Parent +:only [:comments]+ → drops_mask = 0b011 (drops id +
-          # author). For each comment child (FIELD_INDEX = {id, body}),
-          # the inherited mask would drop +id+ (bit 0 = 1) and keep
-          # +body+ (bit 1 = 0). With +filters.child(:comments)+
+          # Parent +:only [:comments]+ drops index 0 (+id+) and index 1
+          # (+author+). For each comment child (FIELD_INDEX = {id, body}),
+          # the inherited drops list would drop +id+ (index 0) and keep
+          # +body+ (index 1). With +filters.child(:comments)+
           # threading, each comment is serialized under +Filter::None+
           # and emits both Fields.
           generated = compile(Fixtures::NestedComposition, mode)

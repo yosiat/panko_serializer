@@ -13,10 +13,10 @@ module Panko::CodeGen
     #
     # - The class's +FIELD_INDEX = {...}.freeze+ constant — read by
     #   +Filter::Indexed+ in S14.2 to map caller-supplied symbols
-    #   (+only:+/+except:+) into bit positions / array indices.
+    #   (+only:+/+except:+) into array indices.
     # - Each Field emitter's +unless filters.drops?(<integer>) ... end+
     #   wrapper — pinned at codegen so the runtime hot path is one
-    #   +Integer#[]+ (or +Array#[]+) lookup, not a per-Field Hash probe.
+    #   +Array#[]+ lookup, not a per-Field Hash probe.
     module FieldIndex
       module_function
 

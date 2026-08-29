@@ -12,11 +12,10 @@ require_relative "support/targets"
 # the specialized path so the engine row goes through the same model-aware
 # fast path as panko/{json,object} for an apples-to-apples comparison.
 #
-# The 71 fields (`:id` + 70 `WIDE_POST_ATTRIBUTE_NAMES`) cross the
-# `Filter::Indexed::INDEXED_BITS_THRESHOLD` (63), so the with-filter rows
-# below exercise the **Array** representation of `Filter::Indexed` — the
-# only production bench that does. Bits rep coverage lives in
-# `filter_only.rb` / `filter_except.rb` (5 fields).
+# The 71 fields (`:id` + 70 `WIDE_POST_ATTRIBUTE_NAMES`) make this the
+# widest Descriptor in the suite, so the with-filter rows below stress
+# per-Field emit and the per-Field `filters.drops?` call at a width no
+# other scenario reaches.
 
 WIDE_ATTRIBUTES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "WideAttributesPostBenchSerializer",
