@@ -1,18 +1,16 @@
 ---
 title: Attributes
 layout: default
-nav_order: 5
+nav_order: 2
 parent: Reference
 ---
 
 # Attributes
 
-Attributes allow you to specify which record attributes you want to serialize.
+Attributes declare which values a serializer emits. There are two kinds:
 
-There are two types of attributes:
-
--   Field - simple columns defined on the record it self.
--   Virtual/Method - this allows to include properties beyond simple fields.
+-   **Field attributes** — columns read directly off the record.
+-   **Method attributes** — values computed by a method on the serializer.
 
 ```ruby
 class UserSerializer < Panko::Serializer
@@ -20,21 +18,29 @@ class UserSerializer < Panko::Serializer
 
   def full_name
     "#{object.first_name} #{object.last_name}"
-   end
+  end
 end
 ```
 
-## Field Attributes
+Panko decides which is which automatically: if you define a method whose name
+matches a declared attribute, that attribute becomes a method attribute;
+otherwise it's read as a column.
 
-Using field attributes you can control which columns of the given ActiveRecord object you want to serialize.
+## Field attributes
 
-Instead of relying on ActiveRecord to do it's type casting, Panko does on it's own for performance reasons (read more in [Design Choices]({% link design-choices.md %}#type-casting)).
+Field attributes name columns on the record you want to serialize:
 
-## Method Attributes
+```ruby
+class UserSerializer < Panko::Serializer
+  attributes :id, :name, :email
+end
+```
 
-Method attributes are used when your serialized values can be derived from the object you are serializing.
+## Method attributes
 
-The serializer's attribute methods can access the object being serialized as `object`:
+A method attribute is used when the value is derived rather than stored. Define
+a method with the attribute's name; it can read the record being serialized
+through `object`:
 
 ```ruby
 class PostSerializer < Panko::Serializer
@@ -46,78 +52,33 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-Another useful thing you can pass your serializer is `context`, a `context` is a bag of data whom your serializer may need.
-
-For example, here we will pass feature flags:
+Method attributes can also read `context` and `scope` — two per-serialization
+values you can pass in. For example, exposing feature flags supplied via
+`context`:
 
 ```ruby
 class UserSerializer < Panko::Serializer
-  attributes :id, :email
+  attributes :id, :email, :feature_flags
 
   def feature_flags
     context[:feature_flags]
   end
 end
 
-serializer = UserSerializer.new(context: {
-  feature_flags: FeatureFlags.all
-})
-
+serializer = UserSerializer.new(context: {feature_flags: FeatureFlags.all})
 serializer.serialize(User.first)
 ```
 
-## Filters
-
-Filters allows us to reduce the amount of attributes we can serialize, therefore reduce the data usage & performance of serializing.
-
-There are two types of filters:
-
--   only - use those attributes **only** and nothing else.
--   except - all attributes **except** those attributes.
-
-Usage example:
-
-```ruby
-class UserSerializer < Panko::Serializer
-  attributes :id, :name, :email
-end
-
-# this line will return { 'name': '..' }
-UserSerializer.new(only: [:name]).serialize(User.first)
-
-# this line will return { 'id': '..', 'email': ... }
-UserSerializer.new(except: [:name]).serialize(User.first)
-```
-
-> **Note** that if you want to user filter on an associations, the `:name` property is not taken into account.
-If you have a `has_many :state_transitions, name: :history` association defined, the key to use in filters is
-`:state_transitions` (e.g. `{ except: [:state_transitions] }`).
-
-## Filters For
-
-Sometimes you find yourself having the same filtering logic in actions. In order to
-solve this duplication, Panko allows you to write the filters in the serializer.
-
-```ruby
-class UserSerializer < Panko::Serializer
-  attributes :id, :name, :email
-
-  def self.filters_for(context, scope)
-    {
-      only: [:name]
-    }
-  end
-end
-
-# this line will return { 'name': '..' }
-UserSerializer.serialize(User.first)
-```
-
-> See discussion in: [https://github.com/yosiat/panko_serializer/issues/16](https://github.com/yosiat/panko_serializer/issues/16)
+See [Serializers → context and scope]({% link serializers.md %}#context-and-scope)
+for the full picture, and [Skipping a field]({% link serializers.md %}#skipping-a-field)
+for how a method attribute can omit its key entirely.
 
 ## Aliases
 
-Let's say we have an attribute name that we want to expose to client as different name, the current way of doing so is using method attribute, for example:
+To expose an attribute under a different key, reach for `aliases` rather than a
+method attribute.
+
+You *could* rename with a method attribute:
 
 ```ruby
 class PostSerializer < Panko::Serializer
@@ -129,12 +90,20 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-The downside of this approach is that `created_at` skips Panko's type casting, therefore we get a direct hit on performance.
-
-To fix this, we can use aliases:
+But this turns a column read into a method attribute — an extra method call on
+every record, and the value skips Panko's column handling (for example, datetime
+formatting in Hash mode). `aliases` keeps the plain column path while changing
+the output key:
 
 ```ruby
 class PostSerializer < Panko::Serializer
   aliases created_at: :published_at
 end
 ```
+
+Here `created_at` is read as a regular column, but emitted as `published_at`.
+
+## Filtering attributes
+
+To serialize a subset of attributes — with `only` / `except`, nested filters,
+or `filters_for` — see [Filters]({% link filters.md %}).

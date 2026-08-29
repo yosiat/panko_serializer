@@ -1,58 +1,42 @@
 # frozen_string_literal: true
 
+# Loaded once per scenario invocation — each scenario file under benchmarks/
+# runs as a fresh process (per docs/benchmarks.md § Running) so a single
+# top-level `require_relative "support/setup"` chain is safe and idempotent in
+# practice. Locks down the runtime environment for one bench run: gem load
+# path, runtime gems, YJIT, AR connection.
+
 require "active_record"
 require "sqlite3"
-require "securerandom"
+require "oj"
+require "benchmark/ips"
+require "memory_profiler"
 
-# Change the following to reflect your database settings
-ActiveRecord::Base.establish_connection(
-  adapter: "sqlite3",
-  database: ":memory:"
-)
+# StackProf is only loaded when PROFILE=cpu so default and PROFILE=memory runs
+# don't pay the require cost (and so the harness loads on Rubies without the
+# native extension built).
+require "stackprof" if ENV["PROFILE"] == "cpu"
 
-# Don't show migration output when constructing fake db
-ActiveRecord::Migration.verbose = false
+require "panko_serializer"
 
-ActiveRecord::Schema.define do
-  create_table :authors, force: true do |t|
-    t.string :name
-    t.timestamps(null: false)
-  end
+# oj_serializers/setup.rb auto-loads `rails` (via require "rails") unless
+# `Oj.default_options[:use_raw_json]` is set beforehand. The bench suite uses
+# AR (not full Rails); pre-setting the option dodges the rails require so we
+# don't need a Rails dependency just to load the comparison target.
+Oj.default_options = {mode: :rails, use_raw_json: true}
 
-  create_table :posts, force: true do |t|
-    t.text :body
-    t.string :title
-    t.references :author
-    t.json :data
-    t.timestamps(null: false)
-  end
-end
+# oj_serializers calls `String#ends_with?` (an ActiveSupport alias for
+# `end_with?`); without the core_ext it raises NoMethodError at the first
+# attribute-emit codegen call.
+require "active_support/core_ext/string/starts_ends_with"
+require "oj_serializers"
 
-class Author < ActiveRecord::Base
-  has_many :posts
-end
+$LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
+require "panko/code_gen"
 
-class Post < ActiveRecord::Base
-  belongs_to :author
-end
+# YJIT auto-enable per docs/phase-1-bar.md — phase-1 numbers are YJIT-on. No
+# env knob to override; the production target is YJIT and we don't measure
+# anything else.
+RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
-class PostWithAliasModel < ActiveRecord::Base
-  self.table_name = "posts"
-
-  alias_attribute :new_id, :id
-  alias_attribute :new_body, :body
-  alias_attribute :new_title, :title
-  alias_attribute :new_author_id, :author_id
-  alias_attribute :new_created_at, :created_at
-end
-
-Post.transaction do
-  2300.times do
-    Post.create(
-      body: SecureRandom.hex(30),
-      title: SecureRandom.hex(20),
-      author: Author.create(name: SecureRandom.alphanumeric),
-      data: {a: 1, b: 2, c: 3}
-    )
-  end
-end
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")

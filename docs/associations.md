@@ -1,15 +1,14 @@
 ---
 title: Associations
 layout: default
-nav_order: 6
+nav_order: 3
 parent: Reference
 ---
 
 # Associations
 
-A serializer can define it's own associations - both `has_many` and `has_one` to serialize under the context of the object.
-
-For example:
+A serializer can nest other serializers through `has_one` and `has_many`, each
+serializing a related object under the current one:
 
 ```ruby
 class PostSerializer < Panko::Serializer
@@ -20,82 +19,50 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-### Associations with aliases
+Use `serializer:` for `has_one` and `each_serializer:` for `has_many`.
 
-An association key name can be aliased with the `name` option.
+## Aliasing an association
 
-For example:
-the `actual_author` property will be converted to `alias_author`.
+An association's output key can be renamed with the `name:` option. Here the
+`actual_author` relation is emitted as `author`:
 
 ```ruby
 class PostSerializer < Panko::Serializer
   attributes :title, :body
 
-  has_one :actual_author, serializer: AuthorSerializer, name: :alias_author
+  has_one :actual_author, serializer: AuthorSerializer, name: :author
   has_many :comments, each_serializer: CommentSerializer
 end
 ```
 
-### Inference
+> When filtering, refer to an aliased association by its declared name (the
+> first argument), not the `name:` alias. See [Filters]({% link filters.md %}#filtering-associations).
 
-Panko can find the type of the serializer by looking at the relationship name, so instead of specifying
-the serializer at the above example, we can:
+## Serializer inference
+
+If you omit `serializer:` / `each_serializer:`, Panko infers it from the
+association name:
 
 ```ruby
 class PostSerializer < Panko::Serializer
   attributes :title, :body
 
-  has_one :author
-  has_many :comments
+  has_one :author      # => AuthorSerializer
+  has_many :comments   # => CommentSerializer
 end
 ```
 
-The logic of inferencing is:
+The inference rule:
 
--   Take the name of the relationship (for example - `:author` / `:comments`) singularize and camelize it.
--   Look for const defined with the name above and "Serializer" suffix (by using `Object.const_get`).
+-   Take the association name (`:author`, `:comments`), singularize and
+    camelize it.
+-   Look for a constant with that name plus a `Serializer` suffix
+    (`AuthorSerializer`, `CommentSerializer`).
 
-> If Panko can't find the serializer it will throw an error on startup time, for example: `Can't find serializer for PostSerializer.author has_one relationship`.
+> If Panko can't find a matching serializer, it raises at load time, e.g.
+> `Can't find serializer for PostSerializer.author has_one relationship.`
 
-## Nested Filters
+## Filtering associations
 
-As talked before, Panko allows you to filter the attributes of a serializer.
-But Panko lets you take that step further, and filters the attributes of you associations so you can re-use your serializers in your application.
-
-For example, let's say one portion of the application needs to serialize a list of posts but only with their - `title`, `body`, author's id and comments id.
-
-We can declare tailored serializer for this, or we can re-use the above defined serializer - `PostSerializer` and use nested filters.
-
-```ruby
-posts = Post.all
-
-Panko::ArraySerializer.new(posts, each_serializer: PostSerializer, only: {
-  instance: [:title, :body, :author, :comments],
-  author: [:id],
-  comments: [:id],
-})
-```
-
-Let's dissect the `only` option we passed:
-
--   `instance` - list of attributes (and associations) we want to serialize for the current instance of the serializer, in this case - `PostSerializer`.
--   `author`, `comments` - here we specify the list of attributes we want to serialize for each association.
-
-It's important to note that Nested Filters are recursive, in other words, we can filter the association's associations.
-
-For example, `CommentSerializer` has an `has_one` association `Author`, and for each `comments.author` we can only serialize it's name.
-
-```ruby
-posts = Post.all
-
-Panko::ArraySerializer.new(posts, only: {
-  instance: [:title, :body, :author, :comments],
-  author: [:id],
-  comments: {
-    instance: [:id, :author],
-    author: [:name]
-  }
-})
-```
-
-As you see now in `comments` the `instance` have different meaning, the `CommentSerializer`.
+Associations can be filtered — and their own attributes narrowed — with nested
+filters. See [Filters → Nested filters]({% link filters.md %}#nested-filters).

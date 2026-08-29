@@ -6,20 +6,32 @@ nav_order: 4
 
 # Design Choices
 
-In short, Panko is a serializer for ActiveRecord objects (it can't serialize any other object), which strives for high performance & simple API (which is inspired by ActiveModelSerializers).
+Panko is a serializer for ActiveRecord objects (it can serialize plain Ruby
+objects too, but its fast paths are built around ActiveRecord) that aims for
+high performance behind a small, simple API.
 
-Its performance is achieved by:
+Its speed comes from three ideas, each explained below:
 
--   `Oj::StringWriter` - I will elaborate later.
--   Type casting — instead of relying on ActiveRecord to do its type cast, Panko is doing it by itself.
--   Figuring out the metadata, ahead of time — therefore, we ask less questions during the `serialization loop`.
+-   **Code generation** — Panko compiles a specialized serializer, in plain
+    Ruby, once per serializer class, so the per-record work is straight-line
+    code instead of a metadata-driven loop.
+-   **Incremental JSON** — JSON is built incrementally with `Oj::StringWriter`,
+    without an intermediate Hash.
+-   **Ahead-of-time metadata** — everything Panko can figure out about a
+    serializer (which fields are columns, which are methods, which associations
+    exist) is resolved when the class is first used, not inside the
+    serialization loop.
+
+> Panko used to ship a C extension. It no longer does — the engine is now
+> **pure Ruby** that Panko generates and the Ruby VM (with YJIT) compiles.
+> There is nothing to build when you install the gem.
 
 ## Serialization overview
 
-First, let's start with an overview. Let's say we want to serialize an `User` object, which has
-`first_name`, `last_name`, `age`, and `email` properties.
+Let's say we want to serialize a `User` object that has `first_name`,
+`last_name`, `age`, and `email` columns.
 
-The serializer definition will be something like this:
+The serializer looks like this:
 
 ```ruby
 class UserSerializer < Panko::Serializer
@@ -31,96 +43,192 @@ class UserSerializer < Panko::Serializer
 end
 ```
 
-And the usage of this serializer will be:
+And using it:
 
 ```ruby
-# fetch user from database
 user = User.first
-
-# create serializer, with empty options
-serializer = UserSerializer.new
-
-# serialize to JSON
-serializer.serialize_to_json(user)
+UserSerializer.new.serialize_to_json(user)
 ```
 
-Let's go over the steps that Panko will execute behind the scenes for this flow.
-_I will skip the serializer definition part, because it's fairly simple and straightforward (see `lib/panko/serializer.rb`)._
+Here is what Panko does behind the scenes.
 
-First step, while initializing the UserSerializer, we will create a **Serialization Descriptor** for this class.
-Serialization Descriptor's goal is to answer those questions:
+**First use of the class.** The DSL (`attributes`, `has_one`, `has_many`, …)
+is accumulated into an immutable description of the serializer's shape, which
+answers questions like:
 
--   Which fields do we have? In our case, `:age`, `:email`.
--   Which method fields do we have? In our case `:name`.
--   Which associations do we have (and their serialization descriptors)?
+-   Which values are plain columns? Here, `age` and `email`.
+-   Which values are methods? Here, `name` (because a method with that name is
+    defined).
+-   Which associations exist, and what is each one's shape?
 
-The serialization description is also responsible for filtering the attributes (`only` \\ `except`).
+From that description Panko **generates a specialized Ruby class** and compiles
+it once. It caches the compiled class per serializer and per output mode
+(`:json` vs `:hash`), so this cost is paid a single time, not per record.
 
-Now, that we have the serialization descriptor, we are finished with the Ruby part of Panko, and all we did here is done in _initialization time_ and now we move to C code.
+**Each serialization.** The generated class walks the record and writes each
+field directly — reading columns through ActiveRecord's own attribute readers,
+invoking your method attributes, and recursing into associations. In `:json`
+mode it writes straight into an `Oj::StringWriter`; in `:hash` mode it builds a
+Hash with string keys.
 
-In C land, we take the `user` object and the serialization descriptor, and start the serialization process which is separated to 4 parts:
+The result is either a JSON string (`serialize_to_json`) or a Ruby Hash
+(`serialize`).
 
--   Serializing Fields - looping through serialization descriptor's `fields` and read them from the ActiveRecord object (see `Type Casting`) and write them to the writer.
--   Serializing Method Fields - creating (a cached) serializer instance, setting its `@object` and `@context`, calling all the method fields and writing them to the writer.
--   Serializing associations — this is simple, once we have fields + method fields, we just repeat the process.
+## The interesting parts
 
-Once this is finished, we have a nice JSON string.
-Now let's dig deeper.
+### Code generation
 
-## Interesting parts
+Most Ruby serializers interpret their configuration on every record: for each
+field they ask "is this a method or a column?", "is it filtered out?", "what
+serializer handles this association?". Those questions have the same answers
+for every record, but they get re-asked millions of times.
 
-### Oj::StringWriter
+Panko answers them **once**, when it first sees a serializer class, and then
+generates a small, purpose-built Ruby class that hard-codes the answers. There
+are no per-field branches on the hot path — the generated code for
+`UserSerializer` reads `age`, reads `email`, and calls `name`, in a straight
+line.
 
-If you read the code of ActiveRecord serialization code in Ruby, you will observe this flow:
+Generating plain Ruby (rather than interpreting a data structure, or shipping
+C) has two payoffs:
 
-1.  Get an array of ActiveRecord objects (`User.all` for example).
-2.  Build a new array of hashes where each hash is an `User` with the attributes we selected.
-3.  The JSON serializer, takes this array of hashes and loop them, and converts it to a JSON string.
+-   **The VM optimizes it.** The emitted methods are small and monomorphic and
+    keep a stable object shape, which is exactly what YJIT specializes well.
+-   **It stays debuggable.** It's Ruby you can read; backtraces point at real
+    method calls, not at a generic interpreter frame.
 
-This entire process is expensive in terms of Memory & CPU, and this where the combination of Panko and Oj::StringWriter really shines.
+You never see any of this. You keep writing ordinary Panko serializers; the
+code generation is entirely internal.
 
-In Panko, the serialization process of the above is:
+### What the generated code looks like
 
-1.  Get an array of ActiveRecord objects (`User.all` for example).
-2.  Create `Oj::StringWriter` and feed the values to it, via `push_value` / `push_object` / `push_object` and behind the scene, `Oj::StringWriter` will serialize the objects incrementally into a string.
-3.  Get from `Oj::StringWriter` the completed JSON string — which is a no-op, since `Oj::StringWriter` already built the string.
+To make this concrete, here is the code Panko generates for a small serializer:
 
-### Figuring out the metadata, ahead of time.
+```ruby
+class PostSerializer < Panko::Serializer
+  attributes :id, :title, :body
+end
+```
 
-Another observation I noticed in the Ruby serializers is that they ask and do a lot in a serialization loop:
+Panko compiles a subclass whose JSON writer is straight-line — it reads each
+value off the record and pushes it into the writer, with one branch for
+plain-Hash records versus objects:
 
--   Is this field a method? is it a property?
--   Which fields and associations do I need for the serializer to consider the `only` and `except` options?
--   What is the serializer of this has_one association?
+```ruby
+def _write_one(record, writer, context, scope, filters)
+  if record.is_a?(Hash)
+    writer.push_object
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["title"], "title")
+    writer.push_value(record["body"], "body")
+    writer.pop
+  else
+    writer.push_object
+    writer.push_value(record.id, "id")
+    writer.push_value(record.title, "title")
+    writer.push_value(record.body, "body")
+    writer.pop
+  end
+end
+```
 
-Panko tries to ask the bare minimum in serialization by building `Serialization Descriptor` for each serialization and caching it.
+There are no per-field lookups or conditionals on the hot path — the field
+names are baked into the method, and each value is read with ActiveRecord's own
+reader (`record.title`) and pushed as-is. You can inspect this for any
+serializer by passing its [descriptor]({% link descriptor.md %}) to
+`Panko::CodeGen.dump`:
 
-The Serialization Descriptor will do the filtering of `only` and `except` and will check if a field is a method or not (therefore Panko doesn't have list of `attributes`).
+```ruby
+Panko::CodeGen.dump(PostSerializer.descriptor, output: :json, path: "post_serializer_generated.rb")
+```
 
-### Type Casting
+(The real output also wraps each field in an `only`/`except` filter check,
+elided here for readability.)
 
-This is the final part, which helped yield most of the performance improvements.
-In ActiveRecord, when we read the value of an attribute, it does type casting of the DB value to its real Ruby type.
+### Specializing per record class
 
-For example, time strings are converted to Time objects, Strings are duplicated, and Integers are converted from their values to Number.
+The generated class above is **generic** — it reads fields the same way
+whatever object you hand it. Panko goes one step further for ActiveRecord:
+the first time a serializer meets a given record class (say, `Post`), it
+compiles a **specialized variant** hard-wired to that model.
 
-This type casting is really expensive, as it's responsible for most of the allocations in the serialization flow and most of them can be "relaxed".
+A specialized variant knows things the generic code can't:
 
-If we think about it, we don't need to duplicate strings or convert time strings to time objects or even parse JSON strings for the JSON serialization process.
+-   **How each column is stored.** Columns are read straight out of
+    ActiveRecord's attribute storage rather than through reader-method
+    dispatch, and each column's type is known at compile time — so, for
+    example, datetime formatting is decided once, not re-checked per value.
+    Anything you've overridden — a reader method you defined on the model —
+    still goes through your method.
+-   **The shape of its associations.** The model's reflections fill in the
+    record class of each `has_one` / `has_many`, so nested serializers get
+    specialized variants too.
 
-What Panko does is that if we have ActiveRecord type string, we won't duplicate it.
-If we have an integer string value, we will convert it to an integer, and the same goes for other types.
+Each variant starts with an `instance_of?` guard: a record of a different
+class falls back to the generic code, so heterogeneous collections stay
+correct. Plain Hashes and non-ActiveRecord objects always use the generic
+path.
 
-All of these conversions are done in C, which of course yields a big performance improvement.
+All of this is automatic and bounded — a serializer keeps a limited number of
+variants (16 per output mode by default) and routes everything past the cap to
+the generic path. The cap, and specialization itself, can be tuned or turned
+off; see [Configuration]({% link configuration.md %}).
 
-#### Time type casting
+### Incremental JSON
 
-While you read Panko source code, you will encounter the time type casting and immediately you will have a "WTF?" moment.
+A typical Ruby JSON pipeline does three passes:
 
-The idea behind the time type casting code relies on the end result of JSON type casting — what we need in order to serialize Time to JSON? UTC ISO8601 time format representation.
+1.  Get an array of records (`User.all`).
+2.  Build an array of Hashes, one per record.
+3.  Hand that array to a JSON encoder, which walks it and produces a string.
 
-The time type casting works as follows:
+Steps 2 and 3 allocate a lot — a Hash and several intermediate objects per
+record — and cost CPU to build and re-walk. Panko skips the intermediate Hash
+entirely by using [Oj](https://github.com/ohler55/oj)'s `Oj::StringWriter`:
 
--   If it's a string that ends with `Z`, and the strings matches the UTC ISO8601 regex, then we just return the string.
--   If it's a string and it doesn't follow the rules above, we check if it's a timestamp in database format and convert it via regex + string concat to UTC ISO8601 - Yes, there is huge assumption here, that the database returns UTC timestamps — this will be configurable (before Panko official release).
--   If it's none of the above, I will let ActiveRecord type casting do it's magic.
+1.  Get an array of records (`User.all`).
+2.  Push values into an `Oj::StringWriter` as they're read; it appends to the
+    output string incrementally.
+3.  Ask the writer for the finished string — which is essentially free, because
+    it's already built.
+
+For the `:hash` output mode there is no writer; Panko builds the Hash directly.
+
+### Reading values
+
+Panko reads each attribute with ActiveRecord's own reader — `record.title` for
+an object, `record["title"]` for a plain Hash — and writes the value straight
+out. It does **not** re-implement type casting: the value you'd get from
+`record.title` is the value Panko serializes.
+
+The one transform Panko applies is on the way out the door, so the two output
+modes agree on their shape:
+
+-   In **`:json`** mode, values are pushed into `Oj::StringWriter` untouched;
+    Oj (in `mode: :rails`) applies Rails' `as_json` conventions as it writes —
+    a `Time` / `Date` / `TimeWithZone` becomes an ISO-8601 string, a Symbol
+    becomes a String, and so on.
+-   In **`:hash`** mode there is no writer, so Panko applies the same
+    convention itself: a value that is already a JSON primitive (String,
+    Integer, finite Float, `nil`, booleans) passes through untouched, and
+    anything else goes through its own `#as_json` — datetimes become the same ISO-8601
+    string, a Symbol becomes a String, a Hash returned by a method attribute
+    comes back string-keyed. This keeps `serialize` and `serialize_to_json`
+    producing matching values, and matches Panko 0.8.5's Hash output. (The
+    `as_json` methods come from ActiveSupport, which Rails always loads; in a
+    plain non-Rails process, values without an `as_json` pass through raw.)
+
+### Compiling ahead of time, and reusing instances
+
+Two smaller choices round out the performance story:
+
+-   **Compile once, per class.** The generated class is built and cached the
+    first time a serializer is used — and each specialized variant the first
+    time its record class is seen. Every later call reuses them, so the
+    generation cost never appears in your request path after warm-up.
+-   **Pooled instances.** Serializing checks a generated instance out of a
+    small pool and returns it afterward (its per-record state is cleared on
+    return), which avoids allocating a fresh object graph for every call.
+
+Together these keep the steady-state cost of serializing a record close to the
+irreducible work of reading its values and writing them out.

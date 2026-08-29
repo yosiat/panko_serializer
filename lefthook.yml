@@ -1,0 +1,32 @@
+# Git hooks for panko_serializer, managed by lefthook.
+# Install with: bundle exec lefthook install
+#
+# Mirrors the pre-commit shape serializers-code-gen used before the merge —
+# autofix lint + run the spec suites — with no pre-push hook (merge plan 1.3).
+# Lint runs rubocop (not standardrb): Panko's config lives in .rubocop.yml,
+# which layers Panko-specific excludes on top of the standard ruleset and is
+# only honored by `rubocop`, not the `standardrb` wrapper.
+#
+# The merged repo carries two spec suites with distinct spec_helpers: Panko's
+# C-extension specs (spec/features, spec/unit) and the code_gen engine specs
+# (spec/code_gen, which loads spec/code_gen/spec_helper.rb explicitly so its
+# `require "spec_helper"` does not resolve to Panko's). Both run under an
+# Appraisal gemfile because Panko's default Gemfile carries no activerecord.
+# One representative Rails line runs here for speed; CI runs the full matrix.
+pre-commit:
+  parallel: false
+  jobs:
+    - name: lint
+      glob: "*.rb"
+      # --force-exclusion so rubocop honors .rubocop.yml's AllCops/Exclude even
+      # for explicitly-passed {staged_files} (e.g. the byte-exact generated
+      # snapshot fixtures under spec/code_gen/fixtures/generated, which carry
+      # intentional non-CamelCase class names).
+      run: bundle exec rubocop --autocorrect --force-exclusion {staged_files}
+      stage_fixed: true
+    - name: panko-specs
+      glob: "*.rb"
+      run: BUNDLE_GEMFILE=gemfiles/8.0.0.gemfile bundle exec rspec spec/features spec/unit
+    - name: code-gen-specs
+      glob: "*.rb"
+      run: BUNDLE_GEMFILE=gemfiles/8.0.0.gemfile bundle exec rspec --require ./spec/code_gen/spec_helper spec/code_gen

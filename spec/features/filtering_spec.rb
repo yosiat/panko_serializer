@@ -89,13 +89,13 @@ describe "Filtering Serialization" do
     end
 
     it "filters association attributes" do
-      class FoosHolderForFilterTestSerializer < Panko::Serializer
+      class FoosHolderNestedFilterTestSerializer < Panko::Serializer
         attributes :name
 
         has_many :foos, serializer: FooSerializer
       end
 
-      serializer_factory = -> { FoosHolderForFilterTestSerializer.new(only: {foos: [:name]}) }
+      serializer_factory = -> { FoosHolderNestedFilterTestSerializer.new(only: {foos: [:name]}) }
 
       foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
@@ -235,6 +235,71 @@ describe "Filtering Serialization" do
       # Filter using except should also work
       expect(foo).to serialized_as(-> { FooWithAliasFilterSerializer.new(except: [:address]) },
         "full_name" => foo.name)
+    end
+  end
+
+  context "aliased association filtering" do
+    before do
+      Temping.create(:foo) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :foos_holder
+        end
+
+        belongs_to :foos_holder, optional: true
+      end
+
+      Temping.create(:foos_holder) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :foos
+      end
+    end
+
+    let(:foo_serializer_class) do
+      Class.new(Panko::Serializer) do
+        attributes :name, :address
+      end
+    end
+
+    before { stub_const("FooSerializer", foo_serializer_class) }
+
+    it "filters an aliased association by its declared name, not its alias" do
+      class FoosHolderAliasedAssociationSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, name: :stuff
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo])
+
+      expect(holder).to serialized_as(-> { FoosHolderAliasedAssociationSerializer.new(only: [:foos]) },
+        "stuff" => [{"name" => foo.name, "address" => foo.address}])
+
+      expect(holder).to serialized_as(-> { FoosHolderAliasedAssociationSerializer.new(except: [:foos]) },
+        "name" => holder.name)
+
+      expect(holder).to serialized_as(-> { FoosHolderAliasedAssociationSerializer.new(only: [:stuff]) }, {})
+    end
+
+    it "narrows an aliased association's fields through its declared name" do
+      class FoosHolderAliasedNestedFilterSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :foos, serializer: FooSerializer, name: :stuff
+      end
+
+      foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      holder = FoosHolder.create(name: Faker::Lorem.word, foos: [foo])
+
+      expect(holder).to serialized_as(
+        -> { FoosHolderAliasedNestedFilterSerializer.new(only: {instance: [:foos], foos: [:name]}) },
+        "stuff" => [{"name" => foo.name}]
+      )
     end
   end
 
@@ -537,16 +602,14 @@ describe "Filtering Serialization" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(only: "invalid").serialize(foo)
-      end.to raise_error(NoMethodError)
-      # TODO: change the error to be ArgumentError
+      end.to raise_error(ArgumentError, /must be an Array or Hash/)
     end
 
     it "raises error for non-Array/Hash except filters" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(except: 123).serialize(foo)
-      end.to raise_error(NoMethodError)
-      # TODO: change the error to be ArgumentError
+      end.to raise_error(ArgumentError, /must be an Array or Hash/)
     end
 
     it "handles filters on non-existent attributes" do
@@ -589,6 +652,45 @@ describe "Filtering Serialization" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
       expect(foo).to serialized_as(-> { FooWithFiltersForSerializer.new }, "name" => foo.name)
+    end
+
+    it "applies the nested serializer's filters_for to associations" do
+      Temping.create(:filtered_child) do
+        with_columns do |t|
+          t.string :name
+          t.string :address
+          t.references :filtered_parent
+        end
+      end
+
+      Temping.create(:filtered_parent) do
+        with_columns do |t|
+          t.string :name
+        end
+
+        has_many :filtered_children
+      end
+
+      class NestedFiltersForChildSerializer < Panko::Serializer
+        attributes :name, :address
+
+        def self.filters_for(context, scope)
+          {except: [:address]}
+        end
+      end
+
+      class NestedFiltersForParentSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :filtered_children, serializer: NestedFiltersForChildSerializer
+      end
+
+      child = FilteredChild.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+      parent = FilteredParent.create(name: Faker::Lorem.word, filtered_children: [child])
+
+      expect(parent).to serialized_as(NestedFiltersForParentSerializer,
+        "name" => parent.name,
+        "filtered_children" => [{"name" => child.name}])
     end
   end
 end

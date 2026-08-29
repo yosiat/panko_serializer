@@ -5,15 +5,15 @@ source "https://rubygems.org"
 gem "activesupport", "~> 7.2.0"
 gem "activemodel", "~> 7.2.0"
 gem "activerecord", "~> 7.2.0", group: :test
-gem "trilogy"
 gem "sqlite3", "~> 1.4"
 
 group :benchmarks do
-  gem "vernier"
   gem "stackprof"
-  gem "pg"
   gem "benchmark-ips"
   gem "memory_profiler"
+  gem "oj_serializers"
+  gem "alba"
+  gem "blueprinter"
 end
 
 group :test do
@@ -22,10 +22,9 @@ group :test do
 end
 
 group :development do
-  gem "byebug"
   gem "rake"
   gem "rspec", "~> 3.0"
-  gem "rake-compiler"
+  gem "lefthook"
 end
 
 group :development, :test do

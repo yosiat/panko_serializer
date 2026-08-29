@@ -10,15 +10,7 @@ require "temping"
 # Load database configuration helper
 require_relative "support/database_config"
 
-# Require database adapters based on environment
-case DatabaseConfig.database_type
-when "sqlite"
-  require "sqlite3"
-when "postgresql"
-  require "pg"
-when "mysql"
-  require "trilogy"
-end
+require "sqlite3"
 
 # Set up database connection
 DatabaseConfig.setup_database
