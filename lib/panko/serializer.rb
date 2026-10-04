@@ -11,6 +11,8 @@ module Panko
     # recognized by the generated code's `value.equal?(Panko::CodeGen::SKIP)` check.
     SKIP = Panko::CodeGen::SKIP
 
+    EMPTY_MODELS = [].freeze
+
     class << self
       # Each serializer accumulates its Fields as the engine's own value
       # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
@@ -42,11 +44,29 @@ module Panko
       # +true+ just re-checks +respond_to?+ inside +runtime_filters+.
       attr_accessor :_cg_has_filters_for
 
+      # The record classes declared with {models}, read by Panko.compile_all.
+      attr_accessor :_cg_models
+
       def inherited(base)
         base._cg_attributes = (_cg_attributes || []).dup
         base._cg_method_attributes = (_cg_method_attributes || []).dup
         base._cg_associations = (_cg_associations || []).dup
         base._cg_has_filters_for = base.respond_to?(:filters_for)
+        base._cg_models = _cg_models || EMPTY_MODELS
+      end
+
+      # Declares the record classes this serializer is expected to
+      # serialize, so Panko.compile_all can compile a specialized variant
+      # for each one at boot. A hint only: records of any other class still
+      # serialize, and get specialized on first sight. Subclasses inherit
+      # the list; calling it again replaces it.
+      #
+      # @param models [Array<Class>]
+      # @raise [ArgumentError] when an argument is not a Class
+      def models(*models)
+        invalid = models.reject { |model| model.is_a?(Class) }
+        raise ArgumentError, "models: expected classes, got #{invalid.inspect}" unless invalid.empty?
+        self._cg_models = models.freeze
       end
 
       # Mirrors {method_added}: a +filters_for+ defined (or stubbed) after
