@@ -61,7 +61,7 @@ class ShallowSpecializedSerializer_JSON < Fixtures::BaseSerializer
       writer.push_value(record.title, "title")
     end
     unless filters.drops?(2)
-      writer.push_value(record.headline, "headline")
+      writer.push_value((record._has_attribute?("headline") ? record._read_attribute("headline") : record.headline), "headline")
     end
     unless filters.drops?(3)
       value = @cb_static.call

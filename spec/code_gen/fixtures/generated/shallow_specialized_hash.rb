@@ -42,7 +42,7 @@ class ShallowSpecializedSerializer_Hash < Fixtures::BaseSerializer
       result["title"] = Panko::CodeGen.cast_datetime(record.title)
     end
     unless filters.drops?(2)
-      result["headline"] = Panko::CodeGen.cast_datetime(record.headline)
+      result["headline"] = Panko::CodeGen.cast_datetime((record._has_attribute?("headline") ? record._read_attribute("headline") : record.headline))
     end
     unless filters.drops?(3)
       value = @cb_static.call
