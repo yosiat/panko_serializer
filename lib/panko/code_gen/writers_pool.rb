@@ -1,20 +1,25 @@
 # frozen_string_literal: true
 
 require "oj"
+require_relative "../config"
 
 module Panko::CodeGen
-  # Per-Generated-Class fiber-local LIFO stack of +Oj::StringWriter+
-  # instances reused across top-level +serialize_one+ / +serialize_many+
-  # calls. Constructed once per Generated Class at +Compile+ time and
-  # frozen into a class-level constant; the runtime path is +checkout+ at
-  # the top of an emit + +checkin+ in +ensure+.
+  # Fiber-local LIFO stack of +Oj::StringWriter+ instances reused across
+  # top-level +serialize_one+ / +serialize_many+ calls. Every Generated
+  # Class shares the one stack: a writer only lives for the length of a
+  # call, so which class used it last does not matter. Each Generated
+  # Class holds a pool object in a +POOL+ constant; the runtime path is
+  # +checkout+ at the top of an emit + +checkin+ in +ensure+.
   #
-  # Reentrancy is handled by the stack itself — a re-entrant +checkout+
-  # finds the stack empty and allocates; the second-allocated Writer is
-  # returned on the matching +checkin+, after which subsequent reentrant
-  # calls reuse it without further allocation. Steady-state stack size
-  # equals the peak observed reentrancy depth on that fiber for that
-  # Generated Class; after warmup, +checkout+ allocates zero objects.
+  # Reentrancy is handled by the stack itself: a re-entrant +checkout+
+  # finds the stack empty and allocates, and the matching +checkin+
+  # returns the second Writer. Steady-state stack size equals the peak
+  # reentrancy depth seen on that fiber.
+  #
+  # +Oj::StringWriter#reset+ rewinds the cursor but keeps the grown
+  # buffer, so +checkin+ drops a Writer whose output was larger than
+  # +Panko::Config.writer_pool_max_bytes+. A kept Writer therefore holds
+  # less than twice that limit (the buffer grows by doubling).
   #
   # Two storage backends are exposed as subclasses, picked by the
   # Generator at +Compile+ time:
@@ -28,26 +33,16 @@ module Panko::CodeGen
   #
   # The base class is abstract: callers always instantiate one of the
   # subclasses. The +storage+ method is the only extension point — it
-  # must return the per-fiber LIFO Array, lazily creating it under the
-  # configured storage key.
+  # must return the per-fiber LIFO Array stored under {STORAGE_KEY}.
   class WritersPool
-    # Returns a new pool keyed by +key+. The key is a symbol baked into
-    # the emitted +POOL = WritersPool::<subclass>.new(:<key>)+ constant
-    # by the Generator; making it unique per (Generated Class, Output
-    # Mode) keeps two classes' stacks from cross-contaminating.
-    #
-    # @param key [Symbol] the storage-bucket key in +Thread.current[]+
-    #   or +ActiveSupport::IsolatedExecutionState[]+
-    # @return [WritersPool]
-    def initialize(key)
-      @key = key
-    end
+    # The one +Thread.current[]+ / +ActiveSupport::IsolatedExecutionState[]+
+    # key every pool reads, so all Generated Classes share a stack.
+    STORAGE_KEY = :_panko_writers
 
     # Returns a Writer ready to write into. Pops the per-fiber stack on
     # hit; allocates a fresh +Oj::StringWriter(mode: :rails)+ on miss.
     # Must be paired with a matching {#checkin} — typically via
-    # +begin+ / +ensure+ at the call site so an exception in the body
-    # still returns the Writer to the stack cleared.
+    # +begin+ / +ensure+ at the call site.
     #
     # @return [Oj::StringWriter] a fresh-or-reused Writer with an empty
     #   buffer (a freshly-allocated Writer's buffer is empty; a popped
@@ -56,18 +51,19 @@ module Panko::CodeGen
       storage.pop || Oj::StringWriter.new(mode: :rails)
     end
 
-    # Returns +writer+ to the stack after clearing its buffer via
-    # +Oj::StringWriter#reset+. Safe to call from an +ensure+ block on
-    # the exception path — +reset+ unwinds any open object/array frames
-    # left dangling by the failing body, so the Writer is reusable on
-    # the next {#checkout}.
+    # Returns +writer+ to the stack, cleared via +Oj::StringWriter#reset+,
+    # when +result+ is at most +Panko::Config.writer_pool_max_bytes+.
+    # Otherwise drops it so the GC frees its buffer: a +result+ over the
+    # limit (a large response), or +nil+ (the body raised before
+    # producing one).
     #
     # @param writer [Oj::StringWriter] the Writer previously returned by
     #   {#checkout}
-    # @return [Array<Oj::StringWriter>] the per-fiber stack with
-    #   +writer+ pushed onto it; the return value is incidental — the
-    #   contract is the side effect.
-    def checkin(writer)
+    # @param result [String, nil] the JSON the call produced
+    # @return [void]
+    def checkin(writer, result)
+      return if result.nil? || result.bytesize > Panko::Config.writer_pool_max_bytes
+
       writer.reset
       storage.push(writer)
     end
@@ -96,13 +92,13 @@ module Panko::CodeGen
     class ThreadLocal < WritersPool
       private
 
-      # Returns the per-fiber LIFO stack stored under +@key+ in
+      # Returns the per-fiber LIFO stack stored under {STORAGE_KEY} in
       # +Thread.current[]+, lazily allocating an empty Array on first
       # access.
       #
       # @return [Array<Oj::StringWriter>] the live per-fiber stack
       def storage
-        Thread.current[@key] ||= []
+        Thread.current[STORAGE_KEY] ||= []
       end
     end
 
@@ -118,7 +114,7 @@ module Panko::CodeGen
     class IsolatedExecutionState < WritersPool
       private
 
-      # Returns the LIFO stack stored under +@key+ in
+      # Returns the LIFO stack stored under {STORAGE_KEY} in
       # +ActiveSupport::IsolatedExecutionState[]+, lazily allocating an
       # empty Array on first access. Locality (per-thread vs per-fiber)
       # follows whatever +AS::IES.isolation_level+ is set to.
@@ -129,7 +125,7 @@ module Panko::CodeGen
       #   time only when +defined?(ActiveSupport::IsolatedExecutionState)+
       #   is truthy.
       def storage
-        ActiveSupport::IsolatedExecutionState[@key] ||= []
+        ActiveSupport::IsolatedExecutionState[STORAGE_KEY] ||= []
       end
     end
   end

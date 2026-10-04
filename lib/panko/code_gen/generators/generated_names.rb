@@ -5,9 +5,7 @@ module Panko::CodeGen
     # The single home for the emitted-symbol vocabulary — every name that
     # generated source and the emitters that write/read it must agree on.
     # Emitters splice these instead of inline literals so a rename edits
-    # one method here (the +_scg_writer__+ → +_panko_writer__+ sweep and
-    # the aliased-association filter-key drift both came from a name
-    # living as scattered literals).
+    # one method here.
     module GeneratedNames
       module_function
 
@@ -95,17 +93,6 @@ module Panko::CodeGen
       # @return [String] the per-class filter-index constant name
       def field_index_const
         "FIELD_INDEX"
-      end
-
-      # The fiber-local storage Symbol baked into the emitted +POOL+
-      # constant. Derived from the JSON class name so two Generated
-      # Classes never share a stack; the prefix keeps the bucket
-      # recognizable in +Thread.current+ inspectors.
-      #
-      # @param descriptor [Panko::CodeGen::Descriptor]
-      # @return [Symbol]
-      def writer_pool_key(descriptor)
-        :"_panko_writer__#{class_name(descriptor, "JSON")}"
       end
 
       # The key one Field occupies in +FIELD_INDEX+ — and therefore the

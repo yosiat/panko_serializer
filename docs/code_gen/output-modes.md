@@ -9,28 +9,30 @@ Two **Output Modes** are supported: `:json` and `:hash`. Each produces a differe
 
 ```ruby
 class PostSerializer_JSON
-  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_panko_writer__PostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new
 
   # Public
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
-      writer.to_s
+      result = writer.to_s
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_array
       records.each { |r| _write_one(r, writer, context, scope, filters) }
       writer.pop
-      writer.to_s
+      result = writer.to_s
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
@@ -45,14 +47,19 @@ end
 
 ### Writer lifecycle
 
-- Each **Generated Class** holds a class-level `POOL` constant pointing at a per-class
+- Each **Generated Class** holds a class-level `POOL` constant pointing at a
   `WritersPool` instance ([`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)).
-  The pool is keyed off a unique Symbol — `:_panko_writer__<Name>_JSON` — so two **Generated
-  Classes** never share a stack and one class's pool can't corrupt another.
+  Every pool reads the same storage key (`WritersPool::STORAGE_KEY`), so all **Generated
+  Classes** share one stack per fiber. A **Writer** is only checked out for the length of a
+  call, so sharing it across classes is safe.
 - `serialize_one` / `serialize_many` call `POOL.checkout` at the top, thread the
   **Writer** through `_write_one` (and through **Composition** as an explicit positional
-  argument), call `writer.to_s`, then call `POOL.checkin(writer)` from an `ensure` block —
-  so an exception in the body still returns the **Writer** to the stack cleared.
+  argument), call `writer.to_s`, then call `POOL.checkin(writer, result)` from an `ensure`
+  block. `result` starts as `nil`, so a body that raises drops the **Writer**.
+- `checkin` drops the **Writer** when `result` is larger than
+  `Panko::Config.writer_pool_max_bytes` (default 1 MB). `Oj::StringWriter#reset` rewinds the
+  cursor but keeps the grown buffer, so without this limit each fiber would hold its
+  largest output for as long as it lives.
 - The pool's storage is **fiber-local**. The `WritersPool::ThreadLocal` backend uses
   `Thread.current[]`, which is fiber-local per MRI (`thread.c:3812`,
   `"Thread#[] and Thread#[]= are not thread-local but fiber-local"`). When
@@ -69,10 +76,10 @@ end
 - Reentrancy is handled by the LIFO stack itself, with no depth counter or in-use flag. A
   **Method Attribute** body that re-enters `serialize_one` — either on the same
   **Generated Class** (recursive shape) or on a different one (cross-class call) — finds
-  its pool's stack empty at depth 2 and allocates a fresh **Writer**; the matching
+  the stack empty at depth 2 and allocates a fresh **Writer**; the matching
   `checkin` returns it; subsequent calls at the same depth reuse without further
-  allocation. Steady-state pool size equals the peak observed reentrancy depth on that
-  fiber for that **Generated Class**.
+  allocation. Steady-state stack size equals the peak observed reentrancy depth on that
+  fiber.
 - The pool is gated by [`Config#pool_writer`](config.md#pool_writer-default-true) (default `true`).
   Setting it to `false` emits the pre-pooling source verbatim — `writer =
   Oj::StringWriter.new(mode: :rails)` inline, no `POOL` constant, no `begin`/`ensure`

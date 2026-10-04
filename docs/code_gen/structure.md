@@ -118,7 +118,7 @@ lib/
       generator.rb                             # Generator entry — dispatches on Output Mode
       generators/
         generated_names.rb                     # the emitted-symbol vocabulary: ivar tokens,
-                                               # write-method names, FIELD_INDEX, pool key,
+                                               # write-method names, FIELD_INDEX,
                                                # filter-key rule — one home, emitters consume it
         class_emitter.rb                       # the one class-shell emitter (constructor,
                                                # recursion wiring, public entries) behind a Sink
@@ -152,7 +152,7 @@ lib/
 
       # === Generated-Class runtime support ===
       writers_pool.rb                          # fiber-local LIFO of Oj::StringWriter instances,
-                                               # frozen into each JSON Generated Class
+                                               # one stack shared by every JSON Generated Class
 
       # === Panko runtime seam (replaces the deleted C extension) ===
       runtime.rb                               # shared seam: only/except/filters_for → Filter

@@ -60,7 +60,7 @@ Since Panko owns its **Descriptors**, it always has one available to hand in.
 #   PostSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
 class PostSerializer_JSON
-  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_panko_writer__PostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new
 
   def initialize(descriptor:)
     @cb_full_title       = descriptor.method_attributes[0].body
@@ -70,11 +70,12 @@ class PostSerializer_JSON
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
-      writer.to_s
+      result = writer.to_s
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 

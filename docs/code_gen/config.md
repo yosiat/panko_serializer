@@ -109,16 +109,17 @@ applies only to the **Specialized path**.
 ### `pool_writer` (default: `true`)
 
 Controls whether the **JSON Output Mode** emit reuses **Writers** across `serialize_one` /
-`serialize_many` calls via a per-**Generated Class** fiber-local LIFO pool. See
+`serialize_many` calls via a fiber-local LIFO pool shared by every **Generated Class**. See
 [output-modes.md § Writer lifecycle](output-modes.md#writer-lifecycle) for the lifecycle
 contract and [`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)
 for the pool implementation.
 
 - `true` (default): the **Generated Class** declares
-  `POOL = Panko::CodeGen::WritersPool::<backend>.new(:<unique_key>)` as a class-level
+  `POOL = Panko::CodeGen::WritersPool::<backend>.new` as a class-level
   constant; `serialize_one` / `serialize_many` open with `writer = POOL.checkout`, wrap
-  the body in `begin` / `ensure`, and return the **Writer** via `POOL.checkin(writer)`
-  in the `ensure`. After warmup, `checkout` allocates zero objects on the steady-state
+  the body in `begin` / `ensure`, and hand the **Writer** back via
+  `POOL.checkin(writer, result)` in the `ensure`, which drops it when the output is larger
+  than `Panko::Config.writer_pool_max_bytes`. After warmup, `checkout` allocates zero objects on the steady-state
   hot path. The `<backend>` is `WritersPool::IsolatedExecutionState` when
   `ActiveSupport::IsolatedExecutionState` is defined at **Compile**, otherwise
   `WritersPool::ThreadLocal` — chosen once and baked in as a literal class name.
