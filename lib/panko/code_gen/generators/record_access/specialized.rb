@@ -102,19 +102,32 @@ module Panko::CodeGen
         end
 
         # The read expression for one Attribute: +:column+ verdicts emit
-        # +record._read_attribute("name")+; method verdicts (including
-        # user-overridden column readers, honored, never bypassed) emit
-        # +record.<name>+. +nil+ +ar_model+ falls back to method dispatch.
+        # +record._read_attribute("name")+; method verdicts on a name the
+        # Model declares (a user-overridden column reader, an +attribute+,
+        # an +alias_attribute+) emit +record.<name>+. Any other method
+        # verdict reads the loaded attribute first, so a SELECT alias
+        # named like a method (+thing_ids+ next to +has_many :things+)
+        # serializes the selected value, as Panko's C extension did,
+        # instead of calling the method. +nil+ +ar_model+ falls back to
+        # method dispatch.
         #
         # @param attribute [Panko::CodeGen::Attribute]
         # @param ar_model [Class, nil]
         # @return [String]
         def self.attribute_read_expr(attribute, ar_model)
-          return "record.#{attribute.source}" if ar_model.nil?
-          case ActiveRecord::AccessClassifier.classify(ar_model, attribute.source)
-          when :column then %(record._read_attribute("#{attribute.source}"))
-          else "record.#{attribute.source}"
-          end
+          source = attribute.source
+          return "record.#{source}" if ar_model.nil?
+          return %(record._read_attribute("#{source}")) if ActiveRecord::AccessClassifier.classify(ar_model, source) == :column
+          return "record.#{source}" if declared_attribute?(ar_model, source)
+          %((record._has_attribute?("#{source}") ? record._read_attribute("#{source}") : record.#{source}))
+        end
+
+        # @param ar_model [Class]
+        # @param source [Symbol]
+        # @return [Boolean] whether +source+ is an attribute or attribute
+        #   alias the Model declares, whose reader is always honored
+        def self.declared_attribute?(ar_model, source)
+          ar_model.attribute_types.key?(source.to_s) || ar_model.attribute_aliases.key?(source.to_s)
         end
 
         # Returns +descriptor.model+ when it quacks like AR (responds to

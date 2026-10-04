@@ -523,6 +523,8 @@ RSpec.describe "Compile-time errors" do
           # value mirrors AR's "unknown column" fallback so the per-Attribute
           # decision stays a clean +false+ in these tests.
           define_singleton_method(:type_for_attribute) { |_name| ::ActiveModel::Type::Value.new }
+          define_singleton_method(:attribute_types) { columns_arr.to_h { |c| [c, :stub] } }
+          define_singleton_method(:attribute_aliases) { {} }
         end
       end
 
