@@ -13,7 +13,6 @@ require "shallow_generic"
 RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:generator) { Panko::CodeGen::Generator.new }
-  let(:pool_key) { Panko::CodeGen::Generators::GeneratedNames.writer_pool_key(descriptor) }
 
   describe "with Config#pool_writer: true" do
     let(:config) { Panko::CodeGen::Config.new(pool_writer: true) }
@@ -25,7 +24,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the IsolatedExecutionState subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(#{pool_key.inspect})"
+          "POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new"
         )
       end
 
@@ -49,7 +48,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
 
       it "bakes the ThreadLocal subclass name into the POOL constant" do
         expect(source).to include(
-          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(#{pool_key.inspect})"
+          "POOL = Panko::CodeGen::WritersPool::ThreadLocal.new"
         )
       end
 
@@ -66,14 +65,14 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
       source = generator.emit(descriptor, output: :json, config: config)
 
       expect(source).to include("writer = POOL.checkout")
-      expect(source).to include("POOL.checkin(writer)")
-      expect(source).to match(/def serialize_one.*?writer = POOL\.checkout.*?begin.*?ensure.*?POOL\.checkin\(writer\)/m)
+      expect(source).to include("POOL.checkin(writer, result)")
+      expect(source).to match(/def serialize_one.*?writer = POOL\.checkout.*?result = nil.*?begin.*?ensure.*?POOL\.checkin\(writer, result\)/m)
     end
 
     it "wraps serialize_many in begin/ensure with POOL.checkout / POOL.checkin" do
       source = generator.emit(descriptor, output: :json, config: config)
 
-      expect(source).to match(/def serialize_many.*?writer = POOL\.checkout.*?begin.*?ensure.*?POOL\.checkin\(writer\)/m)
+      expect(source).to match(/def serialize_many.*?writer = POOL\.checkout.*?result = nil.*?begin.*?ensure.*?POOL\.checkin\(writer, result\)/m)
     end
 
     it "does not emit the inline Oj::StringWriter.new allocation in the pooled path" do

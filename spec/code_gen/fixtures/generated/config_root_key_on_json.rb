@@ -12,7 +12,7 @@
 
 class ConfigRootKeyOnSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigRootKeyOnSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
   end
@@ -21,6 +21,7 @@ class ConfigRootKeyOnSerializer_JSON < Fixtures::BaseSerializer
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = POOL.checkout
+    result = nil
     begin
       if root_key
         writer.push_object
@@ -32,7 +33,7 @@ class ConfigRootKeyOnSerializer_JSON < Fixtures::BaseSerializer
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
@@ -40,6 +41,7 @@ class ConfigRootKeyOnSerializer_JSON < Fixtures::BaseSerializer
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     validate_root_key!(root_key)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_object if root_key
       writer.push_array(root_key)
@@ -50,7 +52,7 @@ class ConfigRootKeyOnSerializer_JSON < Fixtures::BaseSerializer
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 

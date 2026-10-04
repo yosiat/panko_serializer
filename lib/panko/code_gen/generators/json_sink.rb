@@ -63,7 +63,7 @@ module Panko::CodeGen
       def emit_class_constants(descriptor, config, builder)
         return unless config.pool_writer
         subclass = defined?(ActiveSupport::IsolatedExecutionState) ? "IsolatedExecutionState" : "ThreadLocal"
-        builder.line "POOL = Panko::CodeGen::WritersPool::#{subclass}.new(#{GeneratedNames.writer_pool_key(descriptor).inspect})"
+        builder.line "POOL = Panko::CodeGen::WritersPool::#{subclass}.new"
       end
 
       # Emits the public +serialize_one+: acquire a Writer (pooled or
@@ -224,15 +224,18 @@ module Panko::CodeGen
       # Emits the writer acquisition around +block+: pooled
       # (+POOL.checkout+ / +ensure POOL.checkin+) or a fresh
       # +Oj::StringWriter+ per call. One helper so the two paths' bytes
-      # can only diverge on the wrap, not the inner emit.
+      # can only diverge on the wrap, not the inner emit. +result+ starts
+      # nil so a body that raises hands checkin nil, and the writer is
+      # dropped.
       def with_writer(config, builder, &block)
         if config.pool_writer
           builder.line "writer = POOL.checkout"
+          builder.line "result = nil"
           builder.line "begin"
           builder.indent(&block)
           builder.line "ensure"
           builder.indent do
-            builder.line "POOL.checkin(writer)"
+            builder.line "POOL.checkin(writer, result)"
           end
           builder.line "end"
         else

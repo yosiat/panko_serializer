@@ -12,7 +12,7 @@
 
 class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2, replies: 3}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ParentClassRecursiveSelfCommentSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
     @replies_serializer = self
@@ -21,19 +21,21 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_array
       records.each { |r| _write_one(r, writer, context, scope, filters) }
@@ -42,7 +44,7 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 

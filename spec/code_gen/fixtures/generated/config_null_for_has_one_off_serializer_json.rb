@@ -14,7 +14,7 @@ require_relative "config_null_for_has_one_off_inner_serializer_json"
 
 class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, inner: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigNullForHasOneOffSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
     @inner_serializer = ConfigNullForHasOneOffInnerSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
@@ -23,19 +23,21 @@ class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_array
       records.each { |r| _write_one(r, writer, context, scope, filters) }
@@ -44,7 +46,7 @@ class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 

@@ -26,6 +26,20 @@ require "nested_composition"
 # documented contract is invariant across both backends at the spec
 # tier.
 RSpec.describe "WritersPool — feature-level pool contract" do
+  # Every Generated Class shares one stack per thread, so writers left by
+  # earlier examples would change the allocation counts asserted here.
+  def clear_writer_stacks
+    Thread.current[Panko::CodeGen::WritersPool::STORAGE_KEY] = nil
+    ActiveSupport::IsolatedExecutionState.delete(Panko::CodeGen::WritersPool::STORAGE_KEY) if defined?(ActiveSupport::IsolatedExecutionState)
+  end
+
+  around do |example|
+    clear_writer_stacks
+    example.run
+  ensure
+    clear_writer_stacks
+  end
+
   describe "thread isolation" do
     # Spawn N threads each calling +serialize_one+ in a tight loop and
     # assert every output is the canonical fixture string. A
@@ -98,9 +112,9 @@ RSpec.describe "WritersPool — feature-level pool contract" do
 
   describe "cross-class reentrancy" do
     # A Method Attribute body that calls a different Generated Class's
-    # +serialize_one(other_record)+ mid-emit. The two pools (different
-    # +POOL+ constants, distinct storage keys) operate independently;
-    # the outer's Writer state survives the nested call; both outputs
+    # +serialize_one(other_record)+ mid-emit. The inner call finds the
+    # shared stack empty (the outer holds its Writer) and takes a second
+    # one; the outer's Writer state survives the nested call; both outputs
     # are correct.
     it "outer + inner outputs are correct when an outer Method Attribute calls a different Generated Class's serialize_one" do
       inner_descriptor = Panko::CodeGen::Descriptor.new(
@@ -194,9 +208,8 @@ RSpec.describe "WritersPool — feature-level pool contract" do
 
   describe "exception recovery" do
     # A Method Attribute body that raises mid-emit. The outer's +ensure+
-    # block must call +POOL.checkin(writer)+ which calls +writer.reset+
-    # — so the next +serialize_one+ call sees a clean buffer and
-    # produces correct output.
+    # hands +checkin+ a nil result, which drops the half-written Writer,
+    # so the next +serialize_one+ call starts from a clean one.
     it "next serialize_one after a mid-emit raise produces correct output" do
       should_raise = true
       raising_descriptor = Panko::CodeGen::Descriptor.new(
@@ -225,6 +238,70 @@ RSpec.describe "WritersPool — feature-level pool contract" do
       should_raise = false
       expect(generated.serialize_one({"id" => 2, "name" => "bob"}))
         .to eq('{"id":2,"name":"bob"}')
+    end
+  end
+
+  describe "one writer shared by every Generated Class on a thread" do
+    it "creates one Oj::StringWriter for two different classes serialized one after another" do
+      shallow = Panko::CodeGen.compile(Fixtures::ShallowGeneric::DESCRIPTOR, output: :json, config: Fixtures::ShallowGeneric::CONFIG)
+        .new(descriptor: Fixtures::ShallowGeneric::DESCRIPTOR)
+      nested = Panko::CodeGen.compile(Fixtures::NestedComposition::DESCRIPTOR, output: :json, config: Fixtures::NestedComposition::CONFIG)
+        .new(descriptor: Fixtures::NestedComposition::DESCRIPTOR)
+      shallow.serialize_one(Fixtures::ShallowGeneric.sanity_record)
+
+      created = 0
+      original_new = Oj::StringWriter.method(:new)
+      allow(Oj::StringWriter).to receive(:new) do |*args, **kwargs|
+        created += 1
+        original_new.call(*args, **kwargs)
+      end
+
+      10.times do
+        shallow.serialize_one(Fixtures::ShallowGeneric.sanity_record)
+        nested.serialize_one(Fixtures::NestedComposition.sanity_record)
+      end
+
+      expect(created).to eq(0)
+    end
+  end
+
+  describe "output size limit" do
+    let(:max_bytes) { 256 }
+    let(:records) { Array.new(20) { Fixtures::ShallowGeneric.sanity_record } }
+    let(:calls) { 5 }
+    let(:generated) do
+      Panko::CodeGen.compile(Fixtures::ShallowGeneric::DESCRIPTOR, output: :json, config: Fixtures::ShallowGeneric::CONFIG)
+        .new(descriptor: Fixtures::ShallowGeneric::DESCRIPTOR)
+    end
+
+    around do |example|
+      original_max_bytes = Panko::Config.writer_pool_max_bytes
+      Panko::Config.writer_pool_max_bytes = max_bytes
+      example.run
+    ensure
+      Panko::Config.writer_pool_max_bytes = original_max_bytes
+    end
+
+    it "does not reuse the writer of an output larger than writer_pool_max_bytes" do
+      expect(generated.serialize_many(records).bytesize).to be > max_bytes
+
+      created = 0
+      original_new = Oj::StringWriter.method(:new)
+      allow(Oj::StringWriter).to receive(:new) do |*args, **kwargs|
+        created += 1
+        original_new.call(*args, **kwargs)
+      end
+      calls.times { generated.serialize_many(records) }
+
+      expect(created).to eq(calls)
+    end
+
+    it "keeps output byte-identical when the writer is dropped" do
+      unpooled_config = Panko::CodeGen::Config.new(**Fixtures::ShallowGeneric::CONFIG.to_h.merge(pool_writer: false))
+      unpooled = Panko::CodeGen.compile(Fixtures::ShallowGeneric::DESCRIPTOR, output: :json, config: unpooled_config)
+        .new(descriptor: Fixtures::ShallowGeneric::DESCRIPTOR)
+
+      expect(generated.serialize_many(records)).to eq(unpooled.serialize_many(records))
     end
   end
 
