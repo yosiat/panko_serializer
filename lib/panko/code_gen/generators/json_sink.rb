@@ -284,8 +284,9 @@ module Panko::CodeGen
         builder.line "else"
         builder.indent do
           builder.line %(writer.push_key("#{association.name}"))
-          builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.write_one}" \
-            "(value, writer, context, scope, #{child_filter_expr(association)})"
+          child_write(association, "value", builder) do |ivar|
+            "#{ivar}.#{GeneratedNames.write_one}(value, writer, context, scope, #{child_filter_expr(association)})"
+          end
         end
         builder.line "end"
       end
@@ -296,8 +297,9 @@ module Panko::CodeGen
         builder.line "unless value.nil?"
         builder.indent do
           builder.line %(writer.push_key("#{association.name}"))
-          builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.write_one}" \
-            "(value, writer, context, scope, #{child_filter_expr(association)})"
+          child_write(association, "value", builder) do |ivar|
+            "#{ivar}.#{GeneratedNames.write_one}(value, writer, context, scope, #{child_filter_expr(association)})"
+          end
         end
         builder.line "end"
       end
@@ -311,8 +313,9 @@ module Panko::CodeGen
         builder.line %(writer.push_array("#{association.name}"))
         builder.line "#{source_read_expr}.each do |element|"
         builder.indent do
-          builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.write_one}" \
-            "(element, writer, context, scope, child_filter)"
+          child_write(association, "element", builder) do |ivar|
+            "#{ivar}.#{GeneratedNames.write_one}(element, writer, context, scope, child_filter)"
+          end
         end
         builder.line "end"
         builder.line "writer.pop"
