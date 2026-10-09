@@ -232,8 +232,9 @@ module Panko::CodeGen
         builder.indent { builder.line "nil" }
         builder.line "else"
         builder.indent do
-          builder.line "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.to_hash}" \
-            "(value, context, scope, #{child_filter_expr(association)})"
+          child_write(association, "value", builder) do |ivar|
+            "#{ivar}.#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
+          end
         end
         builder.line "end"
       end
@@ -241,8 +242,18 @@ module Panko::CodeGen
       def has_one_omit(association, key_lit, builder)
         builder.line "unless value.nil?"
         builder.indent do
-          builder.line "result[#{key_lit}] = #{GeneratedNames.serializer_ivar(association)}." \
-            "#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
+          if association.variants.empty?
+            builder.line "result[#{key_lit}] = #{GeneratedNames.serializer_ivar(association)}." \
+              "#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
+          else
+            builder.line "result[#{key_lit}] = begin"
+            builder.indent do
+              child_write(association, "value", builder) do |ivar|
+                "#{ivar}.#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
+              end
+            end
+            builder.line "end"
+          end
         end
         builder.line "end"
       end
@@ -251,10 +262,20 @@ module Panko::CodeGen
       # as the JSON adapter; +.map+ on an empty collection returns +[]+.
       def has_many(association, source_read_expr, key_lit, builder)
         builder.line "child_filter = #{child_filter_expr(association)}"
-        builder.line(
-          "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
-            "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.to_hash}(element, context, scope, child_filter) }"
-        )
+        if association.variants.empty?
+          builder.line(
+            "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
+              "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.to_hash}(element, context, scope, child_filter) }"
+          )
+          return
+        end
+        builder.line "result[#{key_lit}] = #{source_read_expr}.map do |element|"
+        builder.indent do
+          child_write(association, "element", builder) do |ivar|
+            "#{ivar}.#{GeneratedNames.to_hash}(element, context, scope, child_filter)"
+          end
+        end
+        builder.line "end"
       end
 
       # The datetime-column raw-splice path (Hash twin of the JSON

@@ -222,7 +222,7 @@ module Panko::CodeGen
   # - +source+: defaults to +name+ if omitted or passed as +nil+ — the
   #   "output key matches the model method" common case.
   # - +if+: defaults to +nil+ — no guard, no runtime cost.
-  Association = Data.define(:name, :kind, :descriptor, :source, :if) do
+  Association = Data.define(:name, :kind, :descriptor, :source, :if, :variants) do
     # Validates +name+ is a Symbol, +kind+ is in +{:has_one, :has_many}+,
     # +descriptor+ is a +Descriptor+ instance, +source+ is a Symbol
     # (defaulting to +name+ when omitted or passed as +nil+), and +if+ is
@@ -236,9 +236,15 @@ module Panko::CodeGen
     #   related Record(s); nil/omitted falls back to +name+
     # @param if [Proc, Method, nil] optional guard Callable invoked as
     #   +if.call(record, context)+; nil disables the guard
+    # @param variants [Array<Descriptor>] per-class bodies for a child
+    #   whose source returns several record classes (a plain method
+    #   combining two associations). Each element has a distinct named
+    #   +model+; a record is written by the variant whose model is its
+    #   exact class, and by +descriptor+ when none is. Empty (the default)
+    #   writes every record with +descriptor+.
     # @return [void]
     # @raise [DescriptorError] on any structural rule violation
-    def initialize(name:, kind:, descriptor:, source: nil, if: nil)
+    def initialize(name:, kind:, descriptor:, source: nil, if: nil, variants: [])
       # Ruby's parser treats the local binding +if+ as the conditional, so the
       # kwarg value is unrefereable directly inside the body. +binding.local_variable_get+
       # is the standard idiom for reserved-word kwargs and lets us keep the
@@ -250,7 +256,28 @@ module Panko::CodeGen
       StructuralValidation.validate_descriptor!("Association#descriptor", descriptor)
       StructuralValidation.validate_symbol!("Association#source", source)
       StructuralValidation.validate_callable!("Association#if", if_callable) unless if_callable.nil?
-      super(name: name, kind: kind, descriptor: descriptor, source: source, if: if_callable)
+      StructuralValidation.validate_array_of!("Association#variants", variants, Descriptor, "Descriptor")
+      validate_variants!(variants)
+      super(name: name, kind: kind, descriptor: descriptor, source: source, if: if_callable, variants: variants.frozen? ? variants : variants.dup.freeze)
+    end
+
+    # The child Descriptors this Association writes with: +descriptor+
+    # first, then each variant.
+    #
+    # @return [Array<Descriptor>]
+    def descriptors
+      variants.empty? ? [descriptor] : [descriptor, *variants]
+    end
+
+    private
+
+    def validate_variants!(variants)
+      models = variants.map(&:model)
+      if models.any? { |model| model.nil? || model.name.nil? }
+        raise DescriptorError, "Association#variants: every variant needs a named model; got #{models.inspect}"
+      end
+      return if models.uniq.size == models.size
+      raise DescriptorError, "Association#variants: models must be distinct; got #{models.inspect}"
     end
   end
 

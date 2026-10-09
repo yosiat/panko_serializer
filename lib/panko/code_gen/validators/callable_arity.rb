@@ -63,7 +63,7 @@ module Panko::CodeGen
           end
           descriptor.associations.each do |assoc|
             check_arity!(descriptor.name, assoc.name, "Association#if", assoc.if.arity) if assoc.if
-            walk(assoc.descriptor, seen)
+            assoc.descriptors.each { |child| walk(child, seen) }
           end
         end
 

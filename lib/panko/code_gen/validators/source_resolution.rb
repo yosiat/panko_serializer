@@ -55,7 +55,7 @@ module Panko::CodeGen
           return if seen[descriptor.__id__]
           seen[descriptor.__id__] = true
           classify_attributes!(descriptor) if descriptor.model
-          descriptor.associations.each { |assoc| walk(assoc.descriptor, seen) }
+          descriptor.associations.each { |assoc| assoc.descriptors.each { |child| walk(child, seen) } }
         end
 
         # Calls +DefineAttributeMethods.ensure!+ on the AR Model so AR's

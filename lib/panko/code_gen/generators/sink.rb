@@ -29,6 +29,53 @@ module Panko::CodeGen
           "#{GeneratedNames.class_name(association.descriptor, suffix)}::#{GeneratedNames.field_index_const})"
       end
 
+      # Emits the nested write for one child record. Without variants it
+      # is the single +call_for+ line on the Association's serializer
+      # ivar. With variants it is a +case+/+when+ with one arm per
+      # variant, each arm re-checking +instance_of?+ so only a record of
+      # that exact class gets that body; anything else gets the
+      # +descriptor+ serializer. Arms are ordered subclass first, so a
+      # declared subclass is not taken by its parent's arm. +case+/+when+
+      # rather than an +if+/+elsif+ chain of +instance_of?+: under YJIT
+      # the chain slows 3-5x once the call site has warmed on one class.
+      # The +case+ is an expression, so Hash-mode callers may assign or
+      # map its value.
+      #
+      # @param association [Panko::CodeGen::Association]
+      # @param record_expr [String] the child record, e.g. +"element"+
+      # @param builder [Panko::CodeGen::CodeBuilder]
+      # @yieldparam ivar [String] the serializer ivar for one arm
+      # @yieldreturn [String] the call expression for that arm
+      # @return [void]
+      def child_write(association, record_expr, builder, &call_for)
+        base_call = call_for.call(GeneratedNames.serializer_ivar(association))
+        if association.variants.empty?
+          builder.line base_call
+          return
+        end
+        builder.line "case #{record_expr}"
+        subclass_first(association.variants).each do |variant, index|
+          model = "::#{variant.model.name}"
+          builder.line "when #{model}"
+          builder.indent do
+            builder.line "if #{record_expr}.instance_of?(#{model})"
+            builder.indent { builder.line call_for.call(GeneratedNames.variant_serializer_ivar(association, index)) }
+            builder.line "else"
+            builder.indent { builder.line base_call }
+            builder.line "end"
+          end
+        end
+        builder.line "else"
+        builder.indent { builder.line base_call }
+        builder.line "end"
+      end
+
+      # Variants paired with their index, each subclass before its
+      # ancestors (more ancestors first, then declared order).
+      def subclass_first(variants)
+        variants.each_with_index.sort_by { |variant, index| [-variant.model.ancestors.size, index] }
+      end
+
       # Wraps +block+ in +if @cb_if_<name>.call(...) ... end+ when the
       # Association carries an +if:+ Callable. The wrap pre-empts the
       # per-Kind body — Source read, key push, nested call — so a falsy

@@ -49,7 +49,10 @@ module Panko
       # post-order (children first) and suffixes the 2nd+ occurrence of each name.
       def uniquify_names(descriptor, seen = Hash.new(0))
         associations = descriptor.associations.map do |association|
-          association.with(descriptor: uniquify_names(association.descriptor, seen))
+          association.with(
+            descriptor: uniquify_names(association.descriptor, seen),
+            variants: association.variants.map { |variant| uniquify_names(variant, seen) }
+          )
         end
         seen[descriptor.name] += 1
         count = seen[descriptor.name]
