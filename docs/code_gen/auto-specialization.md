@@ -60,7 +60,13 @@ miss in three steps:
 3. **Compile.** `DescriptorBuilder.specialize` rebuilds the descriptor tree
    with the model: the root gets `model`, and each association's reflected AR
    class fills its child's **Model** recursively (cycle-safe), so nested
-   serializers get typed emits too. The variant compiles with
+   serializers get typed emits too. When the source is a plain method (no
+   reflection), the child serializer's `models` fills it instead: one model
+   becomes the child's **Model**; several become `Association#variants`, one
+   specialized child per model, picked per record by a `case`/`when` with an
+   exact `instance_of?` check in each arm. Declared models that cannot serve
+   every field are left out. The tree is then run through `uniquify_names`,
+   since variants of one child share its name. The variant compiles with
    `Config.new(guarded_model: true)` ([config.md § guarded_model](config.md))
    and gets its own `InstancePool`.
 
