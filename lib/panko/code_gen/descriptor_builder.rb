@@ -70,40 +70,85 @@ module Panko
       end
 
       # Rebuilds +descriptor+ with +model+ as its Model and, recursively, each
-      # association's reflected AR class as the child's Model — the
-      # auto-specialization tree fill (SerializerCache.variant_pool). A child
-      # Descriptor is left untouched when it declared its own Model, when the
-      # association source is not an AR reflection on the parent Model (plain
-      # method source), when the reflection is polymorphic or its class
-      # unresolvable, or when the reflected class is anonymous or not AR-like
-      # — all cases where no single Model can be promised at compile time; the
-      # child stays on the Generic path and per-record guards keep the tree
-      # safe regardless.
+      # association's child Model: the auto-specialization tree fill
+      # (SerializerCache.variant_pool). The child's Model is the reflected AR
+      # class when the source is a reflection on the parent Model, else the
+      # one class the child serializer declares with +models+ (a plain method
+      # source, such as a filtered copy of an association). A child
+      # Descriptor is left untouched when it declared its own Model, or when
+      # neither rule yields exactly one AR-like class with a resolvable
+      # name; the child then stays on the Generic path, and per-record
+      # guards keep the tree safe regardless.
+      #
+      # Several declared classes become +Association#variants+: one
+      # specialized child per class, picked per record by exact class, with
+      # the unspecialized child for any other record. Callers run
+      # {uniquify_names} on the result, since variants of one child share
+      # its name.
       #
       # +seen+ breaks cycles defensively: Panko-built trees are acyclic (a
       # self-referential association snapshots one level deep), but the engine
       # accepts cyclic graphs, and a revisited Descriptor is returned
       # unspecialized rather than recursed forever.
       def specialize(descriptor, model, seen = {})
-        return descriptor if seen[descriptor.__id__]
-        seen[descriptor.__id__] = true
+        return descriptor if seen[[descriptor.__id__, model]]
+        seen[[descriptor.__id__, model]] = true
         associations = descriptor.associations.map do |association|
-          child_model = reflected_child_model(model, association)
-          next association if child_model.nil?
-          association.with(descriptor: specialize(association.descriptor, child_model, seen))
+          child_models = child_models(model, association)
+          case child_models.size
+          when 0 then association
+          when 1 then association.with(descriptor: specialize(association.descriptor, child_models.first, seen))
+          else
+            association.with(variants: child_models.map { |child_model| specialize(association.descriptor, child_model, seen) })
+          end
         end
         descriptor.with(model: model, associations: associations)
       end
 
+      # The classes a child is specialized for: the reflected class alone
+      # when the source is a reflection, else the specializable classes the
+      # child serializer declares with +models+, in declaration order.
+      #
       # @param model [Class] the parent Model being specialized against
       # @param association [Panko::CodeGen::Association]
+      # @return [Array<Class>] empty when the child must stay on its
+      #   current path
+      def child_models(model, association)
+        return [] unless association.descriptor.model.nil?
+        reflection = model.reflect_on_association(association.source) if model.respond_to?(:reflect_on_association)
+        return Array(reflected_child_model(reflection)) if reflection
+        declared_models(association.descriptor.parent_class).select do |klass|
+          specializable?(klass) && serves?(klass, association.descriptor)
+        end
+      end
+      private_class_method :child_models
+
+      # Whether every attribute and association source of +descriptor+ is a
+      # column or method on +klass+. A declared model that fails this would
+      # stop the whole parent from compiling; it is left out instead, and its
+      # records get the unspecialized child.
+      def serves?(klass, descriptor)
+        ActiveRecord::DefineAttributeMethods.ensure!(klass)
+        sources = descriptor.attributes.map(&:source) + descriptor.associations.map(&:source)
+        sources.all? do |source|
+          ActiveRecord::AccessClassifier.classify(klass, source)
+          true
+        rescue UnknownSourceError
+          false
+        end
+      end
+      private_class_method :serves?
+
+      def declared_models(serializer_class)
+        serializer_class.respond_to?(:_cg_models) ? Array(serializer_class._cg_models) : []
+      end
+      private_class_method :declared_models
+
+      # @param reflection [ActiveRecord::Reflection::AbstractReflection]
       # @return [Class, nil] the reflected child Model, or +nil+ when the
       #   child must stay on its current path
-      def reflected_child_model(model, association)
-        return nil unless association.descriptor.model.nil?
-        return nil unless model.respond_to?(:reflect_on_association)
-        reflection = model.reflect_on_association(association.source)
-        return nil if reflection.nil? || reflection.polymorphic?
+      def reflected_child_model(reflection)
+        return nil if reflection.polymorphic?
         klass = begin
           reflection.klass
         rescue
@@ -113,11 +158,15 @@ module Panko
           # isn't specializable.
           nil
         end
-        return nil if klass.nil? || !resolvable_name?(klass)
-        return nil unless klass.respond_to?(:columns_hash) && klass.respond_to?(:attribute_methods_generated?)
-        klass
+        specializable?(klass) ? klass : nil
       end
       private_class_method :reflected_child_model
+
+      def specializable?(klass)
+        return false if klass.nil? || !resolvable_name?(klass)
+        klass.respond_to?(:columns_hash) && klass.respond_to?(:attribute_methods_generated?)
+      end
+      private_class_method :specializable?
 
       # The specialized emit guards each body with
       # +record.instance_of?(::<Name>)+, so a Model is only specializable
