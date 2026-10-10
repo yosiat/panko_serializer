@@ -3,9 +3,8 @@
 require_relative "code_gen/serializer_cache"
 
 module Panko
-  # Public, read-only view of a serializer's shape — the stable introspection
-  # surface for tools like association preloaders. Decoupled from the engine's
-  # Panko::CodeGen::Descriptor so its internals stay free to change.
+  # Public, read-only view of a serializer's shape, for tools like association
+  # preloaders. Separate from Panko::CodeGen::Descriptor so the engine can change.
   class Descriptor
     Attribute = Data.define(:name, :source)
     MethodAttribute = Data.define(:name, :source)
@@ -13,9 +12,8 @@ module Panko
 
     attr_reader :serializer, :attributes, :method_attributes, :associations
 
-    # The static view is built once per serializer class and cached on the
-    # class itself. A concurrent first build races benignly: both threads
-    # produce equal frozen views and the last write wins.
+    # Cached on the serializer class. A concurrent first build is harmless:
+    # both threads build frozen views with the same content.
     def self.for(serializer_class)
       serializer_class._cg_public_descriptor ||= wrap(
         CodeGen::SerializerCache.descriptor_for(serializer_class)
@@ -34,9 +32,8 @@ module Panko
     end
     private_class_method :wrap
 
-    # +source+ is the serializer method the field dispatches to — Panko's DSL
-    # always produces Symbol bodies; a Callable body (engine-only shape) has
-    # no method name, so +source+ is nil there.
+    # A Callable body has no method name, so +source+ is nil. The DSL only
+    # makes Symbol bodies.
     def self.wrap_method_attribute(method_attribute)
       body = method_attribute.body
       MethodAttribute.new(name: method_attribute.name, source: body.is_a?(Symbol) ? body : nil)
@@ -50,12 +47,9 @@ module Panko
       @associations = associations
     end
 
-    # Lazy filtered view — mirrors the engine's runtime Filter design instead
-    # of eagerly narrowing a copied tree: it holds the class-level skeleton
-    # plus the same engine-shaped filters Hash the serialize path passes to
-    # Filter.wrap, and resolves survivors on first read, memoized per level.
-    # Only the levels a caller actually visits are ever computed. Memoization
-    # races benignly: equal frozen values, last write wins.
+    # Resolves each level on first read and memoizes it, so only the levels a
+    # caller visits cost anything. +filters+ has the shape
+    # Panko::CodeGen::Runtime.runtime_filters returns.
     class Filtered < Descriptor
       def initialize(skeleton, filters)
         @skeleton = skeleton
@@ -74,9 +68,8 @@ module Panko
         @method_attributes ||= @skeleton.method_attributes.select { |m| keep?(m.name) }.freeze
       end
 
-      # Associations keep/drop and descend by +source+ — the declared
-      # relation is the filter key at both the level and the sub-filter,
-      # matching the runtime FIELD_INDEX and Panko 0.8.5.
+      # Associations are filtered by +source+, the declared relation name, as
+      # the serialize path does.
       def associations
         @associations ||= @skeleton.associations.filter_map do |as|
           next unless keep?(as.source)
@@ -87,8 +80,7 @@ module Panko
 
       private
 
-      # Same drop rule as the engine Filter: :only wins over :except (the two
-      # never co-exist at one level in FilterAdapter output).
+      # FilterAdapter never emits both :only and :except at one level.
       def keep?(name)
         only = @filters[:only]
         return only.include?(name) unless only.nil?

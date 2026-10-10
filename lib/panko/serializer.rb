@@ -7,44 +7,26 @@ require "oj"
 
 module Panko
   class Serializer
-    # Unified with the engine's sentinel so a method field returning SKIP is
-    # recognized by the generated code's `value.equal?(Panko::CodeGen::SKIP)` check.
+    # A method field that returns SKIP leaves its key out of the output.
     SKIP = Panko::CodeGen::SKIP
 
     EMPTY_MODELS = [].freeze
 
     class << self
-      # Each serializer accumulates its Fields as the engine's own value
-      # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
-      # on first use. A subclass inherits a copy so its DSL edits stay local.
       attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations
 
-      # The per-class compile cache — one SerializerCache::State holding
-      # the converted Descriptor, both modes' compiled classes / pools /
-      # variant maps, and the capacity warn-once flag. A single direct
-      # class-ivar slot so SerializerCache never reaches in reflectively.
-      # Not copied on inheritance — each class compiles its own; a
-      # Zeitwerk reload mints a fresh class object with an empty slot, so
-      # the cache self-heals.
+      # Not copied on inheritance: each class compiles its own.
       attr_accessor :_cg_state
 
-      # The seams' one-entry inline caches (frozen [model, pool] pairs) —
-      # deliberately direct class ivars rather than State cells so the
-      # serialize hot path pays one ivar read + one pointer compare.
+      # One-entry inline caches: frozen [model, pool] pairs.
       attr_accessor :_cg_last_json, :_cg_last_hash
 
-      # The cached Panko::Descriptor public view (see Panko::Descriptor.for).
       attr_accessor :_cg_public_descriptor
 
-      # Whether this class defines +filters_for+, so the unfiltered hot path
-      # skips filter resolution entirely. Seeded at inheritance (covers a
-      # parent-defined +filters_for+) and flipped by {singleton_method_added}
-      # when one is defined later — including an RSpec stub added after the
-      # class has already serialized. Never flips back to false; a stale
-      # +true+ just re-checks +respond_to?+ inside +runtime_filters+.
+      # Lets the unfiltered hot path skip filter resolution. A stale +true+ only
+      # costs a +respond_to?+ inside +runtime_filters+.
       attr_accessor :_cg_has_filters_for
 
-      # The record classes declared with {models}, read by Panko.compile_all.
       attr_accessor :_cg_models
 
       def inherited(base)
@@ -55,11 +37,10 @@ module Panko
         base._cg_models = _cg_models || EMPTY_MODELS
       end
 
-      # Declares the record classes this serializer is expected to
-      # serialize, so Panko.compile_all can compile a specialized variant
-      # for each one at boot. A hint only: records of any other class still
-      # serialize, and get specialized on first sight. Subclasses inherit
-      # the list; calling it again replaces it.
+      # Declares the record classes this serializer expects, so Panko.compile_all
+      # can compile a specialized variant for each at boot. A hint only: records
+      # of other classes still serialize. Subclasses inherit the list; a second
+      # call replaces it.
       #
       # @param models [Array<Class>]
       # @raise [ArgumentError] when an argument is not a Class
@@ -69,9 +50,7 @@ module Panko
         self._cg_models = models.freeze
       end
 
-      # Mirrors {method_added}: a +filters_for+ defined (or stubbed) after
-      # the first serialize must still be honored, since the hot path reads
-      # +_cg_has_filters_for+ instead of paying +respond_to?+ per call.
+      # A +filters_for+ defined or stubbed after the first serialize must still apply.
       def singleton_method_added(method)
         super
         @_cg_has_filters_for = true if method == :filters_for
@@ -85,9 +64,8 @@ module Panko
         aliases.each { |source, output| add_attribute(source.to_sym, output.to_sym) }
       end
 
-      # A user-defined method whose name matches a declared attribute turns that
-      # attribute into a Symbol-body method field (dispatched on the generated
-      # subclass of this serializer), preserving its output key.
+      # A method named like a declared attribute turns that attribute into a
+      # method field with the same output key.
       def method_added(method)
         super
         return if _cg_attributes.nil?
@@ -112,8 +90,6 @@ module Panko
 
       private
 
-      # De-duplicates by Source (the read method), keeping the first declaration
-      # — matching Panko's +attributes(...).uniq!+.
       def add_attribute(source, output)
         return if _cg_attributes.any? { |attribute| attribute.source == source }
         _cg_attributes << Panko::CodeGen::Attribute.new(name: output, source: source)
@@ -132,12 +108,8 @@ module Panko
         )
       end
 
-      # The nested serializer's +filters_for+ is evaluated once, here, with nil
-      # context/scope: the C-ext engine baked it into the association's
-      # descriptor at declaration time (SerializationDescriptor.build merged it
-      # into the has_one/has_many options) and never re-evaluated it with the
-      # runtime context. That merge also means +filters_for+ wins over the
-      # declared +only:+/+except:+ on a key collision.
+      # The nested serializer's +filters_for+ runs once, at declaration, with nil
+      # context and scope. Its keys win over the declared +only:+/+except:+.
       def association_filters(serializer, options)
         only = options[:only]
         except = options[:except]
@@ -160,15 +132,11 @@ module Panko
       end
     end
 
-    # Frozen shared default for the no-options construction path — a literal
-    # +{}+ default allocates a fresh Hash on every +.new+, which is measurable
-    # on single-record serialization.
+    # A literal +{}+ default would allocate a Hash on every +.new+.
     EMPTY_OPTIONS = {}.freeze
 
     def initialize(options = EMPTY_OPTIONS)
-      # No-options construction (the common hot path) leaves the ivars
-      # uninitialized — Ruby reads them back as nil, same as unpacking an
-      # empty Hash, without paying four lookups and four writes per +.new+.
+      # Unset ivars read as nil, so +.new+ skips four Hash lookups and four writes.
       return if options.equal?(EMPTY_OPTIONS)
 
       @context = options[:context]
@@ -177,14 +145,10 @@ module Panko
       @except = options[:except]
     end
 
-    # The generated +_write_one+ (parent_class dispatch) sets @object /
-    # @context / @scope on itself per record, so a user method field reads
-    # them off the generated instance it runs on.
+    # Generated code sets these per record on the instance a method field runs on.
     attr_reader :object, :context, :scope
 
-    # The effective public view for this instance. Unfiltered (the common
-    # case) it is the cached class-level view itself; with filters it wraps
-    # that view lazily — the serialize path is not involved either way.
+    # The class-level view, narrowed by this instance's +only+/+except+ and +filters_for+.
     def descriptor
       klass = self.class
       filters = if @only || @except || klass._cg_has_filters_for
@@ -194,22 +158,8 @@ module Panko
       filters ? Panko::Descriptor::Filtered.new(base, filters) : base
     end
 
-    # Both serialize methods inline the whole seam instead of calling into a
-    # shared Runtime entry point: the mode is known statically here, so the
-    # pool comes off the class's own slot with no dispatch-layer hop, filter
-    # resolution is skipped outright on the unfiltered path, and the
-    # checkout/checkin cycle costs one Thread.current lookup. This matters
-    # because these shared entry points go polymorphic the moment an app has
-    # more than one serializer class.
-    #
-    # Pool selection dispatches on the record's class through a one-entry
-    # inline cache (+_cg_last_json+/+_cg_last_hash+, a frozen [model, pool]
-    # pair): the overwhelmingly common one-record-class-per-serializer case
-    # pays one ivar read and one pointer compare over the old single-slot
-    # read; a miss falls to +SerializerCache.variant_pool+ (frozen-Hash
-    # lookup, first sight compiles). Concurrent writers can race the pair
-    # swap — worst case a hit returns a stale pool whose per-record class
-    # guard delegates to its generic twin, so output stays correct.
+    # Both methods inline the pool checkout instead of calling a shared Runtime
+    # method, which would go polymorphic once an app has more than one serializer.
 
     def serialize(object)
       klass = self.class
@@ -227,9 +177,7 @@ module Panko
       begin
         instance.serialize_one(object, context: @context, scope: @scope, filters: filters)
       ensure
-        # _release drops the instance tree's per-record @object/@context/@scope
-        # before it goes back on the stack — a pooled instance must not pin
-        # the last record graph (or request-scoped context) between calls.
+        # A pooled instance must not hold the last record or request context.
         instance._release
         stack.push(instance)
       end

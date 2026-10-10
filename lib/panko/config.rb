@@ -1,27 +1,22 @@
 # frozen_string_literal: true
 
 module Panko
-  # Runtime configuration for Panko's serialization engine. Settings are
-  # process-global and read at serialize time — mutate them in an
-  # initializer, before serializers start compiling:
+  # Process-global settings, read at serialize time. Set them in an
+  # initializer, before serializers compile:
   #
   #   Panko.configure do |config|
   #     config.auto_specialization.capacity = 32
   #   end
-  #
-  # or directly: +Panko::Config.auto_specialization.capacity = 32+.
   class Config
-    # Settings for the auto-specialization variant cache — the engine
-    # compiles a specialized Generated Class per record class it sees
-    # (see +Panko::CodeGen::SerializerCache.variant_pool+).
+    # The engine compiles a specialized Generated Class for each named
+    # ActiveRecord class a serializer sees, up to +capacity+.
     class AutoSpecialization
-      # @return [Boolean] whether first-sight specialized compiles happen
-      #   at all; +false+ routes every record class to the generic path
+      # @return [Boolean] +false+ routes every record class to the generic path
       attr_reader :enabled
 
-      # @return [Integer] max specialized variants per (serializer class,
-      #   output mode); record classes seen past the cap use the generic
-      #   path (with a one-time warning per serializer class)
+      # @return [Integer] max specialized variants per serializer class and output
+      #   mode; past it, record classes use the generic path, with one warning
+      #   per serializer class
       attr_reader :capacity
 
       def initialize
@@ -50,15 +45,11 @@ module Panko
     @writer_pool_max_bytes = 1_048_576
 
     class << self
-      # @return [Panko::Config::AutoSpecialization]
       attr_reader :auto_specialization
 
-      # Largest JSON output, in bytes, whose +Oj::StringWriter+ goes back to
-      # the per-thread pool after +serialize_to_json+. A call whose output
-      # is larger drops its writer instead: +Oj::StringWriter#reset+ keeps
-      # the grown buffer, so a reused writer would hold that memory for the
-      # life of the thread. Read on every checkin, so a change applies to
-      # the next call without recompiling serializers.
+      # Largest +serialize_to_json+ output, in bytes, whose writer goes back to
+      # the pool. +Oj::StringWriter#reset+ keeps the grown buffer, so a larger
+      # writer is dropped instead of holding that memory. Read on every checkin.
       #
       # @return [Integer] default 1_048_576 (1 MB)
       attr_reader :writer_pool_max_bytes
@@ -74,9 +65,6 @@ module Panko
   end
 
   # Yields the {Config} class for block-style configuration.
-  #
-  # @yieldparam config [Class<Panko::Config>]
-  # @return [void]
   def self.configure
     yield Config
   end
