@@ -46,6 +46,19 @@ describe "Panko::CodeGen::DescriptorBuilder.specialize" do
     expect(specialized.associations.first.descriptor.model).to eq(Bar)
   end
 
+  it "fills the Model of a child shared by two associations on both" do
+    bar_serializer
+    Foo.has_one :first_bar, class_name: "Bar"
+    foo_serializer = stub_const("FooSerializer", Class.new(Panko::Serializer) do
+      has_one :first_bar, serializer: BarSerializer
+      has_many :bars, serializer: BarSerializer
+    end)
+
+    specialized = specialize(descriptor_for(foo_serializer), Foo)
+
+    expect(specialized.associations.map { |association| association.descriptor.model }).to eq([Bar, Bar])
+  end
+
   it "leaves a child that already carries a Model untouched" do
     bar_serializer
     foo_serializer = stub_const("FooSerializer", Class.new(Panko::Serializer) do
