@@ -2,30 +2,15 @@
 
 require_relative "support/benchmark"
 
-# Cross-library serializer benchmark: Panko vs its competitors, serializing a
-# nested object graph (Game -> scores, best_player, players[]) to JSON. Two
-# workloads per library — a single record and a collection — measured side by
-# side under YJIT.
-#
-# Every competitor row is gated on producing output BYTE-IDENTICAL to Panko's:
-# a library whose bytes diverge (different key order, spacing, escaping) is
-# skipped with a warning rather than compared, so the numbers stay honest and
-# apples-to-apples.
+# Panko vs other serializer libraries on a nested Game graph, one record and a collection.
+# A row whose JSON is not byte-identical to Panko's is skipped, so only equal output is compared.
 #
 # Adapted from oj_serializers' game_serializer_benchmark.rb
 # (https://github.com/ElMassimo/oj_serializers/blob/master/benchmarks/game_serializer_benchmark.rb),
-# MIT-licensed, Copyright (c) 2020 Maximo Mussini. Owns its own Game/Player
-# schema — including the upstream `scores` alias that walks back to the game
-# itself — so absolute numbers stay comparable to oj_serializers' published run.
+# MIT-licensed, Copyright (c) 2020 Maximo Mussini.
 #
-# Run (YJIT — the production target):
-#   BUNDLE_GEMFILE=gemfiles/8.0.0.gemfile bundle exec ruby --yjit benchmarks/game_serializer.rb
-#
-# Collection size defaults to 100 games; override with COUNT=<n>. TARGET=<substr>
-# filters rows (e.g. TARGET=single, TARGET=alba).
+# Run: BUNDLE_GEMFILE=gemfiles/8.0.0.gemfile bundle exec ruby --yjit benchmarks/game_serializer.rb
 
-# Competitors are optional: the bench runs with whichever gems are installed,
-# so a missing one degrades to a skipped row instead of a load error.
 def try_require(lib)
   require lib
   true
@@ -36,8 +21,6 @@ end
 
 HAVE_ALBA = try_require("alba")
 HAVE_BLUEPRINTER = try_require("blueprinter")
-
-# --- Schema + models ------------------------------------------------------
 
 ActiveRecord::Schema.define do
   create_table :games, force: true do |t|
@@ -66,9 +49,8 @@ class Game < ActiveRecord::Base
   belongs_to :best_player, class_name: "Player", optional: true
   has_many :players
 
-  # Mirrors `Game.prepend Module.new { def scores; self; end }` from the source
-  # benchmark — has_one :scores walks back to the game itself so the Scores
-  # serializer reads high_score/score off the game's own row.
+  # has_one :scores returns the game itself, so the Scores serializer reads high_score and
+  # score from the game row.
   def scores
     self
   end
@@ -76,8 +58,6 @@ end
 
 Game.define_attribute_methods
 Player.define_attribute_methods
-
-# --- Seed data: one game for the single row, a collection for the many row --
 
 COLLECTION_SIZE = (ENV["COUNT"] && !ENV["COUNT"].empty?) ? ENV["COUNT"].to_i : 100
 
@@ -94,7 +74,6 @@ Player.insert_all(
     ]
   end
 )
-# Each game's best player is its first player — one correlated UPDATE.
 Game.connection.execute(<<~SQL)
   UPDATE games SET best_player_id =
     (SELECT MIN(id) FROM players WHERE players.game_id = games.id)
@@ -102,8 +81,6 @@ SQL
 
 GAMES = Game.includes(:best_player, :players).order(:id).to_a
 GAME = GAMES.first
-
-# --- Panko (the subject) --------------------------------------------------
 
 class PlayerPanko < Panko::Serializer
   attributes :id, :first_name, :last_name, :full_name
@@ -123,11 +100,6 @@ class GamePanko < Panko::Serializer
   has_one :best_player, serializer: PlayerPanko
   has_many :players, serializer: PlayerPanko
 end
-
-# --- oj_serializers -------------------------------------------------------
-# `default_format :json` makes `.one` / `.many` return an Oj::StringWriter whose
-# `.to_s` materializes JSON in one dispatch — the apples-to-apples shape against
-# Panko's serialize_to_json. See https://github.com/ElMassimo/oj_serializers.
 
 class PlayerOj < OjSerializers::Serializer
   default_format :json
@@ -151,8 +123,6 @@ class GameOj < OjSerializers::Serializer
   has_one :best_player, serializer: PlayerOj
   has_many :players, serializer: PlayerOj
 end
-
-# --- alba -----------------------------------------------------------------
 
 if HAVE_ALBA
   Alba.backend = :oj
@@ -182,11 +152,8 @@ if HAVE_ALBA
   end
 end
 
-# --- blueprinter ----------------------------------------------------------
-# Blueprinter's default sorts fields alphabetically; :definition keeps
-# declaration order so the bytes line up with Panko. Plain `field :id` (not
-# `identifier`) avoids the always-first id reordering.
-
+# Blueprinter sorts fields alphabetically by default and always puts `identifier` first;
+# :definition order and a plain `field :id` keep Panko's key order.
 if HAVE_BLUEPRINTER
   Blueprinter.configure { |config| config.sort_fields_by = :definition }
 
@@ -211,10 +178,6 @@ if HAVE_BLUEPRINTER
   end
 end
 
-# --- plain baselines (ceiling + floor) ------------------------------------
-# Hand-built Hash so key order and shape are exactly Panko's; Oj.dump is the
-# "speed of light" ceiling, JSON.generate the stdlib floor.
-
 def player_hash(player)
   {
     id: player.id,
@@ -234,14 +197,7 @@ def game_hash(game)
   }
 end
 
-# --- Byte-identical parity gate -------------------------------------------
-# Panko is the reference. A candidate whose output is not byte-for-byte equal is
-# dropped from the run (with a warning) so only comparable rows are timed. The
-# one tolerated difference is a trailing newline: oj_serializers' Oj::StringWriter
-# appends one, which is a transport artifact rather than a content difference, so
-# the gate compares modulo String#chomp. The timed lambdas are left untouched, so
-# each row still measures its library's natural output.
-
+# chomp: oj_serializers' Oj::StringWriter ends with a newline, which is not a content difference.
 def gated_rows(kind, panko_lambda, candidates)
   reference = panko_lambda.call
   rows = {"panko" => panko_lambda}
@@ -288,8 +244,6 @@ puts "  single (1 game):          #{single_rows.keys.join(", ")}"
 puts "  collection (#{COLLECTION_SIZE} games):  #{collection_rows.keys.join(", ")}"
 puts "Sample (single): #{single_panko.call}"
 puts
-
-# --- Scenario rows --------------------------------------------------------
 
 rows = {}
 single_rows.each { |label, callable| rows["single/#{label}"] = callable }

@@ -3,63 +3,8 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- MediumGraphShallowOnly-shape — phase-2 scenario ----------------------
-# Mirrors S13 fixture #6.4 (`medium_graph_shallow_only`) verbatim so the
-# canonical `code_gen/json[with-only]` row reproduces the
-# `indexed × single_path` verdict cell from `filter_experiments_results.md
-# § 6.4` (49.691K @ size=50, 1147.847 @ size=2300, 6 allocs/call). With
-# this scenario in the bench, a future `phase_2_report.md`-style run can
-# apply rule 2 (verdict-cell sanity, ±10%) numerically — the gap that
-# `phase_2_report.md § 6.2` identified and closed at the
-# pattern-equivalence level only.
-#
-# Shape (lifted from `docs/research/filter_experiments_bench.rb`'s
-# `GRAPH_*_DESCRIPTOR` block):
-#
-#   * Post Descriptor — 5 Attributes (id, title, body, views, published) +
-#     3 Associations (author has_one, first_comment has_one, comments
-#     has_many) = 8 fields.
-#   * Author Descriptor — 3 Attributes (id, name, email).
-#   * Comment Descriptor — 2 Attributes (id, body), shared between the
-#     `:first_comment` has_one and `:comments` has_many Associations.
-#
-# Filter — `{only: %i[id title author]}`. Keeps 3 of 8 top-level fields
-# (2 Attributes + the `author` has_one Association); drops the
-# `:first_comment` has_one and the `:comments` has_many entirely. This is
-# the exact filter S13 measured.
-#
-# The engine rows come in two flavors so the canonical bench captures both
-# rules from `phase_2_report.md § 2`:
-#
-#   * `code_gen/{json,hash}` — `filters: nil` baseline.
-#     Rule 1 anchor (phase-1 baseline integrity, 5%); the no-filter path
-#     emits every Field including the eager-loaded `:comments` has_many.
-#   * `code_gen/{json,hash}[with-only]` — `filters:
-#     MEDIUM_GRAPH_SHALLOW_ONLY_FILTER`. Rule 2 anchor (verdict-cell
-#     sanity, ±10%); this is the row the issue exists to make
-#     reproducible against S13's `indexed × single_path` cell.
-#
-# The panko/* and oj_serializers/json rows narrow the attribute set
-# directly — for panko that's the runtime `only:` kwarg on
-# `ArraySerializer`; oj_serializers has no runtime only:/except:, so the
-# idiomatic equivalent is a serializer class with the desired attribute
-# set baked in (id + title at the Post level + the full author nesting).
-#
-# Note: plain/* rows are omitted — plain has no filter primitive.
-
-# Method-backed Source for the `:first_comment` has_one Association on
-# `MediumGraphPostDescriptor`. Reads from the already-eager-loaded
-# `:comments` collection (the `:posts` dataset entry includes
-# `.includes(:author, :comments)`) so the call doesn't trigger an N+1
-# query inside the measured block. Mirrors the same method on
-# `FilterBench::Post` in `docs/research/filter_experiments_bench.rb`.
+# Reads the eager-loaded comments, so no query runs inside the measured block.
 class Bench::Post
-  # Returns the first comment on this post, or nil when there are none.
-  # Used as the Source for the :first_comment has_one Association in
-  # medium_graph_shallow_only.rb. No query — relies on `:comments`
-  # being eager-loaded by the `:posts` dataset.
-  #
-  # @return [Bench::Comment, nil]
   def first_comment
     comments.first
   end
@@ -127,9 +72,7 @@ class MediumGraphPostPankoSerializer < Panko::Serializer
   has_many :comments, serializer: MediumGraphCommentPankoSerializer
 end
 
-# oj_serializers has no runtime only:/except:; bake the narrowed set in
-# (top-level keeps id + title; the full author nesting; first_comment
-# and comments are absent).
+# oj_serializers has no runtime only:/except:, so the narrowed set is baked in.
 class MediumGraphAuthorOjSerializer < OjSerializers::Serializer
   default_format :json
   attributes :id, :name, :email
@@ -141,20 +84,9 @@ class MediumGraphPostOjSerializer < OjSerializers::Serializer
   has_one :author, serializer: MediumGraphAuthorOjSerializer
 end
 
-# Top-level narrowed set — keeps id + title + the entire author
-# Composition; the `:first_comment` has_one and `:comments` has_many are
-# dropped. Used two ways: as the the engine filter's `:only` value, and as the
-# Panko `only:` kwarg list. Panko threads the `:author` key through to
-# the nested AuthorSerializer; with no nested narrowing, all 3 author
-# attrs emit.
 MEDIUM_GRAPH_SHALLOW_ONLY_KEYS = %i[id title author].freeze
 
-# Matches `FIXTURES[3][:filter_hash]` in
-# `docs/research/filter_experiments_bench.rb` verbatim.
 MEDIUM_GRAPH_SHALLOW_ONLY_FILTER = {only: MEDIUM_GRAPH_SHALLOW_ONLY_KEYS}.freeze
-
-# --- Target registry entries ----------------------------------------------
-# n/a — plain has no filter primitive
 
 Targets::CODE_GEN_JSON[:medium_graph_shallow_only] = ->(records) { CODE_GEN_JSON_MEDIUM_GRAPH.serialize_many(records, filters: nil) }
 Targets::CODE_GEN_HASH[:medium_graph_shallow_only] = ->(records) { CODE_GEN_HASH_MEDIUM_GRAPH.serialize_many(records, filters: nil) }
@@ -163,8 +95,6 @@ Targets::CODE_GEN_HASH[:medium_graph_shallow_only_with_only] = ->(records) { COD
 Targets::PANKO_JSON[:medium_graph_shallow_only] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MediumGraphPostPankoSerializer, only: MEDIUM_GRAPH_SHALLOW_ONLY_KEYS).to_json }
 Targets::PANKO_OBJECT[:medium_graph_shallow_only] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MediumGraphPostPankoSerializer, only: MEDIUM_GRAPH_SHALLOW_ONLY_KEYS).to_a }
 Targets::OJ_JSON[:medium_graph_shallow_only] = ->(records) { MediumGraphPostOjSerializer.many(records).to_s }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "MediumGraphShallowOnly", type: :posts do |records|
   {
@@ -175,6 +105,5 @@ benchmark_scenario "MediumGraphShallowOnly", type: :posts do |records|
     "panko/json" => -> { Targets::PANKO_JSON[:medium_graph_shallow_only].call(records) },
     "panko/object" => -> { Targets::PANKO_OBJECT[:medium_graph_shallow_only].call(records) },
     "oj_serializers/json" => -> { Targets::OJ_JSON[:medium_graph_shallow_only].call(records) }
-    # n/a — plain has no filter primitive
   }
 end

@@ -2,25 +2,7 @@
 
 require_relative "support/benchmark"
 
-# --- SingleRecord-shape Descriptor / serializers --------------------------
-# Single Bench::Post + has_one :author + has_many :comments — exercises the
-# one-record APIs (`serialize_one`, `Serializer.one(record)`,
-# `record.as_json`) that the rest of the suite doesn't touch (every other
-# scenario measures collection throughput at SIZE=50/2300). Mirrors
-# benchmarks/graph.rb's shape, slimmed to just :author / :comments.
-#
-# This file is self-contained: target lambdas inline below the byte-parity
-# guard rather than threaded through Targets::*. The registry exists to
-# share lambdas across scenarios that reuse the same target definition; a
-# single-record-only scenario won't reuse any of these elsewhere.
-#
-# Output-parity guard at the top aborts before the bench burns CPU if any
-# target's emit shape diverges from the reference. Future scenarios
-# should mirror this guard.
-
 RECORD = DATASETS.fetch(:posts).first
-
-# --- CodeGen ------------------------------------------------------------------
 
 SINGLE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordAuthorBenchSerializer",
@@ -67,8 +49,6 @@ SINGLE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 CODE_GEN_JSON_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :json).new(descriptor: SINGLE_POST_DESCRIPTOR)
 CODE_GEN_HASH_SINGLE = Panko::CodeGen.compile(SINGLE_POST_DESCRIPTOR, output: :hash).new(descriptor: SINGLE_POST_DESCRIPTOR)
 
-# --- Panko ----------------------------------------------------------------
-
 class AuthorPankoSerializer < Panko::Serializer
   attributes :id, :name
 end
@@ -83,11 +63,7 @@ class PostPankoSerializer < Panko::Serializer
   has_many :comments, serializer: CommentPankoSerializer
 end
 
-# --- oj_serializers — two trios ------------------------------------------
-# `default_format` aliases the class-level `.one`/`.many` shortcut to the
-# json (writer) variant and is inherited per-class, so a per-row toggle
-# means re-declaring the alias inside the bench loop. Two parallel trios is
-# the lighter trade — clarity over clever.
+# Separate classes so each row can call `.one`: default_format picks per class whether `.one` returns JSON or a Hash.
 
 class AuthorOjJsonSerializer < OjSerializers::Serializer
   default_format :json
@@ -120,13 +96,7 @@ class PostOjHashSerializer < OjSerializers::Serializer
   has_many :comments, serializer: CommentOjHashSerializer
 end
 
-# Plain `as_json` returns *every* column by default — Bench::Post carries
-# `:metadata`, Bench::Author has `:bench_post_id`, Bench::Comment has
-# `:bench_post_id` / `:parent_comment_id` — none of which the serializer
-# rows emit. To make the parity guard meaningful we have to constrain the
-# plain rows to the same field set the serializers emit; otherwise the
-# guard would always fail for trivially "extra columns" reasons. The
-# nested-Hash form of `include:` lets us narrow root + nested in one call.
+# as_json returns every column by default; limit it to the serializer fields so the parity check can pass.
 PLAIN_AS_JSON_OPTIONS = {
   only: [:id, :title, :body, :views, :published],
   include: {
@@ -135,14 +105,7 @@ PLAIN_AS_JSON_OPTIONS = {
   }
 }.freeze
 
-# --- Output-parity guard --------------------------------------------------
-# Build the same shape every target would emit, normalize through
-# Oj.load(mode: :strict), and abort with a labeled diff if any row
-# diverges. Hash-output rows (code_gen/hash, panko/object, oj_serializers/hash,
-# plain/hash) get Oj.dump'd ONLY here so the parity comparison stays
-# String-on-String — the bench loop below measures the raw Hash/Writer
-# output without that wrap.
-
+# Hash rows are dumped to JSON only for this check; the timed rows below return the Hash itself.
 parity_outputs = {
   "code_gen/json" => CODE_GEN_JSON_SINGLE.serialize_one(RECORD),
   "code_gen/hash" => Oj.dump(CODE_GEN_HASH_SINGLE.serialize_one(RECORD)),
@@ -166,11 +129,6 @@ end
 puts "JSON output parity verified: #{parity_outputs.keys.join(", ")}"
 puts "Sample: #{Oj.dump(reference)}"
 puts
-
-# --- Scenario rows --------------------------------------------------------
-# Inline target lambdas — the registry exists to share callables across
-# scenarios; this file is the only consumer of these lambdas, so threading
-# through `Targets::*` would add noise without payoff.
 
 rows = {
   "code_gen/json" => -> { CODE_GEN_JSON_SINGLE.serialize_one(RECORD) },

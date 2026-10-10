@@ -2,41 +2,10 @@
 
 require_relative "support/benchmark"
 
-# --- FilterBuild — Filter.wrap construction overhead, isolated -----------
-# Measures the per-call cost of building a `Filter` object from a
-# caller-supplied `filters:` Hash, in isolation from emit. The dynamic
-# case (a fresh Hash parsed from a query string per request) pays this
-# cost on every `serialize_one` / `serialize_many` call; the existing
-# `filter_only` / `filter_except` scenarios bundle this cost inside the
-# emit IPS, so this scenario isolates it for direct inspection.
-#
-# Three Descriptor shapes show how build cost scales with field width
-# and with nesting:
-#
-#   * `Flat5`  -  5 attrs. The common width.
-#   * `Flat70` - 70 attrs. The widest shape here, so the one-shot
-#                 `field_index` walk in `Indexed.build` dominates.
-#   * `Deep`   —  3-level nesting (Root + has_one Child + has_one GC,
-#                 3 attrs/level) → exercises the child-Filter cache;
-#                 the cache is lifetime-scoped to one `serialize_*`
-#                 call, so a `has_many` iteration consults it once at
-#                 hoist time and pays zero per-record after.
-#
-# Two filter-Hash flavors per 5-field row:
-#
-#   * `frozen-hash`  — pre-allocated, frozen Hash reused per call.
-#                      Measures pure `Filter.wrap` work.
-#   * `fresh-hash`   — Hash literal allocated inside the block. Models
-#                      the dynamic case (one Hash per request); the
-#                      delta vs `frozen-hash` is the caller-side
-#                      Hash-allocation cost, not anything `Filter.wrap`
-#                      controls.
-#
-# Note: this scenario records construction-only IPS — there is no
-# `panko` / `oj_serializers` / `plain` row because filter construction
-# is internal to the engine. The harness's `benchmark` primitive is invoked
-# directly (no `benchmark_scenario` wrapper) since there is no
-# per-`size` records list to pass through.
+# Cost of building Filters (wrap and child) alone, without emit.
+# The `fresh-hash` row allocates the filter Hash per call, like a filter parsed
+# from each request. Calls `benchmark` directly: there is no records list to
+# pass per size.
 
 def make_filter_build_attrs(names)
   names.map { |n| Panko::CodeGen::Attribute.new(name: n, source: n) }
@@ -93,10 +62,9 @@ FILTER_BUILD_FLAT5_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_FLAT5_DESCR
 FILTER_BUILD_FLAT70_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_FLAT70_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
 FILTER_BUILD_DEEP_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_DEEP_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
 FILTER_BUILD_CHILD_FIELD_INDEX = Panko::CodeGen.compile(FILTER_BUILD_CHILD_DESCRIPTOR, output: :json).const_get(:FIELD_INDEX)
-Panko::CodeGen.compile(FILTER_BUILD_GC_DESCRIPTOR, output: :json) # ensure compiled
+Panko::CodeGen.compile(FILTER_BUILD_GC_DESCRIPTOR, output: :json)
 
-# Frozen filter Hashes — measures pure Filter.wrap work with no
-# caller-side Hash allocation.
+# Built once at load, so the rows measure Filter.wrap with no caller-side Hash allocation.
 FILTER_BUILD_EMPTY_FROZEN = {}.freeze
 FILTER_BUILD_FLAT5_ONLY_FROZEN = {only: %i[a b].freeze}.freeze
 FILTER_BUILD_FLAT5_EXCEPT_FROZEN = {except: %i[b].freeze}.freeze
@@ -107,15 +75,10 @@ FILTER_BUILD_DEEP_FROZEN = {
   child: {only: %i[p gc].freeze, gc: {only: %i[x].freeze}.freeze}.freeze
 }.freeze
 
-# Pre-built parent with a warm child cache for the cached-lookup row.
-# Built once at file load; every benchmark iteration hits the warm
-# cache, isolating cache-lookup cost from Indexed.build cost.
+# Warmed once at load, so the cached-child row measures only the cache lookup.
 FILTER_BUILD_PARENT_WARM = Panko::CodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
 FILTER_BUILD_PARENT_WARM.child(:child, FILTER_BUILD_CHILD_FIELD_INDEX)
 
-# --- Rows -----------------------------------------------------------------
-
-# None singleton — `filters: nil` and `filters: {}` both collapse here.
 benchmark "FilterBuild/None/nil" do
   Panko::CodeGen::Filter.wrap(nil, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
@@ -124,7 +87,6 @@ benchmark "FilterBuild/None/empty-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_EMPTY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-# Flat 5-attr Descriptor.
 benchmark "FilterBuild/Indexed/5fields/only-2of5/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT5_ONLY_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
@@ -137,8 +99,6 @@ benchmark "FilterBuild/Indexed/5fields/except-1of5/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT5_EXCEPT_FROZEN, FILTER_BUILD_FLAT5_FIELD_INDEX)
 end
 
-# Flat 70-attr Descriptor. Sparse vs dense
-# `:only` lists exercise the same per-Field walk in `Indexed.build`.
 benchmark "FilterBuild/Indexed/70fields/only-3of70/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT70_SPARSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
 end
@@ -147,7 +107,7 @@ benchmark "FilterBuild/Indexed/70fields/only-60of70/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_FLAT70_DENSE_FROZEN, FILTER_BUILD_FLAT70_FIELD_INDEX)
 end
 
-# Deep nested — child Filters are built lazily on the first `.child(:src)`.
+# Child Filters are built on the first `child` call, not by `wrap`.
 benchmark "FilterBuild/Deep/3level/wrap-only/frozen-hash" do
   Panko::CodeGen::Filter.wrap(FILTER_BUILD_DEEP_FROZEN, FILTER_BUILD_DEEP_FIELD_INDEX)
 end

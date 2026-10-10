@@ -3,38 +3,15 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- Graph-shape Descriptor / serializers ---------------------------------
-# Entrypoint Bench::Post Descriptor with Attributes + multiple has_one +
-# multiple has_many — the combined Composition shape Panko's existing bench
-# suite lacks. Two has_one Associations (:author, :first_comment) and two
-# has_many Associations (:comments, :recent_comments) on the same parent
-# stress per-Field dispatch through several nested Generated Classes per
-# Record. model: Bench::Post / Bench::Author / Bench::Comment picks
-# the specialized path on every level.
-#
-# :first_comment and :recent_comments are method-backed Sources defined on
-# Bench::Post inline below (they read from the already-eager-loaded
-# in-memory `comments` collection so neither call triggers an N+1 query
-# inside the measured block). The redundancy — same Comment serialized in
-# two has_many rows + once as has_one — is intentional: it inflates the
-# per-Field emit count without expanding the schema.
+# first_comment and recent_comments serialize some comments a second time on purpose:
+# more emitted fields without a bigger schema.
 
+# Both methods read the eager-loaded comments, so no query runs inside the measured block.
 class Bench::Post
-  # Returns the first comment on this post, or nil when there are none. Used
-  # as the Source for the :first_comment has_one Association in graph.rb. No
-  # query — relies on the :comments association already being eager-loaded
-  # by the :posts dataset entry.
-  #
-  # @return [Bench::Comment, nil]
   def first_comment
     comments.first
   end
 
-  # Returns the two most-recent comments on this post (last-2 of the
-  # eager-loaded collection). Used as the Source for the :recent_comments
-  # has_many Association in graph.rb.
-  #
-  # @return [Array<Bench::Comment>]
   def recent_comments
     comments.last(2)
   end
@@ -122,14 +99,6 @@ class GraphPostOjSerializer < OjSerializers::Serializer
   has_many :recent_comments, serializer: GraphCommentOjSerializer
 end
 
-# --- Target registry entries ----------------------------------------------
-
-# Filter narrowing for the with-filter rows. Top-level `:only` keeps two
-# Attributes + the two-level Composition (`author` + `comments`); the
-# nested entries narrow each child Descriptor to one Attribute. This shape
-# exercises the `Filter::Indexed::Array#child` cache **during emit** — the
-# `has_many :comments` walk hoists the resolved child filter out of the
-# loop (S14.4) so subsequent records hit the cache without rebuild.
 GRAPH_FILTER_HASH = {
   only: %i[id title author comments],
   author: {only: %i[id]},
@@ -143,14 +112,9 @@ Targets::CODE_GEN_HASH[:graph_with_only] = ->(records) { CODE_GEN_HASH_GRAPH.ser
 Targets::PANKO_JSON[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_json }
 Targets::PANKO_OBJECT[:graph] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: GraphPostPankoSerializer).to_a }
 Targets::OJ_JSON[:graph] = ->(records) { GraphPostOjSerializer.many(records).to_s }
-# n/a — `as_json(include:)` doesn't follow methods like `first_comment` /
-# `recent_comments`, so the plain rows can't reach shape parity with the
-# library rows. They mirror the AR-relation subset (:author, :comments) as
-# the closest "no-library" baseline.
+# Not the same shape as the library rows: the plain rows leave out first_comment and recent_comments.
 Targets::PLAIN_JSON[:graph] = ->(records) { records.map { |r| r.as_json(include: [:author, :comments]) }.to_json }
 Targets::PLAIN_HASH[:graph] = ->(records) { records.map { |r| r.as_json(include: [:author, :comments]) } }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "Graph", type: :posts do |records|
   {
