@@ -7,10 +7,6 @@ ActiveRecord::Schema.define do
     t.string :title
     t.string :body
     t.integer :views
-    # Backs the S12.5 JSON-column emit path. Specs covering the JSON-typed
-    # detection predicate and the +emit_json_column+ field emitter assert
-    # against a real AR column whose +type_for_attribute+ resolves to
-    # +ActiveRecord::Type::Json+ on every supported adapter.
     t.json :metadata
   end
 
@@ -20,12 +16,6 @@ ActiveRecord::Schema.define do
   end
 
   create_table :notes, force: true do |t|
-    # Backs the non-uniform-Specialized regression fixture (#61): paired
-    # with +PlainPost+'s +t.json :metadata+ to exercise the +ar_classes.all?+
-    # downgrade in +RecordAccess::Specialized.json_column_attribute?+. The
-    # +t.string+ column type is what flips the predicate +false+ —
-    # +type_for_attribute+ resolves to +Type::String+, not +Type::Json+ —
-    # forcing the per-Attribute emit back to today's +push_value+ shape.
     t.string :metadata
   end
 

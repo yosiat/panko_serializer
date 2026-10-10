@@ -35,14 +35,6 @@ RSpec.describe Panko::CodeGen::CompileCache do
       expect(cache.get(twin)).to be_nil
     end
 
-    # S18.4 row: two Descriptors with the same +name+ / +model+ /
-    # Field arrays but different +parent_class+ values must map to
-    # distinct cache entries. Pinned explicitly to make the cache's
-    # +__id__+-keyed contract visible for the new field — the cache
-    # already keys on Descriptor identity, so any new +Data.define+
-    # field automatically participates; this row guards against a
-    # future regression that, e.g., introduces a structural
-    # +==+/+#hash+ short-circuit on the cache lookup.
     it "treats two Descriptors differing only by parent_class as distinct keys" do
       bare_parent = Class.new
       with_parent = Panko::CodeGen::Descriptor.new(

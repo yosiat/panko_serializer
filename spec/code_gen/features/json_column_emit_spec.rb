@@ -4,30 +4,6 @@ require "spec_helper"
 require "panko/code_gen"
 require "memory_profiler"
 
-# End-to-end behavior + regression spec for the JSON-column emit path
-# on the Specialized record-access path. Covers the five Panko-parity rows plus the
-# byte-divergence rows that distinguish +:wire_format+ from today's
-# +push_value(Hash)+ shape:
-#
-# - happy path: a Specialized Descriptor on +PlainPost+ emits via
-#   +push_json+; the generated source contains +push_json+ and
-#   +Oj.sc_parse+ with +mode: :strict+;
-# - mode-selection: with +Config#json_column_emit: :html_safe+ the
-#   generated source contains +push_value+ (today's shape) and not
-#   +push_json+;
-# - allocation invariant: pinned via +MemoryProfiler+ in-spec —
-#   +:wire_format+ allocates no more than today's +:html_safe+ shape on
-#   a saved-record fixture (the json_column allocation carve-out);
-# - malformed JSON in DB: raw bytes that +Oj.sc_parse+ rejects → emit
-#   falls through, produces +null+;
-# - in-memory unsaved Hash assignment: +record.metadata = {...}+ (no
-#   save) → falls through, byte-identical to +:html_safe+;
-# - in-place mutation: documented and pinned as inherited-from-Panko
-#   stale-bytes behavior;
-# - byte-divergence vs today's engine: +</script>+, U+2028, U+2029, +-0.0+,
-#   +1e-300+, +1e300+ produce the bytes recorded in this spec — the
-#   regression contract for the +:wire_format+ default that S12.5
-#   inherited from Panko 0.8.5.
 RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   let(:descriptor) do
     Panko::CodeGen::Descriptor.new(
@@ -93,10 +69,6 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "aliased Attribute (#name differs from #source)" do
-    # Pin that the OUTPUT JSON key is +Attribute#name+ while the column
-    # read uses +Attribute#source+ — same contract as +emit_json+ on
-    # non-JSON-column Attributes. Both modes must agree on the key
-    # because a Descriptor's user-facing key is +name+, not +source+.
     let(:aliased_descriptor) do
       Panko::CodeGen::Descriptor.new(
         name: "AliasedJsonColumnSerializer",
@@ -141,11 +113,8 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "malformed JSON in DB" do
-    # AR's typecast-on-read returns +nil+ for malformed JSON bytes (the
-    # column type's +deserialize+ rescues the parse error internally).
-    # +:wire_format+'s +Oj.sc_parse+ guard rejects the raw bytes; emit
-    # falls through to +push_value(_read_attribute(...))+ which sees
-    # +nil+ and writes +null+.
+    # AR reads malformed JSON as +nil+; +Oj.sc_parse+ rejects the raw bytes, so the
+    # fallback +push_value(_read_attribute(...))+ writes +null+.
     it ":wire_format falls through and emits null" do
       PlainPost.create!(id: 1, metadata: {"ok" => true})
       ::ActiveRecord::Base.connection.execute(
@@ -171,13 +140,8 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "in-place mutation (inherited-from-Panko stale-bytes behavior)" do
-    # Inherited contract: callers that mutate the typecast Hash without
-    # +save+ / +metadata_will_change!+ get the pre-mutation bytes
-    # because the +:wire_format+ path reads
-    # +read_attribute_before_type_cast+ — the original String, before AR
-    # built the typecast Hash. Today's +:html_safe+ path reads
-    # +_read_attribute+ and observes the mutation. Pinned so a future
-    # adapter-driven typecast change surfaces as a test failure.
+    # :wire_format reads +read_attribute_before_type_cast+, so it does not see an
+    # unsaved in-place change; :html_safe reads +_read_attribute+ and does.
     it ":wire_format emits pre-mutation bytes; :html_safe emits post-mutation bytes" do
       PlainPost.create!(id: 1, metadata: {"a" => 1})
       record = PlainPost.find(1)
@@ -192,11 +156,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "byte-divergence vs today's :html_safe (per phase_1_report 8.1)" do
-    # Each row inserts pre-encoded JSON bytes via raw SQL so the bytes
-    # hit the column unmodified; the read-side path is then exercised
-    # against both modes. These rows codify the byte-divergence contract
-    # +:wire_format+ inherited from Panko 0.8.5 — every cell here is the
-    # bytes Panko emits today.
+    # Raw SQL, so the stored JSON bytes reach the column unchanged.
 
     def insert_metadata_bytes(id, raw_json)
       ::ActiveRecord::Base.connection.execute(
@@ -210,10 +170,6 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
 
       expect(compile_for(:wire_format).serialize_one(record))
         .to eq('{"id":1,"metadata":{"html":"</script>"}}')
-      # Today's emit goes through +Hash#as_json+ + Oj +:rails+ mode, which
-      # escapes +<+ / +>+ to their +\\u003c+ / +\\u003e+ JSON-escape
-      # forms. The stored bytes contain the raw +</script>+, so this is
-      # +:html_safe+ adding escape on the read path.
       expect(compile_for(:html_safe).serialize_one(record))
         .to eq('{"id":1,"metadata":{"html":"\u003c/script\u003e"}}')
     end
@@ -224,9 +180,6 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
 
       expect(compile_for(:wire_format).serialize_one(record))
         .to eq("{\"id\":1,\"metadata\":{\"sep\":\"a\u2028b\"}}")
-      # +Hash#as_json+ + Oj +:rails+ mode escape U+2028 to its +\u2028+ JSON
-      # escape sequence on the read path; the stored bytes contain the raw
-      # codepoint, so this is +:html_safe+ adding escape on emit.
       expect(compile_for(:html_safe).serialize_one(record))
         .to eq('{"id":1,"metadata":{"sep":"a\u2028b"}}')
     end
@@ -269,11 +222,6 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
   end
 
   describe "allocation invariant (phase-1-bar carve-out)" do
-    # Pin the carve-out clause: +:wire_format+
-    # allocates no more than today's +:html_safe+ shape on the same
-    # records. The bench numbers in +phase_1_report+ 3.1.6 are the
-    # canonical macro signal; this in-spec assertion is the focused
-    # regression spec a future codegen drift would trip first.
     it ":wire_format total allocations ≤ :html_safe total allocations on saved records" do
       50.times do |i|
         PlainPost.create!(id: i + 1, metadata: {"category" => "tech", "tags" => %w[ruby json], "n" => i})
@@ -283,7 +231,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
       wire_class = compile_for(:wire_format)
       html_class = compile_for(:html_safe)
 
-      # Warmup so JIT / lazy AR caches don't pollute either side.
+      # Warm up first, so one-time first-call allocations do not count on either side.
       wire_class.serialize_many(saved)
       html_class.serialize_many(saved)
 

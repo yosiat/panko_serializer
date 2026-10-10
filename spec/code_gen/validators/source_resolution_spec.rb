@@ -5,11 +5,6 @@ require "panko/code_gen"
 RSpec.describe Panko::CodeGen::Validators::SourceResolution do
   let(:config) { Panko::CodeGen::Config.new }
 
-  # Minimal AR-like fake: anything responding to +#columns_hash+,
-  # +#method_defined?+, +#attribute_methods_generated?+, and
-  # +#define_attribute_methods+. Mirrors the duck-type the validator
-  # relies on so unit coverage runs without booting a real ActiveRecord
-  # stack — same fixture pattern S4.1 uses for +callable_arity_spec.rb+.
   def fake_ar_class(name:, columns: [], methods: [])
     columns_arr = columns
     methods_arr = methods

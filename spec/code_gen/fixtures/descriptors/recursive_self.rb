@@ -1,18 +1,6 @@
 # frozen_string_literal: true
 
-# Canonical fixture #4 in the snapshot corpus —
-# +Comment has_many :replies+ → same +CommentDescriptor+.
-# Pins the self-recursion shortcut: the constructor of the Generated
-# Class assigns +@replies_serializer = self+ instead of allocating a
-# nested instance, breaking the otherwise-infinite +.new+ chain at
-# construction time.
-#
-# +DESCRIPTOR+ is constructed with an empty +associations:+ array, then
-# the self-referencing +Association+ is appended after the Descriptor
-# exists — Ruby +Data+ types are immutable but the Field-kind arrays
-# are not frozen, so post-construction +<<+ is safe and is the standard
-# idiom for self-recursive Descriptors (mirror of the technique pinned
-# in +spec/validators/callable_arity_spec.rb+'s self-recursion it).
+# The association is appended after the Descriptor exists, since it refers to itself.
 module Fixtures
   module RecursiveSelf
     CONFIG = Panko::CodeGen::Config.new

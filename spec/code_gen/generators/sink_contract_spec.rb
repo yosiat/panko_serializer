@@ -3,11 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Pins the Output Mode seam: one descriptor-walking emitter talks to the
-# Sink interface, and exactly two adapters — JsonSink and HashSink —
-# satisfy it. The interface list below IS the seam contract; an adapter
-# that stops answering one of these (or answers with a divergent shape)
-# fails here before any snapshot regenerates.
 RSpec.describe "Output Mode Sink contract" do
   sink_interface = %i[
     output suffix entry_name generic_entry_name

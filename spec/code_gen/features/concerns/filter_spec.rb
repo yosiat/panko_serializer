@@ -6,33 +6,6 @@ require "shallow_generic"
 require "shallow_specialized"
 require "nested_composition"
 
-# Cross-cutting +Filter+ contract — the 10-item enumeration. JSON/Hash
-# parity (item 10) is iterated at every describe block (the same file
-# holds both modes rather than splitting per-mode files — divergence
-# between modes would be a regression worth catching at the spec tier).
-#
-# Fixture strategy:
-#
-# - +shallow_generic+ for the Attributes-only +:only+ / +:except+
-#   stories;
-# - +shallow_specialized+ for the Method-Attribute coverage of +:only+
-#   / +:except+ (its 3 Method Attributes already pin the SKIP /
-#   reader-override / context shape from S6 — this file uses them as
-#   filter targets);
-# - +nested_composition+ for the no-inheritance and threading-through-
-#   +Composition+ stories (the fixture's +has_one :author+ + +has_many
-#   :comments+ matches the precedence-ladder shape);
-# - inline minimal Descriptors when the canonical corpus does not
-#   carry the right shape (the +Source ≠ name+ case + the
-#   filter-before-+if:+ spy + the recursive-Descriptor cases).
-#
-# Per S14.3 acceptance: validation lives at +Filter.wrap+, runs once
-# per +serialize_*+ call, and the emitted +_write_one+ / +_to_hash+
-# bodies stay free of validation branches. Per S14.4 acceptance:
-# +filters.child(:<source>, <Child>::FIELD_INDEX)+ scopes a real child
-# cell at every nested call site so sub-filters actually filter, and
-# the filter-before-+if:+ ordering pins a filter-dropped Association
-# from invoking its +if:+ Callable.
 RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-inheritance / Source-keyed / filter-before-if: / nested / recursive" do
   def compile(fixture, mode)
     Panko::CodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
@@ -150,12 +123,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "routes both filters: nil and filters: {} to the Filter::None singleton" do
-          # Pinned at the public-API tier per S14.3 acceptance ("filters:
-          # nil and filters: {} route to Filter::None"). The +Filter.wrap+
-          # call inside +serialize_one+ is the only place that decides
-          # this; if a future refactor accidentally allocates a fresh
-          # Indexed cell for the empty-Hash path, the +equal?+ assertion
-          # below catches it.
           expect(Panko::CodeGen::Filter.wrap(nil)).to equal(Panko::CodeGen::Filter::None)
           expect(Panko::CodeGen::Filter.wrap({})).to equal(Panko::CodeGen::Filter::None)
         end
@@ -167,10 +134,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "ignores a top-level Field name not present in FIELD_INDEX" do
-          # +:nonexistent+ is not in +ShallowGeneric+'s FIELD_INDEX
-          # +{id, title}+; since "A key that
-          # does not match any node at its level is ignored silently",
-          # the only-list still scopes the output to +:id+ alone.
           generated = compile(Fixtures::ShallowGeneric, mode)
           record = Fixtures::ShallowGeneric.sanity_record
           expected = (mode == :json) ? '{"id":1}' : {"id" => 1}
@@ -180,10 +143,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "ignores a top-level non-Field key (forward-compat with future filter shapes)" do
-          # +:future_filter_key+ is not a recognized top-level filter
-          # operator (today only +:only+ / +:except+ + Association
-          # sub-hashes are recognized). Caller passes it; library
-          # silently ignores; output is unfiltered.
           generated = compile(Fixtures::ShallowGeneric, mode)
           record = Fixtures::ShallowGeneric.sanity_record
           expected = Fixtures::ShallowGeneric.expected_output(mode)
@@ -193,9 +152,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "ignores an unknown Source key on a Descriptor with an Association" do
-          # +:unknown_assoc+ is not an Association on +nested_composition+
-          # (whose Sources are +:author+ and +:comments+); the sub-hash
-          # is silently ignored. Output is unfiltered.
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
           expected = Fixtures::NestedComposition.expected_output(mode)
@@ -208,24 +164,11 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(6) No inheritance — a parent's filter does not implicitly apply to children unless threaded" do
-    # "Filters do not inherit: +:only+ at the parent level does not
-    # propagate to child Associations."
-    # The trap below: the parent's drops list at child-shared indices
-    # would silently drop the child's Fields if the parent's Filter
-    # object were passed verbatim to the nested +_write_one+ /
-    # +_to_hash+. The S14.3 +filters.child(:<source>)+ threading
-    # rescopes the nested call to +Filter::None+ when the caller
-    # supplied no sub-hash for that Source — the child is unfiltered,
-    # not scoped by the parent's positions.
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "the author child emits all its Fields when the parent restricts to :only [:author]" do
-          # Parent FIELD_INDEX = {id: 0, author: 1, comments: 2}.
-          # Parent +:only [:author]+ drops index 0 (+id+) and index 2
-          # (+comments+). If the child Author serializer received that
-          # drops list verbatim, +filters.drops?(0)+ would return +true+
-          # and the author's +id+ Field would be dropped, that is the
-          # inheritance bug this test guards against.
+          # Parent :only [:author] drops positions 0 and 2. Passed to the author child as is,
+          # it would also drop the author's id (position 0).
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
           expected = (mode == :json) ?
@@ -235,12 +178,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "the comments children emit all their Fields when the parent restricts to :only [:comments]" do
-          # Parent +:only [:comments]+ drops index 0 (+id+) and index 1
-          # (+author+). For each comment child (FIELD_INDEX = {id, body}),
-          # the inherited drops list would drop +id+ (index 0) and keep
-          # +body+ (index 1). With +filters.child(:comments)+
-          # threading, each comment is serialized under +Filter::None+
-          # and emits both Fields.
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
           expected = (mode == :json) ?
@@ -253,14 +190,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(7) Child-filter key — looked up by Source, not name (when Source ≠ name)" do
-    # "Child-filter keys reference the
-    # Association's Source (which defaults to the name unless explicitly
-    # overridden)". Built inline because the canonical corpus has every
-    # Association at +source == name+; the +Source ≠ name+ shape only
-    # exists when an Association explicitly overrides +source:+. The
-    # parent emit at S14.4 threads +filters.child(:#{association.source},
-    # ChildClass::FIELD_INDEX)+ — the Source is the lookup key, the
-    # +name+ is the output key.
+    # Built inline: no shared fixture has an Association whose source differs from its name.
     let(:author_descriptor) do
       Panko::CodeGen::Descriptor.new(
         name: "Source7AuthorSerializer",
@@ -283,10 +213,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [],
         associations: [
-          # +name: :writer+ → output key in JSON / Hash is +"writer"+.
-          # +source: :author+ → +Source+ is +:author+; the parent reads
-          # +record["author"]+ and the child filter is keyed by
-          # +:author+, not +:writer+.
           Panko::CodeGen::Association.new(
             name: :writer, kind: :has_one, descriptor: author_descriptor, source: :author
           )
@@ -300,11 +226,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
       context "with #{mode} Output Mode" do
         it "scopes the child filter via the Source key (:author), not the name key (:writer)" do
           generated = Panko::CodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
-          # Sub-filter keyed by Source +:author+ → restricts the writer
-          # child to +:id+ only. If the lookup were keyed by +:name+
-          # (the +name+), this sub-hash would silently miss the author
-          # subtree (no +writer+ key in the filter Hash) and the writer
-          # would emit unfiltered.
           expected = (mode == :json) ?
             '{"id":1,"writer":{"id":7}}' :
             {"id" => 1, "writer" => {"id" => 7}}
@@ -314,11 +235,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "ignores a sub-filter keyed by name (:writer) when Source is :author (forward-compat silent ignore)" do
-          # Inverse pinning of the rule: the +name+-keyed sub-filter
-          # does not match the Source-keyed lookup, so it is silently
-          # ignored ("A key that does not
-          # match any node at its level is ignored silently"). The
-          # writer child emits unfiltered.
           generated = Panko::CodeGen.compile(post_descriptor, output: mode).new(descriptor: post_descriptor)
           expected = (mode == :json) ?
             '{"id":1,"writer":{"id":7,"name":"alice"}}' :
@@ -332,21 +248,8 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(8) Filter-before-if: — a filter-dropped Association does not invoke its if: Callable" do
-    # Filter before +if:+, per the precedence ladder
-    # (item 1 wins over item 2): when the +Filter+ drops an Association
-    # the +if:+ Callable is not invoked, the Source is not loaded, and
-    # the nested Generated Class is not entered. Spy +if:+ Callable
-    # counts invocations — pinning cardinality at zero on the
-    # filter-dropped path and at one on the filter-kept path. Built
-    # inline against the +nested_composition+ shape (+has_one :author+
-    # with +if:+ + +has_many :comments+) so the +if:+-bearing
-    # Association is the dropped target.
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        # Each test builds a Descriptor with a fresh spy on the +if:+
-        # Callable to keep state-leak across iterations zero (each
-        # +has_one :author+ + +if:+ + +has_many :comments+ shape mirrors
-        # +nested_composition+ but parameterized on the spy).
         def build_with_spy(spy)
           author_d = Panko::CodeGen::Descriptor.new(
             name: "FilterBeforeIfAuthorSerializer",
@@ -416,9 +319,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "invokes if: exactly once on the filter-kept path (control)" do
-          # Sanity: with no filter, the +if:+ Callable is invoked once
-          # per Record, item 9. Pinned here so the zero-invocation tests above
-          # demonstrate filter-induced suppression, not a broken spy.
+          # Control: proves the spy works, so the empty spies above come from the filter.
           spy = []
           d = build_with_spy(spy)
           generated = Panko::CodeGen.compile(d, output: mode).new(descriptor: d)
@@ -427,10 +328,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "does not invoke if: across N records when serialize_many drops the Association" do
-          # Cardinality pin: with N records and an Association dropped
-          # by +:except+, the spy must observe zero calls — not N.
-          # Mirror of +association_if_spec.rb+ item 9's
-          # +serialize_many+ × N test, but on the filter-dropped path.
           spy = []
           d = build_with_spy(spy)
           generated = Panko::CodeGen.compile(d, output: mode).new(descriptor: d)
@@ -443,21 +340,11 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
   end
 
   describe "(9) Nested-Composition filter scoping — sub-filter actually filters the child" do
-    # Pins the S14.4 functional contract: +filters.child(:#{source},
-    # ChildClass::FIELD_INDEX)+ materializes a real child Indexed cell
-    # against the nested Generated Class's +FIELD_INDEX+, so a sub-Hash
-    # supplied by the caller actually filters the nested call's output.
-    # In S14.2 the resolver collapsed every non-empty sub-Hash to
-    # +Filter::None+ for lack of a child +FIELD_INDEX+ to wrap against;
-    # S14.4 threads the constant at the nested call site so the cell
-    # finally materializes.
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "applies :only on a has_one Association sub-filter" do
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
-          # Author FIELD_INDEX = {id: 0, name: 1}. +only: [:id]+ drops
-          # +:name+, keeps +:id+.
           expected = (mode == :json) ?
             '{"id":1,"author":{"id":7},' \
               '"comments":[{"id":11,"body":"first"},{"id":12,"body":"second"}]}' :
@@ -475,8 +362,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         it "applies :except on a has_many Association sub-filter" do
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
-          # Comment FIELD_INDEX = {id: 0, body: 1}. +except: [:id]+
-          # drops +:id+ on every comment element, keeps +:body+.
           expected = (mode == :json) ?
             '{"id":1,"author":{"id":7,"name":"alice"},' \
               '"comments":[{"body":"first"},{"body":"second"}]}' :
@@ -489,10 +374,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "scopes parent and child sub-filters independently when supplied at both levels" do
-          # Combined parent-level +:only [:author, :comments]+ (drops
-          # parent +:id+) plus child-level sub-filters on each
-          # Association. Pins that parent-level filtering and child-
-          # level sub-filtering compose correctly without bleed.
           generated = compile(Fixtures::NestedComposition, mode)
           record = Fixtures::NestedComposition.sanity_record
           expected = (mode == :json) ?
@@ -516,21 +397,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  # Filters thread
-  # through +Composition+ at every nested call site, including
-  # self-recursion (+recursive_self+: +Comment has_many :replies+ → same
-  # +CommentDescriptor+) and mutual recursion (+recursive_mutual+:
-  # +Folder → Item → Folder+). At each level the parent's
-  # +filters.child(:<source>, FIELD_INDEX)+ scopes the next call to the
-  # caller-supplied sub-Hash for that Source — when no sub-Hash is
-  # supplied, the +Filter::None+ singleton propagates and the subtree
-  # below runs unfiltered. The child Filter cache (S14.2) ensures that a
-  # deep-nested cycle pays the +Indexed.build+ cost at most once per
-  # +(level × Source)+ pair per +serialize_*+ call.
-  #
-  # Recursive fixtures land in two describe blocks (item 10 split by
-  # cycle shape) to keep the RSpec nesting depth at 3 (top describe →
-  # item describe → mode context).
   describe "(10a) Recursive-Descriptor filtering — self-recursion (recursive_self)" do
     require "recursive_self"
 
@@ -551,11 +417,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         let(:generated) { compile(Fixtures::RecursiveSelf, mode) }
 
         it "applies a level-1 :only on replies — keeps id+body, drops nested replies on each reply" do
-          # Parent unfiltered; the +replies+ sub-filter scopes the
-          # nested +Comment+ Generated Class to +:only [:id, :body]+
-          # → drops the nested +:replies+ Field on each level-1
-          # element. The level-2 +c1.1+ never appears because its
-          # parent's +:replies+ was dropped.
           expected = (mode == :json) ?
             '{"id":1,"body":"root","replies":[' \
               '{"id":2,"body":"c1"},' \
@@ -574,10 +435,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "applies a level-2 :only via nested {replies: {replies: ...}} — only the inner cycle is scoped" do
-          # Nested sub-filter at level 2: only the level-2 +Comment+
-          # is restricted. Level-1 emits unfiltered (carries
-          # +:replies+ with the level-2 array). Level-2 +c1.1+ emits
-          # only +:body+ (drops +:id+ + +:replies+).
           expected = (mode == :json) ?
             '{"id":1,"body":"root","replies":[' \
               '{"id":2,"body":"c1","replies":[{"body":"c1.1"}]},' \
@@ -625,11 +482,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         let(:generated) { compile(Fixtures::RecursiveMutual, mode) }
 
         it "scopes the level-1 items sub-filter without bleeding into the inner subfolder cycle" do
-          # Folder-level +items+ sub-filter restricts each Item to
-          # +:only [:id, :subfolder]+. The Item's +subfolder+
-          # Association is kept; its inner Folder still emits
-          # unfiltered (no +items+/+subfolder+ sub-Hash supplied at
-          # depth 2 → +Filter::None+ propagates).
           expected_inner_folder = {"id" => 2, "name" => "inner", "items" => [
             {"id" => 20, "name" => "deep-item", "subfolder" => nil}
           ]}
@@ -652,11 +504,6 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         end
 
         it "applies a deep nested filter at the Folder cycle's second hop (items → subfolder → items)" do
-          # Three-level nested sub-filter — pins that the Filter
-          # cell's child cache lifetime is one +serialize_*+ call
-          # and that the cycle threads filter scopes correctly at
-          # every hop. Level-3 Item is restricted to +:only [:id]+,
-          # so +"deep-item"+ → +{"id":20}+.
           expected = (mode == :json) ?
             '{"id":1,"name":"root","items":[' \
               '{"id":10,"name":"item-1","subfolder":{"id":2,"name":"inner","items":[' \
@@ -725,9 +572,8 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
             .new(descriptor: parent)
           record = {"comments" => {"id" => 1, "body" => "hidden"}}
 
-          # The second child's :id sits at a different FIELD_INDEX position
-          # than the first child's, so a child cell cached per Source alone
-          # would apply the first child's mask to the second and leak :body.
+          # The two children put :id at different FIELD_INDEX positions, so a child
+          # cell cached per Source alone would leak the second child's :body.
           expected = (mode == :json) ?
             '{"recent":{"id":1},"all":{"id":1}}' :
             {"recent" => {"id" => 1}, "all" => {"id" => 1}}

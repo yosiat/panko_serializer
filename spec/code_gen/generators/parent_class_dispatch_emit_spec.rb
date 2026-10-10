@@ -3,21 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Narrow emit-shape tests for the +parent_class+ dispatch wiring: the
-# Sink#method_attribute_call_expression Symbol-vs-Callable branch and the
-# per-record +@object+ / +@context+ / +@scope+ ivar writes prepended at
-# the top of +_write_one+ / +_to_hash+ when a Symbol-body Method
-# Attribute is declared (the only code that runs on the Generated Class
-# instance during a serialize — without one the writes are pure
-# per-record overhead and are elided). These assert directly on the
-# +Generator+'s source-string output — no +module_eval+, no snapshot
-# files.
-#
-# A descriptor with no Symbol-body Method Attribute keeps no ivar writes;
-# the snapshots under +spec/fixtures/generated/+ remain the source of
-# truth for the full body shape — here we just pin that the ivar writes
-# flip on exactly when a Symbol body is present and that the Symbol-body
-# branch leaves no +@cb_<name>+ traces.
 RSpec.describe "Generator parent_class dispatch emit" do
   let(:generator) { Panko::CodeGen::Generator.new }
   let(:config) { Panko::CodeGen::Config.new }
@@ -302,12 +287,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     end
 
     it "raises Ruby's native error at serialize time for a Symbol resolving to a missing method" do
-      # The emitted shape is explicit-receiver (+value = self.<name>+ —
-      # the receiver keeps user methods from being shadowed by the
-      # body's locals), so Ruby raises +NoMethodError+; the matcher
-      # pins its +NameError+ superclass. The contract that matters is
-      # "no engine-specific error" + "no Compile-time check" — both
-      # pinned here; the runtime error stays Ruby-native.
+      # The engine adds no compile-time check and no error of its own: Ruby raises NoMethodError.
       descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",
         model: nil,

@@ -3,11 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +SKIP+ contract — the 7-item enumeration. JSON/Hash
-# parity is iterated at the describe block. Fixtures are
-# inline minimal Descriptors (1–3 Method Attributes each); the
-# +shallow_specialized+ snapshot in S6 pins the emit bytes — this file
-# pins the runtime semantics.
 RSpec.describe "SKIP — Method Attribute identity-compare elision" do
   def descriptor_with(name: "SkipDescriptor", attributes: [], method_attributes: [])
     Panko::CodeGen::Descriptor.new(
@@ -64,20 +59,14 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
         end
 
         it "treats a different frozen Object.new as a non-SKIP value (identity check)" do
-          # Same shape as +SKIP+ (frozen +Object.new+), different identity —
-          # under +equal?+ the field must emit; under +==+ it would also
-          # not match SKIP, but the contract is identity, pinned here.
           descriptor = descriptor_with(
             method_attributes: [
               method_attribute(:fld, ->(_record, _context) { Object.new.freeze })
             ]
           )
           generated = compile(descriptor, mode)
+          # Oj :rails output for a bare Object varies by Oj version, so only the key is checked.
           if mode == :json
-            # Oj's :rails mode renders a generic Object's payload; the
-            # exact byte shape is Oj-version-specific, so assert only
-            # that the key is present (the load-bearing claim is
-            # "field emits", not "renders to X").
             expect(generated.serialize_one({})).to include('"fld"')
           else
             output = generated.serialize_one({})

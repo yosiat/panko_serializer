@@ -517,11 +517,7 @@ RSpec.describe "Compile-time errors" do
           define_singleton_method(:method_defined?) { |sym| methods_arr.include?(sym.to_sym) }
           define_singleton_method(:attribute_methods_generated?) { true }
           define_singleton_method(:define_attribute_methods) { nil }
-          # The Specialized JSON-mode emit calls AccessClassifier.json_typed? on
-          # every Models entry to decide whether the JSON-column raw-passthrough
-          # path applies. Faking +type_for_attribute+ to return a non-Json type
-          # value mirrors AR's "unknown column" fallback so the per-Attribute
-          # decision stays a clean +false+ in these tests.
+          # The Specialized JSON emit asks +type_for_attribute+; a plain Value keeps the JSON-column path off.
           define_singleton_method(:type_for_attribute) { |_name| ::ActiveModel::Type::Value.new }
           define_singleton_method(:attribute_types) { columns_arr.to_h { |c| [c, :stub] } }
           define_singleton_method(:attribute_aliases) { {} }
@@ -758,13 +754,7 @@ RSpec.describe "Compile-time errors" do
   end
 
   describe "Dump-side parity — Dump shares Validator with Compiler (S15.6)" do
-    # +Dump+ runs the same +Validators::Validator+ rule list as +Compiler+
-    # before reaching +File.write+, so the same +Descriptor+ that breaks
-    # under +Panko::CodeGen.compile+ must raise the same +CompileError+
-    # subclass under +Panko::CodeGen.dump+. Path validation runs
-    # first, so we hand a syntactically-valid (non-empty String) +path:+
-    # under a fresh +Dir.mktmpdir+; the validator raises before any
-    # +File.write+ side effect, so the tmp dir stays empty.
+    # +Dump+ checks the path before the Descriptor, so each example passes a valid +path:+.
 
     it "ArityError parity — Dump raises the same class as Compile (S4)" do
       descriptor = Panko::CodeGen::Descriptor.new(

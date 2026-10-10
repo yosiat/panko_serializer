@@ -87,11 +87,6 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
   end
 
   describe "non-AR class in model: falls back to method dispatch" do
-    # Inline helpers (rather than +let+s) keep the memoization cap (5) clear
-    # — both per-mode contexts already pull +descriptor+ / +config+ /
-    # +generated_class+ / +generated+ from the outer scope, leaving no room
-    # for a per-test +non_ar_*+ helper. The Struct + Descriptor are cheap
-    # enough to construct per-call; readability wins over memoization.
     def non_ar_record_class
       @non_ar_record_class ||= Struct.new(:id, :title)
     end

@@ -25,7 +25,7 @@ describe "Serializer instance pooling" do
   end
 
   # Auto-specialization routes Foo records to Foo's variant pool, so the
-  # pooled instance lives there rather than on the base slot.
+  # pooled instance lives there rather than in the base pool.
   def pooled_stack(klass)
     Panko::CodeGen::SerializerCache.variant_pool(klass, :json, Foo).stack
   end
@@ -60,8 +60,7 @@ describe "Serializer instance pooling" do
       attributes :name, :nested
 
       define_method(:nested) do
-        # Reenters the same serializer class and mode mid-emit — pre-pooling
-        # this got a fresh instance; the pool must preserve that isolation.
+        # Reenters the same serializer class and mode mid-emit; the pool must hand out a separate instance.
         reentrant_output = Oj.load(ReentrantFooSerializer.new(except: [:nested]).serialize_to_json(object))
         object.name
       end

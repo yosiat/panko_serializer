@@ -3,12 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Unit-tier coverage for the file-list shape +Generators::Fanout+
-# returns. The end-to-end on-disk wiring is covered by
-# +spec/features/dump_fan_out_spec.rb+ + the snapshot tier; this spec
-# pins the +require_relative+ deduplication, self-loop suppression,
-# and post-order guarantees on edge-case Descriptor shapes the
-# fixture corpus does not exercise.
 RSpec.describe Panko::CodeGen::Generators::Fanout do
   def descriptor(name, associations: [])
     Panko::CodeGen::Descriptor.new(

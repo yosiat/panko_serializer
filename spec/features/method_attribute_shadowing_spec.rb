@@ -2,12 +2,8 @@
 
 require "spec_helper"
 
-# The generated _write_one / _to_hash bodies have locals and params named
-# record, writer, context, scope, filters, value, result, and child_filter
-# in scope. Symbol-body method attributes dispatch with an explicit self.
-# receiver — a bare method-name token for a user method with one of those
-# names would silently resolve to the local instead (a `value` method even
-# self-shadows to nil).
+# Generated bodies have locals with these names, so a bare call to a user method named like
+# one would read the local instead; symbol-body method attributes call through +self.+.
 describe "Serializer methods named after generated locals" do
   let(:shadow_names) { %i[record writer context scope filters value result child_filter] }
   let(:expected_output) { shadow_names.to_h { |name| [name.to_s, "#{name}-from-method"] } }

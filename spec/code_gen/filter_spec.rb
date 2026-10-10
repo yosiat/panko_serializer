@@ -28,12 +28,6 @@ RSpec.describe Panko::CodeGen::Filter do
     end
 
     describe ":only + :except co-supplied" do
-      # "+:only+ and +:except+ at the
-      # same level are mutually exclusive. Supplying both is a caller
-      # error and raises +ArgumentError+ at the first +_write_one+ /
-      # +_to_hash+ entry on that level."). +Filter.wrap+ runs once per
-      # +serialize_*+ call and walks the nested filter Hash recursively
-      # so the emitted body can stay free of validation branches.
       it "raises ArgumentError when supplied at the top level" do
         expect { described_class.wrap({only: [:id], except: [:title]}, {id: 0, title: 1}) }
           .to raise_error(ArgumentError, /only.*except/i)
@@ -55,11 +49,7 @@ RSpec.describe Panko::CodeGen::Filter do
       end
 
       it "raises ArgumentError when co-supplied under an unknown top-level Source key" do
-        # The validator walks every Hash value regardless of whether the
-        # key matches a known Source on the +FIELD_INDEX+. A typo in a
-        # Source name does not silence the co-supply error — caller still
-        # learns about the mutually-exclusive misuse rather than seeing
-        # a silently unfiltered result.
+        # A typo in a Source name must not turn the misuse into a silently unfiltered result.
         expect {
           described_class.wrap(
             {totally_unknown: {only: [:a], except: [:b]}},
@@ -162,12 +152,6 @@ RSpec.describe Panko::CodeGen::Filter do
         end
 
         it "lets +only:+ win when both +only:+ and +except:+ reach Indexed.build directly (validation lives at Filter.wrap)" do
-          # Per S14.3: caller-facing validation rejects co-supply at
-          # +Filter.wrap+. +Indexed.build+ has no validator of its own —
-          # if a future caller skips +Filter.wrap+, the resolution rule
-          # below ("+:only+ wins") is the documented fallback. Pinned
-          # so a refactor that moves validation downstream still
-          # preserves the resolution rule it bypasses.
           filter = Panko::CodeGen::Filter::Indexed.build({only: [:f0], except: [:f1]}, field_index)
           expect(filter.drops?(0)).to be(false)
           expect(filter.drops?(1)).to be(true)
@@ -176,11 +160,6 @@ RSpec.describe Panko::CodeGen::Filter do
       end
 
       describe "#child" do
-        # The +child_field_index+ is the per-Generated-Class +FIELD_INDEX+
-        # the parent's emitted code passes at the nested call site (S14.4
-        # +Composition+ threading). Unit tests
-        # pin behavior with a hand-rolled child shape that mirrors what
-        # +nested_composition+'s author would carry.
         let(:child_field_index) { {id: 0, name: 1} }
 
         it "returns the same cached object on repeated calls within one call" do

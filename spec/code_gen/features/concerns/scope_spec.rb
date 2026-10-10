@@ -3,15 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +Scope+ threading contract — the 9-item enumeration
-# (S17.3 / PRD #89). JSON/Hash
-# parity is iterated at the +describe+ block (this is item (9) and pins
-# the parallel emit shapes). Fixtures are inline
-# minimal Descriptors; the +scope_threading+ canonical fixture from
-# S17.2 / #91 pins the emit bytes at the snapshot tier — this file pins
-# the runtime semantics: what arity-3 Callables observe and what
-# +serialize_one+ / +serialize_many+ produce when +scope:+ and +context:+
-# are threaded through Composition.
 RSpec.describe "Scope — threading contract for Method Attribute and Association if: Callables" do
   def descriptor_with(name: "ScopeDescriptor", attributes: [], method_attributes: [], associations: [])
     Panko::CodeGen::Descriptor.new(
@@ -111,7 +102,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
         it "invokes a strict 2-arity Lambda with (record, context) when scope: is passed" do
           captured_record = nil
           captured_context = nil
-          # Lambdas strictly enforce arity — if scope leaked in as a third
+          # Lambdas enforce arity strictly: if scope leaked in as a third
           # positional, this would raise ArgumentError at call time.
           body = ->(record, context) {
             captured_record = record
@@ -327,14 +318,12 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
           )
           generated = compile(outer, mode)
           record = {"id" => 1, "child" => {"id" => 7}}
-          # scope: nil → guard returns false → child omitted.
           omitted = generated.serialize_one(record)
           if mode == :json
             expect(omitted).to eq('{"id":1}')
           else
             expect(omitted).to eq({"id" => 1})
           end
-          # scope: non-nil → guard returns true → child emitted.
           included = generated.serialize_one(record, scope: Object.new)
           if mode == :json
             expect(included).to eq('{"id":1,"child":{"id":7}}')

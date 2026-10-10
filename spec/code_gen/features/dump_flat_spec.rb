@@ -6,12 +6,6 @@ require "panko/code_gen"
 require "shallow_generic"
 require "shallow_specialized"
 
-# Feature-tier coverage for the +Panko::CodeGen.dump+ flat-Descriptor
-# round-trip and +path:+ validation contract per S15.2 (issue #72). This
-# slice owns single-file output for Descriptors with no nested
-# Associations; multi-file fan-out + +require_relative+ topology +
-# Recursive Descriptor handling lands in S15.5, synthetic-path
-# substitution lands in S15.3.
 RSpec.describe "Panko::CodeGen.dump (flat single-file)" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:config) { Fixtures::ShallowGeneric::CONFIG }

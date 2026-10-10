@@ -1,33 +1,12 @@
 # frozen_string_literal: true
 
-# Canonical S18 fixture for the Specialized-path parent_class shape per
-# the parent S18 PRD (#95). Pins the +emit_class+ parent-swap line
-# (+class <Name>_<Mode> < <parent_class.name>+), the per-record
-# +@object+ / +@context+ / +@scope+ ivar writes prepended to the single
-# +_write_one+ / +_to_hash+ body (Specialized has no Hash/Object
-# dispatcher), and Symbol-body / Callable-body coexistence in one
-# +Descriptor+. +model: ParentClassSpecializedRecord+ — a plain Ruby
-# class (non-AR), so the Specialized path's per-Attribute access form
-# falls through to method dispatch; the snapshot pins
-# the +record.id+ / +record.name+ shape rather than the
-# +_read_attribute(...)+ shape, which is irrelevant to the parent_class
-# axis under test.
 class ParentClassSpecializedBase
-  # The Symbol-body Method Attribute +:greeting+ dispatches here via
-  # direct method dispatch on +self+. Reads +@object+ — set by the
-  # per-record ivar writes prepended to +_write_one+ / +_to_hash+ in
-  # the Specialized record-access emitter.
-  #
-  # @return [String]
   def greeting
     "Hi, #{@object.name}!"
   end
 end
 
-# Plain Ruby record class — non-AR; the Specialized path's
-# +json_column_attribute?+ / +AccessClassifier.classify+ both short-
-# circuit on the empty AR subset and the per-Attribute emit downgrades
-# to +record.<source>+ method dispatch.
+# +model:+ is a plain Ruby class, so the Specialized path reads attributes by method call.
 class ParentClassSpecializedRecord
   attr_accessor :id, :name
 

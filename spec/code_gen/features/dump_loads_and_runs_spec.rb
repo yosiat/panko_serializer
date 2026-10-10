@@ -18,22 +18,6 @@ require "config/config_json_column_html_safe"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_json_specialized"
 
-# Environment loads-and-runs tier: the dumped file is runnable with a
-# Descriptor at construction. For
-# every (fixture, mode), {Panko::CodeGen.dump} writes a +.rb+ file
-# tree to a tmp dir, the spec +require+s the outer file, instantiates
-# the resulting +Generated Class+ with the fixture's structural shape,
-# and asserts +serialize_one(sanity_record)+ matches +expected_output(mode)+.
-# Tier 1 (+Generator#emit+) and tier 2 (Dump byte-equality with snapshots)
-# live in +spec/generators/snapshot_spec.rb+; this is tier 3 for the
-# dumped form (the snapshot-loaded variant lives in +snapshot_spec.rb+).
-#
-# Each fixture's +Descriptor+ tree is renamed with a per-spec prefix so
-# the dumped +Generated Class+ constants don't collide with the canonical
-# constants the snapshot-tier +require+ defines from
-# +spec/fixtures/generated/+. Renaming preserves the structural shape
-# (Models, Attributes, MethodAttributes, Associations, +if:+ guards)
-# verbatim, so the serialized output stays equal to +expected_output(mode)+.
 RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
   fixtures = [
     Fixtures::ShallowGeneric,
@@ -52,11 +36,8 @@ RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
     Fixtures::Config::ConfigJsonColumnNonJsonSpecialized
   ]
 
-  # Recursively renames every +Descriptor+ in +descriptor+'s tree with
-  # +prefix+ + the original +Descriptor#name+. Identity-keyed so self-
-  # and mutual-recursive trees collapse to one renamed instance per
-  # unique source +Descriptor+ — same pattern as
-  # +Generators::CycleMembership+ / +Generators::Fanout+.
+  # New names, so the dumped constants do not collide with the ones snapshot_spec.rb loads.
+  # Keyed by object id, so a recursive tree gets one renamed copy per Descriptor.
   rename_tree = lambda do |descriptor, prefix, cache = {}|
     cached = cache[descriptor.__id__]
     next cached if cached
@@ -96,11 +77,7 @@ RSpec.describe "Panko::CodeGen.dump (Environment loads + runs)" do
               target = File.join(dir, outer_basename)
               Panko::CodeGen.dump(descriptor, output: mode, config: config, path: target)
 
-              # Mutual-recursion fixtures wire +require_relative+
-              # both ways across the cycle peers; Ruby's "circular
-              # require considered harmful" warning is a load-time
-              # heads-up, not a correctness failure (the cycle resolves
-              # at +.new+, not at load), so silence it here.
+              # Mutual-recursion files +require_relative+ each other, so silence Ruby's circular require warning.
               previous_verbose = $VERBOSE
               $VERBOSE = nil
               begin

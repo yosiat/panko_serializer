@@ -3,13 +3,8 @@
 require "spec_helper"
 require "panko/code_gen/filter_adapter"
 
-# FilterAdapter translates Panko's constructor filter shape (only:/except: as
-# Arrays or Hashes using the :instance convention, association sub-filters keyed
-# by the reader/source symbol, :only winning over :except when co-supplied) into
-# the engine's runtime Filter shape ({only:/except: per level, association
-# sub-filters keyed by source, co-supply forbidden}) so filtered calls can pass
-# `filters:` to the cached Generated Class instead of recompiling a narrowed
-# descriptor.
+# Panko allows :only and :except at one level; the engine Filter does not. Translating lets a
+# per-call filter reuse the cached Generated Class instead of compiling a narrowed Descriptor.
 describe Panko::CodeGen::FilterAdapter do
   def adapt(only, except)
     described_class.to_engine_filters(only, except)
@@ -34,15 +29,12 @@ describe Panko::CodeGen::FilterAdapter do
   end
 
   describe "only/except co-supplied at the same level" do
-    # Panko applies select(only) then reject(except) => keep (only - except);
-    # the engine forbids :only and :except together, so the adapter folds them.
     it "collapses to :only with the excepted names removed" do
       expect(adapt([:name, :email, :phone], [:email])).to eq(only: [:name, :phone])
     end
 
     it "keeps an empty whitelist when except cancels the whole only list" do
-      # Panko: select([:name]) then reject([:name]) keeps nothing; the engine
-      # expresses "keep nothing" as an empty :only, not as no filter.
+      # The engine expresses "keep nothing" as an empty :only, not as no filter.
       expect(adapt([:name], [:name])).to eq(only: [])
     end
   end

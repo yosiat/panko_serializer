@@ -4,15 +4,6 @@ require "spec_helper"
 require "panko/code_gen"
 require "config/config_hash_record_key_symbol"
 
-# Feature spec for the +config_hash_record_key_symbol+ config-isolation
-# fixture (#9 in the Config-isolation fixtures). Pins the
-# +Config#hash_record_key_type: :symbol+ knob's behavior end-to-end:
-# Generic-path +_write_one_hash+ / +_to_hash_hash+ reads from the Hash
-# record with Symbol keys instead of String keys. The snapshot tier pins
-# the emitted +record[:id]+ shape; this file pins that the emitted shape
-# actually serializes Symbol-keyed Hash records correctly. Compiles in
-# both Output Modes — the knob lives in the Generic record-access path,
-# which is identical across modes — even though the snapshot is JSON-only.
 RSpec.describe "Generated Class for Fixtures::ConfigHashRecordKeySymbol" do
   let(:descriptor) { Fixtures::ConfigHashRecordKeySymbol::DESCRIPTOR }
   let(:config) { Fixtures::ConfigHashRecordKeySymbol::CONFIG }

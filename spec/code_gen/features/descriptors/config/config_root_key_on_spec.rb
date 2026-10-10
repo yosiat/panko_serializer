@@ -4,14 +4,6 @@ require "spec_helper"
 require "panko/code_gen"
 require "config/config_root_key_on"
 
-# Per-fixture record-shape coverage for the +config_root_key_on+
-# config-isolation fixture (#7 of the Config-isolation fixtures).
-# The snapshot tier
-# (+spec/generators/snapshot_spec.rb+) pins the JSON-mode emit bytes;
-# this file backs that snapshot pin with behavior assertions across
-# Hash + PORO record shapes and pins the +root_key:+
-# wrap end-to-end against records (the cross-cutting Root Key contract
-# itself lives in +spec/features/concerns/root_key_spec.rb+).
 RSpec.describe "Generated Class for Fixtures::Config::ConfigRootKeyOn" do
   let(:descriptor) { Fixtures::Config::ConfigRootKeyOn::DESCRIPTOR }
   let(:config) { Fixtures::Config::ConfigRootKeyOn::CONFIG }

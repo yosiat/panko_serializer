@@ -5,26 +5,6 @@ require "panko/code_gen"
 require "shallow_generic"
 require "nested_composition"
 
-# Cross-cutting +WritersPool+ contract — the feature-level integration
-# tier from +PRD #82+. The pool's unit semantics are
-# pinned in +spec/writers_pool_spec.rb+; the JSON-mode emit shape in
-# +spec/generators/writer_pool_emit_spec.rb+ + the regenerated
-# +spec/fixtures/generated/*_json.rb+ snapshots; this file pins what the
-# unit specs cannot reach — multi-thread stress, mid-emit fiber yielding,
-# Method Attribute bodies that re-enter +serialize_one+ cross-class and
-# same-class, exception recovery via the caller's +ensure+, and pooled
-# vs unpooled output parity.
-#
-# The +ThreadLocal+ backend is forced (via +hide_const+ around +Compile+)
-# wherever the test exercises fiber-locality semantics — +Thread.current[]+ is
-# fiber-local in MRI; +ActiveSupport::IsolatedExecutionState+'s default
-# +isolation_level+ is +:thread+ in CI cells without an explicit Falcon
-# binding, so an IES-backed pool would spuriously share storage between
-# fibers in the same thread and mask the fiber-locality claim. The
-# threading + reentrancy + exception + parity tests run on the default
-# config (whichever subclass +defined?(AS::IES)+ picks) — the pool's
-# documented contract is invariant across both backends at the spec
-# tier.
 RSpec.describe "WritersPool — feature-level pool contract" do
   # Every Generated Class shares one stack per thread, so writers left by
   # earlier examples would change the allocation counts asserted here.
@@ -41,11 +21,6 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "thread isolation" do
-    # Spawn N threads each calling +serialize_one+ in a tight loop and
-    # assert every output is the canonical fixture string. A
-    # globally-shared (non-per-thread) Writer would interleave bytes
-    # across threads and at least one output would diverge; per-thread
-    # storage produces +N × M+ correct outputs.
     it "produces correct output across 8 threads × 1000 calls each" do
       descriptor = Fixtures::ShallowGeneric::DESCRIPTOR
       generated = Panko::CodeGen.compile(descriptor, output: :json, config: Fixtures::ShallowGeneric::CONFIG)
@@ -66,11 +41,8 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "fiber isolation under manual scheduler" do
-    # Two
-    # +Fiber+s yielding mid-emit (a Method Attribute body that calls
-    # +Fiber.yield+) each produce correct output. +Thread.current[]+ is
-    # fiber-local per MRI +thread.c:3812+; the +ThreadLocal+ backend
-    # propagates that locality straight through.
+    # Hide +ActiveSupport::IsolatedExecutionState+ so the pool uses +Thread.current[]+,
+    # which is fiber-local. At +:thread+ isolation it shares one stack across fibers.
     before do
       hide_const("ActiveSupport::IsolatedExecutionState") if defined?(ActiveSupport::IsolatedExecutionState)
     end
@@ -111,11 +83,6 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "cross-class reentrancy" do
-    # A Method Attribute body that calls a different Generated Class's
-    # +serialize_one(other_record)+ mid-emit. The inner call finds the
-    # shared stack empty (the outer holds its Writer) and takes a second
-    # one; the outer's Writer state survives the nested call; both outputs
-    # are correct.
     it "outer + inner outputs are correct when an outer Method Attribute calls a different Generated Class's serialize_one" do
       inner_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassInnerSerializer",
@@ -155,12 +122,8 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "same-class reentrancy" do
-    # A Method Attribute body that calls its own +Klass#serialize_one+
-    # recursively. The pool grows to depth 2 on the first cycle (outer
-    # checks out writer_1, body re-enters and checks out writer_2 from
-    # the now-empty stack) and then reuses both on every subsequent
-    # cycle — total +Oj::StringWriter.new+ across 1000 cycles is exactly
-    # 2.
+    # The outer call and the re-entered call each hold one Writer, so the
+    # first cycle creates two and every later cycle reuses them.
     it "allocates exactly 2 Oj::StringWriter instances across 1000 reentrant cycles" do
       depth = 0
       generated = nil
@@ -207,9 +170,6 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "exception recovery" do
-    # A Method Attribute body that raises mid-emit. The outer's +ensure+
-    # hands +checkin+ a nil result, which drops the half-written Writer,
-    # so the next +serialize_one+ call starts from a clean one.
     it "next serialize_one after a mid-emit raise produces correct output" do
       should_raise = true
       raising_descriptor = Panko::CodeGen::Descriptor.new(
@@ -306,10 +266,6 @@ RSpec.describe "WritersPool — feature-level pool contract" do
   end
 
   describe "pooled-vs-unpooled output parity" do
-    # The byte-identical-output bar from the PRD: setting
-    # +Config#pool_writer: false+ is a one-line emergency rollback that
-    # must produce the exact same output as the pooled path. Every
-    # representative fixture sample exercises the parity contract.
     fixture_samples = [
       [Fixtures::ShallowGeneric, Fixtures::ShallowGeneric.sanity_record],
       [Fixtures::NestedComposition, Fixtures::NestedComposition.sanity_record]

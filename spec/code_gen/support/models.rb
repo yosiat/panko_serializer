@@ -13,11 +13,8 @@ class Post < ActiveRecord::Base
   end
 end
 
-# Bare AR model (no reader overrides) targeted by the S12.5 JSON-column
-# emit fixtures and behavior specs. +Post+ above overrides +#title+, which
-# breaks the byte-identical assertions for the +:html_safe+ snapshot —
-# +PlainPost+ keeps every Attribute as raw column-backed access so the
-# Specialized-path emit shape stays predictable.
+# +Post+ overrides +#title+; this model keeps every attribute a plain column read, so the
+# Specialized emit and the byte-identical snapshots stay predictable.
 class PlainPost < ActiveRecord::Base
   self.table_name = "posts"
 end
@@ -26,13 +23,7 @@ class Author < ActiveRecord::Base
   belongs_to :post, optional: true
 end
 
-# Sibling AR model paired with +PlainPost+ in the non-uniform-Specialized
-# JSON-column regression fixture (#61). Its +metadata+ column is +t.string+,
-# so +ActiveRecord::AccessClassifier.json_typed?+ returns +false+ for it —
-# the +ar_classes.all?+ guard in
-# +Generators::RecordAccess::Specialized.json_column_attribute?+ then
-# rejects the whole +Models+ set and the per-Attribute emit downgrades to
-# today's +push_value+ shape.
+# Same +metadata+ name as +PlainPost+, but a +t.string+ column, so it is not JSON-typed.
 class PlainNote < ActiveRecord::Base
   self.table_name = "notes"
 end

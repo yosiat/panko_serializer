@@ -7,15 +7,6 @@ require "nested_composition"
 require "recursive_self"
 require "recursive_mutual"
 
-# Feature-tier coverage for the multi-file +Dump+ fan-out per S15.5
-# (issue #78). The flat single-file path lands in S15.2 / S15.4; this
-# spec exercises the fan-out path: nested +Composition+,
-# self-recursive +Descriptors+ (one file, +@x_serializer = self+),
-# and mutually-recursive +Descriptors+ (two files with mutual
-# +require_relative+). Asserts the on-disk layout, the
-# +require_relative+ wiring, and that the dumped tree round-trips
-# +require+ → +.new(descriptor: ...)+ → +serialize_one+ to the
-# expected output.
 RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
   describe "Fixtures::NestedComposition — one file per Generated Class" do
     let(:descriptor) { Fixtures::NestedComposition::DESCRIPTOR }
@@ -59,9 +50,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
     end
 
     it "dumped tree round-trips through require + .new(descriptor:) + serialize_one" do
-      # Rename every Descriptor in the tree so the require'd dumped
-      # tree's constants do not collide with the snapshot tier's load
-      # of +nested_composition_json.rb+ (same process).
+      # New names, so the loaded constants do not collide with the ones snapshot_spec.rb loads.
       author = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedAuthor",
         model: nil,
@@ -178,9 +167,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
       expected = Fixtures::RecursiveMutual.expected_output(:json)
 
       Dir.mktmpdir do |dir|
-        # Rename both peers so const collisions with the snapshot tier
-        # (which loads recursive_mutual_json.rb's combined form) cannot
-        # occur in the same process.
+        # New names, so the loaded constants do not collide with the ones snapshot_spec.rb loads.
         renamed_item = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualItem",
           model: nil,
@@ -207,11 +194,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
         target = File.join(dir, "s15_five_mutual_folder_json.rb")
         Panko::CodeGen.dump(renamed_folder, output: :json, config: config, path: target)
 
-        # Mutual +require_relative+ trips Ruby's "circular require
-        # considered harmful" warning by design — both files name each
-        # other, and the cycle is intentionally resolved at instantiation,
-        # not load.
-        # Silence just this require so the spec output stays clean.
+        # The two files +require_relative+ each other, so silence Ruby's circular require warning.
         previous_verbose = $VERBOSE
         $VERBOSE = nil
         begin
