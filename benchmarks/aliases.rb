@@ -3,12 +3,6 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- Aliases-shape Descriptor / serializers -------------------------------
-# Attributes whose output `name` differs from their `source` — the bench
-# exercises the per-Field rename path. model: Bench::Post picks the
-# specialized path on the engine row for an apples-to-apples comparison
-# against panko/{json,object}.
-
 ALIASES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "AliasesPostBenchSerializer",
   model: Bench::Post,
@@ -37,8 +31,6 @@ class AliasesPostOjSerializer < OjSerializers::Serializer
   attributes title: {as: :name}, body: {as: :content}, views: {as: :hits}
 end
 
-# --- Target registry entries ----------------------------------------------
-
 Targets::CODE_GEN_JSON[:aliases] = ->(records) { CODE_GEN_JSON_ALIASES.serialize_many(records) }
 Targets::CODE_GEN_HASH[:aliases] = ->(records) { CODE_GEN_HASH_ALIASES.serialize_many(records) }
 Targets::PANKO_JSON[:aliases] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: AliasesPostPankoSerializer).to_json }
@@ -46,8 +38,6 @@ Targets::PANKO_OBJECT[:aliases] = ->(records) { Panko::ArraySerializer.new(recor
 Targets::OJ_JSON[:aliases] = ->(records) { AliasesPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:aliases] = ->(records) { records.map { |r| {id: r.id, name: r.title, content: r.body, hits: r.views} }.to_json }
 Targets::PLAIN_HASH[:aliases] = ->(records) { records.map { |r| {id: r.id, name: r.title, content: r.body, hits: r.views} } }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "Aliases", type: :posts do |records|
   {

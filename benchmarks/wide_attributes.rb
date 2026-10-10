@@ -3,20 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- WideAttributes-shape Descriptor / serializers ------------------------
-# Single Bench::WidePost Descriptor carrying ~70 Attributes split across the
-# four primitive types AR exposes (string / integer / boolean / decimal /
-# date). Stresses per-Field emit/dispatch cost beyond what Panko's existing
-# bench covers — the column count is open to refinement (per
-# docs/benchmarks.md § Open refinements). model: Bench::WidePost picks
-# the specialized path so the engine row goes through the same model-aware
-# fast path as panko/{json,object} for an apples-to-apples comparison.
-#
-# The 71 fields (`:id` + 70 `WIDE_POST_ATTRIBUTE_NAMES`) make this the
-# widest Descriptor in the suite, so the with-filter rows below stress
-# per-Field emit and the per-Field `filters.drops?` call at a width no
-# other scenario reaches.
-
+# model: is set so the engine rows take the specialized path, as Panko does for AR records.
 WIDE_ATTRIBUTES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "WideAttributesPostBenchSerializer",
   model: Bench::WidePost,
@@ -34,9 +21,7 @@ CODE_GEN_HASH_WIDE_ATTRIBUTES = Panko::CodeGen.compile(WIDE_ATTRIBUTES_DESCRIPTO
 
 WIDE_ATTRIBUTES_PANKO_NAMES = [:id, *WIDE_POST_ATTRIBUTE_NAMES.map(&:to_sym)].freeze
 
-# Filter narrowing for the with-filter rows. Three sample fields out of 71
-# — keep `:only` short to mirror typical query-string usage; `:except` drops
-# the same three so the resulting field set is the inverse.
+# Short lists, like a typical query-string filter.
 WIDE_ATTRIBUTES_ONLY_KEYS = %i[id s_01 i_01].freeze
 WIDE_ATTRIBUTES_EXCEPT_KEYS = %i[s_01 s_02 s_03].freeze
 
@@ -49,8 +34,6 @@ class WideAttributesPostOjSerializer < OjSerializers::Serializer
   attributes(*WIDE_ATTRIBUTES_PANKO_NAMES)
 end
 
-# --- Target registry entries ----------------------------------------------
-
 Targets::CODE_GEN_JSON[:wide_attributes] = ->(records) { CODE_GEN_JSON_WIDE_ATTRIBUTES.serialize_many(records) }
 Targets::CODE_GEN_HASH[:wide_attributes] = ->(records) { CODE_GEN_HASH_WIDE_ATTRIBUTES.serialize_many(records) }
 Targets::CODE_GEN_JSON[:wide_attributes_with_only] = ->(records) { CODE_GEN_JSON_WIDE_ATTRIBUTES.serialize_many(records, filters: {only: WIDE_ATTRIBUTES_ONLY_KEYS}) }
@@ -62,8 +45,6 @@ Targets::PANKO_OBJECT[:wide_attributes] = ->(records) { Panko::ArraySerializer.n
 Targets::OJ_JSON[:wide_attributes] = ->(records) { WideAttributesPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:wide_attributes] = ->(records) { records.map(&:as_json).to_json }
 Targets::PLAIN_HASH[:wide_attributes] = ->(records) { records.map(&:as_json) }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "WideAttributes", type: :wide_posts do |records|
   {

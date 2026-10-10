@@ -3,24 +3,12 @@
 require_relative "setup"
 require_relative "datasets"
 
-# Frozen Data value carrying every env knob parsed once at harness load.
-# Read by `benchmark` / `benchmark_scenario` to
-# decide which rows to measure and how to measure them. Documented at
-# docs/benchmarks.md § Harness.
 BenchmarkConfig = Data.define(:size, :bench, :target, :profile, :ips_time, :ips_warmup) do
-  # Effective size list for this run: a one-element array when SIZE=n was
-  # set, otherwise BENCHMARK_SIZES.
-  #
-  # @return [Array<Integer>]
   def sizes
     size ? [size] : BENCHMARK_SIZES
   end
 end
 
-# Singleton config for the current process — built once from ENV before any
-# benchmark runs. The harness internals read from it directly rather than
-# threading it as an arg through every helper, mirroring Panko's bench harness
-# shape (per docs/benchmarks.md § Harness).
 BENCHMARK_CONFIG = BenchmarkConfig.new(
   size: (ENV["SIZE"] && !ENV["SIZE"].empty?) ? ENV["SIZE"].to_i : nil,
   bench: (ENV["BENCH"] && !ENV["BENCH"].empty?) ? ENV["BENCH"] : nil,
@@ -38,10 +26,6 @@ puts "SIZES:   #{BENCHMARK_CONFIG.sizes.inspect}"
 puts "FILTERS: BENCH=#{BENCHMARK_CONFIG.bench.inspect}  TARGET=#{BENCHMARK_CONFIG.target.inspect}"
 puts
 
-# StackProf is started once at harness load when PROFILE=cpu and the combined
-# profile is dumped at exit. Per-block start/stop is too granular in
-# fast-iteration mode (each report runs for IPS_TIME seconds) and yields a
-# noisy profile.
 if BENCHMARK_CONFIG.profile == "cpu"
   StackProf.start(mode: :cpu, raw: true, interval: 1000)
   at_exit do
@@ -52,11 +36,6 @@ if BENCHMARK_CONFIG.profile == "cpu"
   end
 end
 
-# Formats an ips rate with thousands/millions suffix, narrow enough to stack
-# in a single column.
-#
-# @param rate [Float]
-# @return [String]
 def benchmark_format_rate(rate)
   if rate >= 1_000_000
     "%.2fM" % (rate / 1_000_000.0)
@@ -67,24 +46,12 @@ def benchmark_format_rate(rate)
   end
 end
 
-# Runs +block+ once under benchmark-ips for ips, then once under
-# MemoryProfiler for allocs + retained, and prints one row of output. Returns
-# nothing meaningful — the harness is stdout-driven (per docs/benchmarks.md §
-# Baseline workflow). When BENCH=<substr> is set and the label doesn't
-# case-insensitively contain it, the row is silently skipped.
-#
-# Not disabling GC for the IPS window (a common ips trick): on high-alloc rows
-# it blows error bands out to ±30–60% vs ±3–7% enabled, which matches production.
-# The MemoryProfiler block does disable it — there we're measuring allocations.
-#
-# @param label [String] human-readable row label
-# @yield invoked many times under benchmark-ips, then once under MemoryProfiler
-# @return [void]
+# GC stays on during ips: disabling it makes the error bands much wider on rows that allocate a lot.
+# GC is off only while MemoryProfiler counts allocations.
 def benchmark(label, &block)
   return if BENCHMARK_CONFIG.bench && !label.downcase.include?(BENCHMARK_CONFIG.bench.downcase)
 
-  # One untimed warm-up call so first-invocation codegen (e.g., Panko's
-  # SerializationDescriptor build) doesn't bias either measurement.
+  # Untimed warm-up, so first-call compilation is not counted in either measurement.
   block.call
 
   ips_report = Benchmark.ips do |x|
@@ -112,16 +79,6 @@ def benchmark(label, &block)
   end
 end
 
-# Scenario-file entry point: yields per-size records to +targets_hash_block+
-# (which returns a Hash of `row_label => 0-arity callable`) and runs
-# +benchmark+ per row. TARGET=<substr> filters rows at this boundary; BENCH
-# filters at the +benchmark+ boundary one level down.
-#
-# @param label [String] scenario label, e.g. +"Simple"+
-# @param type [Symbol] DATASETS registry key
-# @yield [records] returns the Hash of row_label => 0-arity callable
-# @return [void]
-# @raise [KeyError] when +type+ isn't registered in DATASETS
 def benchmark_scenario(label, type:, &targets_hash_block)
   BENCHMARK_CONFIG.sizes.each do |size|
     records = DATASETS.fetch(type).first(size)

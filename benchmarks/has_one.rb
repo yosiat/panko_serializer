@@ -3,11 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- HasOne-shape Descriptor / serializers --------------------------------
-# Post → Author single has_one Association. model: Bench::Post / Bench::Author
-# picks the specialized path on both sides so the engine row goes through the
-# same model-aware fast path as panko/{json,object} for an apples-to-apples
-# comparison.
+# model: is set so the engine rows take the specialized path, as Panko does for AR records.
 
 HAS_ONE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasOneAuthorBenchSerializer",
@@ -63,8 +59,6 @@ class HasOnePostOjSerializer < OjSerializers::Serializer
   has_one :author, serializer: HasOneAuthorOjSerializer
 end
 
-# --- Target registry entries ----------------------------------------------
-
 Targets::CODE_GEN_JSON[:has_one] = ->(records) { CODE_GEN_JSON_HAS_ONE.serialize_many(records) }
 Targets::CODE_GEN_HASH[:has_one] = ->(records) { CODE_GEN_HASH_HAS_ONE.serialize_many(records) }
 Targets::PANKO_JSON[:has_one] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasOnePostPankoSerializer).to_json }
@@ -72,8 +66,6 @@ Targets::PANKO_OBJECT[:has_one] = ->(records) { Panko::ArraySerializer.new(recor
 Targets::OJ_JSON[:has_one] = ->(records) { HasOnePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:has_one] = ->(records) { records.map { |r| r.as_json(include: :author) }.to_json }
 Targets::PLAIN_HASH[:has_one] = ->(records) { records.map { |r| r.as_json(include: :author) } }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "HasOne", type: :posts do |records|
   {

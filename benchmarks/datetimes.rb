@@ -2,14 +2,8 @@
 
 require_relative "support/benchmark"
 
-# Datetime-heavy shape: four datetime columns next to id/name, batch of 50.
-# Owns its own schema (adding datetimes to bench_posts would change every
-# other scenario's record width). Exercises the raw-string datetime fast
-# path (DateTimeFormat splice over read_attribute_before_type_cast) on the
-# specialized rows vs the type-cast + as_json/Oj path on the generic rows.
-#
-# Run (YJIT — the production target):
-#   bundle exec ruby --yjit benchmarks/datetimes.rb
+# Owns its schema: adding datetimes to bench_posts would change every other
+# scenario's record width.
 
 ActiveRecord::Schema.define do
   create_table :bench_events, force: true do |t|
@@ -66,8 +60,6 @@ class EventOjSerializer < OjSerializers::Serializer
   attributes :id, :name, :starts_at, :ends_at, :created_at, :updated_at
 end
 
-# --- Output-parity guard --------------------------------------------------
-
 parity = {
   "code_gen/json" => CODE_GEN_JSON_EVENTS.serialize_many(EVENTS),
   "code_gen/hash" => Oj.dump(CODE_GEN_HASH_EVENTS.serialize_many(EVENTS), mode: :rails),
@@ -86,8 +78,6 @@ end
 puts "Output parity verified (byte-level): #{parity.keys.join(", ")}"
 puts "Sample: #{Oj.load(reference).first}"
 puts
-
-# --- Scenario rows --------------------------------------------------------
 
 rows = {
   "code_gen/json" => -> { CODE_GEN_JSON_EVENTS.serialize_many(EVENTS) },
