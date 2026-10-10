@@ -6,13 +6,13 @@ require "shallow_generic"
 require "shallow_specialized"
 require "nested_composition"
 
-RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-inheritance / Source-keyed / filter-before-if: / nested / recursive" do
+RSpec.describe "Filter - :only / :except / co-supplied / empty / unknown / no-inheritance / Source-keyed / filter-before-if: / nested / recursive" do
   def compile(fixture, mode)
     Panko::CodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
       .new(descriptor: fixture::DESCRIPTOR)
   end
 
-  describe "(1) :only — keeps only the listed Field names" do
+  describe "(1) :only - keeps only the listed Field names" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "Attribute-only Descriptor: keeps only listed Attributes" do
@@ -41,7 +41,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(2) :except — drops the listed Field names" do
+  describe "(2) :except - drops the listed Field names" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "Attribute-only Descriptor: drops the listed Attribute" do
@@ -102,7 +102,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(4) Empty Hash {} ≡ nil — no filtering, both route to Filter::None" do
+  describe "(4) Empty Hash {} ≡ nil - no filtering, both route to Filter::None" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "produces output identical to filters: nil for serialize_one" do
@@ -130,7 +130,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(5) Unknown keys at any level — silently ignored (forward-compat)" do
+  describe "(5) Unknown keys at any level - silently ignored (forward-compat)" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "ignores a top-level Field name not present in FIELD_INDEX" do
@@ -163,7 +163,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(6) No inheritance — a parent's filter does not implicitly apply to children unless threaded" do
+  describe "(6) No inheritance - a parent's filter does not implicitly apply to children unless threaded" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "the author child emits all its Fields when the parent restricts to :only [:author]" do
@@ -189,7 +189,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(7) Child-filter key — looked up by Source, not name (when Source ≠ name)" do
+  describe "(7) Child-filter key - looked up by Source, not name (when Source ≠ name)" do
     # Built inline: no shared fixture has an Association whose source differs from its name.
     let(:author_descriptor) do
       Panko::CodeGen::Descriptor.new(
@@ -247,7 +247,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(8) Filter-before-if: — a filter-dropped Association does not invoke its if: Callable" do
+  describe "(8) Filter-before-if: - a filter-dropped Association does not invoke its if: Callable" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         def build_with_spy(spy)
@@ -339,7 +339,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(9) Nested-Composition filter scoping — sub-filter actually filters the child" do
+  describe "(9) Nested-Composition filter scoping - sub-filter actually filters the child" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "applies :only on a has_one Association sub-filter" do
@@ -397,7 +397,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(10a) Recursive-Descriptor filtering — self-recursion (recursive_self)" do
+  describe "(10a) Recursive-Descriptor filtering - self-recursion (recursive_self)" do
     require "recursive_self"
 
     %i[json hash].each do |mode|
@@ -416,7 +416,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
         }
         let(:generated) { compile(Fixtures::RecursiveSelf, mode) }
 
-        it "applies a level-1 :only on replies — keeps id+body, drops nested replies on each reply" do
+        it "applies a level-1 :only on replies - keeps id+body, drops nested replies on each reply" do
           expected = (mode == :json) ?
             '{"id":1,"body":"root","replies":[' \
               '{"id":2,"body":"c1"},' \
@@ -434,7 +434,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
           ).to eq(expected)
         end
 
-        it "applies a level-2 :only via nested {replies: {replies: ...}} — only the inner cycle is scoped" do
+        it "applies a level-2 :only via nested {replies: {replies: ...}} - only the inner cycle is scoped" do
           expected = (mode == :json) ?
             '{"id":1,"body":"root","replies":[' \
               '{"id":2,"body":"c1","replies":[{"body":"c1.1"}]},' \
@@ -455,7 +455,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(10b) Recursive-Descriptor filtering — mutual recursion (recursive_mutual)" do
+  describe "(10b) Recursive-Descriptor filtering - mutual recursion (recursive_mutual)" do
     require "recursive_mutual"
 
     %i[json hash].each do |mode|
@@ -531,7 +531,7 @@ RSpec.describe "Filter — :only / :except / co-supplied / empty / unknown / no-
     end
   end
 
-  describe "(11) shared Source across two Associations — child cell scoped per child FIELD_INDEX" do
+  describe "(11) shared Source across two Associations - child cell scoped per child FIELD_INDEX" do
     first_child = Panko::CodeGen::Descriptor.new(
       name: "FilterSharedSourceFirstChildSerializer",
       model: nil,

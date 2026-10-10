@@ -40,7 +40,7 @@ describe "Serializer instance pooling" do
     expect(pooled_stack(serializer_class).size).to eq(1)
   end
 
-  it "releases per-record state at checkin — a pooled instance holds no record" do
+  it "releases per-record state at checkin - a pooled instance holds no record" do
     stub_const("PooledMethodFooSerializer", Class.new(Panko::Serializer) do
       attributes :name, :shouted_name
 

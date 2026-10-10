@@ -8,7 +8,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
   let(:descriptor) { Fixtures::ShallowSpecialized::DESCRIPTOR }
   let(:config) { Fixtures::ShallowSpecialized::CONFIG }
 
-  describe "#serialize_one — AR Records via the Specialized path" do
+  describe "#serialize_one - AR Records via the Specialized path" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
@@ -122,7 +122,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowSpecialized" do
     end
   end
 
-  describe ".compile — Specialized path emits a single _write_one / _to_hash without the Hash branch" do
+  describe ".compile - Specialized path emits a single _write_one / _to_hash without the Hash branch" do
     it "JSON mode: instance methods include _write_one but not _write_one_hash / _write_one_object" do
       generated_class = Panko::CodeGen.compile(descriptor, output: :json, config: config)
       method_names = generated_class.instance_methods(false)

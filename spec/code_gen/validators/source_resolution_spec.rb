@@ -32,7 +32,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     Panko::CodeGen::Attribute.new(name: name, source: source)
   end
 
-  describe ".validate — column outcome" do
+  describe ".validate - column outcome" do
     it "passes when source is a column on the single Model" do
       klass = fake_ar_class(name: "Post", columns: ["title"])
       descriptor = descriptor_with(model: klass, attributes: [attribute(:title)])
@@ -53,7 +53,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — method outcome" do
+  describe ".validate - method outcome" do
     it "passes when source is an instance method on the single Model" do
       klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
       descriptor = descriptor_with(model: klass, attributes: [attribute(:full_title)])
@@ -63,7 +63,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — UnknownSourceError" do
+  describe ".validate - UnknownSourceError" do
     it "raises when source is neither a column nor an instance method" do
       klass = fake_ar_class(name: "Post", columns: ["id"], methods: %i[full_title])
       descriptor = descriptor_with(model: klass, attributes: [attribute(:missing)])
@@ -90,7 +90,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — model: nil" do
+  describe ".validate - model: nil" do
     it "does not raise when model is nil (Generic path; defers to runtime NoMethodError)" do
       descriptor = descriptor_with(
         model: nil,
@@ -102,7 +102,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — non-AR class in model:" do
+  describe ".validate - non-AR class in model:" do
     it "skips classification for a plain Class.new (no +columns_hash+) and does not raise" do
       non_ar = Class.new do
         def self.name = "PlainClass"
@@ -114,7 +114,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — DefineAttributeMethods.ensure! is invoked per AR class" do
+  describe ".validate - DefineAttributeMethods.ensure! is invoked per AR class" do
     it "calls #define_attribute_methods on the model when its readers haven't been generated yet" do
       define_calls = 0
       generated = false
@@ -134,7 +134,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — nested Descriptor walk" do
+  describe ".validate - nested Descriptor walk" do
     it "raises when a nested Descriptor has an unresolved Source" do
       inner_klass = fake_ar_class(name: "Author", columns: ["id"])
       inner = Panko::CodeGen::Descriptor.new(
@@ -156,7 +156,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — cycle / shared-subtree handling" do
+  describe ".validate - cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       inner_klass = fake_ar_class(name: "Author", columns: ["id"])
       inner = Panko::CodeGen::Descriptor.new(
@@ -194,7 +194,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate — no Generated Class produced on raise" do
+  describe ".validate - no Generated Class produced on raise" do
     it "raises before Panko::CodeGen.compile emits any source" do
       klass = fake_ar_class(name: "Post", columns: ["id"])
       bad = descriptor_with(model: klass, attributes: [attribute(:bad)])

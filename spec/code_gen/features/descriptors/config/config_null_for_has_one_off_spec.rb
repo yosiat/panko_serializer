@@ -8,7 +8,7 @@ RSpec.describe "Generated Class for Fixtures::ConfigNullForHasOneOff" do
   let(:descriptor) { Fixtures::ConfigNullForHasOneOff::DESCRIPTOR }
   let(:config) { Fixtures::ConfigNullForHasOneOff::CONFIG }
 
-  describe "#serialize_one — has_one Source returning nil omits the key (null_for_missing_has_one: false)" do
+  describe "#serialize_one - has_one Source returning nil omits the key (null_for_missing_has_one: false)" do
     expected_with_inner = {
       json: '{"id":1,"inner":{"id":7,"name":"alice"}}',
       hash: {"id" => 1, "inner" => {"id" => 7, "name" => "alice"}}.freeze

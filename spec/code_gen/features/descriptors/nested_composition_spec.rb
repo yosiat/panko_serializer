@@ -8,7 +8,7 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
   let(:descriptor) { Fixtures::NestedComposition::DESCRIPTOR }
   let(:config) { Fixtures::NestedComposition::CONFIG }
 
-  describe "#serialize_one — AR Records via the Generic path's _write_one_object" do
+  describe "#serialize_one - AR Records via the Generic path's _write_one_object" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
@@ -94,14 +94,14 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
       expect(author_serializer).to respond_to(:_write_one)
     end
 
-    it "@comments_serializer is an instance of the inner Generated Class — every iteration is monomorphic" do
+    it "@comments_serializer is an instance of the inner Generated Class - every iteration is monomorphic" do
       generated = generated_class.new(descriptor: descriptor)
       comments_serializer = generated.instance_variable_get(:@comments_serializer)
       expect(comments_serializer).to respond_to(:_write_one)
     end
   end
 
-  describe "Compiler recursive descent — identity-keyed compile cache" do
+  describe "Compiler recursive descent - identity-keyed compile cache" do
     let(:inner) {
       Panko::CodeGen::Descriptor.new(
         name: "InnerSerializer",

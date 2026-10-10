@@ -8,7 +8,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
   let(:descriptor) { Fixtures::RecursiveMutual::DESCRIPTOR }
   let(:config) { Fixtures::RecursiveMutual::CONFIG }
 
-  describe "#serialize_one — finite Folder/Item cycle" do
+  describe "#serialize_one - finite Folder/Item cycle" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
@@ -56,7 +56,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
     end
   end
 
-  describe "Mutual-recursion wiring — one Generated Class instance per unique Descriptor" do
+  describe "Mutual-recursion wiring - one Generated Class instance per unique Descriptor" do
     let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
     let(:generated) { generated_class.new(descriptor: descriptor) }
 
@@ -66,7 +66,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
       expect(back_to_outer).to equal(generated)
     end
 
-    it "Compile produces one Generated Class per unique Descriptor — Folder traversed twice in the cycle resolves to one class" do
+    it "Compile produces one Generated Class per unique Descriptor - Folder traversed twice in the cycle resolves to one class" do
       item_serializer = generated.instance_variable_get(:@items_serializer)
       folder_via_cycle = item_serializer.instance_variable_get(:@subfolder_serializer)
       expect(folder_via_cycle.class).to equal(generated_class)
@@ -87,7 +87,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
     end
   end
 
-  describe "Acyclic-construction contract — _construct_cache: kwarg is internal" do
+  describe "Acyclic-construction contract - _construct_cache: kwarg is internal" do
     let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
 
     it "constructs without the caller passing _construct_cache: (default {} kicks off a fresh cycle-walk)" do

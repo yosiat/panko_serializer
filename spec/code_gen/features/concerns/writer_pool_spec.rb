@@ -5,7 +5,7 @@ require "panko/code_gen"
 require "shallow_generic"
 require "nested_composition"
 
-RSpec.describe "WritersPool — feature-level pool contract" do
+RSpec.describe "WritersPool - feature-level pool contract" do
   # Every Generated Class shares one stack per thread, so writers left by
   # earlier examples would change the allocation counts asserted here.
   def clear_writer_stacks

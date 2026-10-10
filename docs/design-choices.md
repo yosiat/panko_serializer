@@ -12,17 +12,17 @@ high performance behind a small, simple API.
 
 Its speed comes from three ideas, each explained below:
 
--   **Code generation** — Panko compiles a specialized serializer, in plain
+-   **Code generation** - Panko compiles a specialized serializer, in plain
     Ruby, once per serializer class, so the per-record work is straight-line
     code instead of a metadata-driven loop.
--   **Incremental JSON** — JSON is built incrementally with `Oj::StringWriter`,
+-   **Incremental JSON** - JSON is built incrementally with `Oj::StringWriter`,
     without an intermediate Hash.
--   **Ahead-of-time metadata** — everything Panko can figure out about a
+-   **Ahead-of-time metadata** - everything Panko can figure out about a
     serializer (which fields are columns, which are methods, which associations
     exist) is resolved when the class is first used, not inside the
     serialization loop.
 
-> Panko used to ship a C extension. It no longer does — the engine is now
+> Panko used to ship a C extension. It no longer does - the engine is now
 > **pure Ruby** that Panko generates and the Ruby VM (with YJIT) compiles.
 > There is nothing to build when you install the gem.
 
@@ -66,7 +66,7 @@ it once. It caches the compiled class per serializer and per output mode
 (`:json` vs `:hash`), so this cost is paid a single time, not per record.
 
 **Each serialization.** The generated class walks the record and writes each
-field directly — reading columns through ActiveRecord's own attribute readers,
+field directly - reading columns through ActiveRecord's own attribute readers,
 invoking your method attributes, and recursing into associations. In `:json`
 mode it writes straight into an `Oj::StringWriter`; in `:hash` mode it builds a
 Hash with string keys.
@@ -85,7 +85,7 @@ for every record, but they get re-asked millions of times.
 
 Panko answers them **once**, when it first sees a serializer class, and then
 generates a small, purpose-built Ruby class that hard-codes the answers. There
-are no per-field branches on the hot path — the generated code for
+are no per-field branches on the hot path - the generated code for
 `UserSerializer` reads `age`, reads `email`, and calls `name`, in a straight
 line.
 
@@ -110,7 +110,7 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-Panko compiles a subclass whose JSON writer is straight-line — it reads each
+Panko compiles a subclass whose JSON writer is straight-line - it reads each
 value off the record and pushes it into the writer, with one branch for
 plain-Hash records versus objects:
 
@@ -132,7 +132,7 @@ def _write_one(record, writer, context, scope, filters)
 end
 ```
 
-There are no per-field lookups or conditionals on the hot path — the field
+There are no per-field lookups or conditionals on the hot path - the field
 names are baked into the method, and each value is read with ActiveRecord's own
 reader (`record.title`) and pushed as-is. You can inspect this for any
 serializer by passing its [descriptor]({% link descriptor.md %}) to
@@ -147,7 +147,7 @@ elided here for readability.)
 
 ### Specializing per record class
 
-The generated class above is **generic** — it reads fields the same way
+The generated class above is **generic** - it reads fields the same way
 whatever object you hand it. Panko goes one step further for ActiveRecord:
 the first time a serializer meets a given record class (say, `Post`), it
 compiles a **specialized variant** hard-wired to that model.
@@ -156,9 +156,9 @@ A specialized variant knows things the generic code can't:
 
 -   **How each column is stored.** Columns are read straight out of
     ActiveRecord's attribute storage rather than through reader-method
-    dispatch, and each column's type is known at compile time — so, for
+    dispatch, and each column's type is known at compile time - so, for
     example, datetime formatting is decided once, not re-checked per value.
-    Anything you've overridden — a reader method you defined on the model —
+    Anything you've overridden - a reader method you defined on the model - 
     still goes through your method.
 -   **The shape of its associations.** The model's reflections fill in the
     record class of each `has_one` / `has_many`, so nested serializers get
@@ -169,7 +169,7 @@ class falls back to the generic code, so heterogeneous collections stay
 correct. Plain Hashes and non-ActiveRecord objects always use the generic
 path.
 
-All of this is automatic and bounded — a serializer keeps a limited number of
+All of this is automatic and bounded - a serializer keeps a limited number of
 variants (16 per output mode by default) and routes everything past the cap to
 the generic path. The cap, and specialization itself, can be tuned or turned
 off; see [Configuration]({% link configuration.md %}).
@@ -182,22 +182,22 @@ A typical Ruby JSON pipeline does three passes:
 2.  Build an array of Hashes, one per record.
 3.  Hand that array to a JSON encoder, which walks it and produces a string.
 
-Steps 2 and 3 allocate a lot — a Hash and several intermediate objects per
-record — and cost CPU to build and re-walk. Panko skips the intermediate Hash
+Steps 2 and 3 allocate a lot - a Hash and several intermediate objects per
+record - and cost CPU to build and re-walk. Panko skips the intermediate Hash
 entirely by using [Oj](https://github.com/ohler55/oj)'s `Oj::StringWriter`:
 
 1.  Get an array of records (`User.all`).
 2.  Push values into an `Oj::StringWriter` as they're read; it appends to the
     output string incrementally.
-3.  Ask the writer for the finished string — which is essentially free, because
+3.  Ask the writer for the finished string - which is essentially free, because
     it's already built.
 
 For the `:hash` output mode there is no writer; Panko builds the Hash directly.
 
 ### Reading values
 
-Panko reads each attribute with ActiveRecord's own reader — `record.title` for
-an object, `record["title"]` for a plain Hash — and writes the value straight
+Panko reads each attribute with ActiveRecord's own reader - `record.title` for
+an object, `record["title"]` for a plain Hash - and writes the value straight
 out. It does **not** re-implement type casting: the value you'd get from
 `record.title` is the value Panko serializes.
 
@@ -205,13 +205,13 @@ The one transform Panko applies is on the way out the door, so the two output
 modes agree on their shape:
 
 -   In **`:json`** mode, values are pushed into `Oj::StringWriter` untouched;
-    Oj (in `mode: :rails`) applies Rails' `as_json` conventions as it writes —
+    Oj (in `mode: :rails`) applies Rails' `as_json` conventions as it writes - 
     a `Time` / `Date` / `TimeWithZone` becomes an ISO-8601 string, a Symbol
     becomes a String, and so on.
 -   In **`:hash`** mode there is no writer, so Panko applies the same
     convention itself: a value that is already a JSON primitive (String,
     Integer, finite Float, `nil`, booleans) passes through untouched, and
-    anything else goes through its own `#as_json` — datetimes become the same ISO-8601
+    anything else goes through its own `#as_json` - datetimes become the same ISO-8601
     string, a Symbol becomes a String, a Hash returned by a method attribute
     comes back string-keyed. This keeps `serialize` and `serialize_to_json`
     producing matching values, and matches Panko 0.8.5's Hash output. (The
@@ -223,7 +223,7 @@ modes agree on their shape:
 Two smaller choices round out the performance story:
 
 -   **Compile once, per class.** The generated class is built and cached the
-    first time a serializer is used — and each specialized variant the first
+    first time a serializer is used - and each specialized variant the first
     time its record class is seen. Every later call reuses them, so the
     generation cost never appears in your request path after warm-up.
 -   **Pooled instances.** Serializing checks a generated instance out of a

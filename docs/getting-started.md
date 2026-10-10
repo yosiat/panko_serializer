@@ -20,7 +20,7 @@ Then install it:
 bundle install
 ```
 
-There's no native extension to build — Panko is pure Ruby.
+There's no native extension to build - Panko is pure Ruby.
 
 ## Creating your first serializer
 
@@ -85,10 +85,10 @@ And that's a Panko-serialized endpoint.
 
 ## Next steps
 
--   [Serializers]({% link serializers.md %}) — the full `Panko::Serializer` /
+-   [Serializers]({% link serializers.md %}) - the full `Panko::Serializer` /
     `Panko::ArraySerializer` API, including `context` and `scope`.
 -   [Attributes]({% link attributes.md %}) and
-    [Associations]({% link associations.md %}) — the serializer DSL in depth.
--   [Filters]({% link filters.md %}) — serialize a subset of attributes.
--   [Response]({% link response-bag.md %}) — compose serialized output into a
+    [Associations]({% link associations.md %}) - the serializer DSL in depth.
+-   [Filters]({% link filters.md %}) - serialize a subset of attributes.
+-   [Response]({% link response-bag.md %}) - compose serialized output into a
     larger JSON response.

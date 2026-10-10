@@ -157,7 +157,7 @@ describe "Auto-specialization" do
       expect(json).to eq("[]")
     end
 
-    it "serializes a heterogeneous array — mismatched records take the guarded generic fallback" do
+    it "serializes a heterogeneous array - mismatched records take the guarded generic fallback" do
       json = Panko::ArraySerializer.new([foo, hash_record], each_serializer: serializer_class).to_json
 
       expect(Oj.load(json)).to eq([expected, expected])

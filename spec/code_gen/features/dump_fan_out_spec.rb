@@ -8,7 +8,7 @@ require "recursive_self"
 require "recursive_mutual"
 
 RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
-  describe "Fixtures::NestedComposition — one file per Generated Class" do
+  describe "Fixtures::NestedComposition - one file per Generated Class" do
     let(:descriptor) { Fixtures::NestedComposition::DESCRIPTOR }
     let(:config) { Fixtures::NestedComposition::CONFIG }
     let(:sanity_record) { Fixtures::NestedComposition.sanity_record }
@@ -109,7 +109,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
     end
   end
 
-  describe "Fixtures::RecursiveSelf — one file, no require_relative for the self-loop" do
+  describe "Fixtures::RecursiveSelf - one file, no require_relative for the self-loop" do
     let(:descriptor) { Fixtures::RecursiveSelf::DESCRIPTOR }
     let(:config) { Fixtures::RecursiveSelf::CONFIG }
 
@@ -133,7 +133,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
     end
   end
 
-  describe "Fixtures::RecursiveMutual — two files with mutual require_relative" do
+  describe "Fixtures::RecursiveMutual - two files with mutual require_relative" do
     let(:descriptor) { Fixtures::RecursiveMutual::DESCRIPTOR }
     let(:config) { Fixtures::RecursiveMutual::CONFIG }
 

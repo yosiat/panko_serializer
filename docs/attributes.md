@@ -9,8 +9,8 @@ parent: Reference
 
 Attributes declare which values a serializer emits. There are two kinds:
 
--   **Field attributes** — columns read directly off the record.
--   **Method attributes** — values computed by a method on the serializer.
+-   **Field attributes** - columns read directly off the record.
+-   **Method attributes** - values computed by a method on the serializer.
 
 ```ruby
 class UserSerializer < Panko::Serializer
@@ -52,7 +52,7 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-Method attributes can also read `context` and `scope` — two per-serialization
+Method attributes can also read `context` and `scope` - two per-serialization
 values you can pass in. For example, exposing feature flags supplied via
 `context`:
 
@@ -90,7 +90,7 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-But this turns a column read into a method attribute — an extra method call on
+But this turns a column read into a method attribute - an extra method call on
 every record, and the value skips Panko's column handling (for example, datetime
 formatting in Hash mode). `aliases` keeps the plain column path while changing
 the output key:
@@ -105,5 +105,5 @@ Here `created_at` is read as a regular column, but emitted as `published_at`.
 
 ## Filtering attributes
 
-To serialize a subset of attributes — with `only` / `except`, nested filters,
-or `filters_for` — see [Filters]({% link filters.md %}).
+To serialize a subset of attributes - with `only` / `except`, nested filters,
+or `filters_for` - see [Filters]({% link filters.md %}).

@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-describe "Auto-specialization — children via reflections" do
+describe "Auto-specialization - children via reflections" do
   let(:name) { "Jane Doe" }
   let(:label) { "first" }
   let(:other_label) { "second" }

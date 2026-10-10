@@ -28,7 +28,7 @@ RSpec.describe Panko::CodeGen::Generators::CycleMembership do
       expect(described_class.cyclic_descriptor_ids(parent)).to eq({})
     end
 
-    it "ignores self-loop edges — a Descriptor with only a self-edge is not cyclic " \
+    it "ignores self-loop edges - a Descriptor with only a self-edge is not cyclic " \
        "(self-recursion is handled by the @<name>_serializer = self shortcut)" do
       d = descriptor("D")
       d.associations << has_many(d, name: :replies)
@@ -83,7 +83,7 @@ RSpec.describe Panko::CodeGen::Generators::CycleMembership do
       expect(ids).not_to have_key(wrapper.__id__)
     end
 
-    it "is identity-keyed — two structurally-equal Descriptors get distinct membership decisions" do
+    it "is identity-keyed - two structurally-equal Descriptors get distinct membership decisions" do
       a = descriptor("A")
       b1 = descriptor("B")
       b2 = descriptor("B")
@@ -109,7 +109,7 @@ RSpec.describe Panko::CodeGen::Generators::CycleMembership do
     end
 
     it "marks a Descriptor with both a self-loop and a mutual cycle as cyclic " \
-       "(A → A self-loop AND A → B → A mutual cycle — mutual edge wins)" do
+       "(A → A self-loop AND A → B → A mutual cycle - mutual edge wins)" do
       a = descriptor("A")
       b = descriptor("B")
       a.associations << has_many(a, name: :selves)

@@ -24,7 +24,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     Panko::CodeGen.compile(descriptor, output: :json, config: config).new(descriptor: descriptor)
   end
 
-  describe "generated source — :wire_format" do
+  describe "generated source - :wire_format" do
     it "contains push_json and Oj.sc_parse with the frozen strict-parse opts" do
       source = Panko::CodeGen::Generator.new.emit(
         descriptor,
@@ -37,7 +37,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
   end
 
-  describe "generated source — :html_safe" do
+  describe "generated source - :html_safe" do
     it "contains push_value (today's shape) and does not contain push_json" do
       source = Panko::CodeGen::Generator.new.emit(
         descriptor,
@@ -50,7 +50,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
   end
 
-  describe "happy path — saved record with valid JSON bytes" do
+  describe "happy path - saved record with valid JSON bytes" do
     it ":wire_format pushes the stored bytes verbatim through push_json" do
       PlainPost.create!(id: 1, metadata: {"a" => 1, "b" => "x"})
       record = PlainPost.find(1)
@@ -164,7 +164,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
       )
     end
 
-    it "</script> — :wire_format keeps raw bytes; :html_safe HTML-escapes" do
+    it "</script> - :wire_format keeps raw bytes; :html_safe HTML-escapes" do
       insert_metadata_bytes(1, '{"html":"</script>"}')
       record = PlainPost.find(1)
 
@@ -174,7 +174,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
         .to eq('{"id":1,"metadata":{"html":"\u003c/script\u003e"}}')
     end
 
-    it "U+2028 line separator — :wire_format keeps raw codepoint; :html_safe escapes" do
+    it "U+2028 line separator - :wire_format keeps raw codepoint; :html_safe escapes" do
       insert_metadata_bytes(1, "{\"sep\":\"a\u2028b\"}")
       record = PlainPost.find(1)
 
@@ -184,7 +184,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
         .to eq('{"id":1,"metadata":{"sep":"a\u2028b"}}')
     end
 
-    it "U+2029 paragraph separator — :wire_format keeps raw codepoint; :html_safe escapes" do
+    it "U+2029 paragraph separator - :wire_format keeps raw codepoint; :html_safe escapes" do
       insert_metadata_bytes(1, "{\"sep\":\"a\u2029b\"}")
       record = PlainPost.find(1)
 
@@ -194,7 +194,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
         .to eq('{"id":1,"metadata":{"sep":"a\u2029b"}}')
     end
 
-    it "-0.0 — :wire_format preserves the sign; :html_safe normalizes to 0.0" do
+    it "-0.0 - :wire_format preserves the sign; :html_safe normalizes to 0.0" do
       insert_metadata_bytes(1, '{"v":-0.0}')
       record = PlainPost.find(1)
 
@@ -204,7 +204,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
         .to eq('{"id":1,"metadata":{"v":0.0}}')
     end
 
-    it "scientific notation — :wire_format preserves compact form; :html_safe expands" do
+    it "scientific notation - :wire_format preserves compact form; :html_safe expands" do
       insert_metadata_bytes(1, '{"v":1e-300}')
       insert_metadata_bytes(2, '{"v":1e300}')
       records = PlainPost.order(:id).to_a

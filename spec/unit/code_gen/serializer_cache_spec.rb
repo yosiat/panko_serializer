@@ -74,7 +74,7 @@ describe Panko::CodeGen::SerializerCache do
       expect(described_class.instance_pool(SerializerCacheFooSerializer, :hash)).not_to be(hash_pool)
     end
 
-    it "does not hand out pre-reset pooled instances — the rebuilt pool gets a fresh fiber-local stack" do
+    it "does not hand out pre-reset pooled instances - the rebuilt pool gets a fresh fiber-local stack" do
       SerializerCacheFooSerializer.new.serialize_to_json(hash_record)
       stale = described_class.instance_pool(SerializerCacheFooSerializer, :json).stack.last
       expect(stale).not_to be_nil
@@ -164,7 +164,7 @@ describe Panko::CodeGen::SerializerCache do
     end
   end
 
-  describe ".variant_pool — first-sight compile failures" do
+  describe ".variant_pool - first-sight compile failures" do
     before do
       Temping.create(:cache_host) do
         with_columns do |t|

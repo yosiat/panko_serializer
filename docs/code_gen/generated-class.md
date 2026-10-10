@@ -1,7 +1,7 @@
 # The Generated Class
 
 A **Generated Class** is the product of one **Compile** call. It exists per (**Descriptor**,
-**Output Mode**) pair — e.g., `PostSerializer_JSON`.
+**Output Mode**) pair - e.g., `PostSerializer_JSON`.
 
 ## Constructor
 
@@ -31,7 +31,7 @@ serializer.serialize_one(@post, context: request_env, scope: current_user, filte
 - Returns a **String** in JSON mode, a **Hash** (with string keys by default) in Hash mode.
 - `context:` is arbitrary user data threaded through to every **Callable**. May be `nil`.
   See [Context contract](#context-contract) below.
-- `scope:` is a peer of `context:` — arbitrary user data threaded unmodified through every
+- `scope:` is a peer of `context:` - arbitrary user data threaded unmodified through every
   **Callable**. May be `nil`. See [Scope contract](#scope-contract) below.
 - `filters:` prunes the output tree. See [filters.md](filters.md) for shape and semantics.
 - `record` must be compatible with **Record** access for the **Descriptor** (see
@@ -46,11 +46,11 @@ serializer.serialize_one(@post, root_key: "post", context: ..., scope: ...)
 ```
 
 Passing `root_key: nil` (the default) skips wrapping. The generated method literally does
-not have this kwarg when `supports_root_key: false` — callers who try to pass it get an
+not have this kwarg when `supports_root_key: false` - callers who try to pass it get an
 `ArgumentError`.
 
-**Accepted values**: a non-empty String or `nil`. Anything else — an empty String, a
-Symbol, or any non-String/non-nil value — raises `ArgumentError` at call time. The check
+**Accepted values**: a non-empty String or `nil`. Anything else - an empty String, a
+Symbol, or any non-String/non-nil value - raises `ArgumentError` at call time. The check
 matches filters.md's convention for caller-error shapes (`:only` + `:except` at the same
 level also raises `ArgumentError`).
 
@@ -67,7 +67,7 @@ serializer.serialize_many(@posts, context: request_env, scope: current_user)
 - In Hash mode: returns `Array<Hash>`.
 - Same `root_key:` kwarg behavior as `serialize_one` when `Config#supports_root_key: true`.
   In JSON: `{"posts":[...]}`. In Hash: `{"posts" => [{...}, ...]}`.
-- No auto-detection of "is this a single **Record** or a collection?" — the caller picks
+- No auto-detection of "is this a single **Record** or a collection?" - the caller picks
   the method. Two explicit entry points avoid runtime type introspection and keep call sites
   monomorphic.
 
@@ -76,8 +76,8 @@ serializer.serialize_many(@posts, context: request_env, scope: current_user)
 **Context** is the arbitrary caller-supplied value threaded unchanged through every
 **Callable** invocation. The library reads it zero times and imposes zero structure on it.
 
-- **Type**: unconstrained. May be any Ruby value — Hash, struct, request object, nil, a
-  class instance, a Proc — the library never inspects it.
+- **Type**: unconstrained. May be any Ruby value - Hash, struct, request object, nil, a
+  class instance, a Proc - the library never inspects it.
 - **Default**: `nil`. Any **Callable** that requires a non-nil **Context** is enforcing a
   caller-side contract; the library passes whatever was supplied.
 - **Independence from Filter**: **Context** and **Filter** are separate channels.
@@ -88,19 +88,19 @@ serializer.serialize_many(@posts, context: request_env, scope: current_user)
 
 ## Scope contract
 
-**Scope** is a peer of **Context** — an arbitrary caller-supplied value threaded
+**Scope** is a peer of **Context** - an arbitrary caller-supplied value threaded
 unmodified through every **Callable** invocation. Byte-identical to **Context** in
 behaviour but distinct in identity. Conventionally used for auth/viewer data
 (e.g., `current_user`), in contrast to **Context** which is conventionally used for
 environment data (e.g., request headers); the library does not enforce or rely on either
 convention.
 
-- **Type**: unconstrained. May be any Ruby value — the library never inspects it.
+- **Type**: unconstrained. May be any Ruby value - the library never inspects it.
 - **Default**: `nil`. A **Callable** that requires a non-nil **Scope** is enforcing a
   caller-side contract; the library passes whatever was supplied.
 - **Reaches**: every **Method Attribute** body and every **Association** `if:` Callable
   whose declared arity is 3, in positional order `(record, context, scope)`. **Callables**
-  with arity 0/1/2 keep their existing emit shape — `scope` never leaks into a 2-arity
+  with arity 0/1/2 keep their existing emit shape - `scope` never leaks into a 2-arity
   Callable's `context` slot.
 - **Identity-preserving through Composition**: an inner **Generated Class** invoked
   through a nested `has_one` / `has_many` observes the same **Scope** identity
@@ -109,7 +109,7 @@ convention.
 - **Independence from Context**: **Scope** and **Context** are separate channels.
   Passing one without the other (`scope:` without `context:`, or vice versa) is
   supported; each defaults to `nil` independently.
-- **Independence from Filter**: same as **Context** — **Scope** participates in
+- **Independence from Filter**: same as **Context** - **Scope** participates in
   **Callable** invocation, never in code generation or pruning decisions.
 
 ## Internal methods
@@ -132,7 +132,7 @@ mutations in JSON mode.
 The checkin-side counterpart of the per-record `@object` / `@context` / `@scope` writes
 (see [code-generation.md](code-generation.md)): nils those ivars and walks acyclic child
 serializers so the whole **Composition** tree drops its references. The Panko seam calls
-it right before pushing an instance back onto its **InstancePool** stack — a pooled
+it right before pushing an instance back onto its **InstancePool** stack - a pooled
 instance must not pin the last serialized record graph (or request-scoped context)
 between calls.
 
@@ -140,8 +140,8 @@ Every **Generated Class** defines `_release`, even when there is nothing to clea
 body), so the seam can call it unconditionally. The body is compile-time specialized to
 the tree's needs: ivar nils only on classes whose `_write_one` / `_to_hash` actually
 writes them, child `_release` calls only into subtrees that nil something. Self-loop
-children (`@x_serializer = self`) are skipped — the receiver's own nils already cover
-them — and a cyclic child of a cyclic parent is skipped so the chain provably terminates
+children (`@x_serializer = self`) are skipped - the receiver's own nils already cover
+them - and a cyclic child of a cyclic parent is skipped so the chain provably terminates
 without per-call visited state. Mutual-recursive serializer pairs therefore keep their
 last record until the next serialize; accepted, since guarding them would cost an
 allocation or a reset flag on every call for a rare shape.
@@ -152,14 +152,14 @@ A **Generated Class** instance holds ivars that are read but not mutated during 
 (callables and nested instances). It is safe to share one instance across threads.
 
 Exception: a class that emits the per-record `@object` / `@context` / `@scope` writes
-(a Symbol-body **Method Attribute** declared — see
+(a Symbol-body **Method Attribute** declared - see
 [code-generation.md](code-generation.md)) mutates those ivars on every call and must not
 be shared across concurrent serializations; the Panko seam's fiber-local **InstancePool**
 exists for exactly this.
 
 However, in JSON mode, the top-level `serialize_one` / `serialize_many` methods allocate a
 fresh **Writer** on every call, so there is no mutable state shared between calls. **Composition**
-also threads the **Writer** as a method parameter, not via an ivar — so nested serializers
+also threads the **Writer** as a method parameter, not via an ivar - so nested serializers
 are equally thread-safe.
 
 ## Instance lifecycle
@@ -167,9 +167,9 @@ are equally thread-safe.
 Cheap to allocate; cheap to throw away. Callers may:
 
 - Instantiate once and reuse forever (common).
-- Instantiate per request (fine — constructor cost is small and ivar-population is straightforward).
+- Instantiate per request (fine - constructor cost is small and ivar-population is straightforward).
 - Pool per fiber and call `_release` at checkin (what the Panko seam does via
-  **InstancePool** — on association-heavy serializers the recursive constructor
+  **InstancePool** - on association-heavy serializers the recursive constructor
   dominates the per-call seam cost).
 
 The library itself has no opinion.

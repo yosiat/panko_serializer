@@ -22,7 +22,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
         )
       end
 
-      it "does not emit a defined?(...) expression — the subclass is baked at Compile time" do
+      it "does not emit a defined?(...) expression - the subclass is baked at Compile time" do
         expect(source).not_to include("defined?(ActiveSupport::IsolatedExecutionState)")
       end
 
@@ -46,7 +46,7 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
         )
       end
 
-      it "does not emit a defined?(...) expression — the subclass is baked at Compile time" do
+      it "does not emit a defined?(...) expression - the subclass is baked at Compile time" do
         expect(source).not_to include("defined?(ActiveSupport::IsolatedExecutionState)")
       end
 

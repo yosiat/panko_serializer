@@ -8,7 +8,7 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
   let(:descriptor) { Fixtures::StiSpecialized::DESCRIPTOR }
   let(:config) { Fixtures::StiSpecialized::CONFIG }
 
-  describe "#serialize_one — STI intersection through the Specialized path" do
+  describe "#serialize_one - STI intersection through the Specialized path" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
@@ -32,7 +32,7 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
           end
         end
 
-        it "honors Car's titleize override on the downgraded Attribute (make) — DB value FORD emits Ford" do
+        it "honors Car's titleize override on the downgraded Attribute (make) - DB value FORD emits Ford" do
           car = Car.create!(vin: "XYZ789", make: "FORD")
           output = generated.serialize_one(car)
           case mode
@@ -41,7 +41,7 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
           end
         end
 
-        it "emits the raw column value for the downgraded Attribute (make) on a Vehicle — no parent override" do
+        it "emits the raw column value for the downgraded Attribute (make) on a Vehicle - no parent override" do
           vehicle = Vehicle.create!(vin: "ABC123", make: "FORD")
           output = generated.serialize_one(vehicle)
           case mode
@@ -85,7 +85,7 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
     end
   end
 
-  describe ".compile — Specialized path emits a single _write_one / _to_hash without the Hash branch" do
+  describe ".compile - Specialized path emits a single _write_one / _to_hash without the Hash branch" do
     it "JSON mode: instance methods include _write_one but not _write_one_hash / _write_one_object" do
       generated_class = Panko::CodeGen.compile(descriptor, output: :json, config: config)
       method_names = generated_class.instance_methods(false)

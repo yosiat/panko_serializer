@@ -20,7 +20,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     Panko::CodeGen::MethodAttribute.new(name: name, body: body)
   end
 
-  describe ".validate — MethodAttribute#body arity" do
+  describe ".validate - MethodAttribute#body arity" do
     {
       0 => -> { :ok },
       1 => ->(_record) { :ok },
@@ -52,7 +52,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
       end
     end
 
-    it "skips Symbol-body MethodAttributes (no .arity call on Symbol) — S18.2" do
+    it "skips Symbol-body MethodAttributes (no .arity call on Symbol) - S18.2" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor", model: nil,
         attributes: [],
@@ -66,7 +66,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     end
   end
 
-  describe ".validate — Association#if arity" do
+  describe ".validate - Association#if arity" do
     let(:inner) {
       Panko::CodeGen::Descriptor.new(
         name: "InnerDescriptor", model: nil,
@@ -143,7 +143,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     end
   end
 
-  describe ".validate — nested Descriptor walk" do
+  describe ".validate - nested Descriptor walk" do
     it "raises when a Method Attribute one level deep has bad arity" do
       inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", model: nil,
@@ -163,7 +163,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     end
   end
 
-  describe ".validate — cycle / shared-subtree handling" do
+  describe ".validate - cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       inner = Panko::CodeGen::Descriptor.new(
         name: "InnerDescriptor", model: nil, attributes: [],
@@ -196,7 +196,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     end
   end
 
-  describe ".validate — no Generated Class produced on raise" do
+  describe ".validate - no Generated Class produced on raise" do
     it "raises before Panko::CodeGen.compile emits any source" do
       bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c, _d) { :ok })])
       generated_class = nil

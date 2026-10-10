@@ -13,14 +13,14 @@ class via `module_eval`. See [structure.md](structure.md) for the full layering 
 The **Generator** builds up a Ruby source string via an internal **Code Builder** DSL.
 **Compiler** installs it into a fresh class using Ruby's standard class-level source-injection
 API (`Module#module_eval` / `Module#class_eval` with source-string, filename, and starting-line
-arguments — the idiomatic Ruby codegen path, same as used by `ActiveModel::AttributeMethods`).
+arguments - the idiomatic Ruby codegen path, same as used by `ActiveModel::AttributeMethods`).
 
 Not ERB. Not Liquid. Not an AST library.
 
 Why:
 
 - The emitted artifact **is** Ruby. There is no language gap where a template engine earns
-  its keep — interpolating strings into Ruby is what we're doing anyway.
+  its keep - interpolating strings into Ruby is what we're doing anyway.
 - Recursive generation over **Associations** is a natural recursive descent in Ruby.
 - Indentation is a first-class concern, handled cleanly by the **Code Builder**.
 - Emitter methods are unit-testable: "given this **Attribute**, this is the exact string."
@@ -88,11 +88,11 @@ class JsonGenerator
 end
 ```
 
-The sketch above is illustrative. In the shipped code the walk is emitted once —
+The sketch above is illustrative. In the shipped code the walk is emitted once - 
 `ClassEmitter` (class shell, constructor, recursion wiring) + `FieldWalk` (field
-ordering + record frame) + the `RecordAccess` strategies — and everything
+ordering + record frame) + the `RecordAccess` strategies - and everything
 mode-divergent sits behind the **Sink** seam: `JsonSink` emits `writer.push_*`
-forms, `HashSink` emits `result[key] = ...` forms. One walk, two adapters — the
+forms, `HashSink` emits `result[key] = ...` forms. One walk, two adapters - the
 two modes' structure cannot drift because only the leaf shapes differ.
 
 ## Source pragmas
@@ -119,7 +119,7 @@ arguments are passed:
 3. A starting line number of `1` (matching the emitted string's line numbering).
 
 This mirrors what `ActiveModel::AttributeMethods`, Sequel, and other mature codegen users
-do. No user-supplied strings are ever installed this way — all source is library-controlled,
+do. No user-supplied strings are ever installed this way - all source is library-controlled,
 emitted deterministically from the **Descriptor**.
 
 ## Callable hoisting: ivars, not class constants
@@ -153,10 +153,10 @@ The call expression is specialized per **Callable** arity (validated in
 ```
 
 The arity-3 shape pairs with the `scope:` kwarg on
-`serialize_one` / `serialize_many` — `scope` is threaded positionally
+`serialize_one` / `serialize_many` - `scope` is threaded positionally
 through `_write_one` / `_to_hash` between `context` and `filters` and
 into every nested **Association** call (`@<name>_serializer._write_one(record, writer, context, scope, child_filter)`).
-Arity 2 keeps its existing `(record, context)` meaning — no `scope`
+Arity 2 keeps its existing `(record, context)` meaning - no `scope`
 leak. Both **Callable** surfaces (**Method Attribute** body and
 **Association** `if:`) share the same per-arity emit shape.
 
@@ -170,7 +170,7 @@ Why ivars (not class constants set via `const_set`):
 - **Stable ivar shape.** All ivars are set in the constructor; the object shape is stable
   from the moment it's returned, which is what YJIT/ZJIT want.
 
-## Per-record ivar writes — the bounded `parent_class` deviation
+## Per-record ivar writes - the bounded `parent_class` deviation
 
 The "GC ivars are init-time constants" pattern above has one **bounded deviation**: when
 the **Descriptor** declares a Symbol-body **Method Attribute**, the **Generator** emits
@@ -193,22 +193,22 @@ couldn't see the current record.
 Bounded by three properties:
 
 - **Gated on a Symbol-body Method Attribute.** **Descriptors** with no Symbol-body
-  **Method Attribute** emit no ivar writes — ivar-set is init-time only and "GC ivars are
+  **Method Attribute** emit no ivar writes - ivar-set is init-time only and "GC ivars are
   init-time constants" holds. A Symbol-body method is the only code that runs on the
-  **Generated Class** instance during a serialize — Callable bodies and `if:` guards
-  receive `(record, context, scope)` as explicit args — so without one the writes would
+  **Generated Class** instance during a serialize - Callable bodies and `if:` guards
+  receive `(record, context, scope)` as explicit args - so without one the writes would
   be pure per-record overhead.
 - **Per-call deterministic write site.** When emitted, the writes are *always* the three
-  lines above at the *top* of `_write_one` / `_to_hash`. The shape is invariant — no
-  per-Field branching, no conditional emit, no other ivars added — so YJIT's object-shape
+  lines above at the *top* of `_write_one` / `_to_hash`. The shape is invariant - no
+  per-Field branching, no conditional emit, no other ivars added - so YJIT's object-shape
   cache stays stable across calls (the same three ivar slots are written every time).
 - **One write site per record on both paths.** Specialized and Generic each emit the
-  writes at the top of the single `_write_one` / `_to_hash` body — on the Generic path
+  writes at the top of the single `_write_one` / `_to_hash` body - on the Generic path
   both field-emit shapes are inlined under the `is_a?(Hash)` branch of that one method
   (see [compilation.md](compilation.md)), so the writes happen exactly once, before the
   branch, and every Symbol-body method reached from either arm sees the correct
   `@object`. Above the Generic path's fused-dispatch threshold, where the per-shape
-  helpers return, the helpers stay un-prepended — they inherit the ivars from the
+  helpers return, the helpers stay un-prepended - they inherit the ivars from the
   `_write_one` / `_to_hash` that called them.
 
 **Self-recursion safety**: under the `@<name>_serializer = self` shortcut a
@@ -221,18 +221,18 @@ shares a dispatcher across recursion depths would clobber `@object` mid-walk in 
 user method can't recover from.
 
 The checkin-side counterpart of these writes is `_release`, which nils the three ivars
-before a pooled instance goes back on its stack — see
+before a pooled instance goes back on its stack - see
 [generated-class.md](generated-class.md).
 
-The three prepended ivar writes are cost-neutral — no extra allocation per call and a
-per-record delta within benchmark noise — and the parity is pinned in the benchmark suite
+The three prepended ivar writes are cost-neutral - no extra allocation per call and a
+per-record delta within benchmark noise - and the parity is pinned in the benchmark suite
 as a permanent regression guard.
 
 ## Backtrace quality
 
 - The synthetic path shows up in `Method#source_location`, so console tools (Pry's
   `show-source`, IRB's `ls`) can display the generated source via the `method_source` gem.
-- When **Dump**ed, the same code is in a real file — IDEs, debuggers, and stack traces
+- When **Dump**ed, the same code is in a real file - IDEs, debuggers, and stack traces
   all resolve to readable Ruby.
 - Line numbers start at 1 for the synthetic-path case, matching the emitted string.
 

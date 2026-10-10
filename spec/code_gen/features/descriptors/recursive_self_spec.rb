@@ -8,7 +8,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
   let(:descriptor) { Fixtures::RecursiveSelf::DESCRIPTOR }
   let(:config) { Fixtures::RecursiveSelf::CONFIG }
 
-  describe "#serialize_one — finite Comment tree" do
+  describe "#serialize_one - finite Comment tree" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         let(:generated_class) { Panko::CodeGen.compile(descriptor, output: mode, config: config) }
@@ -53,7 +53,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
     end
   end
 
-  describe "Self-recursion wiring — @<name>_serializer = self" do
+  describe "Self-recursion wiring - @<name>_serializer = self" do
     let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
     let(:generated) { generated_class.new(descriptor: descriptor) }
 
@@ -61,7 +61,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
       expect(generated.instance_variable_get(:@replies_serializer)).to equal(generated)
     end
 
-    it "Compile produces one Generated Class per unique Descriptor — the self-reference shares the same class" do
+    it "Compile produces one Generated Class per unique Descriptor - the self-reference shares the same class" do
       replies_serializer = generated.instance_variable_get(:@replies_serializer)
       expect(replies_serializer.class).to equal(generated_class)
     end
