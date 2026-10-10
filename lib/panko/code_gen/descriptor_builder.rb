@@ -51,10 +51,12 @@ module Panko
 
       # A child with no specializable class is left unchanged. Several declared classes
       # become +Association#variants+, which share a name, so callers run {uniquify_names}.
-      # +seen+ stops cycles: the engine accepts cyclic Descriptor graphs.
+      # +seen+ keeps each (Descriptor, Model) result, so a child shared by several associations
+      # stays one object. A pair still in progress is a cycle and comes back unspecialized.
       def specialize(descriptor, model, seen = {})
-        return descriptor if seen[[descriptor.__id__, model]]
-        seen[[descriptor.__id__, model]] = true
+        key = [descriptor.__id__, model]
+        return seen[key] || descriptor if seen.key?(key)
+        seen[key] = nil
         associations = descriptor.associations.map do |association|
           child_models = child_models(model, association)
           case child_models.size
@@ -64,7 +66,7 @@ module Panko
             association.with(variants: child_models.map { |child_model| specialize(association.descriptor, child_model, seen) })
           end
         end
-        descriptor.with(model: model, associations: associations)
+        seen[key] = descriptor.with(model: model, associations: associations)
       end
 
       def child_models(model, association)
