@@ -27,7 +27,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
       serialize_to_json(@subjects)
     end
 
-    # The effective public view for this instance — see Panko::Serializer#descriptor.
+    # Same contract as Panko::Serializer#descriptor.
     def descriptor
       each_serializer = @each_serializer
       filters = if @only || @except || each_serializer._cg_has_filters_for
@@ -51,18 +51,8 @@ Please pass valid each_serializer to ArraySerializer, for example:
 
     private
 
-    # This body writes out the checkout/checkin instead of calling a shared
-    # Panko::CodeGen::Runtime entry point: a shared one goes polymorphic once
-    # an app has more than one serializer class. The hop through here and the
-    # mode branch run once per array, so they amortize over the batch;
-    # Panko::Serializer's pair runs once per record, so it keeps the body at
-    # each entry point.
-    #
-    # Pool selection dispatches on the first record's class through the same
-    # one-entry inline cache as Panko::Serializer - an empty array's NilClass
-    # pins to the generic pool, and a heterogeneous tail is safe because a
-    # specialized variant guards per record and delegates mismatches to its
-    # generic twin.
+    # The pool is picked by the first record's class. A mixed-class array is
+    # safe: a specialized variant hands records of another class to its generic twin.
     def serialize_batch(subjects, mode)
       each_serializer = @each_serializer
       records = subjects.to_a
@@ -81,8 +71,6 @@ Please pass valid each_serializer to ArraySerializer, for example:
       begin
         instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
       ensure
-        # See Panko::Serializer#serialize - a pooled instance must not pin the
-        # last record graph between calls.
         instance._release
         stack.push(instance)
       end
