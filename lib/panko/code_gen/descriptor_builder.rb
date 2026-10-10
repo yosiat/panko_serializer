@@ -5,22 +5,11 @@ require_relative "filter_adapter"
 
 module Panko
   module CodeGen
-    # Assembles an immutable +Panko::CodeGen::Descriptor+ from a
-    # +Panko::Serializer+ class's accumulated DSL declarations (its
-    # +_cg_attributes+ / +_cg_method_attributes+ / +_cg_associations+). The DSL
-    # already stores Fields as the engine's own +Attribute+ / +MethodAttribute+ /
-    # +Association+ value objects and builds each Association's nested
-    # Descriptor eagerly when the association is declared (see
-    # +Panko::Serializer.has_one+/+has_many+),
-    # snapshotting the target serializer as it stands then — matching Panko's
-    # finite, one-level self-recursion — so this assembly never recurses.
+    # Builds a serializer class's Descriptor from its DSL declarations. Nested Descriptors are
+    # built when the association is declared, so +build+ never recurses.
     module DescriptorBuilder
       module_function
 
-      # @param serializer_class [Class] a Panko::Serializer subclass
-      # @return [Panko::CodeGen::Descriptor] the Generic-path base
-      #   Descriptor; {specialize} fills +model+ per record class at
-      #   auto-specialization compile time
       def build(serializer_class)
         Descriptor.new(
           name: descriptor_name(serializer_class),
@@ -32,21 +21,15 @@ module Panko
         )
       end
 
-      # Anonymous serializers still need a unique, valid generated-class stem.
-      # "::" is mangled away: the stem becomes a constant defined inside the
-      # anonymous compile namespace, where a qualified name would reopen the
-      # real outer module (and const_get rejects qualified Symbols).
+      # "::" is replaced because the name becomes a constant inside an anonymous namespace, where
+      # a qualified name would reopen the real outer module.
       def descriptor_name(serializer_class)
         name = serializer_class.name || "PankoSerializer#{serializer_class.object_id}"
         name.gsub("::", "__")
       end
 
-      # Rebuilds the tree so every Descriptor has a unique +name+. Panko snapshots
-      # a self-referential association one level deep (a distinct Descriptor of
-      # the same serializer class as its parent), so two Descriptors can share a
-      # name — and the engine emits one Generated Class per Descriptor, keyed on
-      # +name+, so a shared name reopens the same class and corrupts it. Walks
-      # post-order (children first) and suffixes the 2nd+ occurrence of each name.
+      # A self-referential association copies its serializer one level deep, so two Descriptors
+      # can share a name. The engine defines one Generated Class per name, so a shared name breaks it.
       def uniquify_names(descriptor, seen = Hash.new(0))
         associations = descriptor.associations.map do |association|
           association.with(
@@ -60,36 +43,15 @@ module Panko
         descriptor.with(name: name, associations: associations)
       end
 
-      # Narrows a nested Descriptor by a statically-declared association filter
-      # (+has_many :x, only: [...]+ / +except: [...]+). Reuses {FilterAdapter} to
-      # normalize Panko's filter shape, then drops the Fields the engine Filter
-      # would drop — baking the static filter into the cached Descriptor.
+      # Bakes a static association filter (+has_many :x, only: [...]+) into the cached Descriptor.
       def narrow(descriptor, only, except)
         return descriptor if blank?(only) && blank?(except)
         narrow_by(descriptor, FilterAdapter.to_engine_filters(only, except))
       end
 
-      # Rebuilds +descriptor+ with +model+ as its Model and, recursively, each
-      # association's child Model: the auto-specialization tree fill
-      # (SerializerCache.variant_pool). The child's Model is the reflected AR
-      # class when the source is a reflection on the parent Model, else the
-      # one class the child serializer declares with +models+ (a plain method
-      # source, such as a filtered copy of an association). A child
-      # Descriptor is left untouched when it declared its own Model, or when
-      # neither rule yields exactly one AR-like class with a resolvable
-      # name; the child then stays on the Generic path, and per-record
-      # guards keep the tree safe regardless.
-      #
-      # Several declared classes become +Association#variants+: one
-      # specialized child per class, picked per record by exact class, with
-      # the unspecialized child for any other record. Callers run
-      # {uniquify_names} on the result, since variants of one child share
-      # its name.
-      #
-      # +seen+ breaks cycles defensively: Panko-built trees are acyclic (a
-      # self-referential association snapshots one level deep), but the engine
-      # accepts cyclic graphs, and a revisited Descriptor is returned
-      # unspecialized rather than recursed forever.
+      # A child with no specializable class is left unchanged. Several declared classes
+      # become +Association#variants+, which share a name, so callers run {uniquify_names}.
+      # +seen+ stops cycles: the engine accepts cyclic Descriptor graphs.
       def specialize(descriptor, model, seen = {})
         return descriptor if seen[[descriptor.__id__, model]]
         seen[[descriptor.__id__, model]] = true
@@ -105,14 +67,6 @@ module Panko
         descriptor.with(model: model, associations: associations)
       end
 
-      # The classes a child is specialized for: the reflected class alone
-      # when the source is a reflection, else the specializable classes the
-      # child serializer declares with +models+, in declaration order.
-      #
-      # @param model [Class] the parent Model being specialized against
-      # @param association [Panko::CodeGen::Association]
-      # @return [Array<Class>] empty when the child must stay on its
-      #   current path
       def child_models(model, association)
         return [] unless association.descriptor.model.nil?
         reflection = model.reflect_on_association(association.source) if model.respond_to?(:reflect_on_association)
@@ -123,10 +77,8 @@ module Panko
       end
       private_class_method :child_models
 
-      # Whether every attribute and association source of +descriptor+ is a
-      # column or method on +klass+. A declared model that fails this would
-      # stop the whole parent from compiling; it is left out instead, and its
-      # records get the unspecialized child.
+      # A declared model missing one of the sources would stop the whole parent from compiling,
+      # so it is left out and its records get the unspecialized child.
       def serves?(klass, descriptor)
         ActiveRecord::DefineAttributeMethods.ensure!(klass)
         sources = descriptor.attributes.map(&:source) + descriptor.associations.map(&:source)
@@ -144,18 +96,13 @@ module Panko
       end
       private_class_method :declared_models
 
-      # @param reflection [ActiveRecord::Reflection::AbstractReflection]
-      # @return [Class, nil] the reflected child Model, or +nil+ when the
-      #   child must stay on its current path
       def reflected_child_model(reflection)
         return nil if reflection.polymorphic?
         klass = begin
           reflection.klass
         rescue
-          # +class_name:+ pointing at an undefined constant resolves lazily
-          # (NameError), and misdeclared associations can raise other
-          # errors (e.g. ArgumentError) — an unresolvable edge simply
-          # isn't specializable.
+          # An undefined +class_name:+ or a badly declared association raises here; such a child
+          # is just not specializable.
           nil
         end
         specializable?(klass) ? klass : nil
@@ -168,15 +115,8 @@ module Panko
       end
       private_class_method :specializable?
 
-      # The specialized emit guards each body with
-      # +record.instance_of?(::<Name>)+, so a Model is only specializable
-      # when its name resolves back to the same class object at serialize
-      # time — a named-but-unregistered class (+def self.name = "X"+ with
-      # no +::X+ constant, or one shadowed by a stub) would bake a guard
-      # that raises +NameError+ or silently never matches.
-      #
-      # @param klass [Class]
-      # @return [Boolean]
+      # The specialized code checks +record.instance_of?(::<Name>)+, so the name must resolve
+      # to this same class object, or the check raises +NameError+ or never matches.
       def self.resolvable_name?(klass)
         name = klass.name
         return false if name.nil?
