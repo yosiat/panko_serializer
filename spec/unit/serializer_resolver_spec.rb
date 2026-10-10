@@ -9,8 +9,7 @@ describe Panko::SerializerResolver do
 
     result = Panko::SerializerResolver.resolve("cool", Object)
 
-    expect(result._descriptor).to be_a(Panko::SerializationDescriptor)
-    expect(result._descriptor.type).to eq(CoolSerializer)
+    expect(result).to eq(CoolSerializer)
   end
 
   it "resolves serializer on plural name" do
@@ -19,8 +18,7 @@ describe Panko::SerializerResolver do
 
     result = Panko::SerializerResolver.resolve("persons", Object)
 
-    expect(result._descriptor).to be_a(Panko::SerializationDescriptor)
-    expect(result._descriptor.type).to eq(PersonSerializer)
+    expect(result).to eq(PersonSerializer)
   end
 
   it "resolves serializer on multiple-word name" do
@@ -29,8 +27,7 @@ describe Panko::SerializerResolver do
 
     result = Panko::SerializerResolver.resolve("my_cool", Object)
 
-    expect(result._descriptor).to be_a(Panko::SerializationDescriptor)
-    expect(result._descriptor.type).to eq(MyCoolSerializer)
+    expect(result).to eq(MyCoolSerializer)
   end
 
   it "resolves serializer in namespace first" do
@@ -46,12 +43,10 @@ describe Panko::SerializerResolver do
     end
 
     result = Panko::SerializerResolver.resolve("cool", MyApp::PersonSerializer)
-    expect(result._descriptor).to be_a(Panko::SerializationDescriptor)
-    expect(result._descriptor.type).to eq(MyApp::CoolSerializer)
+    expect(result).to eq(MyApp::CoolSerializer)
 
     result = Panko::SerializerResolver.resolve("cool", Panko)
-    expect(result._descriptor).to be_a(Panko::SerializationDescriptor)
-    expect(result._descriptor.type).to eq(CoolSerializer)
+    expect(result).to eq(CoolSerializer)
   end
 
   describe "errors cases" do

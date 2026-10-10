@@ -2,57 +2,26 @@
 
 require "active_record"
 require "sqlite3"
-require "securerandom"
+require "oj"
+require "benchmark/ips"
+require "memory_profiler"
 
-# Change the following to reflect your database settings
-ActiveRecord::Base.establish_connection(
-  adapter: "sqlite3",
-  database: ":memory:"
-)
+# Loaded only for PROFILE=cpu, so other runs do not load the profiler.
+require "stackprof" if ENV["PROFILE"] == "cpu"
 
-# Don't show migration output when constructing fake db
-ActiveRecord::Migration.verbose = false
+require "panko_serializer"
 
-ActiveRecord::Schema.define do
-  create_table :authors, force: true do |t|
-    t.string :name
-    t.timestamps(null: false)
-  end
+# Setting use_raw_json before loading oj_serializers stops it from requiring rails.
+Oj.default_options = {mode: :rails, use_raw_json: true}
 
-  create_table :posts, force: true do |t|
-    t.text :body
-    t.string :title
-    t.references :author
-    t.json :data
-    t.timestamps(null: false)
-  end
-end
+# oj_serializers calls String#ends_with?, which only this ActiveSupport extension defines.
+require "active_support/core_ext/string/starts_ends_with"
+require "oj_serializers"
 
-class Author < ActiveRecord::Base
-  has_many :posts
-end
+$LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
+require "panko/code_gen"
 
-class Post < ActiveRecord::Base
-  belongs_to :author
-end
+# Always on: the benchmarks only measure YJIT.
+RubyVM::YJIT.enable if defined?(RubyVM::YJIT)
 
-class PostWithAliasModel < ActiveRecord::Base
-  self.table_name = "posts"
-
-  alias_attribute :new_id, :id
-  alias_attribute :new_body, :body
-  alias_attribute :new_title, :title
-  alias_attribute :new_author_id, :author_id
-  alias_attribute :new_created_at, :created_at
-end
-
-Post.transaction do
-  2300.times do
-    Post.create(
-      body: SecureRandom.hex(30),
-      title: SecureRandom.hex(20),
-      author: Author.create(name: SecureRandom.alphanumeric),
-      data: {a: 1, b: 2, c: 3}
-    )
-  end
-end
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")

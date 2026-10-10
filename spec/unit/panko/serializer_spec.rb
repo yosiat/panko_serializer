@@ -4,36 +4,35 @@ require "spec_helper"
 
 describe Panko::Serializer do
   describe "class methods" do
+    def descriptor_for(klass)
+      Panko::CodeGen::SerializerCache.descriptor_for(klass)
+    end
+
     describe ".inherited" do
-      it "creates a new descriptor for the child class" do
+      it "builds a descriptor whose parent_class is the serializer" do
         base_class = Class.new(Panko::Serializer)
         child_class = Class.new(base_class)
 
-        expect(child_class._descriptor).not_to be_nil
-        expect(child_class._descriptor).not_to eq(base_class._descriptor)
-        expect(child_class._descriptor.type).to eq(child_class)
+        expect(descriptor_for(child_class).parent_class).to eq(child_class)
+        expect(descriptor_for(child_class)).not_to eq(descriptor_for(base_class))
       end
 
-      it "duplicates parent descriptor when inheriting" do
+      it "inherits the parent's attributes" do
         base_class = Class.new(Panko::Serializer) do
           attributes :name
         end
 
         child_class = Class.new(base_class)
 
-        expect(child_class._descriptor.attributes.map(&:name)).to include("name")
-        expect(child_class._descriptor).not_to equal(base_class._descriptor)
+        expect(descriptor_for(child_class).attributes.map(&:name)).to include(:name)
       end
 
-      it "initializes empty collections for new serializers" do
-        serializer_class = Class.new(Panko::Serializer)
+      it "builds an empty descriptor for a serializer with no fields" do
+        descriptor = descriptor_for(Class.new(Panko::Serializer))
 
-        descriptor = serializer_class._descriptor
         expect(descriptor.attributes).to eq([])
-        expect(descriptor.aliases).to eq({})
-        expect(descriptor.method_fields).to eq([])
-        expect(descriptor.has_many_associations).to eq([])
-        expect(descriptor.has_one_associations).to eq([])
+        expect(descriptor.method_attributes).to eq([])
+        expect(descriptor.associations).to eq([])
       end
     end
 
@@ -43,8 +42,7 @@ describe Panko::Serializer do
           attributes :name, :email
         end
 
-        attribute_names = serializer_class._descriptor.attributes.map(&:name)
-        expect(attribute_names).to include("name", "email")
+        expect(descriptor_for(serializer_class).attributes.map(&:name)).to include(:name, :email)
       end
 
       it "ensures uniqueness of attributes" do
@@ -52,28 +50,25 @@ describe Panko::Serializer do
           attributes :name, :email, :name
         end
 
-        attribute_names = serializer_class._descriptor.attributes.map(&:name)
-        expect(attribute_names.count("name")).to eq(1)
+        names = descriptor_for(serializer_class).attributes.map(&:name)
+        expect(names.count(:name)).to eq(1)
       end
     end
 
     describe ".aliases" do
-      it "adds aliased attributes to the descriptor" do
+      it "maps an aliased attribute to its output name, keyed by source" do
         serializer_class = Class.new(Panko::Serializer) do
           aliases name: :full_name, email: :email_address
         end
 
-        attributes = serializer_class._descriptor.attributes
-        name_attr = attributes.find { |attr| attr.name == "name" }
-        email_attr = attributes.find { |attr| attr.name == "email" }
-
-        expect(name_attr.alias_name).to eq("full_name")
-        expect(email_attr.alias_name).to eq("email_address")
+        attributes = descriptor_for(serializer_class).attributes
+        expect(attributes.find { |a| a.source == :name }.name).to eq(:full_name)
+        expect(attributes.find { |a| a.source == :email }.name).to eq(:email_address)
       end
     end
 
     describe ".method_added" do
-      it "moves attribute to method_fields when method is defined" do
+      it "moves a matching attribute to a method field when the method is defined" do
         serializer_class = Class.new(Panko::Serializer) do
           attributes :name, :computed_field
 
@@ -82,15 +77,13 @@ describe Panko::Serializer do
           end
         end
 
-        regular_attributes = serializer_class._descriptor.attributes.map(&:name)
-        method_fields = serializer_class._descriptor.method_fields.map(&:name)
-
-        expect(regular_attributes).to include("name")
-        expect(regular_attributes).not_to include("computed_field")
-        expect(method_fields).to include("computed_field")
+        descriptor = descriptor_for(serializer_class)
+        expect(descriptor.attributes.map(&:name)).to include(:name)
+        expect(descriptor.attributes.map(&:name)).not_to include(:computed_field)
+        expect(descriptor.method_attributes.map(&:name)).to include(:computed_field)
       end
 
-      it "preserves alias_name when moving to method_fields" do
+      it "preserves the output name when moving an aliased attribute to a method field" do
         serializer_class = Class.new(Panko::Serializer) do
           aliases computed_field: :computed_alias
 
@@ -99,8 +92,9 @@ describe Panko::Serializer do
           end
         end
 
-        method_field = serializer_class._descriptor.method_fields.find { |attr| attr.name == "computed_field" }
-        expect(method_field.alias_name).to eq("computed_alias")
+        method_field = descriptor_for(serializer_class).method_attributes.find { |m| m.name == :computed_alias }
+        expect(method_field).not_to be_nil
+        expect(method_field.body).to eq(:computed_field)
       end
     end
 
@@ -142,20 +136,6 @@ describe Panko::Serializer do
         expect(serializer.context).to eq(context)
         expect(serializer.scope).to eq(scope)
       end
-
-      it "builds descriptor with options and context" do
-        serializer = serializer_class.new(only: [:name])
-
-        expect(serializer.instance_variable_get(:@descriptor)).not_to be_nil
-        expect(serializer.instance_variable_get(:@used)).to eq(false)
-      end
-
-      it "skips initialization when _skip_init is true" do
-        serializer = serializer_class.new(_skip_init: true)
-
-        expect(serializer.instance_variable_get(:@descriptor)).to be_nil
-        expect(serializer.instance_variable_get(:@used)).to be_nil
-      end
     end
 
     describe "#context and #scope" do
@@ -174,22 +154,6 @@ describe Panko::Serializer do
 
         expect(serializer.context).to eq(context)
         expect(serializer.scope).to eq(scope)
-      end
-    end
-
-    describe "single-use enforcement" do
-      it "raises error on second use" do
-        serializer = serializer_class.new
-        mock_object = double("object")
-
-        # Mock the Panko.serialize_object call to avoid dependencies
-        allow(Panko).to receive(:serialize_object)
-
-        # First call should work
-        expect { serializer.serialize(mock_object) }.not_to raise_error
-
-        # Second call should raise error
-        expect { serializer.serialize(mock_object) }.to raise_error(ArgumentError, "Panko::Serializer instances are single-use")
       end
     end
   end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "code_gen/runtime"
+
 module Panko
   class ArraySerializer
     attr_accessor :subjects
@@ -15,38 +17,63 @@ Please pass valid each_serializer to ArraySerializer, for example:
         }
       end
 
-      serializer_options = {
-        only: options.fetch(:only, []),
-        except: options.fetch(:except, []),
-        context: options[:context],
-        scope: options[:scope]
-      }
-
-      @serialization_context = SerializationContext.create(options)
-      @descriptor = Panko::SerializationDescriptor.build(@each_serializer, serializer_options, @serialization_context)
+      @context = options[:context]
+      @scope = options[:scope]
+      @only = options[:only]
+      @except = options[:except]
     end
 
     def to_json
-      serialize_to_json @subjects
+      serialize_to_json(@subjects)
+    end
+
+    # Same contract as Panko::Serializer#descriptor.
+    def descriptor
+      each_serializer = @each_serializer
+      filters = if @only || @except || each_serializer._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
+      end
+      base = Panko::Descriptor.for(each_serializer)
+      filters ? Panko::Descriptor::Filtered.new(base, filters) : base
     end
 
     def serialize(subjects)
-      serialize_with_writer(subjects, Panko::ObjectWriter.new).output
+      serialize_batch(subjects, :hash)
     end
 
     def to_a
-      serialize_with_writer(@subjects, Panko::ObjectWriter.new).output
+      serialize(@subjects)
     end
 
     def serialize_to_json(subjects)
-      serialize_with_writer(subjects, Oj::StringWriter.new(mode: :rails)).to_s
+      serialize_batch(subjects, :json)
     end
 
     private
 
-    def serialize_with_writer(subjects, writer)
-      Panko.serialize_objects(subjects.to_a, writer, @descriptor)
-      writer
+    # The pool is picked by the first record's class. A mixed-class array is
+    # safe: a specialized variant hands records of another class to its generic twin.
+    def serialize_batch(subjects, mode)
+      each_serializer = @each_serializer
+      records = subjects.to_a
+      model = records.first.class
+      cached = (mode == :hash) ? each_serializer._cg_last_hash : each_serializer._cg_last_json
+      pool = if cached && model.equal?(cached[0])
+        cached[1]
+      else
+        Panko::CodeGen::SerializerCache.variant_pool(each_serializer, mode, model)
+      end
+      filters = if @only || @except || each_serializer._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(each_serializer, @context, @scope, @only, @except)
+      end
+      stack = pool.stack
+      instance = stack.pop || pool.build
+      begin
+        instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
+      ensure
+        instance._release
+        stack.push(instance)
+      end
     end
   end
 end
