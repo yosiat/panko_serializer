@@ -21,7 +21,7 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "DescriptorError — structural, at Data.new" do
+  describe "DescriptorError - structural, at Data.new" do
     describe "Descriptor (S1.4)" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
@@ -167,7 +167,7 @@ RSpec.describe "Compile-time errors" do
         }.to raise_error(Panko::CodeGen::DescriptorError, /Descriptor#associations/)
       end
 
-      it "parent_class: is required — raises ArgumentError when the kwarg is omitted" do
+      it "parent_class: is required - raises ArgumentError when the kwarg is omitted" do
         expect {
           Panko::CodeGen::Descriptor.new(
             name: "X", model: nil, attributes: [], method_attributes: [], associations: []
@@ -753,10 +753,10 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "Dump-side parity — Dump shares Validator with Compiler (S15.6)" do
+  describe "Dump-side parity - Dump shares Validator with Compiler (S15.6)" do
     # +Dump+ checks the path before the Descriptor, so each example passes a valid +path:+.
 
-    it "ArityError parity — Dump raises the same class as Compile (S4)" do
+    it "ArityError parity - Dump raises the same class as Compile (S4)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
         model: nil,
@@ -779,7 +779,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    it "NameCollisionError parity — Dump raises the same class as Compile (S9)" do
+    it "NameCollisionError parity - Dump raises the same class as Compile (S9)" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
         model: nil,
@@ -803,7 +803,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    it "UnknownSourceError parity — Dump raises the same class as Compile (S6)" do
+    it "UnknownSourceError parity - Dump raises the same class as Compile (S6)" do
       klass = Class.new do
         def self.name = "Post"
 
@@ -838,7 +838,7 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "Mode independence — semantic validation runs pre-Generator" do
+  describe "Mode independence - semantic validation runs pre-Generator" do
     def unknown_source_descriptor
       klass = Class.new do
         def self.name = "Post"

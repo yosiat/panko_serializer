@@ -143,7 +143,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
         expect(source).not_to include("@object = record")
       end
 
-      it "emits both field-emit shapes inline — no per-shape helper methods" do
+      it "emits both field-emit shapes inline - no per-shape helper methods" do
         source = generator.emit(descriptor_with_symbol_body, output: :json, config: config)
         expect(source).not_to include("def _write_one_hash")
         expect(source).not_to include("def _write_one_object")
@@ -171,7 +171,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
         expect(source).not_to include("@object = record")
       end
 
-      it "emits both field-emit shapes inline — no per-shape helper methods" do
+      it "emits both field-emit shapes inline - no per-shape helper methods" do
         source = generator.emit(descriptor_with_symbol_body, output: :hash, config: config)
         expect(source).not_to include("def _to_hash_hash")
         expect(source).not_to include("def _to_hash_object")
@@ -179,7 +179,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     end
   end
 
-  describe "no Symbol-body Method Attribute — no ivar writes prepended" do
+  describe "no Symbol-body Method Attribute - no ivar writes prepended" do
     let(:specialized_descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "PlainSpecializedSerializer",

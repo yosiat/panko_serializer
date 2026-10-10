@@ -64,5 +64,5 @@ The inference rule:
 
 ## Filtering associations
 
-Associations can be filtered — and their own attributes narrowed — with nested
+Associations can be filtered - and their own attributes narrowed - with nested
 filters. See [Filters → Nested filters]({% link filters.md %}#nested-filters).

@@ -15,7 +15,7 @@ def try_require(lib)
   require lib
   true
 rescue LoadError
-  warn "#{lib} not installed — its benchmark row will be skipped"
+  warn "#{lib} not installed - its benchmark row will be skipped"
   false
 end
 

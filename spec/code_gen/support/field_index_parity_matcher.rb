@@ -43,7 +43,7 @@ module Panko::CodeGen
           name = identify_field_name(wrapper_body, field_index.keys)
           if name.nil?
             failures << "#{class_name}: wrapper `unless filters.drops?(#{n})` " \
-              "matches no unique FIELD_INDEX name in its body — cannot verify parity"
+              "matches no unique FIELD_INDEX name in its body - cannot verify parity"
             next
           end
           expected = field_index[name]

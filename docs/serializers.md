@@ -23,9 +23,9 @@ end
 
 The class-level DSL is covered in detail on its own pages:
 
--   [Attributes]({% link attributes.md %}) — `attributes`, method attributes, and `aliases`.
--   [Associations]({% link associations.md %}) — `has_one` and `has_many`.
--   [Filters]({% link filters.md %}) — `only` / `except` and `filters_for`.
+-   [Attributes]({% link attributes.md %}) - `attributes`, method attributes, and `aliases`.
+-   [Associations]({% link associations.md %}) - `has_one` and `has_many`.
+-   [Filters]({% link filters.md %}) - `only` / `except` and `filters_for`.
 
 ## Serializing a single object
 
@@ -50,7 +50,7 @@ serializer.serialize_to_json(User.first)
 | `#serialize(object)` | a `Hash` with **string** keys |
 | `#serialize_to_json(object)` | a JSON `String` |
 
-A serializer instance is reusable — you can call `serialize` / `serialize_to_json`
+A serializer instance is reusable - you can call `serialize` / `serialize_to_json`
 on it more than once, with different objects.
 
 ## Serializing a collection
@@ -83,8 +83,8 @@ options.
 
 | Option | Purpose |
 | --- | --- |
-| `context:` | An arbitrary bag of data available to method attributes — see below. |
-| `scope:` | A per-serialization value (often the current user) available to method attributes and to `filters_for` — see below. |
+| `context:` | An arbitrary bag of data available to method attributes - see below. |
+| `scope:` | A per-serialization value (often the current user) available to method attributes and to `filters_for` - see below. |
 | `only:` | Serialize **only** these attributes / associations. See [Filters]({% link filters.md %}). |
 | `except:` | Serialize everything **except** these. See [Filters]({% link filters.md %}). |
 
@@ -101,12 +101,12 @@ UserSerializer.new(
 Method attributes run in the context of the serializer instance, so they can
 read three accessors: `object`, `context`, and `scope`.
 
--   **`object`** — the record currently being serialized.
--   **`context`** — whatever you passed as `context:`. Use it for general data a
+-   **`object`** - the record currently being serialized.
+-   **`context`** - whatever you passed as `context:`. Use it for general data a
     serializer needs but that isn't on the record (feature flags, request data,
     a preloaded lookup table, …).
--   **`scope`** — whatever you passed as `scope:`. A per-serialization value —
-    typically the current user or an authorization context — that your method
+-   **`scope`** - whatever you passed as `scope:`. A per-serialization value - 
+    typically the current user or an authorization context - that your method
     attributes and `filters_for` can read.
 
 Both default to `nil` when not provided, and both **propagate to nested
@@ -118,7 +118,7 @@ class UserSerializer < Panko::Serializer
   attributes :id, :name, :can_edit
 
   def can_edit
-    # `scope` here is whatever was passed as scope: — e.g. the current user
+    # `scope` here is whatever was passed as scope: - e.g. the current user
     object.editable_by?(scope)
   end
 end
@@ -145,7 +145,7 @@ to an admin). See [Filters]({% link filters.md %}#filters-for).
 ## Skipping a field
 
 A method attribute can omit its key entirely by returning the `SKIP` sentinel.
-This is different from returning `nil` (which emits `"key": null`) — `SKIP`
+This is different from returning `nil` (which emits `"key": null`) - `SKIP`
 removes the key from the output altogether.
 
 ```ruby
@@ -168,9 +168,9 @@ end
 
 Both `SKIP` and filters drop fields, but they answer different questions:
 
--   **Filters (`only` / `except`)** drop fields **statically** — the set is
+-   **Filters (`only` / `except`)** drop fields **statically** - the set is
     fixed when you build the serializer. Reach for them when the caller knows up
     front which fields it wants. See [Filters]({% link filters.md %}).
--   **`SKIP`** drops a field **dynamically** — the decision is made per record,
+-   **`SKIP`** drops a field **dynamically** - the decision is made per record,
     inside a method attribute, based on that record's own data (as in
     `object.nickname || SKIP` above).

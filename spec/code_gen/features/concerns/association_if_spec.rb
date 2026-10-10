@@ -3,7 +3,7 @@
 require "spec_helper"
 require "panko/code_gen"
 
-RSpec.describe "Association if: — Callable guard contract" do
+RSpec.describe "Association if: - Callable guard contract" do
   def inner_descriptor
     Panko::CodeGen::Descriptor.new(
       name: "InnerSerializer",
@@ -86,7 +86,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     [true, false].each do |null_for_missing|
       %i[json hash].each do |mode|
         context "with null_for_missing_has_one: #{null_for_missing} in #{mode} mode" do
-          it "omits the key (not null) when if: is falsy — orthogonal omission paths" do
+          it "omits the key (not null) when if: is falsy - orthogonal omission paths" do
             config = Panko::CodeGen::Config.new(null_for_missing_has_one: null_for_missing)
             descriptor = descriptor_with(associations: [has_one(:child, if: ->(_r, _c) { false })])
             generated = compile(descriptor, mode, config: config)
@@ -103,7 +103,7 @@ RSpec.describe "Association if: — Callable guard contract" do
   describe "(4) has_many + if: falsy → omitted (not [])" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
-        it "omits the key — does not emit an empty array" do
+        it "omits the key - does not emit an empty array" do
           descriptor = descriptor_with(associations: [has_many(:children, if: ->(_r, _c) { false })])
           generated = compile(descriptor, mode)
           record = {"id" => 1, "children" => [{"id" => 7}]}
@@ -121,7 +121,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     end
   end
 
-  describe "(5) if: nil (no guard) → Association always emits — zero runtime cost" do
+  describe "(5) if: nil (no guard) → Association always emits - zero runtime cost" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
         it "emits the has_one key without any if-branch (no @cb_if_<name> ivar hoisted)" do
@@ -146,7 +146,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     end
   end
 
-  describe "(6) Arity 0 — invoked with no arguments" do
+  describe "(6) Arity 0 - invoked with no arguments" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
         it "calls a 0-arity Lambda with no args (Lambda would raise ArgumentError on extras)" do
@@ -167,7 +167,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     end
   end
 
-  describe "(7) Arity 1 — invoked with the Record" do
+  describe "(7) Arity 1 - invoked with the Record" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
         it "passes the Record positionally to a 1-arity Lambda" do
@@ -188,7 +188,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     end
   end
 
-  describe "(8) Arity 2 — invoked with (record, context); threads Context unchanged" do
+  describe "(8) Arity 2 - invoked with (record, context); threads Context unchanged" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
         it "passes the Record and Context positionally to a 2-arity Lambda" do
@@ -224,7 +224,7 @@ RSpec.describe "Association if: — Callable guard contract" do
     end
   end
 
-  describe "(9) Invocation cardinality — once per (Association, Record) per serialize call" do
+  describe "(9) Invocation cardinality - once per (Association, Record) per serialize call" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
         it "invokes the if: spy exactly once for serialize_one with one Record" do

@@ -76,7 +76,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
       expect(observed).to equal(in_progress)
     end
 
-    it "is identity-keyed — two distinct Descriptor instances each get their own block invocation" do
+    it "is identity-keyed - two distinct Descriptor instances each get their own block invocation" do
       twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", model: nil,
         parent_class: Fixtures::BaseSerializer,

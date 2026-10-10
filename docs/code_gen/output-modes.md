@@ -3,7 +3,7 @@
 Two **Output Modes** are supported: `:json` and `:hash`. Each produces a different
 **Generated Class** with different internal structure, selected at **Compile** time.
 
-## `:json` — String via Oj::StringWriter
+## `:json` - String via Oj::StringWriter
 
 ### Shape
 
@@ -36,7 +36,7 @@ class PostSerializer_JSON
     end
   end
 
-  # Internal — invoked by this class and by parent Generated Classes (Composition)
+  # Internal - invoked by this class and by parent Generated Classes (Composition)
   def _write_one(record, writer, context, scope, filters)
     writer.push_object
     # ... emitted attribute / method_attribute / association writes ...
@@ -68,22 +68,22 @@ end
   locality with AR ConnectionPool's locality (per-thread under Puma, per-fiber under
   Falcon). Backend selection happens once at **Compile** via
   `defined?(ActiveSupport::IsolatedExecutionState)` and is baked into the emitted source
-  as a literal class name — no per-call branching.
+  as a literal class name - no per-call branching.
 - The **Writer** is reset (via `Oj::StringWriter#reset`) on `checkin`, not on `checkout`.
   This means the pool's slot holds a clean, empty-buffered **Writer** between calls; the
   high-water mark of one call's buffer doesn't leak into an unrelated call's `to_s` if
   the latter happens to fault before writing.
 - Reentrancy is handled by the LIFO stack itself, with no depth counter or in-use flag. A
-  **Method Attribute** body that re-enters `serialize_one` — either on the same
-  **Generated Class** (recursive shape) or on a different one (cross-class call) — finds
+  **Method Attribute** body that re-enters `serialize_one` - either on the same
+  **Generated Class** (recursive shape) or on a different one (cross-class call) - finds
   the stack empty at depth 2 and allocates a fresh **Writer**; the matching
   `checkin` returns it; subsequent calls at the same depth reuse without further
   allocation. Steady-state stack size equals the peak observed reentrancy depth on that
   fiber.
 - The pool is gated by [`Config#pool_writer`](config.md#pool_writer-default-true) (default `true`).
-  Setting it to `false` emits the pre-pooling source verbatim — `writer =
+  Setting it to `false` emits the pre-pooling source verbatim - `writer =
   Oj::StringWriter.new(mode: :rails)` inline, no `POOL` constant, no `begin`/`ensure`
-  wrap — for ABI-strict callers or emergency rollback.
+  wrap - for ABI-strict callers or emergency rollback.
 
 ### Output shape
 
@@ -98,9 +98,9 @@ When a `has_one` **Association**'s **Source** returns `nil`, **Generated Class**
 `"key":null` by default (configurable via `Config#null_for_missing_has_one: false` to omit).
 
 `has_many` **Associations** whose **Source** returns an empty collection emit `"key":[]`.
-No config knob for this — empty arrays are natural JSON.
+No config knob for this - empty arrays are natural JSON.
 
-## `:hash` — Ruby Hash with string keys
+## `:hash` - Ruby Hash with string keys
 
 ### Shape
 
@@ -124,10 +124,10 @@ end
 
 - Default: **string keys** (`{"id" => 1, "title" => "..."}`). Matches JSON round-trip
   semantics, matches Panko's current Hash-mode convention, matches `as_json`.
-- Controlled by `Config#hash_output_key_type` — `:string` (default) or `:symbol`. See
+- Controlled by `Config#hash_output_key_type` - `:string` (default) or `:symbol`. See
   [config.md](config.md). Applies uniformly to every **Field** (**Attributes**, **Method
   Attributes**, and **Associations**) at every nesting depth.
-- String keys are frozen literals under the `frozen_string_literal: true` pragma — no
+- String keys are frozen literals under the `frozen_string_literal: true` pragma - no
   per-call allocation. Symbol keys are always interned.
 
 ### Output shape
@@ -150,8 +150,8 @@ wants both modes, they **Compile** both and hold them independently.
 
 ## Why two Generated Classes per Descriptor, not two methods on one class
 
-- Every call site in `PostSerializer_JSON` dispatches to `CommentSerializer_JSON#_write_one`
-  — single receiver class, single method, monomorphic. YJIT/ZJIT specialize hard.
-- Each class carries only the code actually used — no dead method bodies.
+- Every call site in `PostSerializer_JSON` dispatches to `CommentSerializer_JSON#_write_one` -
+  single receiver class, single method, monomorphic. YJIT/ZJIT specialize hard.
+- Each class carries only the code actually used - no dead method bodies.
 - **Dump** output is focused: one file shows only the mode you care about.
 - Lazy: a consumer that only serves JSON never **Compile**s the Hash variant.

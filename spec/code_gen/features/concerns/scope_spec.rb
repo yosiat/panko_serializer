@@ -3,7 +3,7 @@
 require "spec_helper"
 require "panko/code_gen"
 
-RSpec.describe "Scope — threading contract for Method Attribute and Association if: Callables" do
+RSpec.describe "Scope - threading contract for Method Attribute and Association if: Callables" do
   def descriptor_with(name: "ScopeDescriptor", attributes: [], method_attributes: [], associations: [])
     Panko::CodeGen::Descriptor.new(
       name: name,
@@ -69,10 +69,10 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
     end
   end
 
-  describe "(2) scope is distinct from context — arity-3 Callable observes them as (record, context, scope)" do
+  describe "(2) scope is distinct from context - arity-3 Callable observes them as (record, context, scope)" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        it "passes record, context, scope positionally — different identities preserved" do
+        it "passes record, context, scope positionally - different identities preserved" do
           captured_record = nil
           captured_context = nil
           captured_scope = nil
@@ -96,7 +96,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
     end
   end
 
-  describe "(3) arity-2 Callables ignore scope — no leak" do
+  describe "(3) arity-2 Callables ignore scope - no leak" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "invokes a strict 2-arity Lambda with (record, context) when scope: is passed" do
@@ -238,7 +238,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
   describe "(7) scope and context flow independently" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        it "scope-without-context works — context observed as nil, scope as supplied" do
+        it "scope-without-context works - context observed as nil, scope as supplied" do
           captured_context = :unset
           captured_scope = :unset
           body = ->(_record, context, scope) {
@@ -254,7 +254,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
           expect(captured_scope).to equal(scope)
         end
 
-        it "context-without-scope works — scope observed as nil, context as supplied" do
+        it "context-without-scope works - scope observed as nil, context as supplied" do
           captured_context = :unset
           captured_scope = :unset
           body = ->(_record, context, scope) {
@@ -335,7 +335,7 @@ RSpec.describe "Scope — threading contract for Method Attribute and Associatio
     end
   end
 
-  describe "(9) JSON and Hash modes produce equivalent observable behavior — scope is mode-agnostic" do
+  describe "(9) JSON and Hash modes produce equivalent observable behavior - scope is mode-agnostic" do
     it "scope-driven output is identical (modulo serialization) between :json and :hash" do
       body = ->(_record, _context, scope) { "viewer=#{scope}" }
       guard = ->(_record, _context, scope) { !scope.nil? }

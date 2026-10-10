@@ -22,5 +22,5 @@ footer_content: >-
 exclude:
   - Gemfile
   - Gemfile.lock
-  # Engine design docs — for repo readers, not the site.
+  # Engine design docs - for repo readers, not the site.
   - code_gen/

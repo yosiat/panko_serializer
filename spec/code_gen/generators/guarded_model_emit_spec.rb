@@ -91,7 +91,7 @@ RSpec.describe "Specialized guarded-model emit" do
           expect(result).to eq("id" => 1, "title" => "hi")
         end
 
-        it "serializes a mixed batch — guard evaluated per record" do
+        it "serializes a mixed batch - guard evaluated per record" do
           result = generated.serialize_many([matching_record, hash_record, poro_record])
           result = Oj.load(result) if mode == :json
           expect(result).to eq(Array.new(3) { {"id" => 1, "title" => "hi"} })

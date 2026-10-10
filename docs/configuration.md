@@ -47,7 +47,7 @@ be exactly `true` or `false`, and `capacity` a positive `Integer`.
 
 Each serializer keeps at most `capacity` specialized variants **per output
 mode** (JSON and Hash count separately). When a serializer meets record class
-number `capacity + 1`, that class — and every later new class — is serialized
+number `capacity + 1`, that class - and every later new class - is serialized
 through the generic path instead, and Panko warns once per serializer class:
 
 ```
@@ -56,7 +56,7 @@ further record classes use the generic path. Raise
 Panko::Config.auto_specialization.capacity if this is intentional.
 ```
 
-The output is identical either way — the generic path produces the same bytes,
+The output is identical either way - the generic path produces the same bytes,
 it just isn't specialized. Raise `capacity` when one serializer legitimately
 serializes many record classes (a wide STI hierarchy, one serializer reused
 across many models) and you see the warning.
@@ -185,5 +185,5 @@ If you warm serializers up before forking, do it after `compile_all`.
 
 The `auto_specialization` settings are read when a serializer meets a record class for the first
 time. Changing them later in the process doesn't recompile or discard variants
-that already exist — which is why an initializer, before any serialization has
+that already exist - which is why an initializer, before any serialization has
 happened, is the right place to set them.

@@ -17,14 +17,14 @@ Panko::CodeGen::Error < StandardError
 
 **Runtime errors** (inside `_write_one` / `_to_hash`) are not wrapped. A missing method
 on a **Record** raises Ruby's own `NoMethodError`; a misbehaving **Callable** raises
-whatever it raises. The library does not rescue on the hot path — error wrapping would
+whatever it raises. The library does not rescue on the hot path - error wrapping would
 cost per-**Field** and per-**Callable** overhead, and Ruby's native exceptions are
 already self-locating via the synthetic backtrace path. See
 [code-generation.md](code-generation.md) for the backtrace strategy.
 
 ## Phases
 
-### `DescriptorError` — structural, at `Data.new`
+### `DescriptorError` - structural, at `Data.new`
 
 Raised when the **Descriptor** is constructed with wrong types or shapes. Examples:
 
@@ -35,19 +35,19 @@ Raised when the **Descriptor** is constructed with wrong types or shapes. Exampl
 Cheap to check; runs once per construction. Most callers see these during development,
 not production.
 
-### `CompileError` — semantic, at `Compile` time
+### `CompileError` - semantic, at `Compile` time
 
 Raised when the **Generator** walks the **Descriptor** tree and finds a problem no
 structural check could catch. Runs once per **Compile** call, before any source is
 emitted. The specific subclass identifies the reason:
 
-- **`NameCollisionError`** — two **Fields** at the same level share a `name`. Since
+- **`NameCollisionError`** - two **Fields** at the same level share a `name`. Since
   every **Field** contributes exactly one output key, a collision makes the output
   ambiguous.
-- **`UnknownSourceError`** — the **Descriptor** sets a **Model**, and an **Attribute**'s
+- **`UnknownSourceError`** - the **Descriptor** sets a **Model**, and an **Attribute**'s
   `source` is neither a column on that class nor an instance method on it. See the 3-step
   classification rule in [compilation.md](compilation.md).
-- **`ArityError`** — a **Callable** (Method Attribute `body` or Association `if:`) has
+- **`ArityError`** - a **Callable** (Method Attribute `body` or Association `if:`) has
   an arity outside `{0, 1, 2, 3}`. See "Callable arity" in [descriptor.md](descriptor.md).
 
 ## Message convention
@@ -67,7 +67,7 @@ Panko::CodeGen::ArityError: PostDescriptor#likes_count: MethodAttribute#body has
 
 ## What's not in the hierarchy
 
-- `ArgumentError` / `TypeError` / `NoMethodError` — Ruby built-ins the library does
+- `ArgumentError` / `TypeError` / `NoMethodError` - Ruby built-ins the library does
   *not* wrap when they originate from user code (**Callable** bodies, **Record** access).
   Catch these separately if needed.
 - No `Panko::CodeGen::RuntimeError` class. If one becomes necessary (e.g., for a

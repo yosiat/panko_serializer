@@ -124,7 +124,7 @@ parsed_outputs.each do |label, value|
   warn "JSON output mismatch between #{reference_label} and #{label}:"
   warn "  #{reference_label}: #{Oj.dump(reference)}"
   warn "  #{label}: #{Oj.dump(value)}"
-  abort "aborting bench — output shapes diverged"
+  abort "aborting bench - output shapes diverged"
 end
 puts "JSON output parity verified: #{parity_outputs.keys.join(", ")}"
 puts "Sample: #{Oj.dump(reference)}"

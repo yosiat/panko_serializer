@@ -3,7 +3,7 @@
 require "spec_helper"
 require "panko/code_gen"
 
-RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract" do
+RSpec.describe "parent_class dispatch - Symbol-body Method Attribute contract" do
   def attribute(name, source = name)
     Panko::CodeGen::Attribute.new(name: name, source: source)
   end
@@ -27,7 +27,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     Panko::CodeGen.compile(descriptor, output: mode).new(descriptor: descriptor)
   end
 
-  describe "(1) Symbol-body resolves via direct method dispatch on self — basic correctness" do
+  describe "(1) Symbol-body resolves via direct method dispatch on self - basic correctness" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "calls the named method on the Generated Class instance (inherited from parent_class)" do
@@ -111,7 +111,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     end
   end
 
-  describe "(4) super works from a Symbol-body method — parent-class hierarchy compat" do
+  describe "(4) super works from a Symbol-body method - parent-class hierarchy compat" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "resolves super up the user-defined class hierarchy" do
@@ -141,7 +141,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     end
   end
 
-  describe "(5) private method on parent_class callable as Symbol-body — private-dispatch compat" do
+  describe "(5) private method on parent_class callable as Symbol-body - private-dispatch compat" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "invokes the private method via no-explicit-receiver dispatch on self" do
@@ -166,7 +166,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     end
   end
 
-  describe "(6) prepend-ed module method overrides parent's method — prepend compat" do
+  describe "(6) prepend-ed module method overrides parent's method - prepend compat" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "dispatches through the prepended module before the parent's own method" do
@@ -197,7 +197,7 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     end
   end
 
-  describe "(7) Helper methods called from a Symbol-body see the same @object — helper-method chain" do
+  describe "(7) Helper methods called from a Symbol-body see the same @object - helper-method chain" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "threads @object through nested method calls within one _write_one / _to_hash frame" do

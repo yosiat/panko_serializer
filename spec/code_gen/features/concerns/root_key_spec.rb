@@ -5,7 +5,7 @@ require "panko/code_gen"
 require "shallow_generic"
 require "config/config_root_key_on"
 
-RSpec.describe "Root Key — supports_root_key + per-call kwarg contract" do
+RSpec.describe "Root Key - supports_root_key + per-call kwarg contract" do
   def compile_with(fixture, mode)
     Panko::CodeGen.compile(fixture::DESCRIPTOR, output: mode, config: fixture::CONFIG)
       .new(descriptor: fixture::DESCRIPTOR)
@@ -77,7 +77,7 @@ RSpec.describe "Root Key — supports_root_key + per-call kwarg contract" do
     end
   end
 
-  describe "(5) Per-call stability — same instance, successive calls with different root_keys" do
+  describe "(5) Per-call stability - same instance, successive calls with different root_keys" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "handles different root_keys across successive serialize_one calls" do

@@ -3,7 +3,7 @@
 require "spec_helper"
 require "panko/code_gen"
 
-RSpec.describe "SKIP — Method Attribute identity-compare elision" do
+RSpec.describe "SKIP - Method Attribute identity-compare elision" do
   def descriptor_with(name: "SkipDescriptor", attributes: [], method_attributes: [])
     Panko::CodeGen::Descriptor.new(
       name: name,
@@ -44,7 +44,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
     end
   end
 
-  describe "(2) identity, not equality — a non-SKIP frozen Object.new emits" do
+  describe "(2) identity, not equality - a non-SKIP frozen Object.new emits" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "does not omit the Field" do
@@ -121,7 +121,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
     end
   end
 
-  describe "(5) multiple SKIPping Method Attributes — each elides independently" do
+  describe "(5) multiple SKIPping Method Attributes - each elides independently" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "omits all SKIPping Fields and keeps the surviving ones" do
@@ -140,7 +140,7 @@ RSpec.describe "SKIP — Method Attribute identity-compare elision" do
     end
   end
 
-  describe "(6) singleton identity — Panko::CodeGen::SKIP is frozen and equal? to itself" do
+  describe "(6) singleton identity - Panko::CodeGen::SKIP is frozen and equal? to itself" do
     it "is frozen" do
       expect(Panko::CodeGen::SKIP).to be_frozen
     end

@@ -73,7 +73,7 @@ parity.each do |label, value|
   warn "output mismatch between #{reference_label} and #{label}:"
   warn "  #{reference_label}: #{reference[0, 200]}"
   warn "  #{label}: #{value.to_s[0, 200]}"
-  abort "aborting bench — output diverged"
+  abort "aborting bench - output diverged"
 end
 puts "Output parity verified (byte-level): #{parity.keys.join(", ")}"
 puts "Sample: #{Oj.load(reference).first}"

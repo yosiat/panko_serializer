@@ -43,7 +43,7 @@ RSpec.describe "Output Mode Sink contract" do
       expect(Panko::CodeGen::Generator.sink_for(:hash)).to be_a(Panko::CodeGen::Generators::HashSink)
     end
 
-    it "raises ArgumentError for an unknown mode — the one dispatch home" do
+    it "raises ArgumentError for an unknown mode - the one dispatch home" do
       expect {
         Panko::CodeGen::Generator.sink_for(:xml)
       }.to raise_error(ArgumentError, /unknown output mode/)

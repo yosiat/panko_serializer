@@ -5,7 +5,7 @@ require "panko/code_gen"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_json_specialized"
 
-RSpec.describe "JSON-column emit fallthrough — source token regression" do
+RSpec.describe "JSON-column emit fallthrough - source token regression" do
   describe "Generic-path Descriptor (Models: nil)" do
     let(:fixture) { Fixtures::Config::ConfigJsonColumnGenericFallthrough }
 

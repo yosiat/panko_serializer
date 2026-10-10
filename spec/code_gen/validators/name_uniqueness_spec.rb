@@ -35,7 +35,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     Panko::CodeGen::Association.new(name: name, kind: :has_one, descriptor: descriptor)
   end
 
-  describe ".validate — within-kind collisions" do
+  describe ".validate - within-kind collisions" do
     it "raises when two Attributes share a name" do
       descriptor = descriptor_with(attributes: [attribute(:id), attribute(:id)])
       expect {
@@ -69,7 +69,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     end
   end
 
-  describe ".validate — cross-kind collisions" do
+  describe ".validate - cross-kind collisions" do
     it "raises when an Attribute and a MethodAttribute share a name" do
       descriptor = descriptor_with(
         attributes: [attribute(:id)],
@@ -110,7 +110,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     end
   end
 
-  describe ".validate — clean Descriptors" do
+  describe ".validate - clean Descriptors" do
     it "does not raise when all Field names are unique within a level" do
       descriptor = descriptor_with(
         attributes: [attribute(:id), attribute(:title)],
@@ -130,7 +130,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     end
   end
 
-  describe ".validate — cross-level isolation" do
+  describe ".validate - cross-level isolation" do
     it "does not raise when the same name appears at parent and nested levels" do
       nested = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", model: nil,
@@ -148,7 +148,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     end
   end
 
-  describe ".validate — nested Descriptor walk" do
+  describe ".validate - nested Descriptor walk" do
     it "raises when the collision is inside a nested Descriptor and names the nested Descriptor" do
       nested = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", model: nil,
@@ -167,7 +167,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     end
   end
 
-  describe ".validate — cycle / shared-subtree handling" do
+  describe ".validate - cycle / shared-subtree handling" do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       shared = Panko::CodeGen::Descriptor.new(
         name: "SharedDescriptor", model: nil,
@@ -199,7 +199,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     end
   end
 
-  describe ".validate — no Generated Class produced on raise" do
+  describe ".validate - no Generated Class produced on raise" do
     it "raises before Panko::CodeGen.compile emits any source" do
       bad = descriptor_with(attributes: [attribute(:id)], method_attributes: [method_attribute(:id)])
       generated_class = nil
