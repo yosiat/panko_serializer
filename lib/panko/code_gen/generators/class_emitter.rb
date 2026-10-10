@@ -2,30 +2,11 @@
 
 module Panko::CodeGen
   module Generators
-    # The one class-shell emitter, mode-agnostic behind a {Sink}. Walks
-    # the Descriptor tree and produces a source string containing one
-    # +<Name>_<suffix>+ class per unique Descriptor, children before
-    # parents (post-order) so each parent constructor's reference to its
-    # nested class resolves at +module_eval+ time. The byte payload feeds
-    # both +Compiler+ (+module_eval+) and +Dump+ (+File.write+).
-    #
-    # Everything here is mode-shared by construction: the constructor's
-    # Callable hoisting and Composition wiring, the recursion contract,
-    # the +root_key+ validator. The sink supplies what genuinely
-    # diverges — per-class constants, the +serialize_one+/+serialize_many+
-    # bodies, and every leaf write shape (via {RecordAccess} + {FieldWalk}).
     class ClassEmitter
-      # @param sink [Panko::CodeGen::Generators::Sink] the Output Mode adapter
       def initialize(sink)
         @sink = sink
       end
 
-      # Emits the full source for the Generated Class tree rooted at
-      # +descriptor+.
-      #
-      # @param descriptor [Panko::CodeGen::Descriptor] the root input
-      # @param config [Panko::CodeGen::Config] resolved settings
-      # @return [String] the emitted Ruby source
       def emit(descriptor, config)
         builder = CodeBuilder.new
         builder.line "# frozen_string_literal: true"
@@ -39,21 +20,7 @@ module Panko::CodeGen
         builder.to_s + "\n"
       end
 
-      # Emits one Generated Class shell: constants, constructor, public
-      # entries, +_release+, and the Record-access strategy keyed off
-      # +descriptor.model.nil?+ (nil → {RecordAccess::Generic}; set →
-      # {RecordAccess::Specialized}).
-      #
-      # Public so the multi-file fan-out path ({Generators::Fanout}) can
-      # compose one class per file without re-running {#emit}'s tree-walk.
-      #
-      # @param descriptor [Panko::CodeGen::Descriptor]
-      # @param config [Panko::CodeGen::Config]
-      # @param builder [Panko::CodeGen::CodeBuilder] target buffer
-      # @param cyclic_ids [Hash{Integer => true}] identity-keyed set of
-      #   Descriptor +__id__+s participating in a mutual-recursion cycle
-      #   (per {CycleMembership.cyclic_descriptor_ids})
-      # @return [void]
+      # Public so {Generators::Fanout} can write one class per file.
       def emit_class(descriptor, config, builder, cyclic_ids)
         field_index = FieldIndex.build(descriptor)
         builder.line class_line(descriptor)
@@ -84,10 +51,8 @@ module Panko::CodeGen
 
       private
 
-      # The +class <Name>_<suffix> < <parent>+ header, branching on
-      # +descriptor.parent_class+: a named class → +< <parent_class.name>+
-      # spliced verbatim so namespaced parents resolve at +module_eval+
-      # time; an anonymous parent → the +ANON_PARENTS+ registry fetch.
+      # An anonymous parent class has no name to write into the source, so
+      # it is fetched from the +ANON_PARENTS+ constant instead.
       def class_line(descriptor)
         class_name = GeneratedNames.class_name(descriptor, @sink.suffix)
         if descriptor.parent_class.name
@@ -97,18 +62,8 @@ module Panko::CodeGen
         end
       end
 
-      # Emits the +initialize(descriptor:)+ constructor: hoists each
-      # Callable-bodied Method Attribute into its +@cb_<name>+ ivar
-      # (Symbol bodies dispatch on +self+ at the emit site — nothing to
-      # bind), hoists each Association's optional +if:+ Callable, then
-      # wires Composition via {#emit_serializer_assignment}.
-      #
-      # A Descriptor in a mutual-recursion cycle gains the internal
-      # +_construct_cache:+ kwarg and registers +self+ in the cache
-      # before allocating any nested ivars, so a cycle back to this
-      # Descriptor finds the in-progress instance — one Generated Class
-      # instance per unique Descriptor. Acyclic Descriptors stay on the
-      # no-kwarg constructor: no kwarg leakage, no Hash allocation.
+      # A Descriptor in a recursion cycle registers +self+ in +_construct_cache+
+      # before building its children, so the cycle reuses this instance.
       def emit_initialize(descriptor, builder, cyclic_ids)
         cyclic_self = cyclic_ids[descriptor.__id__]
         signature = cyclic_self ? "def initialize(descriptor:, _construct_cache: {})" : "def initialize(descriptor:)"
@@ -134,16 +89,8 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # The Composition-wiring line for one Association. Three branches:
-      # a self-loop (+assoc.descriptor.equal?(descriptor)+ — detection is
-      # identity-based, never structural) short-circuits to +self+,
-      # breaking what would otherwise be an infinite +.new+ chain; a
-      # cyclic child of a cyclic parent threads +_construct_cache+ so the
-      # cycle produces exactly one instance per unique Descriptor; the
-      # acyclic case allocates plainly. The cyclic-child branch fires
-      # only when *both* ends are cyclic — a cyclic parent still
-      # allocates an off-cycle leaf via the plain form, whose constructor
-      # doesn't accept the kwarg.
+      # The cache is passed only when both ends are cyclic: a child outside
+      # the cycle has a constructor without the +_construct_cache:+ kwarg.
       def emit_serializer_assignment(descriptor, assoc, i, cyclic_ids)
         ivar = GeneratedNames.serializer_ivar(assoc)
         if assoc.descriptor.equal?(descriptor)
@@ -156,9 +103,6 @@ module Panko::CodeGen
         end
       end
 
-      # The +root_key:+ accepted-types validator: a non-empty String or
-      # +nil+ only. Emitted only when the wrap branch is emitted, so the
-      # default-config emit pays nothing for the feature being absent.
       def emit_validate_root_key(builder)
         builder.line "private def validate_root_key!(root_key)"
         builder.indent do

@@ -2,65 +2,41 @@
 
 module Panko::CodeGen
   module Generators
-    # The +:hash+ adapter at the Output Mode seam: every Hash-divergent
-    # emit shape in one place. No Writer — values assign into a +result+
-    # Hash and datetime values funnel through +Panko::CodeGen.cast_datetime+
-    # (JSON mode delegates that formatting to Oj's +:rails+ mode), so the
-    # two modes' leaf values can only diverge where an adapter explicitly
-    # says so.
+    # Values go through +Panko::CodeGen.cast_datetime+ so Hash mode matches what
+    # Oj's +:rails+ mode does to them in JSON mode.
     class HashSink < Sink
-      # @return [Symbol]
       def output
         :hash
       end
 
-      # @return [String]
       def suffix
         "Hash"
       end
 
-      # @return [String]
       def entry_name
         GeneratedNames.to_hash
       end
 
-      # @return [String]
       def generic_entry_name
         GeneratedNames.generic_to_hash
       end
 
-      # @return [String]
       def split_hash_helper
         GeneratedNames.to_hash_hash
       end
 
-      # @return [String]
       def split_object_helper
         GeneratedNames.to_hash_object
       end
 
-      # @return [String] the positional signature the per-record entry
-      #   points share — Hash mode threads no Writer
       def entry_params
         "record, context, scope, filters"
       end
 
-      # Hash mode emits no per-class constants beyond +FIELD_INDEX+.
-      #
-      # @param descriptor [Panko::CodeGen::Descriptor]
-      # @param config [Panko::CodeGen::Config]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
+      # Hash mode needs no constants beyond +FIELD_INDEX+.
       def emit_class_constants(descriptor, config, builder)
       end
 
-      # Emits the public +serialize_one+ — a straight delegate to the
-      # per-record entry; a truthy +root_key:+ wraps the produced Hash in
-      # a single-entry +{root_key => result}+.
-      #
-      # @param config [Panko::CodeGen::Config]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def emit_serialize_one(config, builder)
         signature = config.supports_root_key ?
           "def serialize_one(record, context: nil, scope: nil, filters: nil, root_key: nil)" :
@@ -79,12 +55,6 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # Emits the public +serialize_many+ — +.map+ over the input; an
-      # empty input under a root key still emits +{root_key => []}+.
-      #
-      # @param config [Panko::CodeGen::Config]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def emit_serialize_many(config, builder)
         signature = config.supports_root_key ?
           "def serialize_many(records, context: nil, scope: nil, filters: nil, root_key: nil)" :
@@ -103,33 +73,16 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def open_record(builder)
         builder.line "result = {}"
       end
 
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def close_record(builder)
         builder.line "result"
       end
 
-      # Emits one Attribute write:
-      # +result[<key>] = Panko::CodeGen.cast_datetime(<read_expr>)+. The
-      # cast reproduces the 0.8.5 datetime→ISO-8601 String contract (a
-      # no-op for non-datetime values); +cast: false+ drops the wrapper
-      # when the caller can prove at compile time the value is never a
-      # datetime — the wrapper sits on every Hash-mode field write, so
-      # eliding it where types are known is a measurable win.
-      #
-      # @param attribute [Panko::CodeGen::Attribute]
-      # @param read_expr [String]
-      # @param config [Panko::CodeGen::Config]
-      # @param index [Integer] the Field's +FIELD_INDEX+ position
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @param cast [Boolean] wrap the read in +cast_datetime+ (default)
-      # @return [void]
+      # +cast: false+ skips +cast_datetime+ when the column type proves the cast would
+      # return the value unchanged; the wrapper otherwise runs on every write.
       def attribute(attribute, read_expr, config, index, builder, cast: true)
         value_expr = cast ? "Panko::CodeGen.cast_datetime(#{read_expr})" : read_expr
         builder.line "unless filters.drops?(#{index})"
@@ -139,17 +92,6 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # Emits one Attribute on the Specialized path: datetime columns
-      # take the raw-splice path; everything else the typed read, with
-      # the +cast_datetime+ wrapper elided for provably-non-datetime
-      # columns.
-      #
-      # @param attribute [Panko::CodeGen::Attribute]
-      # @param ar_model [Class, nil]
-      # @param config [Panko::CodeGen::Config]
-      # @param index [Integer]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def specialized_attribute(attribute, ar_model, config, index, builder)
         if RecordAccess::Specialized.datetime_column_attribute?(attribute, ar_model)
           datetime_column_attribute(attribute, config, index, builder)
@@ -165,14 +107,6 @@ module Panko::CodeGen
         end
       end
 
-      # Emits one Method Attribute write — same +SKIP+ identity-compare
-      # as the JSON adapter, assigning through the +cast_datetime+ funnel.
-      #
-      # @param method_attribute [Panko::CodeGen::MethodAttribute]
-      # @param config [Panko::CodeGen::Config]
-      # @param index [Integer]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def method_attribute(method_attribute, config, index, builder)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
@@ -186,15 +120,6 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # Emits one Association write, dispatching on Kind inside the
-      # filter wrapper and optional +if:+ guard.
-      #
-      # @param association [Panko::CodeGen::Association]
-      # @param source_read_expr [String]
-      # @param config [Panko::CodeGen::Config]
-      # @param index [Integer]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @return [void]
       def association(association, source_read_expr, config, index, builder)
         key_lit = key_literal(association.name, config)
         builder.line "unless filters.drops?(#{index})"
@@ -218,8 +143,6 @@ module Panko::CodeGen
 
       private
 
-      # The output-key literal for one Field name, keyed by
-      # +Config#hash_output_key_type+ — +:string+ (default) or +:symbol+.
       def key_literal(name, config)
         case config.hash_output_key_type
         when :symbol then ":#{name}"
@@ -258,8 +181,7 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # +child_filter+ hoisted for the same one-lookup-per-record reason
-      # as the JSON adapter; +.map+ on an empty collection returns +[]+.
+      # +child_filter+ is looked up once per record, not once per element.
       def has_many(association, source_read_expr, key_lit, builder)
         builder.line "child_filter = #{child_filter_expr(association)}"
         if association.variants.empty?
@@ -278,9 +200,8 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      # The datetime-column raw-splice path (Hash twin of the JSON
-      # adapter's): the fallback wraps the typed read in +cast_datetime+
-      # so the datetime→String contract holds on the slow path too.
+      # +format_raw+ returns nil for raw values it cannot format; the typed-read
+      # fallback then goes through +cast_datetime+ so a Time still becomes a String.
       def datetime_column_attribute(attribute, config, index, builder)
         source_lit = %("#{attribute.source}")
         builder.line "unless filters.drops?(#{index})"

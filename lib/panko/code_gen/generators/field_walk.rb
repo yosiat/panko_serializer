@@ -2,30 +2,13 @@
 
 module Panko::CodeGen
   module Generators
-    # The one canonical field walk: record frame + Attributes →
-    # Associations → Method Attributes in declared order, every Field
-    # fetched from +field_index+ by +GeneratedNames.filter_key+. Both
-    # Record-access strategies and both Output Mode adapters share this
-    # walk, so field ordering, the filter-index parity, and the record
-    # frame can't diverge between paths — the class of bug where the
-    # Specialized walk cast leaf values differently from the Generic one.
+    # Both Record-access strategies and both output modes share this walk,
+    # so field order and filter indexes cannot differ between them.
     module FieldWalk
       module_function
 
-      # Emits one record body through +sink+. The record-read expression
-      # comes from +read_expr+; the Specialized strategy overrides the
-      # per-Attribute emit via +attribute_emit+ (its reads are chosen by
-      # column classification, not by one uniform expression).
-      #
-      # @param descriptor [Panko::CodeGen::Descriptor]
-      # @param config [Panko::CodeGen::Config]
-      # @param field_index [Hash{Symbol => Integer}]
-      # @param builder [Panko::CodeGen::CodeBuilder]
-      # @param sink [Panko::CodeGen::Generators::Sink]
-      # @param read_expr [Proc] Source name → record-read Ruby source
-      # @param attribute_emit [Proc, nil] (attribute, index) → void;
-      #   defaults to the sink's plain attribute emit
-      # @return [void]
+      # +attribute_emit+ lets the Specialized strategy pick each Attribute's
+      # read from the Model's column metadata instead of one +read_expr+ for all.
       def emit_fields(descriptor, config, field_index, builder, sink, read_expr:, attribute_emit: nil)
         sink.open_record(builder)
         descriptor.attributes.each do |attribute|
