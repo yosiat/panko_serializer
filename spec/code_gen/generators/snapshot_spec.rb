@@ -22,24 +22,6 @@ require "parent_class_specialized"
 require "parent_class_generic"
 require "parent_class_recursive_self"
 
-# Snapshot tier — the +Generator+ / +Dump+ byte-emit tier. Three tests
-# per (fixture, mode):
-#
-# 1. +Generator#emit+ bytes equal the on-disk +<fixture>_<mode>.rb+
-#    snapshot (the single-file concatenated form Compile evaluates via
-#    +module_eval+).
-# 2. +Panko::CodeGen.dump(...)+ writes one or more files whose
-#    bytes equal the on-disk per-Generated-Class snapshots (one
-#    +<descriptor_snake>_<mode>.rb+ snapshot per +Generated Class+
-#    in the tree). Flat fixtures land in S15.4; nested + Recursive
-#    fixtures land in S15.5 via the multi-file +require_relative+
-#    fan-out from {Generators::Fanout}.
-# 3. The committed +<fixture>_<mode>.rb+ snapshot file loads + runs
-#    + serializes +sanity_record+ to +expected_output(mode)+.
-#
-# This file iterates +FIXTURES × MODES+; in S2.1 the corpus is one
-# +shallow_generic+ × one +:json+ row. S3 onwards extend +MODES+ and the
-# fixture set.
 RSpec.describe "Generator snapshot corpus" do
   fixtures = [
     Fixtures::ShallowGeneric,
@@ -63,9 +45,6 @@ RSpec.describe "Generator snapshot corpus" do
   ]
 
   fixtures.each do |fixture|
-    # Snake-case slug derived from the fixture's last namespace segment —
-    # +Fixtures::ShallowGeneric+ → +"shallow_generic"+. Joined with the
-    # mode suffix to form the snapshot filename.
     basename = fixture.name.split("::").last.gsub(/(?<=.)([A-Z])/, '_\1').downcase
 
     describe fixture.name do

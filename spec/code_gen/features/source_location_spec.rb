@@ -5,12 +5,6 @@ require "tmpdir"
 require "panko/code_gen"
 require "shallow_generic"
 
-# Cross-cutting +Method#source_location+ contract — paths enter at
-# materialization, not in +Generator+'s emitted bytes. +Compiler+
-# passes the synthetic +(Panko::CodeGen: <Name>/<output>)+
-# string as +module_eval+'s second argument; +Dump+ writes the bytes
-# via +File.write+ and Ruby's +require+ auto-stamps the on-disk path
-# when the file loads.
 RSpec.describe "synthetic-path / real-path Method#source_location split" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:config) { Fixtures::ShallowGeneric::CONFIG }
@@ -34,11 +28,7 @@ RSpec.describe "synthetic-path / real-path Method#source_location split" do
   end
 
   describe "Dump-then-require reports the real on-disk path" do
-    # Descriptor name is unique to this spec so the +require+ of a
-    # dumped file defines a class that isn't already loaded from
-    # +spec/fixtures/generated/+ — avoids method-redefinition warnings
-    # when this spec runs in the same process as +snapshot_spec.rb+'s
-    # tier-3 +require+ of the same fixture.
+    # A unique name, so the +require+ does not redefine the class snapshot_spec.rb loads.
     let(:dumped_descriptor) { descriptor.with(name: "S15ThreeSyntheticPathFixture") }
 
     it "stamps the real File path on a JSON-mode dumped instance method" do

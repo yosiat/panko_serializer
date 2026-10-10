@@ -57,22 +57,12 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   end
 
   describe "#serialize_many" do
-    # Expected Array<Hash>/JSON-array output for the two-record corpus
-    # used in the parity its below. Keyed by Output Mode so the iteration
-    # picks the right shape inline without bloating per-context +let+
-    # blocks (the +RSpec/MultipleMemoizedHelpers+ cap allows 5 cumulative;
-    # the parity iteration already spends 2 on +generated_class+ +
-    # +generated+).
     expected_pair = {
       json: '[{"id":1,"title":"hi"},{"id":2,"title":"yo"}]',
       hash: [{"id" => 1, "title" => "hi"}, {"id" => 2, "title" => "yo"}].freeze
     }.freeze
     expected_empty = {json: "[]", hash: [].freeze}.freeze
 
-    # Single-record corpus for the filters: parity its below — kept
-    # alongside +expected_pair+/+expected_empty+ so the per-mode expected
-    # values stay close to the +it+s that read them. Frozen to avoid
-    # accidental mutation across iterations.
     expected_single = {
       json: '[{"id":1,"title":"hi"}]',
       hash: [{"id" => 1, "title" => "hi"}].freeze

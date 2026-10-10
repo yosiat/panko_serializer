@@ -3,12 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Narrow emit-shape tests for the +Descriptor#parent_class+ header in
-# +ClassEmitter#emit_class+. These assert directly on the +Generator+'s
-# source-string output — no +module_eval+, no snapshot files. They pin
-# that a named +parent_class:+ emits the +class <Name>_<Mode> < <ParentClass>+
-# header verbatim and that the compiled class's +.superclass+ is the
-# supplied parent.
 RSpec.describe "Generator parent_class emit" do
   let(:generator) { Panko::CodeGen::Generator.new }
   let(:config) { Panko::CodeGen::Config.new }

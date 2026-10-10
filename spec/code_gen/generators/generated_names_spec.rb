@@ -3,12 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Pins the emitted-symbol vocabulary: every name that generated source and
-# its emitters must agree on — ivar tokens, write-method names, the
-# FIELD_INDEX constant, the writer-pool storage key, and the filter-key
-# rule (name for value Fields, Source for Associations). These literals ARE
-# the contract; emitters and emit-specs consume this module instead of
-# restating them.
 RSpec.describe Panko::CodeGen::Generators::GeneratedNames do
   let(:leaf) do
     Panko::CodeGen::Descriptor.new(

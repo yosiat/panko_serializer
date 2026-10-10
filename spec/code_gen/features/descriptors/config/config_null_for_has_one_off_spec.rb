@@ -9,11 +9,6 @@ RSpec.describe "Generated Class for Fixtures::ConfigNullForHasOneOff" do
   let(:config) { Fixtures::ConfigNullForHasOneOff::CONFIG }
 
   describe "#serialize_one — has_one Source returning nil omits the key (null_for_missing_has_one: false)" do
-    # Per-mode expected outputs lifted out of +let+ blocks so the
-    # +RSpec/MultipleMemoizedHelpers+ cap (5) isn't exceeded — the
-    # parity iteration already spends 4 on +descriptor+ + +config+ +
-    # +generated_class+ + +generated+. Frozen so iteration mutations
-    # can't drift across +it+s.
     expected_with_inner = {
       json: '{"id":1,"inner":{"id":7,"name":"alice"}}',
       hash: {"id" => 1, "inner" => {"id" => 7, "name" => "alice"}}.freeze

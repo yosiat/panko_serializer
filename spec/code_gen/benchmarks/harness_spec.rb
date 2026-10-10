@@ -3,20 +3,8 @@
 require "open3"
 require "rspec"
 
-# Smoke spec for the benchmark harness. Spawns each covered scenario as a
-# subprocess (matching how `rake bench:all` runs scenarios) under a fast-
-# iteration env so the suite stays under a few seconds per CI run, and asserts
-# the stdout includes one row per target × size. Goal: catch "harness doesn't
-# load", "scenario file syntax-errors", "missing requires", "broken target
-# lookups", "missing oj_serializers dep" — not to validate numbers (full
-# benchmarks do not run in CI).
-#
-# Subprocess isolation matters: spec/spec_helper.rb has already established an
-# AR connection and seeded the spec schema in this process. Running the bench
-# harness in-process would re-establish the connection and trample the spec
-# state — every subsequent example in the suite would fail. The bench harness
-# is designed to be a fresh process anyway,
-# so the smoke spec exercises the production-shape path.
+# Checks that each scenario loads and prints one row per target; it does not check the numbers.
+# Runs in a subprocess because the harness would replace this process's AR connection and schema.
 RSpec.describe "benchmark harness smoke" do
   let(:env) do
     {

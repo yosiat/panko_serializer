@@ -1,23 +1,5 @@
 # frozen_string_literal: true
 
-# Canonical fixture for S17.2 (#91) — pins the new +scope+ axis.
-# Exercises every emit surface the widening touches:
-#
-# - one arity-2 Method Attribute (+legacy_label+) — proves +context+
-#   still threads as +.call(record, context)+ unchanged.
-# - one arity-3 Method Attribute (+viewer_label+) — proves +scope+
-#   reaches the third positional arg as +.call(record, context, scope)+.
-# - one +has_one :author+ with an arity-3 +if:+ Callable — proves the
-#   Association-side Callable surface also gets +scope+.
-# - one nested +ScopeThreadingCommentSerializer+ (via +has_many
-#   :comments+) carrying its own arity-3 Method Attribute (+viewer_tag+)
-#   — proves +scope+ identity is preserved through Composition into a
-#   child Generated Class.
-#
-# Snapshot-only fixture: the +scope+ values in +sanity_record+ /
-# +expected_output+ are observable in the rendered string so a future
-# emit drift that drops +scope+ at any of those four surfaces fails
-# byte-equality.
 module Fixtures
   module ScopeThreading
     AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(

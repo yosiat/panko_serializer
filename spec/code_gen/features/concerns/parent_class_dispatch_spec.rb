@@ -3,21 +3,7 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +parent_class+ dispatch contract — the 9-item
-# enumeration for the +Descriptor#parent_class+ dispatch shape. JSON/Hash
-# parity is iterated at the +describe+ block (the 9 × 2 = 18 cases give the
-# full contract for the Symbol-body Method Attribute dispatch shape
-# under +Descriptor#parent_class+).
-#
-# The snapshot fixtures (+parent_class_specialized+,
-# +parent_class_generic+, +parent_class_recursive_self+) pin the emit
-# *bytes*; this file pins the *runtime semantics* — what Symbol-body
-# method dispatch on +self+ produces when the Generated Class inherits
-# from a user-supplied +parent_class+, with native Ruby method-
-# resolution behavior (+super+, +private+, +prepend+-ed modules, helper-
-# method chains) and the load-bearing per-record ivar-write site.
 RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract" do
-  # ----- shared helpers -----
   def attribute(name, source = name)
     Panko::CodeGen::Attribute.new(name: name, source: source)
   end
@@ -45,10 +31,6 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "calls the named method on the Generated Class instance (inherited from parent_class)" do
-          # Defined as a top-level constant so +parent_class.name+ returns
-          # a non-nil, resolvable identifier the emit can splice into the
-          # +class <Name>_<Mode> < ...+ header. Per-test isolation is
-          # achieved by giving each parent class a unique name.
           stub_const("ParentClassDispatchSpec_Basic", Class.new {
             def make_greeting
               "hello world"
@@ -163,11 +145,6 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
         it "invokes the private method via no-explicit-receiver dispatch on self" do
-          # Symbol-body emits +value = <method_name>+ — no explicit
-          # receiver — which Ruby's call rules treat as a private-
-          # method-permitted dispatch. A +self.<name>+ form would
-          # raise +NoMethodError: private method+ — the Symbol-body
-          # emit shape is what makes private dispatch work.
           stub_const("ParentClassDispatchSpec_Private", Class.new {
             private def secret_tag
               "secret:#{@object["name"]}"
@@ -256,26 +233,8 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
   describe "(8) Self-recursion: each nested Generated Class frame sees its own @object / @context / @scope" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        # The load-bearing K1 safety property from the PRD: a
-        # self-recursive Descriptor under +parent_class:+ keeps one
-        # Generated Class instance (the +@replies_serializer = self+
-        # shortcut from S8), but each entry into +_write_one+ /
-        # +_to_hash+ writes its own +@object+ / +@context+ / +@scope+
-        # at the top of the dispatcher (S18.3). Inner frames running
-        # *during* their own +_write_one+ / +_to_hash+ call observe
-        # their own per-record ivars — the property that fails under
-        # the rejected J/A shapes (shared dispatcher across recursion
-        # depths) and that any future "optimize back to J/A" attempt
-        # trips on.
-        #
-        # Verified by reading the *visible output* at each recursion
-        # depth: the Symbol-body +tag+ method reads +@object+ /
-        # +@context+ / +@scope+; the emitted JSON / Hash result
-        # exposes the value the method saw at the time it ran. With
-        # leaf records (empty +replies+ arrays) the method runs
-        # without any nested-recursion call between the dispatcher's
-        # per-record ivar writes and the +tag+ read, so each leaf
-        # observation is its own record's identity.
+        # One instance serves every depth (@replies_serializer = self), and each _write_one / _to_hash
+        # entry writes @object / @context / @scope. Only leaves are checked: no nested call runs before their tag.
         it "each leaf frame's Symbol-body method reads its own @object / @context / @scope" do
           stub_const("ParentClassDispatchSpec_RecursiveBase", Class.new {
             def tag
@@ -304,12 +263,6 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
           }
           result = generated.serialize_one(record, context: "env1", scope: "alice")
           parsed = (mode == :json) ? Oj.load(result) : result
-          # Inner replies (which have no further associations to
-          # recurse into) emit +tag+ within a frame where +@object+
-          # is their own record — proving the per-frame ivar-write
-          # contract under self-recursion. +@context+ and +@scope+
-          # are the same value at every depth (the kwargs are
-          # threaded unchanged into each recursive +_write_one+ call).
           expect(parsed["replies"][0]).to eq(
             "id" => 2, "replies" => [], "tag" => "id=2|ctx=env1|scope=alice"
           )
@@ -324,23 +277,8 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
   describe "(9) Symbol resolving to a non-existent method raises Ruby's NameError at serialize time" do
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        # Runtime-defer contract from the PRD: +Compile+ does not
-        # introspect +parent_class.instance_method(<sym>)+. A Symbol
-        # that does not resolve at +Compile+ time still produces a
-        # Generated Class. At +serialize_one+ time Ruby's normal method
-        # resolution raises — and because the Symbol-body emit shape
-        # is +value = <method_name>+ (bare identifier, no explicit
-        # receiver), the failure form is +NameError: undefined local
-        # variable or method+. The PRD's User Story 8 phrased this as
-        # +NoMethodError+; in Ruby 4.x the runtime distinguishes the
-        # bare-identifier failure from the explicit-receiver failure
-        # (+obj.<method>+ → +NoMethodError+) and raises the
-        # +NameError+ supertype for the former. Either way the error
-        # vocabulary is Ruby-native — no engine-specific synthetic
-        # error class.
         it "raises NameError at serialize_one time, not at Compile time" do
           stub_const("ParentClassDispatchSpec_MissingMethodBase", Class.new {
-            # Deliberately empty — no +:nonexistent+ method defined.
           })
 
           descriptor = descriptor_with(
@@ -350,13 +288,8 @@ RSpec.describe "parent_class dispatch — Symbol-body Method Attribute contract"
             method_attributes: [method_attribute(:greeting, :nonexistent)]
           )
 
-          # Compile succeeds — the Symbol-body legitimacy check
-          # (+parent_class+ non-nil) passes, and no introspection of
-          # the parent's method table happens.
           generated = nil
           expect { generated = compile(descriptor, mode) }.not_to raise_error
-          # Serialize raises Ruby-native NameError ("undefined local
-          # variable or method 'nonexistent'").
           expect { generated.serialize_one({"id" => 1}) }.to raise_error(NameError, /nonexistent/)
         end
       end

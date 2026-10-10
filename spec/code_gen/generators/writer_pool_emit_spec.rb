@@ -4,12 +4,6 @@ require "spec_helper"
 require "panko/code_gen"
 require "shallow_generic"
 
-# JSON-mode emit shape tests for the +Config#pool_writer+ knob (S16.2).
-# These specs assert directly on the +Generator+'s source-string output —
-# no +module_eval+, no snapshot files. The byte-identical rollback path
-# (+pool_writer: false+) is pinned with a verbatim-string comparison
-# against a small inline reference snippet so a regression in the
-# unpooled emit tier surfaces here, before snapshots are regenerated.
 RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:generator) { Panko::CodeGen::Generator.new }
@@ -100,10 +94,6 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
       expect(source).not_to match(/def serialize_many.*?\bbegin\b/m)
     end
 
-    # Byte-identical rollback path — the core acceptance bar for the
-    # +pool_writer: false+ knob. A small inline expected-string assertion
-    # is sufficient here; the full snapshot tier picks up the long form
-    # in S16.3.
     it "emits the pre-pooling shallow_generic source verbatim" do
       source = generator.emit(descriptor, output: :json, config: config)
 

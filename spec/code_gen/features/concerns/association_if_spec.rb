@@ -3,28 +3,6 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +Association#if+ contract — the 10-item enumeration.
-# JSON/Hash parity is iterated at the describe block (this is
-# item (10) and pins the parallel emit shapes).
-# Fixtures are inline minimal Descriptors (1 +has_one+ or +has_many+
-# Association each, plus 1 +id+ Attribute on parent + child); the
-# +nested_composition+ fixture's snapshot pins the emit bytes for the
-# +has_one+ + +if:+ shape, this file pins the runtime semantics across
-# Kinds, arities, return values, and the cardinality contract.
-#
-# Precedence ladder:
-#
-#   1. Filter.drops?(:assoc) → omit; if: not invoked, Source not called.
-#   2. if: present and returns falsy → omit; Source not called.
-#   3. if: truthy (or absent) → call Source.
-#      3a. Source returns an object → serialize (the normal case).
-#      3b. Source returns nil:
-#           - null_for_missing_has_one: true  → emit "assoc": null
-#           - null_for_missing_has_one: false → omit the key
-#
-# Filter (1) is phase-2-locked; only (2)/(3) are exercised here. The
-# orthogonality of +if:+ vs +null_for_missing_has_one+ — (2) wins over
-# (3b) at both config values — is item (3) of the contract.
 RSpec.describe "Association if: — Callable guard contract" do
   def inner_descriptor
     Panko::CodeGen::Descriptor.new(
@@ -112,7 +90,7 @@ RSpec.describe "Association if: — Callable guard contract" do
             config = Panko::CodeGen::Config.new(null_for_missing_has_one: null_for_missing)
             descriptor = descriptor_with(associations: [has_one(:child, if: ->(_r, _c) { false })])
             generated = compile(descriptor, mode, config: config)
-            # Record carries a real child — Source would emit it if not for the if: gate.
+            # The record has a real child, so only the if: gate can drop it.
             record = {"id" => 1, "child" => {"id" => 7}}
             expected = (mode == :json) ? '{"id":1}' : {"id" => 1}
             expect(generated.serialize_one(record)).to eq(expected)
@@ -147,13 +125,11 @@ RSpec.describe "Association if: — Callable guard contract" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
         it "emits the has_one key without any if-branch (no @cb_if_<name> ivar hoisted)" do
-          descriptor = descriptor_with(associations: [has_one(:child)]) # if: defaults to nil
+          descriptor = descriptor_with(associations: [has_one(:child)])
           generated = compile(descriptor, mode)
           record = {"id" => 1, "child" => {"id" => 7}}
           expected = (mode == :json) ? '{"id":1,"child":{"id":7}}' : {"id" => 1, "child" => {"id" => 7}}
           expect(generated.serialize_one(record)).to eq(expected)
-          # Pins "no @cb_if_<name> ivar hoisted" — the constructor body
-          # only assigns the serializer ivar for an unguarded Association.
           expect(generated.instance_variables).not_to include(:@cb_if_child)
           expect(generated.instance_variables).to include(:@child_serializer)
         end
@@ -281,13 +257,8 @@ RSpec.describe "Association if: — Callable guard contract" do
         end
 
         it "invokes a falsy-returning if: spy exactly once per Record (Source not called)" do
-          # Pins precedence ladder step 2: if: present and returns falsy →
-          # omit; Source not called. With +null_for_missing_has_one: true+
-          # (default), if the Source had been invoked despite the falsy
-          # guard, +record["child"]+ would return +nil+ (Hash default) and
-          # the +has_one+ branch would emit +"child":null+. The exact-match
-          # assertion on +'{"id":1}'+ would then fail — so observing the
-          # bare +'{"id":1}'+ output proves the Source was skipped.
+          # null_for_missing_has_one is on by default, so a called Source would emit "child":null;
+          # the bare {"id":1} below proves the Source was skipped.
           count = 0
           guard = ->(_r, _c) {
             count += 1

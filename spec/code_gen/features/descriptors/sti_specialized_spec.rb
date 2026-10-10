@@ -33,9 +33,6 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
         end
 
         it "honors Car's titleize override on the downgraded Attribute (make) — DB value FORD emits Ford" do
-          # The downgrade rule: +Car+ overrides +make+ → multi-class
-          # intersection is +:method+ → emit +record.make+ → on a +Car+
-          # the override (+super.titleize+) runs.
           car = Car.create!(vin: "XYZ789", make: "FORD")
           output = generated.serialize_one(car)
           case mode
@@ -45,10 +42,6 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
         end
 
         it "emits the raw column value for the downgraded Attribute (make) on a Vehicle — no parent override" do
-          # Same emit form (+record.make+) but +Vehicle+ has no override,
-          # so AR's auto-generated reader returns the raw column value.
-          # This is the load-bearing claim: one straight-line +_write_one+
-          # / +_to_hash+ serves both classes correctly.
           vehicle = Vehicle.create!(vin: "ABC123", make: "FORD")
           output = generated.serialize_one(vehicle)
           case mode
@@ -58,9 +51,6 @@ RSpec.describe "Generated Class for Fixtures::StiSpecialized" do
         end
 
         it "serializes both a Vehicle and a Car through the same Generated Class" do
-          # The single Generated Class is reused across both STI classes —
-          # no per-class dispatch, no runtime classification. Both
-          # instances pass through one +_write_one+ / +_to_hash+.
           vehicle = Vehicle.create!(vin: "ABC123", make: "FORD")
           car = Car.create!(vin: "XYZ789", make: "FORD")
           vehicle_out = generated.serialize_one(vehicle)

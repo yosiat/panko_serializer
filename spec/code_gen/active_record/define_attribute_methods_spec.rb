@@ -43,11 +43,7 @@ RSpec.describe Panko::CodeGen::ActiveRecord::DefineAttributeMethods do
     end
 
     it "exercises the AR machinery on a real ActiveRecord::Base subclass" do
-      # Spec/support/models.rb defines +Post+ — an AR class. The first
-      # +ensure!+ call may or may not flip +attribute_methods_generated?+
-      # depending on whether prior specs in this run already touched
-      # +Post+; the contract under test is "+ensure!+ leaves the class
-      # in the +generated?+ state and never raises".
+      # Earlier specs may already have generated +Post+'s methods, so only the end state is checked.
       described_class.ensure!(Post)
       expect(Post.attribute_methods_generated?).to be(true)
     end

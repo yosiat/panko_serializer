@@ -45,9 +45,8 @@ RSpec.describe Panko::CodeGen::DateTimeFormat do
     end
 
     context "with a Postgres UTC offset suffix after a trimmed fraction" do
-      # PG (session timezone UTC) trims trailing fraction zeros and appends
-      # "+00", so the digit run ends before the raw string does. 0.8.5's C
-      # splice copied digit bytes only and zero-padded.
+      # PG (session time zone UTC) trims trailing fraction zeros and appends "+00", so the digit
+      # run ends before the raw string does.
       let(:raw) { "2026-07-10 12:34:56.5+00" }
 
       it "copies only the digit run and zero-pads to milliseconds" do

@@ -1,21 +1,6 @@
 # frozen_string_literal: true
 
-# Canonical fixture #5 in the snapshot corpus — Folder → Item → Folder
-# mutual cycle. Pins the
-# construction-time identity-cache threading: each cyclic Generated
-# Class's constructor takes a +_construct_cache:+ kwarg (default +{}+),
-# registers itself in the cache before allocating nested ivars, and
-# allocates each cyclic-child Generated Class via
-# +(cache[d.__id__] ||= Klass.new(..., _construct_cache: cache))+ so the
-# cycle terminates at construction with one Generated Class instance per
-# unique Descriptor.
-#
-# +FOLDER_DESCRIPTOR+ and +ITEM_DESCRIPTOR+ are constructed with empty
-# +associations:+ arrays, then the mutual-referencing +Association+s
-# are appended after both Descriptors exist — the standard chicken-and-
-# egg idiom for recursive Descriptors per the +recursive_self+ fixture.
-# Ruby +Data+ types are immutable but the Field-kind arrays are not
-# frozen, so post-construction +<<+ is safe.
+# The associations are appended after both Descriptors exist, since each refers to the other.
 module Fixtures
   module RecursiveMutual
     CONFIG = Panko::CodeGen::Config.new

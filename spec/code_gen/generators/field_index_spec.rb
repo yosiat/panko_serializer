@@ -7,27 +7,6 @@ require "recursive_self"
 require "recursive_mutual"
 require_relative "../support/field_index_parity_matcher"
 
-# Pins the +Field-index parity+ invariant on the +Generator+ output:
-# every +unless filters.drops?(N) ... end+ wrapper baked into a Generated
-# Class's body must carry the same integer that the class's
-# +FIELD_INDEX = {...}.freeze+ literal binds for that wrapper's Field. The
-# integers come from one builder — +Generators::FieldIndex.build+ — and
-# the per-Field emitters fetch by the field's filter key (+name+ for value
-# Fields, +source+ for Associations) rather than by iteration
-# position; this spec proves the discipline holds across all Field-kind
-# combinations and both Output Modes so a future drift in either
-# +FieldIndex.build+'s declared order or any per-emitter iteration order
-# fails loudly here.
-#
-# Seven Descriptor shapes × two Output Modes per shape — fourteen cases
-# total. Three of the seven shapes reuse canonical fixtures
-# (+ShallowGeneric+, +RecursiveSelf+, +RecursiveMutual+) so they double
-# as a parity smoke test for the snapshot corpus; the other four are
-# inline Descriptors pinning Field-kind combinations not represented as
-# named fixtures (Attributes + MethodAttributes only; Attributes +
-# Associations only; the full mix Attributes + MethodAttributes +
-# Associations; an aliased Association whose +source+ differs from its
-# +name+).
 RSpec.describe Panko::CodeGen::Generators::FieldIndex do
   describe "field-index parity invariant" do
     config = Panko::CodeGen::Config.new

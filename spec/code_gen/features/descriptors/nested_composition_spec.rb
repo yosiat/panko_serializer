@@ -91,7 +91,6 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
     it "@author_serializer is an instance of the inner Generated Class" do
       generated = generated_class.new(descriptor: descriptor)
       author_serializer = generated.instance_variable_get(:@author_serializer)
-      # Anonymous Generated Class — assert by responding to the inner serialize entry.
       expect(author_serializer).to respond_to(:_write_one)
     end
 

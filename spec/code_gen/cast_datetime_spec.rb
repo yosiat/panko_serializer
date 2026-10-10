@@ -3,14 +3,7 @@
 require "bigdecimal"
 require "panko/code_gen"
 
-# Pins the Hash-mode leaf contract Panko's C extension established: every
-# value went through ObjectWriter#push_value's blanket #as_json (v0.8.5
-# lib/panko/object_writer.rb:33) — datetimes render as ISO-8601 Strings,
-# Symbol/BigDecimal as Strings, Hashes stringify their keys, arbitrary objects
-# flatten through their own #as_json. Emitted into every Hash-mode field write
-# via the +Panko::CodeGen.cast_datetime(...)+ wrapper (see
-# HashSink leaf emits). JSON mode never calls it — Oj
-# (mode: :rails) applies the same conversions on write.
+# Hash mode must produce the same values that Oj's +:rails+ mode writes in JSON mode.
 RSpec.describe "Panko::CodeGen.cast_datetime" do
   subject(:cast) { Panko::CodeGen.cast_datetime(value) }
 
@@ -77,8 +70,6 @@ RSpec.describe "Panko::CodeGen.cast_datetime" do
       end
     end
 
-    # The C-ext ObjectWriter's blanket #as_json stringified these too —
-    # Symbol#as_json and BigDecimal#as_json both return Strings.
     context "when a Symbol" do
       let(:value) { :status }
 

@@ -41,9 +41,7 @@ describe "Hash Serialization" do
   end
 
   it "serializes a plain symbol-keyed Hash as null values" do
-    # Panko looks attributes up by string key, so a plain Hash keyed by symbols
-    # silently misses every key and yields null. Pinning this de-facto behavior
-    # so the codegen engine (string-key lookup) preserves it.
+    # Panko reads Hash records by string key, so a symbol-keyed Hash misses every key.
     foo = {
       name: Faker::Lorem.word,
       address: Faker::Lorem.word
@@ -55,9 +53,6 @@ describe "Hash Serialization" do
   end
 
   context "leaf value normalization" do
-    # The C extension's Hash mode pushed every leaf through
-    # ObjectWriter#push_value, which called #as_json on the value
-    # (v0.8.5 lib/panko/object_writer.rb:33).
     it "stringifies symbol keys in Hash values like the C-ext ObjectWriter" do
       class SymbolHashMethodSerializer < Panko::Serializer
         attributes :data

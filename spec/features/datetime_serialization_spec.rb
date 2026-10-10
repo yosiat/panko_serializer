@@ -23,8 +23,8 @@ describe "Datetime serialization" do
     Panko::Config.auto_specialization.enabled = original_enabled
   end
 
-  # Auto-specialized on first sight of a Foo — exercises the specialized
-  # datetime fast path (raw-string splice) without any DSL opt-in.
+  # Auto-specialized on first sight of a Foo, so this covers the specialized datetime fast path
+  # (raw-string splice) with no DSL opt-in.
   let(:serializer_class) do
     stub_const("DatetimeFooSerializer", Class.new(Panko::Serializer) do
       attributes :name, :created_at
