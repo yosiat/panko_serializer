@@ -136,6 +136,21 @@ RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
             result
           end
 
+          def serialize_one_to(writer, record, key = nil, context: nil, scope: nil, filters: nil)
+            filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
+            writer.push_key(key) if key
+            _write_one(record, writer, context, scope, filters)
+            nil
+          end
+
+          def serialize_many_to(writer, records, key = nil, context: nil, scope: nil, filters: nil)
+            filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
+            writer.push_array(key)
+            records.each { |r| _write_one(r, writer, context, scope, filters) }
+            writer.pop
+            nil
+          end
+
           def _release
             nil
           end
