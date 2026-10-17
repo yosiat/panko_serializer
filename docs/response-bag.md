@@ -40,6 +40,10 @@ end
 
 And everything will work as expected!
 
+`Panko::Response` writes the serializer output straight into its own JSON writer, so the body
+is built once. Calling `.to_json` on the `ArraySerializer` first, and wrapping the String in
+`Panko::JsonValue`, gives the same output but copies the body one extra time.
+
 For a single object serialization, we need to use a different API (since `Panko::Serializer` doesn't accept an object in it's constructor):
 
 ```ruby
