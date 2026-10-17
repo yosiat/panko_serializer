@@ -7,30 +7,18 @@ require "faker"
 require "active_record"
 require "temping"
 
-# Load database configuration helper
 require_relative "support/database_config"
 
-# Require database adapters based on environment
-case DatabaseConfig.database_type
-when "sqlite"
-  require "sqlite3"
-when "postgresql"
-  require "pg"
-when "mysql"
-  require "trilogy"
-end
+require "sqlite3"
 
-# Set up database connection
 DatabaseConfig.setup_database
 ActiveRecord::Base.establish_connection(DatabaseConfig.config)
 
-# Don't show migration output
 ActiveRecord::Migration.verbose = false
 
 RSpec.configure do |config|
   config.order = "random"
 
-  # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
 
   config.filter_run focus: true
@@ -82,7 +70,6 @@ RSpec::Matchers.define :serialized_as do |serializer_factory_or_class, output|
 end
 
 if GC.respond_to?(:verify_compaction_references)
-  # This method was added in Ruby 3.0.0. Calling it this way asks the GC to
-  # move objects around, helping to find object movement bugs.
+  # Makes the GC move objects, to surface object-movement bugs.
   GC.verify_compaction_references(double_heap: true, toward: :empty)
 end

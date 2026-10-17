@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "oj"
+require_relative "code_gen/writers_pool"
 
 module Panko
   JsonValue = Struct.new(:value) do
@@ -10,6 +11,17 @@ module Panko
 
     def to_json
       value
+    end
+  end
+
+  # A serializer and the object it serializes, written straight into the Response writer.
+  SerializerValue = Struct.new(:serializer, :object) do
+    def to_json
+      serializer.serialize_to_json(object)
+    end
+
+    def write_json(writer, key = nil)
+      serializer.write_json(object, writer, key)
     end
   end
 
@@ -28,19 +40,39 @@ module Panko
     end
 
     def self.serializer(data, serializer, options = {})
-      json serializer.new(options).serialize_to_json(data)
+      Panko::SerializerValue.new(serializer.new(options), data)
     end
   end
 
   class Response
+    # Picked on first use, like the generated classes' pools, so an app that loads
+    # ActiveSupport after Panko still shares one writer stack with them.
+    def self.writers
+      @writers ||= defined?(ActiveSupport::IsolatedExecutionState) ?
+        Panko::CodeGen::WritersPool::IsolatedExecutionState.new :
+        Panko::CodeGen::WritersPool::ThreadLocal.new
+    end
+
     def initialize(data)
       @data = data
     end
 
     def to_json(_options = nil)
-      writer = Oj::StringWriter.new(mode: :rails)
-      write(writer, @data)
-      writer.to_s
+      writers = Response.writers
+      writer = writers.checkout
+      result = nil
+      begin
+        write(writer, @data)
+        result = writer.to_s
+      ensure
+        writers.checkin(writer, result)
+      end
+    end
+
+    # Writes this Response into +writer+ as the value of +key+, or as the next element when
+    # +key+ is nil.
+    def write_json(writer, key = nil)
+      write(writer, @data, key)
     end
 
     def self.create
@@ -74,10 +106,10 @@ module Panko
     end
 
     def write_value(writer, value, key = nil)
-      if value.is_a?(Panko::ArraySerializer) ||
-          value.is_a?(Panko::Serializer) ||
-          value.is_a?(Panko::Response) ||
-          value.is_a?(Panko::JsonValue)
+      case value
+      when Panko::ArraySerializer, Panko::Response, Panko::SerializerValue
+        value.write_json(writer, key)
+      when Panko::Serializer, Panko::JsonValue
         writer.push_json(value.to_json, key)
       else
         writer.push_value(value, key)
