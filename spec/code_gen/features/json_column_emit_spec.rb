@@ -155,7 +155,7 @@ RSpec.describe "Specialized JSON-column emit path" do
     end
   end
 
-  describe "byte-divergence vs today's :html_safe (per the phase-1 report)" do
+  describe "byte-divergence vs today's :html_safe" do
     # Raw SQL, so the stored JSON bytes reach the column unchanged.
 
     def insert_metadata_bytes(id, raw_json)
@@ -221,7 +221,7 @@ RSpec.describe "Specialized JSON-column emit path" do
     end
   end
 
-  describe "allocation invariant (carve-out)" do
+  describe "allocation invariant" do
     it ":wire_format total allocations ≤ :html_safe total allocations on saved records" do
       50.times do |i|
         PlainPost.create!(id: i + 1, metadata: {"category" => "tech", "tags" => %w[ruby json], "n" => i})
