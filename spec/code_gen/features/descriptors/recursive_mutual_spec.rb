@@ -18,7 +18,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
           expect { generated_class.new(descriptor: descriptor) }.not_to raise_error
         end
 
-        it "serializes a Folder → Item → Folder chain (2-deep, inner Folder with no items) per docs/testing.md § recursive_mutual" do
+        it "serializes a Folder → Item → Folder chain (2-deep, inner Folder with no items)" do
           inner = Folder.create!(name: "inner")
           root = Folder.create!(name: "root")
           item = Item.create!(name: "item-1", folder: root, subfolder: inner)

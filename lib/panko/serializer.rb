@@ -5,33 +5,6 @@ require_relative "code_gen/descriptor_builder"
 require_relative "code_gen/runtime"
 require "oj"
 
-class SerializationContext
-  attr_accessor :context, :scope
-
-  def initialize(context, scope)
-    @context = context
-    @scope = scope
-  end
-
-  def self.create(options)
-    if options.key?(:context) || options.key?(:scope)
-      SerializationContext.new(options[:context], options[:scope])
-    else
-      EmptySerializerContext.new
-    end
-  end
-end
-
-class EmptySerializerContext
-  def scope
-    nil
-  end
-
-  def context
-    nil
-  end
-end
-
 module Panko
   class Serializer
     # Unified with the engine's sentinel so a method field returning SKIP is
@@ -177,9 +150,6 @@ module Panko
       # uninitialized - Ruby reads them back as nil, same as unpacking an
       # empty Hash, without paying four lookups and four writes per +.new+.
       return if options.equal?(EMPTY_OPTIONS)
-
-      # +_skip_init+ builds a bare instance for descriptor duplication.
-      return if options[:_skip_init]
 
       @context = options[:context]
       @scope = options[:scope]

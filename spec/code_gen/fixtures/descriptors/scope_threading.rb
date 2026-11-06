@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Canonical fixture - pins the new +scope+ axis added in
-# +docs/code-generation.md § Callable hoisting+. Exercises every emit
-# surface the widening touches:
+# Canonical fixture - pins the new +scope+ axis.
+# Exercises every emit surface the widening touches:
 #
 # - one arity-2 Method Attribute (+legacy_label+) - proves +context+
 #   still threads as +.call(record, context)+ unchanged.
@@ -24,6 +23,7 @@ module Fixtures
     AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingAuthorSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -35,6 +35,7 @@ module Fixtures
     COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingCommentSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -52,6 +53,7 @@ module Fixtures
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ScopeThreadingPostSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id)
       ],

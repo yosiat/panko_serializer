@@ -7,6 +7,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   let(:inner) {
     Panko::CodeGen::Descriptor.new(
       name: "InnerDescriptor", model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [], method_attributes: [], associations: []
     )
   }
@@ -15,6 +16,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: associations
@@ -132,6 +134,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     it "does not raise when the same name appears at parent and nested levels" do
       nested = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:id)],
         method_attributes: [], associations: []
       )
@@ -149,6 +152,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     it "raises when the collision is inside a nested Descriptor and names the nested Descriptor" do
       nested = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:name)],
         method_attributes: [],
         associations: [association(:name, inner)]
@@ -167,6 +171,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       shared = Panko::CodeGen::Descriptor.new(
         name: "SharedDescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:id)],
         method_attributes: [], associations: []
       )
@@ -181,6 +186,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     it "does not infinite-loop on a self-referencing Descriptor" do
       parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:body)],
         method_attributes: [], associations: []
       )

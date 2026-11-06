@@ -12,7 +12,7 @@
 
 require_relative "recursive_mutual_item_serializer_hash"
 
-class RecursiveMutualFolderSerializer_Hash
+class RecursiveMutualFolderSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1, items: 2}.freeze
 
   def initialize(descriptor:, _construct_cache: {})

@@ -84,16 +84,13 @@ module Panko::CodeGen
 
       private
 
-      # The +class <Name>_<suffix>+ header, branching on
-      # +descriptor.parent_class+: +nil+ → bare class (implicit +Object+
-      # parent); a named class → +< <parent_class.name>+ spliced verbatim
-      # so namespaced parents resolve at +module_eval+ time; an anonymous
-      # parent → the +ANON_PARENTS+ registry fetch.
+      # The +class <Name>_<suffix> < <parent>+ header, branching on
+      # +descriptor.parent_class+: a named class → +< <parent_class.name>+
+      # spliced verbatim so namespaced parents resolve at +module_eval+
+      # time; an anonymous parent → the +ANON_PARENTS+ registry fetch.
       def class_line(descriptor)
         class_name = GeneratedNames.class_name(descriptor, @sink.suffix)
-        if descriptor.parent_class.nil?
-          "class #{class_name}"
-        elsif descriptor.parent_class.name
+        if descriptor.parent_class.name
           "class #{class_name} < #{descriptor.parent_class.name}"
         else
           "class #{class_name} < ANON_PARENTS.fetch(#{descriptor.name.inspect})"

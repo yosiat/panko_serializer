@@ -136,16 +136,6 @@ describe Panko::Serializer do
         expect(serializer.context).to eq(context)
         expect(serializer.scope).to eq(scope)
       end
-
-      it "skips option processing when _skip_init is true" do
-        context = {user_id: 123}
-        scope = "admin"
-
-        serializer = serializer_class.new(_skip_init: true, context: context, scope: scope)
-
-        expect(serializer.context).to be_nil
-        expect(serializer.scope).to be_nil
-      end
     end
 
     describe "#context and #scope" do

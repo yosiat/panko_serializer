@@ -65,6 +65,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
       author = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedAuthor",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: Fixtures::NestedComposition::AUTHOR_DESCRIPTOR.attributes,
         method_attributes: [],
         associations: []
@@ -72,6 +73,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
       comment = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedComment",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: Fixtures::NestedComposition::COMMENT_DESCRIPTOR.attributes,
         method_attributes: [],
         associations: []
@@ -79,6 +81,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
       renamed = Panko::CodeGen::Descriptor.new(
         name: "S15FiveNestedPost",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: descriptor.attributes,
         method_attributes: [],
         associations: [
@@ -181,6 +184,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
         renamed_item = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualItem",
           model: nil,
+          parent_class: Fixtures::BaseSerializer,
           attributes: Fixtures::RecursiveMutual::ITEM_DESCRIPTOR.attributes,
           method_attributes: [],
           associations: []
@@ -188,6 +192,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
         renamed_folder = Panko::CodeGen::Descriptor.new(
           name: "S15FiveMutualFolder",
           model: nil,
+          parent_class: Fixtures::BaseSerializer,
           attributes: Fixtures::RecursiveMutual::FOLDER_DESCRIPTOR.attributes,
           method_attributes: [],
           associations: []
@@ -205,7 +210,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
         # Mutual +require_relative+ trips Ruby's "circular require
         # considered harmful" warning by design - both files name each
         # other, and the cycle is intentionally resolved at instantiation,
-        # not load (per +docs/dumping.md § Nested Descriptor dumps+).
+        # not load.
         # Silence just this require so the spec output stays clean.
         previous_verbose = $VERBOSE
         $VERBOSE = nil

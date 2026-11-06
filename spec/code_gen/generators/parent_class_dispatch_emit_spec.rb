@@ -3,21 +3,21 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Narrow emit-shape tests for the +parent_class+ dispatch wiring:
-# the Sink#method_attribute_call_expression Symbol-vs-Callable branch and the
+# Narrow emit-shape tests for the +parent_class+ dispatch wiring: the
+# Sink#method_attribute_call_expression Symbol-vs-Callable branch and the
 # per-record +@object+ / +@context+ / +@scope+ ivar writes prepended at
-# the top of +_write_one+ / +_to_hash+ when +descriptor.parent_class+ is
-# non-+nil+ *and* a Symbol-body Method Attribute is declared (the only
-# code that runs on the Generated Class instance during a serialize -
-# without one the writes are pure per-record overhead and are elided).
-# These assert directly on the +Generator+'s source-string output - no
-# +module_eval+, no snapshot files.
+# the top of +_write_one+ / +_to_hash+ when a Symbol-body Method
+# Attribute is declared (the only code that runs on the Generated Class
+# instance during a serialize - without one the writes are pure
+# per-record overhead and are elided). These assert directly on the
+# +Generator+'s source-string output - no +module_eval+, no snapshot
+# files.
 #
-# The +parent_class: nil+ default keeps no ivar writes; the snapshots
-# under +spec/fixtures/generated/+ remain the source of truth for the
-# full body shape - here we just pin that the ivar writes flip on
-# exactly when (parent_class, Symbol-body) are both present and that
-# the Symbol-body branch leaves no +@cb_<name>+ traces.
+# A descriptor with no Symbol-body Method Attribute keeps no ivar writes;
+# the snapshots under +spec/fixtures/generated/+ remain the source of
+# truth for the full body shape - here we just pin that the ivar writes
+# flip on exactly when a Symbol body is present and that the Symbol-body
+# branch leaves no +@cb_<name>+ traces.
 RSpec.describe "Generator parent_class dispatch emit" do
   let(:generator) { Panko::CodeGen::Generator.new }
   let(:config) { Panko::CodeGen::Config.new }
@@ -194,11 +194,12 @@ RSpec.describe "Generator parent_class dispatch emit" do
     end
   end
 
-  describe "parent_class: nil - no ivar writes prepended (byte-identical to earlier)" do
+  describe "no Symbol-body Method Attribute - no ivar writes prepended" do
     let(:specialized_descriptor) {
       Panko::CodeGen::Descriptor.new(
-        name: "NoParentSpecializedSerializer",
+        name: "PlainSpecializedSerializer",
         model: Post,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -206,8 +207,9 @@ RSpec.describe "Generator parent_class dispatch emit" do
     }
     let(:generic_descriptor) {
       Panko::CodeGen::Descriptor.new(
-        name: "NoParentGenericSerializer",
+        name: "PlainGenericSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -236,12 +238,6 @@ RSpec.describe "Generator parent_class dispatch emit" do
   end
 
   describe "end-to-end compile + serialize via native Ruby dispatch" do
-    # The validator widening (CallableArity Symbol-skip) ships in a
-    # separate change; until it lands, +Validator+'s default chain
-    # calls +Symbol#arity+ which raises +NoMethodError+. The
-    # +rules: []+ escape hatch on +Validator.new+ (documented as a
-    # test-affordance in +Validators::Validator+) routes around that
-    # without coupling this change to the validator change.
     let(:parent_class_with_methods) {
       parent = Class.new do
         def greeting
@@ -276,12 +272,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     }
 
     def compile(descriptor, mode)
-      Panko::CodeGen::Compiler.new(
-        descriptor,
-        output: mode,
-        config: config,
-        validator: Panko::CodeGen::Validators::Validator.new(rules: [])
-      ).compile
+      Panko::CodeGen.compile(descriptor, output: mode)
     end
 
     it "dispatches a Symbol-body to a method on self (JSON)" do
@@ -315,7 +306,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
       # the receiver keeps user methods from being shadowed by the
       # body's locals), so Ruby raises +NoMethodError+; the matcher
       # pins its +NameError+ superclass. The contract that matters is
-      # "no code_gen-specific error" + "no Compile-time check" - both
+      # "no engine-specific error" + "no Compile-time check" - both
       # pinned here; the runtime error stays Ruby-native.
       descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",

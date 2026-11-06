@@ -9,6 +9,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [],
       method_attributes: method_attributes,
       associations: associations
@@ -69,6 +70,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     let(:inner) {
       Panko::CodeGen::Descriptor.new(
         name: "InnerDescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [], method_attributes: [], associations: []
       )
     }
@@ -145,6 +147,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     it "raises when a Method Attribute one level deep has bad arity" do
       inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [],
         method_attributes: [method_attribute(:full_name, ->(_a, _b, _c, _d) { :ok })],
         associations: []
@@ -164,6 +167,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     it "validates a shared inner Descriptor referenced from two Associations without re-walking" do
       inner = Panko::CodeGen::Descriptor.new(
         name: "InnerDescriptor", model: nil, attributes: [],
+        parent_class: Fixtures::BaseSerializer,
         method_attributes: [method_attribute(:fld, ->(_r) { :ok })],
         associations: []
       )
@@ -182,6 +186,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
       # validator's identity-cache short-circuits the cycle.
       parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor", model: nil, attributes: [],
+        parent_class: Fixtures::BaseSerializer,
         method_attributes: [method_attribute(:body, ->(_r) { :ok })],
         associations: []
       )

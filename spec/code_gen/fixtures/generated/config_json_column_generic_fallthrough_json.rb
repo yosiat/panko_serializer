@@ -10,7 +10,7 @@
 #   require_relative "config_json_column_generic_fallthrough_serializer_json.generated"
 #   ConfigJsonColumnGenericFallthroughSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ConfigJsonColumnGenericFallthroughSerializer_JSON
+class ConfigJsonColumnGenericFallthroughSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, metadata: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigJsonColumnGenericFallthroughSerializer_JSON)
 

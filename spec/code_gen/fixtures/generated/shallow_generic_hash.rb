@@ -10,7 +10,7 @@
 #   require_relative "shallow_generic_serializer_hash.generated"
 #   ShallowGenericSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class ShallowGenericSerializer_Hash
+class ShallowGenericSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, title: 1}.freeze
 
   def initialize(descriptor:)

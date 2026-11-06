@@ -8,6 +8,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
   let(:descriptor) {
     Panko::CodeGen::Descriptor.new(
       name: "ADescriptor", model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [], method_attributes: [], associations: []
     )
   }
@@ -26,6 +27,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
     it "treats structurally-equal-but-distinct Descriptors as distinct keys" do
       twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [], method_attributes: [], associations: []
       )
       klass = Class.new
@@ -57,22 +59,6 @@ RSpec.describe Panko::CodeGen::CompileCache do
     end
   end
 
-  describe "#fetch" do
-    it "yields on miss + caches the block's return value" do
-      klass = Class.new
-      result = cache.fetch(descriptor) { klass }
-      expect(result).to equal(klass)
-      expect(cache.get(descriptor)).to equal(klass)
-    end
-
-    it "skips the block on hit + returns the cached value" do
-      klass = Class.new
-      cache.set(descriptor, klass)
-      result = cache.fetch(descriptor) { raise "should not yield" }
-      expect(result).to equal(klass)
-    end
-  end
-
   describe "#lookup_or_compile" do
     it "returns the cached class on hit, never yielding" do
       klass = Class.new
@@ -101,6 +87,7 @@ RSpec.describe Panko::CodeGen::CompileCache do
     it "is identity-keyed - two distinct Descriptor instances each get their own block invocation" do
       twin = Panko::CodeGen::Descriptor.new(
         name: "ADescriptor", model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [], method_attributes: [], associations: []
       )
       one_klass = Class.new

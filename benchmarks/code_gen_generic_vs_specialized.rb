@@ -3,7 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- CodeGenGenericVsSpecialized - code_gen-only -----------------------------------
+# --- CodeGenGenericVsSpecialized - engine-only -----------------------------------
 # Same flat shape as simple.rb, two Descriptors: one with `model: nil`
 # (Generic path) and one with `model: Bench::Post` (Specialized path).
 # Quantifies the Specialized path's payoff (per-Attribute
@@ -11,7 +11,7 @@ require_relative "support/targets"
 # `_write_one_object` dispatch through `record.send(:name)`) on a real
 # AR record set.
 #
-# Carries a `panko/*` row alongside the two code_gen variants: Panko always
+# Carries a `panko/*` row alongside the two engine variants: Panko always
 # compiles the Generic path (DescriptorBuilder sets `model: nil`), so
 # panko/json ≈ code_gen[generic] plus Panko's DSL/runtime-seam overhead -
 # the cost the DSL layer adds over the raw engine.
@@ -19,6 +19,7 @@ require_relative "support/targets"
 CODE_GEN_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "CodeGenGenericPostBenchSerializer",
   model: nil,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),
@@ -33,6 +34,7 @@ CODE_GEN_GENERIC_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 CODE_GEN_SPECIALIZED_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "CodeGenSpecializedPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: CODE_GEN_GENERIC_DESCRIPTOR.attributes,
   method_attributes: [],
   associations: []

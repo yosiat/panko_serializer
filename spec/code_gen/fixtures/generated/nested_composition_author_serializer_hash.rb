@@ -10,7 +10,7 @@
 #   require_relative "nested_composition_author_serializer_hash.generated"
 #   NestedCompositionAuthorSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class NestedCompositionAuthorSerializer_Hash
+class NestedCompositionAuthorSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
 
   def initialize(descriptor:)

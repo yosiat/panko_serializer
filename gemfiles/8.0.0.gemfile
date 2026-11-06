@@ -5,12 +5,10 @@ source "https://rubygems.org"
 gem "activesupport", "~> 8.0.0"
 gem "activemodel", "~> 8.0.0"
 gem "activerecord", "~> 8.0.0", group: :test
-gem "trilogy"
 gem "sqlite3", ">= 2.1"
 
 group :benchmarks do
   gem "stackprof"
-  gem "pg"
   gem "benchmark-ips"
   gem "memory_profiler"
   gem "oj_serializers"
@@ -24,7 +22,6 @@ group :test do
 end
 
 group :development do
-  gem "byebug"
   gem "rake"
   gem "rspec", "~> 3.0"
   gem "lefthook"

@@ -10,7 +10,7 @@
 #   require_relative "scope_threading_post_serializer_json.generated"
 #   ScopeThreadingPostSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class ScopeThreadingAuthorSerializer_JSON
+class ScopeThreadingAuthorSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ScopeThreadingAuthorSerializer_JSON)
 
@@ -72,7 +72,7 @@ class ScopeThreadingAuthorSerializer_JSON
   end
 end
 
-class ScopeThreadingCommentSerializer_JSON
+class ScopeThreadingCommentSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ScopeThreadingCommentSerializer_JSON)
 
@@ -147,7 +147,7 @@ class ScopeThreadingCommentSerializer_JSON
   end
 end
 
-class ScopeThreadingPostSerializer_JSON
+class ScopeThreadingPostSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, legacy_label: 1, viewer_label: 2, author: 3, comments: 4}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ScopeThreadingPostSerializer_JSON)
 

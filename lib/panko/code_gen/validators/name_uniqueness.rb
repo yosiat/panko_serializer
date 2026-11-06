@@ -45,9 +45,8 @@ module Panko::CodeGen
 
         # Recursive depth-first traversal. The +seen_descriptors+ Hash is
         # keyed by Descriptor identity (+__id__+) - matches the contract
-        # from +docs/descriptor.md § Recursive Descriptors+ ("Recursion
-        # is detected via Ruby object identity") and the convention
-        # established by +CallableArity+ / +SourceResolution+.
+        # ("Recursion is detected via Ruby object identity") and the
+        # convention established by +CallableArity+ / +SourceResolution+.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
         # @param seen_descriptors [Hash{Integer => true}] identity-keyed
@@ -85,7 +84,7 @@ module Panko::CodeGen
 
         # Returns the Fields on +descriptor+ paired with their kind label
         # (the human-readable name used in +NameCollisionError+
-        # messages, per +docs/errors.md § Message convention+). Order is
+        # messages). Order is
         # Attributes → MethodAttributes → Associations; the rule is
         # order-independent (first duplicate wins) but a stable scan
         # order keeps the error message deterministic.

@@ -10,7 +10,7 @@
 #   require_relative "shallow_specialized_serializer_hash.generated"
 #   ShallowSpecializedSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class ShallowSpecializedSerializer_Hash
+class ShallowSpecializedSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, title: 1, headline: 2, static: 3, hidden: 4, contextual: 5}.freeze
 
   def initialize(descriptor:)

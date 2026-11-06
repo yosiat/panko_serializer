@@ -3,7 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- CodeGenRecursive - code_gen-only ----------------------------------------------
+# --- CodeGenRecursive - engine-only ----------------------------------------------
 # Reuses the `recursive_self` Descriptor shape: a single
 # Bench::Comment Descriptor that names itself through a `has_many :replies`
 # Association. The Compiler emits the self-recursion shortcut
@@ -19,11 +19,12 @@ require_relative "support/targets"
 # Only carries `code_gen/*` rows - there's no equivalent
 # panko / oj recursive primitive worth comparing (panko's recursive
 # pattern requires a separate intermediate serializer per level, which
-# isn't shape-parity with code_gen's self-reference).
+# isn't shape-parity with the engine's self-reference).
 
 CODE_GEN_RECURSIVE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "CodeGenRecursiveCommentBenchSerializer",
   model: Bench::Comment,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -46,7 +47,7 @@ CODE_GEN_HASH_RECURSIVE = Panko::CodeGen.compile(CODE_GEN_RECURSIVE_DESCRIPTOR, 
 
 # --- Target registry entries ----------------------------------------------
 # n/a - panko / oj_serializers / plain rows omitted; this scenario measures
-# code_gen's self-recursion shortcut, which has no shape-parity peer.
+# the engine's self-recursion shortcut, which has no shape-parity peer.
 
 Targets::CODE_GEN_JSON[:code_gen_recursive] = ->(records) { CODE_GEN_JSON_RECURSIVE.serialize_many(records) }
 Targets::CODE_GEN_HASH[:code_gen_recursive] = ->(records) { CODE_GEN_HASH_RECURSIVE.serialize_many(records) }

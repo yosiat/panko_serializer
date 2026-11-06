@@ -107,6 +107,7 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
       Panko::CodeGen::Descriptor.new(
         name: "InnerSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -116,6 +117,7 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
       Panko::CodeGen::Descriptor.new(
         name: "DiamondSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [],
         method_attributes: [],
         associations: [

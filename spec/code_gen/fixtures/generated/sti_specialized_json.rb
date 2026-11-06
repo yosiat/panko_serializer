@@ -10,7 +10,7 @@
 #   require_relative "sti_specialized_serializer_json.generated"
 #   StiSpecializedSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class StiSpecializedSerializer_JSON
+class StiSpecializedSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {vin: 0, make: 1}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__StiSpecializedSerializer_JSON)
 

@@ -10,7 +10,7 @@
 #   require_relative "recursive_mutual_folder_serializer_hash.generated"
 #   RecursiveMutualFolderSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class RecursiveMutualItemSerializer_Hash
+class RecursiveMutualItemSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1, subfolder: 2}.freeze
 
   def initialize(descriptor:, _construct_cache: {})
@@ -71,7 +71,7 @@ class RecursiveMutualItemSerializer_Hash
   end
 end
 
-class RecursiveMutualFolderSerializer_Hash
+class RecursiveMutualFolderSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1, items: 2}.freeze
 
   def initialize(descriptor:, _construct_cache: {})

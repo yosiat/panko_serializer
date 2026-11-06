@@ -9,7 +9,6 @@ module Panko::CodeGen
     # populated before classification or step (2) of the 3-step rule
     # would mis-classify column-backed Sources as missing.
     #
-    # Research-backed by the benchmark notes:
     # +define_attribute_methods+ is byte-identical across Rails 7.2 / 8.0 /
     # 8.1, idempotent (returns +false+ on the second-and-subsequent call),
     # and thread-safe via AR's +GeneratedAttributeMethods::LOCK = Monitor.new+
@@ -20,8 +19,7 @@ module Panko::CodeGen
     # Surface is one method (+.ensure!(klass)+); deliberately the deepest
     # part of alongside +AccessClassifier+. If a future Rails ever
     # renames or moves the underlying method, the feature-detect switch
-    # goes here - no per-Rails-version file tree per
-    # +docs/structure.md § Why no per-Rails-version adapter folder+.
+    # goes here - no per-Rails-version file tree.
     module DefineAttributeMethods
       # Calls +klass.define_attribute_methods+ when the class has not yet
       # generated its column readers, otherwise returns immediately.

@@ -2,8 +2,7 @@
 
 module Fixtures
   module Config
-    # Config-isolation fixture #7 from
-    # +docs/testing.md § Config-isolation fixtures+ - pins
+    # Config-isolation fixture #7 - pins
     # +Config#supports_root_key: true+ emit. The Descriptor is
     # deliberately minimal (1 +Models: nil+ Attribute) so the snapshot
     # delta vs the default-config emit is exactly the +root_key:+ kwarg
@@ -19,6 +18,7 @@ module Fixtures
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigRootKeyOnSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id)
         ],

@@ -5,13 +5,14 @@ require_relative "support/targets"
 
 # --- HasMany-shape Descriptor / serializers -------------------------------
 # Post → Comments has_many Association. model: Bench::Post / Bench::Comment
-# picks the specialized path on both sides so the code_gen row goes through the
+# picks the specialized path on both sides so the engine row goes through the
 # same model-aware fast path as panko/{json,object} for an apples-to-apples
 # comparison.
 
 HAS_MANY_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyCommentBenchSerializer",
   model: Bench::Comment,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -23,6 +24,7 @@ HAS_MANY_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 HAS_MANY_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title)

@@ -14,8 +14,7 @@ module Fixtures
     # Together with the Generic-path sibling fixture
     # ({ConfigJsonColumnGenericFallthrough}), this snapshot enforces that
     # the JSON-column fast-path emit is Specialized-only and
-    # JSON-typed-only - the design contract from
-    # the benchmark notes. The snapshot delta vs
+    # JSON-typed-only. The snapshot delta vs
     # {ConfigJsonColumnWireFormat} is the absence of
     # +read_attribute_before_type_cast+ / +Oj.sc_parse+ / +push_json+ /
     # +Panko::CodeGen::JSON_NOOP_PARSER+ tokens in the body of
@@ -30,6 +29,7 @@ module Fixtures
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnNonJsonSpecializedSerializer",
         model: PlainNote,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)

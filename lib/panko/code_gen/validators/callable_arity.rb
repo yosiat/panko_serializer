@@ -4,7 +4,7 @@ module Panko::CodeGen
   module Validators
     # Semantic-validation rule: every Callable in a Descriptor tree
     # (+MethodAttribute#body+ and +Association#if+) must declare arity in
-    # +{0, 1, 2, 3}+ per +docs/descriptor.md § Callable arity+. Variadic
+    # +{0, 1, 2, 3}+. Variadic
     # arities (+-1+, +-2+, ...) and 4-or-more positional args raise
     # +Panko::CodeGen::ArityError+ before any source emit.
     #
@@ -44,13 +44,11 @@ module Panko::CodeGen
         private
 
         # Recursive depth-first traversal. The +seen+ Hash is keyed by
-        # Descriptor identity (+__id__+) - matches the contract from
-        # +docs/descriptor.md § Recursive Descriptors+ ("Recursion is
-        # detected via Ruby object identity").
+        # Descriptor identity (+__id__+) - matches the contract
+        # ("Recursion is detected via Ruby object identity").
         #
-        # Symbol-body +MethodAttribute+s are skipped - Symbols have
-        # no +#arity+, and the legitimacy check ("Symbol body requires a
-        # +parent_class+") lives in +Validators::SymbolBodyDispatch+.
+        # Symbol-body +MethodAttribute+s are skipped - Symbols have no
+        # +#arity+ (they dispatch to a method on the +parent_class+).
         # Association +#if+ stays Callable-only and is checked as before.
         #
         # @param descriptor [Panko::CodeGen::Descriptor]
@@ -69,7 +67,7 @@ module Panko::CodeGen
           end
         end
 
-        # Raises +ArityError+ with the +docs/errors.md § Message convention+
+        # Raises +ArityError+ with the Message convention
         # format: +"<Descriptor>#<Field>: <CallableLabel> has arity <n>;
         # must be 0, 1, 2, or 3."+.
         #

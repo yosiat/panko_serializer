@@ -35,6 +35,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     leaf = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityLeafSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -43,6 +44,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     leaf_many = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityLeafManySerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -51,6 +53,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     attributes_and_method_attributes = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityAttrsAndMethodAttrsSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title)
@@ -65,6 +68,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     attributes_and_associations = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityAttrsAndAssocsSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title)
@@ -79,6 +83,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     full_mix_leaf = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityFullMixLeafSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -87,6 +92,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     full_mix_leaf_many = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityFullMixLeafManySerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -95,6 +101,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     full_mix = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityFullMixSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :title, source: :title)
@@ -111,6 +118,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     aliased_leaf = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityAliasedLeafSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: []
@@ -119,6 +127,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
     aliased_association = Panko::CodeGen::Descriptor.new(
       name: "FieldIndexParityAliasedAssocSerializer",
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [],
       associations: [

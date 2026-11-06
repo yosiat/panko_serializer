@@ -10,7 +10,7 @@
 #   require_relative "recursive_self_comment_serializer_json.generated"
 #   RecursiveSelfCommentSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
-class RecursiveSelfCommentSerializer_JSON
+class RecursiveSelfCommentSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, replies: 2}.freeze
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__RecursiveSelfCommentSerializer_JSON)
 

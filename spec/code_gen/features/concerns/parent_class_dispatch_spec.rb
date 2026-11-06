@@ -4,9 +4,8 @@ require "spec_helper"
 require "panko/code_gen"
 
 # Cross-cutting +parent_class+ dispatch contract - the 9-item
-# enumeration from the design / the design notes. JSON/Hash
-# parity is iterated at the +describe+ block per
-# +docs/testing.md § JSON/Hash parity+ (the 9 × 2 = 18 cases give the
+# enumeration for the +Descriptor#parent_class+ dispatch shape. JSON/Hash
+# parity is iterated at the +describe+ block (the 9 × 2 = 18 cases give the
 # full contract for the Symbol-body Method Attribute dispatch shape
 # under +Descriptor#parent_class+).
 #
@@ -327,10 +326,8 @@ RSpec.describe "parent_class dispatch - Symbol-body Method Attribute contract" d
       context "with #{mode} Output Mode" do
         # Runtime-defer contract from the design: +Compile+ does not
         # introspect +parent_class.instance_method(<sym>)+. A Symbol
-        # that does not resolve at +Compile+ time passes through
-        # +Validators::SymbolBodyDispatch+ (+parent_class+ is non-nil
-        # - legitimate Symbol-body shape) and produces a Generated
-        # Class. At +serialize_one+ time Ruby's normal method
+        # that does not resolve at +Compile+ time still produces a
+        # Generated Class. At +serialize_one+ time Ruby's normal method
         # resolution raises - and because the Symbol-body emit shape
         # is +value = <method_name>+ (bare identifier, no explicit
         # receiver), the failure form is +NameError: undefined local
@@ -339,7 +336,7 @@ RSpec.describe "parent_class dispatch - Symbol-body Method Attribute contract" d
         # bare-identifier failure from the explicit-receiver failure
         # (+obj.<method>+ → +NoMethodError+) and raises the
         # +NameError+ supertype for the former. Either way the error
-        # vocabulary is Ruby-native - no code_gen-specific synthetic
+        # vocabulary is Ruby-native - no engine-specific synthetic
         # error class.
         it "raises NameError at serialize_one time, not at Compile time" do
           stub_const("ParentClassDispatchSpec_MissingMethodBase", Class.new {

@@ -14,7 +14,6 @@ require_relative "code_gen/active_record/define_attribute_methods"
 require_relative "code_gen/validators/callable_arity"
 require_relative "code_gen/validators/source_resolution"
 require_relative "code_gen/validators/name_uniqueness"
-require_relative "code_gen/validators/symbol_body_dispatch"
 require_relative "code_gen/validators/validator"
 require_relative "code_gen/generators/generated_names"
 require_relative "code_gen/generators/sink"
@@ -47,8 +46,7 @@ module Panko::CodeGen
   # skips every callback and validates well-formedness without
   # materializing the parsed structure or invoking any Ruby callback.
   # Used by the +:wire_format+ JSON-column path emitted by
-  # {Generators::JsonSink}; see {file:docs/code_gen/config.md} for
-  # rationale and benchmark numbers.
+  # {Generators::JsonSink}.
   JSON_NOOP_PARSER = Object.new.freeze
 
   # Frozen options for the +:wire_format+ JSON-column validation
@@ -61,18 +59,16 @@ module Panko::CodeGen
   JSON_STRICT_PARSE_OPTS = {mode: :strict}.freeze
 
   # Compiles +descriptor+ into a fresh Generated Class for the named
-  # +output:+ mode. Thin facade per +docs/structure.md § Public API
-  # surface+ - every call goes through the same +Compiler+ orchestration
-  # so +Dump+ can plug in next to it without retraining the
-  # internals.
+  # +output:+ mode. Thin facade - every call goes through the same
+  # +Compiler+ orchestration so +Dump+ can plug in next to it
+  # without retraining the internals.
   #
   # @param descriptor [Panko::CodeGen::Descriptor] the input
   # @param output [Symbol] +:json+ or +:hash+
   # @param config [Panko::CodeGen::Config] resolved settings;
   #   defaults to {Config.new} (library defaults)
   # @return [Class] a fresh Generated Class - two calls return two
-  #   independent classes (Compile is a pure function per
-  #   +docs/compilation.md+).
+  #   independent classes (Compile is a pure function).
   # @raise [Panko::CodeGen::CompileError] when semantic validation
   #   rejects the input
   # @raise [ArgumentError] when +output:+ is not in
@@ -82,13 +78,11 @@ module Panko::CodeGen
   end
 
   # Dumps +descriptor+ into a runnable +.rb+ file at +path:+ for the
-  # named +output:+ mode. Thin facade per +docs/structure.md § Public
-  # API surface+ - every call goes through the same +Dump+
-  # orchestration so the +Compile ≡ Dump byte-identical+ contract from
-  # +docs/structure.md § Layered architecture+ stays intact (the same
-  # +Generator+ output drives both materialization paths). This path ships
-  # flat single-file output; nested-Descriptor multi-file fan-out is
-  # a separate path.
+  # named +output:+ mode. Thin facade - every call goes through the
+  # same +Dump+ orchestration so the +Compile ≡ Dump byte-identical+
+  # contract stays intact (the same +Generator+ output drives both
+  # materialization paths). This path ships flat single-file output;
+  # nested-Descriptor multi-file fan-out is a separate path.
   #
   # @param descriptor [Panko::CodeGen::Descriptor, Panko::Descriptor] the
   #   engine descriptor, or the public view (+MySerializer.descriptor+) -
