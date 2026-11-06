@@ -21,7 +21,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new
     FOLDER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "RecursiveMutualFolderSerializer",
-      models: nil,
+      model: nil,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -31,7 +31,7 @@ module Fixtures
     )
     ITEM_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "RecursiveMutualItemSerializer",
-      models: nil,
+      model: nil,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)

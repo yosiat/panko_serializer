@@ -107,102 +107,102 @@ Compile-time cycle handling (via the identity cache) is unrelated and always on.
 
 ## Record-access strategy
 
-**Compile** emits different code depending on whether the **Descriptor**'s **Models** field
+**Compile** emits different code depending on whether the **Descriptor**'s **Model** field
 is set.
 
-### Generic path - `models: nil`
+### Generic path - `model: nil`
 
-`_write_one` dispatches to one of two specialized helpers based on the **Record** shape:
+One `_write_one` (JSON mode) / `_to_hash` (Hash mode) is emitted. Its body branches once
+on the **Record** shape, with both field-emit shapes inlined under the branch arms:
 
 ```ruby
-def _write_one(record, writer, context, filters)
+def _write_one(record, writer, context, scope, filters)
   if record.is_a?(Hash)
-    _write_one_hash(record, writer, context, filters)
+    writer.push_object
+    writer.push_value(record["id"], "id")
+    writer.push_value(record["title"], "title")
+    # ...
+    writer.pop
   else
-    _write_one_object(record, writer, context, filters)
+    writer.push_object
+    writer.push_value(record.id, "id")
+    writer.push_value(record.title, "title")
+    # ...
+    writer.pop
   end
-end
-
-def _write_one_hash(record, writer, context, filters)
-  writer.push_object
-  writer.push_key("id");    writer.push_value(record["id"])
-  writer.push_key("title"); writer.push_value(record["title"])
-  # ...
-  writer.pop
-end
-
-def _write_one_object(record, writer, context, filters)
-  writer.push_object
-  writer.push_key("id");    writer.push_value(record.id)
-  writer.push_key("title"); writer.push_value(record.title)
-  # ...
-  writer.pop
 end
 ```
 
-- One dispatch per `_write_one` entry, not per **Attribute**.
-- Each helper is monomorphic end-to-end once entered - every `record["id"]` call site in
-  `_write_one_hash` sees a single receiver class; same for `record.id` call sites in
-  `_write_one_object`. YJIT/ZJIT specialize each helper as its own unit.
-- The dispatch method body is small enough to inline under YJIT; when it doesn't, the one
-  extra call is trivial vs. the per-attribute work inside.
-- `_write_one_object` uses method dispatch and works for ActiveRecord models, plain Ruby
+- One shape branch per `_write_one` entry, not per **Attribute**.
+- Each branch arm is monomorphic end-to-end - every `record["id"]` call site in the Hash
+  arm sees a single receiver class; same for `record.id` call sites in the method arm.
+  The inline caches never see a mixed receiver.
+- Inlining both arms (rather than dispatching to per-shape `_write_one_hash` /
+  `_write_one_object` helpers) saves a method call per record - measurable on
+  association-heavy single-record serialization.
+- The method arm uses method dispatch and works for ActiveRecord models, plain Ruby
   objects, anything responding to the **Source** method.
 
-### Specialized path - `models: [...]` set (all ActiveRecord)
+Above `FUSED_DISPATCH_MAX_FIELDS` (64) **Fields**, the emit reverts to a dispatcher +
+per-shape-helper split: `_write_one` branches on the **Record** shape and delegates to
+`_write_one_hash` / `_write_one_object` (`_to_hash_hash` / `_to_hash_object` in Hash
+mode), each helper carrying one field-emit body - same bytes per body as the fused arms,
+only the wrapping differs. Fusion measured faster at every tested width under YJIT (lazy
+basic-block versioning compiles only the executed arm), but it doubles the method's
+source; the split above this width trades the small dispatch saving for halved
+per-method source - insurance for method-granular JITs (ZJIT compiles whole methods) and
+bounded code-region growth across apps with hundreds of **Generated Classes**.
 
-When **Models** is set and all entries are ActiveRecord classes, **Compile** introspects
-each class at compile time and classifies every **Attribute** via a three-step rule:
+### Specialized path - `model:` set (ActiveRecord)
 
-1. **Column-backed** (name appears in `Model.columns_hash`) → emit
-   `record._read_attribute("title")`. This is the fastest access form on Ruby 4 + YJIT +
-   AR 8.1 by a wide margin (see benchmark research):
-   4.43M ips persisted / 4.13M non-persisted, 1 alloc/call, and the `_read_attribute` call
+When **Model** is an ActiveRecord class, **Compile** introspects it at compile time and
+classifies every **Attribute** via a three-step rule:
+
+1. **Column-backed** (name appears in `Model.columns_hash`) with AR's own auto-generated
+   reader → emit `record._read_attribute("title")`. This is the fastest access form on
+   Ruby 4 + YJIT + AR 8.1 by a wide margin (1 alloc/call), and the `_read_attribute` call
    dispatches through AR's type-cast path so enum columns correctly return mapped labels.
-2. **Else, instance method exists** (name appears in `Model.instance_methods`) → emit
-   `record.title` method dispatch.
+2. **Else, instance method exists** (name appears in `Model.instance_methods`, including a
+   user-overridden column reader) → emit `record.title` method dispatch.
 3. **Else** → raise at **Compile** time with a message naming the missing attribute and
    the class.
 
-#### Overrides are bypassed for column-backed attributes
+#### Overrides are honored
 
-If a user defines `def title; super.upcase; end` on a model whose `title` is a column,
-the specialized path emits the column-access form and the user's override is NOT invoked.
-Users who need a custom reader should declare the field as a **Method Attribute** instead.
-This mirrors Panko's existing semantics and keeps the generated code straight-line.
+If a user defines `def title; super.upcase; end` on a model whose `title` is a column, the
+classifier detects that the reader's owner is not AR's `GeneratedAttributeMethods` module
+and emits method dispatch - the override runs, exactly as it would on the generic path.
+The **Model** field is a compiler hint, never a semantic switch: a specialized body must
+stay observably identical to the generic body for the same records.
 
-Document this loudly in user-facing docs (Panko's DSL layer) so the trade is explicit.
+STI hierarchies specialize per concrete class - each class gets its own **Descriptor** and
+Generated Class, so a subclass override affects only that subclass's compile.
 
-#### STI and mixed class sets
+#### AR `alias_attribute` resolves transparently
 
-When `models:` contains multiple classes (STI or otherwise), classify each **Attribute**
-against **every** class in the set and take the intersection:
-
-- Column-backed in every class → emit the column-access form.
-- Instance method in every class (but not uniformly column-backed) → emit method dispatch.
-- Neither in at least one class → raise at **Compile** time.
-
-The classification is computed once during **Compile** and baked directly into the emitted
-source; there is no runtime classification cache. For STI specifically, this means a
-subclass that overrides a column reader downgrades that attribute across the whole
-**Generated Class** - method dispatch wins whenever any class in the set lacks uniform
-column-backing.
+`alias_attribute :full_name, :name` on a model installs an alias-reader method on the
+model's `GeneratedAttributeMethods` at class-definition time. An **Attribute** whose
+`source` is the alias falls to step 2 (the alias isn't in `columns_hash`, but the method
+is defined) and emits `record.full_name` method dispatch, which resolves through AR's alias
+to the underlying column. No alias-specific handling is needed - normal method dispatch
+does the work. (This is distinct from the serializer-level output-key rename, which the
+`Attribute(name:, source:)` split already expresses.)
 
 #### Other specialized-path invariants
 
-- No Hash-access branch - **Models** implies the **Records** are instances of those classes.
-- Constraint: the **Models** classes must be loaded at **Compile** time (usually true in
+- No Hash-access branch - **Model** implies the **Records** are instances of that class
+  (or its subclasses).
+- Constraint: the **Model** class must be loaded at **Compile** time (usually true in
   Rails boot order; flag loudly if a class isn't loadable).
 - AR attribute methods are generated lazily. **Compile** calls `Model.define_attribute_methods`
   defensively before introspecting so steps 1–3 see a fully-populated method table. The call
-  is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1; see
-  benchmark research).
+  is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1).
 
-### Non-AR class in `models`
+### Non-AR class in `model`
 
-If a class in **Models** isn't ActiveRecord, **Compile** falls back to `record.foo` method
-dispatch. No Hash-access branch is emitted (the contract is still "**Records** are instances
-of these classes").
+If the **Model** isn't ActiveRecord, **Compile** falls back to `record.foo` method
+dispatch. No Hash-access branch is emitted (the contract is still "**Records** are
+instances of this class").
 
 ## Constructor of the Generated Class
 
@@ -221,10 +221,11 @@ in the **Generator**, no divergence between the two.
 ## What Compile does internally
 
 1. Validate the **Descriptor** (arity of **Callables**, `kind` enum, `output` in `[:json, :hash]`).
-2. If **Models** is set, introspect classes for specialized-path classification.
+2. If **Model** is set, introspect the class for specialized-path classification.
 3. Recursively **Compile** nested **Descriptors** (depth-first, naturally). No cycle handling.
 4. Ask the **Generator** for source code - one method per top-level public entry plus
-   `_write_one` (JSON mode) / `_to_hash` (Hash mode).
+   `_write_one` (JSON mode) / `_to_hash` (Hash mode) and `_release`
+   (see [generated-class.md](generated-class.md)).
 5. Inject the source into a fresh anonymous class via Ruby's standard class-level source
    injection API, with a synthetic path for backtraces. See [code-generation.md](code-generation.md).
 6. Return the class.

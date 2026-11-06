@@ -5,7 +5,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new(hash_record_key_type: :symbol)
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ConfigHashRecordKeySymbolSerializer",
-      models: nil,
+      model: nil,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)

@@ -18,7 +18,7 @@ module Fixtures
       CONFIG = Panko::CodeGen::Config.new(supports_root_key: true)
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigRootKeyOnSerializer",
-        models: nil,
+        model: nil,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id)
         ],

@@ -14,7 +14,7 @@ module Fixtures
       CONFIG = Panko::CodeGen::Config.new(json_column_emit: :html_safe)
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnHtmlSafeSerializer",
-        models: [PlainPost],
+        model: PlainPost,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
