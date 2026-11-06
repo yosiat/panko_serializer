@@ -89,6 +89,57 @@ above the limit pay one writer allocation per call. It must be a positive
 Panko::Config.writer_pool_max_bytes = 256 * 1024
 ```
 
+## Compiling at boot
+
+Panko compiles a serializer the first time it is used. In a server that forks
+workers (Puma or Unicorn with `preload_app`), every worker repeats that work
+on its first requests. `Panko.compile_all` does it once, in the parent process,
+so forked workers inherit the compiled code.
+
+Declare the record classes each serializer serializes with `models`:
+
+```ruby
+class PostSerializer < Panko::Serializer
+  models Post, Article
+  attributes :id, :title
+end
+```
+
+`models` is only a hint for `compile_all`: a record of any other class still
+serializes, and gets its specialized variant on first use. Subclasses inherit
+the list, and calling `models` again replaces it.
+
+Call `compile_all` after the app is eager loaded and before workers fork:
+
+```ruby
+# config/initializers/panko.rb
+Rails.application.config.after_initialize do
+  Panko.compile_all if Rails.application.config.eager_load
+end
+```
+
+It compiles every loaded `Panko::Serializer` subclass that declares a field,
+for both output modes (`modes: [:json]` limits it to one). It returns a
+`Panko::CompileAllResult`, where each serializer appears in exactly one field:
+
+| Field | Holds |
+| --- | --- |
+| `compiled` | serializers compiled for every declared model |
+| `without_models` | serializers with no `models`: the generic code is compiled, specialization happens on first use |
+| `not_specialized` | serializer to the declared models that could not be specialized (not an ActiveRecord class, or specialization disabled) |
+| `errors` | serializer to the error its compile raised |
+
+To require `models` everywhere, assert on the result in a test:
+
+```ruby
+result = Panko.compile_all
+expect(result.without_models).to be_empty
+expect(result.not_specialized).to be_empty
+expect(result.errors).to be_empty
+```
+
+If you warm serializers up before forking, do it after `compile_all`.
+
 ## When the settings apply
 
 The `auto_specialization` settings are read when a serializer meets a record class for the first
