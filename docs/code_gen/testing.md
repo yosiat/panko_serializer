@@ -149,8 +149,7 @@ Strict: fail on missing. Two write modes for creation/regeneration:
 
 Run it as `UPDATE_SNAPSHOTS=missing bundle exec rspec --require ./spec/code_gen/spec_helper
 spec/code_gen/generators/snapshot_spec.rb` under an Appraisal gemfile. There are no rake
-wrappers (the matcher's failure message still mentions `rake snapshots:create_missing`;
-that task does not exist).
+wrappers.
 
 The `missing` mode preserves the "review the diff on PR" discipline when adding a new
 fixture: the snapshot for the new fixture can be created, but an unrelated emitter drift

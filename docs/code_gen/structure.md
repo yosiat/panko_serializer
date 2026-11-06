@@ -7,7 +7,7 @@ Public API surface, directory layout, and the layered architecture for the engin
 - **Require path**: `require "panko/code_gen"`.
 - **Top-level module**: `Panko::CodeGen`.
 - **Published?** Not separately. The engine ships inside the `panko_serializer` gem, pure
-  Ruby, MIT-licensed, merged into the `panko_serializer` tree with its history.
+  Ruby, MIT-licensed.
   There is no standalone gem to install and no native extension to compile.
 
 ## Public API surface

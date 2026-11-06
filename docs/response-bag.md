@@ -39,6 +39,10 @@ end
 
 `posts` is now embedded as JSON, not as a string.
 
+`Panko::Response` writes the serializer output straight into its own JSON writer, so the body
+is built once. Calling `.to_json` on the `ArraySerializer` first, and wrapping the String in
+`Panko::JsonValue`, gives the same output but copies the body one extra time.
+
 To serialize a single object, use `Panko::Response.create`, since `Panko::Serializer` doesn't take the object in its constructor:
 
 ```ruby
