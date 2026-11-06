@@ -9,8 +9,9 @@ module Panko
     # Generated Class (Filter.wrap + child threading) instead of recompiling a
     # descriptor narrowed by SerializationDescriptor#apply_filters.
     #
-    # Panko shape (per level): only:/except: are each an Array of output names,
-    # or a Hash using :instance for the current level and reader/source symbols
+    # Panko shape (per level): only:/except: are each an Array of filter keys
+    # (a value field's output name; an association's declared name), or a Hash
+    # using :instance for the current level and reader/source symbols
     # for association sub-filters. Empty Arrays mean "no filter". When only and
     # except are both supplied, Panko selects(only) then rejects(except), so the
     # effective whitelist is only - except.

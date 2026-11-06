@@ -32,8 +32,12 @@ module Panko
       end
 
       # Anonymous serializers still need a unique, valid generated-class stem.
+      # "::" is mangled away: the stem becomes a constant defined inside the
+      # anonymous compile namespace, where a qualified name would reopen the
+      # real outer module (and const_get rejects qualified Symbols).
       def descriptor_name(serializer_class)
-        serializer_class.name || "PankoSerializer#{serializer_class.object_id}"
+        name = serializer_class.name || "PankoSerializer#{serializer_class.object_id}"
+        name.gsub("::", "__")
       end
 
       # Rebuilds the tree so every Descriptor has a unique +name+. Panko snapshots
@@ -140,7 +144,7 @@ module Panko
         descriptor.with(
           attributes: descriptor.attributes.reject { |a| drop?(a.name, only_set, except_set) },
           method_attributes: descriptor.method_attributes.reject { |m| drop?(m.name, only_set, except_set) },
-          associations: descriptor.associations.reject { |as| drop?(as.name, only_set, except_set) }.map do |as|
+          associations: descriptor.associations.reject { |as| drop?(as.source, only_set, except_set) }.map do |as|
             sub = engine[as.source]
             (sub.is_a?(Hash) && !sub.empty?) ? as.with(descriptor: narrow_by(as.descriptor, sub)) : as
           end

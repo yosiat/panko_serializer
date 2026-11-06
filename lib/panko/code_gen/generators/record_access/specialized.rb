@@ -67,8 +67,8 @@ module Panko::CodeGen
         #   choices depend on it (e.g. +Association#emit_json+ branches on
         #   +null_for_missing_has_one+)
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map per
-        #   +docs/filters.md § Threading through Composition+; threaded
+        #   +filter key → integer index+ map per
+        #   +docs/code_gen/filters.md § Threading through Composition+; threaded
         #   into each +FieldEmitters::*.emit_*+ call so the emitted
         #   +unless filters.drops?(<integer>)+ wrapper bakes the
         #   per-Field literal at codegen time
@@ -91,7 +91,7 @@ module Panko::CodeGen
               end
             end
             descriptor.associations.each do |association|
-              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.name), builder)
+              FieldEmitters::Association.emit_json(association, "record.#{association.source}", config, field_index.fetch(association.source), builder)
             end
             descriptor.method_attributes.each do |method_attribute|
               FieldEmitters::MethodAttribute.emit_json(method_attribute, field_index.fetch(method_attribute.name), builder)
@@ -113,7 +113,7 @@ module Panko::CodeGen
         # @param descriptor [Panko::CodeGen::Descriptor] the Descriptor
         # @param config [Panko::CodeGen::Config] resolved settings
         # @param field_index [Hash{Symbol => Integer}] codegen-time
-        #   +Field name → integer index+ map (mirror of {emit_json})
+        #   +filter key → integer index+ map (mirror of {emit_json})
         # @param builder [Panko::CodeGen::CodeBuilder] target buffer
         # @return [void]
         def self.emit_hash(descriptor, config, field_index, builder)
@@ -145,7 +145,7 @@ module Panko::CodeGen
                 "record.#{association.source}",
                 config.hash_output_key_type,
                 config,
-                field_index.fetch(association.name),
+                field_index.fetch(association.source),
                 builder
               )
             end
@@ -244,26 +244,34 @@ module Panko::CodeGen
           yield
         end
 
-        # Returns the read expression for one Attribute in the Specialized
-        # path. Runs +AccessClassifier.classify+ against the AR Model;
-        # +:column+ verdicts emit +record._read_attribute("name")+, method
-        # verdicts (including user-overridden column readers, which are
-        # honored, never bypassed) emit +record.<name>+. When +ar_model+
-        # is +nil+ (the declared Model fails the AR duck-type test), falls
-        # back to method dispatch for every Attribute - the "non-AR class
-        # in +model:+" case from +docs/compilation.md § Non-AR class in
-        # `models`+.
+        # The read expression for one Attribute: +:column+ verdicts emit
+        # +record._read_attribute("name")+; method verdicts on a name the
+        # Model declares (a user-overridden column reader, an +attribute+,
+        # an +alias_attribute+) emit +record.<name>+. Any other method
+        # verdict reads the loaded attribute first, so a SELECT alias
+        # named like a method (+thing_ids+ next to +has_many :things+)
+        # serializes the selected value, as Panko's C extension did,
+        # instead of calling the method. +nil+ +ar_model+ falls back to
+        # method dispatch.
         #
         # @param attribute [Panko::CodeGen::Attribute]
         # @param ar_model [Class, nil]
         # @return [String] Ruby source like +'record._read_attribute("title")'+
         #   or +"record.headline"+
         def self.attribute_read_expr(attribute, ar_model)
-          return "record.#{attribute.source}" if ar_model.nil?
-          case ActiveRecord::AccessClassifier.classify(ar_model, attribute.source)
-          when :column then %(record._read_attribute("#{attribute.source}"))
-          else "record.#{attribute.source}"
-          end
+          source = attribute.source
+          return "record.#{source}" if ar_model.nil?
+          return %(record._read_attribute("#{source}")) if ActiveRecord::AccessClassifier.classify(ar_model, source) == :column
+          return "record.#{source}" if declared_attribute?(ar_model, source)
+          %((record._has_attribute?("#{source}") ? record._read_attribute("#{source}") : record.#{source}))
+        end
+
+        # @param ar_model [Class]
+        # @param source [Symbol]
+        # @return [Boolean] whether +source+ is an attribute or attribute
+        #   alias the Model declares, whose reader is always honored
+        def self.declared_attribute?(ar_model, source)
+          ar_model.attribute_types.key?(source.to_s) || ar_model.attribute_aliases.key?(source.to_s)
         end
 
         # Returns +descriptor.model+ when it quacks like AR, +nil+

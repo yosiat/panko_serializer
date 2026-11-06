@@ -118,19 +118,28 @@ lib/
     compile_cache.rb                           # identity-keyed Descriptor → Generated Class cache
                                                # (handles Recursive Descriptors)
 
-    # === Code generation ===
-    code_builder.rb                            # pure string accumulator + indent tracker
-    generator.rb                               # Generator entry - dispatches to mode
-    generators/
-      json_mode.rb                             # JSON-mode source emission (top-level)
-      hash_mode.rb                             # Hash-mode source emission (top-level)
-      field_emitters/
-        attribute.rb                           # emit one Attribute
-        method_attribute.rb                    # emit one Method Attribute
-        association.rb                         # emit one Association (nested call threading)
-      record_access/
-        generic.rb                             # _write_one_hash / _write_one_object generator
-        specialized.rb                         # _read_attribute / method-dispatch generator
+      # === Code generation ===
+      code_builder.rb                          # pure indented-line accumulator
+      generator.rb                             # Generator entry - dispatches on Output Mode
+      generators/
+        json_mode.rb                           # JSON-mode source emission (top-level)
+        hash_mode.rb                           # Hash-mode source emission (top-level)
+        banner.rb                              # header-comment banner (see dumping.md)
+        descriptor_walk.rb                     # post-order unique-Descriptor tree walk
+        cycle_membership.rb                    # identity-keyed mutual-recursion cycle set
+        field_index.rb                         # per-class Symbol → Integer FIELD_INDEX map
+                                               # (filter-key keyed: name for value Fields, Source for Associations; feeds filters/indexed.rb)
+        release.rb                             # _release generator - checkin-side ivar cleanup
+        fanout.rb                              # multi-file dump fan-out (one file per Descriptor)
+        field_emitters/
+          attribute.rb                         # emit one Attribute
+          method_attribute.rb                  # emit one Method Attribute (Callable / Symbol body)
+          association.rb                        # emit one Association (nested call threading)
+        record_access/
+          generic.rb                           # generic path - one is_a?(Hash) branch, both
+                                               # emit shapes inlined; splits to per-shape helpers
+                                               # above 64 Fields (FUSED_DISPATCH_MAX_FIELDS)
+          specialized.rb                       # specialized path - _read_attribute / method dispatch
 
     # === Dump ===
     dump.rb                                    # Dump#dump: drive Generator + File.write
