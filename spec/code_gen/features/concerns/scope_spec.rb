@@ -3,11 +3,10 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +Scope+ threading contract - the 9-item enumeration from
-# +docs/testing.md § scope_spec.rb+ (and the design). JSON/Hash
-# parity is iterated at the +describe+ block per
-# +docs/testing.md § JSON/Hash parity+ (this is item (9) and pins the
-# parallel emit shapes per +docs/output-modes.md+). Fixtures are inline
+# Cross-cutting +Scope+ threading contract - the 9-item enumeration
+#. JSON/Hash
+# parity is iterated at the +describe+ block (this is item (9) and pins
+# the parallel emit shapes). Fixtures are inline
 # minimal Descriptors; the +scope_threading+ canonical fixture from
 # #91 pins the emit bytes at the snapshot tier - this file pins
 # the runtime semantics: what arity-3 Callables observe and what
@@ -18,6 +17,7 @@ RSpec.describe "Scope - threading contract for Method Attribute and Association 
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: associations
@@ -216,6 +216,7 @@ RSpec.describe "Scope - threading contract for Method Attribute and Association 
           comment = Panko::CodeGen::Descriptor.new(
             name: "ScopeRecursiveCommentSerializer_#{mode}",
             model: nil,
+            parent_class: Fixtures::BaseSerializer,
             attributes: [attribute(:id)],
             method_attributes: [method_attribute(:tag, body)],
             associations: []

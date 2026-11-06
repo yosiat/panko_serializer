@@ -4,36 +4,23 @@ require_relative "filters/none"
 require_relative "filters/indexed"
 
 module Panko::CodeGen
-  # Public-facing namespace for the +Filter+ family per
-  # +docs/filters.md+. {Filter.wrap} is the single entry point used at
-  # the top of every Generated Class's +serialize_one+ /
-  # +serialize_many+; it normalizes the caller-supplied +filters:+ Hash
-  # into a +Filter+ object exposing the +drops?(<integer>)+ /
-  # +child(<symbol>)+ / +none?+ contract.
+  # Public-facing namespace for the +Filter+ family. {Filter.wrap} is
+  # the single entry point used at the top of every Generated Class's
+  # +serialize_one+ / +serialize_many+; it normalizes the
+  # caller-supplied +filters:+ Hash into a +Filter+ object exposing the
+  # +drops?(<integer>)+ / +child(<symbol>)+ contract.
   #
   # Two cells exist here:
   #
-  # - {None} - the no-filter singleton ({NONE}); +nil+ and +{}+ map
-  #   here. +drops?+ returns +false+, +child+ returns +self+, +none?+
-  #   returns +true+. Allocation-free, frozen at module load.
-  # - {Indexed} - the winning cell from the experiment
-  #   (+indexed × single_path+, see
-  #   the benchmark notes). Lifted from
-  #   the benchmark notes.
-  #   Picks {Indexed::Bits} (Integer bit-mask) when the Generated
-  #   Class's +FIELD_INDEX+ has +<= INDEXED_BITS_THRESHOLD+ entries,
-  #   {Indexed::Array} (Boolean Array) otherwise.
+  # - {None} - the no-filter singleton; +nil+ and +{}+ map
+  #   here. +drops?+ returns +false+, +child+ returns +self+.
+  #   Allocation-free, frozen at module load.
+  # - {Indexed} - the indexed cell, backed by a Boolean
+  #   Array over the Generated Class's +FIELD_INDEX+ positions.
   module Filter
-    # The no-filter singleton - frozen reference to the {Filter::None}
-    # module. Emitted code receives this instance whenever the caller
-    # passed +nil+ or +{}+, so the no-filter hot path pays zero filter
-    # allocations per +docs/filters.md § No-filter fast path+.
-    NONE = None
-
     # Normalizes the caller-supplied +filters:+ kwarg into a Filter
-    # object satisfying the +drops?+ / +child+ / +none?+ contract.
-    # +nil+ and +{}+ collapse to {NONE} per
-    # +docs/filters.md § Public shape+ ("Empty Hash +{}+ at a level is
+    # object satisfying the +drops?+ / +child+ contract.
+    # +nil+ and +{}+ collapse to {None} ("Empty Hash +{}+ at a level is
     # equivalent to +nil+ at that level - no filtering."). A non-empty
     # Hash routes to {Indexed.build} against +field_index+ - the
     # per-Generated-Class +FIELD_INDEX+ map emitted by
@@ -46,23 +33,22 @@ module Panko::CodeGen
     #
     # Recursively walks +filters+ before delegating to {Indexed.build}
     # and raises +ArgumentError+ at the first level (depth-first) that
-    # carries both +:only+ and +:except+ keys per
-    # +docs/filters.md § Rules+. Validation runs once per +serialize_*+
-    # call so the emitted +_write_one+ / +_to_hash+ bodies stay free of
-    # validation branches.
+    # carries both +:only+ and +:except+ keys. Validation runs once per
+    # +serialize_*+ call so the emitted +_write_one+ / +_to_hash+ bodies
+    # stay free of validation branches.
     #
     # @param filters [Hash, nil] the caller-supplied +filters:+ kwarg
     # @param field_index [Hash{Symbol => Integer}, nil] the
     #   per-Generated-Class +FIELD_INDEX+ map; required when +filters+
     #   is a non-empty Hash
-    # @return [Filter::None, Filter::Indexed::Bits, Filter::Indexed::Array]
+    # @return [Filter::None, Filter::Indexed::Array]
     # @raise [ArgumentError] when +filters+ is a non-empty Hash but
     #   +field_index+ is +nil+ - the indexed cell needs the per-class
     #   field map to translate symbols to integer positions
     # @raise [ArgumentError] when any level of +filters+ supplies both
     #   +:only+ and +:except+
     def self.wrap(filters, field_index = nil)
-      return NONE if filters.nil? || filters.empty?
+      return None if filters.nil? || filters.empty?
       validate_no_only_except_co_supply!(filters)
       raise ArgumentError, "Filter.wrap: a non-empty filters Hash requires a field_index (the Generated Class's FIELD_INDEX)" if field_index.nil?
       Indexed.build(filters, field_index)
@@ -72,8 +58,8 @@ module Panko::CodeGen
     # level that has both +:only+ and +:except+ keys. Recurses into any
     # value that is itself a +Hash+ (Association sub-filters) and
     # ignores non-Hash values (the +:only+ / +:except+ Arrays
-    # themselves, plus forward-compat unknown-shape values that
-    # +docs/filters.md § Rules+ documents as silently ignored).
+    # themselves, plus forward-compat unknown-shape values that are
+    # silently ignored).
     #
     # Module-private: only {wrap} should call this. Pinned at module
     # scope (rather than inlined) so the recursion-around-Hash-values

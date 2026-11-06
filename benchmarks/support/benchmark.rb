@@ -4,7 +4,7 @@ require_relative "setup"
 require_relative "datasets"
 
 # Frozen Data value carrying every env knob parsed once at harness load.
-# Read by `benchmark` / `benchmark_with_records` / `benchmark_scenario` to
+# Read by `benchmark` / `benchmark_scenario` to
 # decide which rows to measure and how to measure them. Documented at
 # docs/benchmarks.md § Harness.
 BenchmarkConfig = Data.define(:size, :bench, :target, :profile, :ips_time, :ips_warmup) do
@@ -73,14 +73,9 @@ end
 # Baseline workflow). When BENCH=<substr> is set and the label doesn't
 # case-insensitively contain it, the row is silently skipped.
 #
-# GC is left running during the IPS measurement: empirically, disabling
-# it during a 5s/iter window lets the heap grow unbounded for high-alloc
-# rows (heap-growth syscalls become the dominant noise source - error
-# bands explode to ±30–60% on +code_gen/hash+, +oj_serializers/json+,
-# +plain/*+). Leaving GC enabled drops those bands to ±3–7% and
-# replicates production behavior. The MemoryProfiler block keeps GC
-# disabled because it's explicitly measuring allocations and the
-# standard isolation pattern for that path is GC-off.
+# Not disabling GC for the IPS window (a common ips trick): on high-alloc rows
+# it blows error bands out to ±30–60% vs ±3–7% enabled, which matches production.
+# The MemoryProfiler block does disable it - there we're measuring allocations.
 #
 # @param label [String] human-readable row label
 # @yield invoked many times under benchmark-ips, then once under MemoryProfiler
@@ -114,22 +109,6 @@ def benchmark(label, &block)
     puts "--- memory profile: #{label} ---"
     mem_report.pretty_print(scale_bytes: true, normalize_paths: true)
     puts
-  end
-end
-
-# Iterates the configured sizes for +type:+, slicing the DATASETS entry to
-# each size and calling +benchmark+ per size with a label that includes the
-# size suffix.
-#
-# @param label [String] base label; the size suffix is appended automatically
-# @param type [Symbol] DATASETS registry key (e.g. +:posts+)
-# @yield [records] called per size with the sliced array of Records
-# @return [void]
-# @raise [KeyError] when +type+ isn't registered in DATASETS
-def benchmark_with_records(label, type:, &block)
-  BENCHMARK_CONFIG.sizes.each do |size|
-    records = DATASETS.fetch(type).first(size)
-    benchmark("#{label} size=#{size}") { block.call(records) }
   end
 end
 

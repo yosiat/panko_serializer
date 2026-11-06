@@ -3,9 +3,8 @@
 require "spec_helper"
 require "panko/code_gen"
 
-# Cross-cutting +SKIP+ contract - the 7-item enumeration from
-# +docs/testing.md § skip_spec.rb+. JSON/Hash parity is iterated at the
-# describe block per +docs/testing.md § JSON/Hash parity+. Fixtures are
+# Cross-cutting +SKIP+ contract - the 7-item enumeration. JSON/Hash
+# parity is iterated at the describe block. Fixtures are
 # inline minimal Descriptors (1–3 Method Attributes each); the
 # +shallow_specialized+ snapshot pins the emit bytes - this file
 # pins the runtime semantics.
@@ -14,6 +13,7 @@ RSpec.describe "SKIP - Method Attribute identity-compare elision" do
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: attributes,
       method_attributes: method_attributes,
       associations: []

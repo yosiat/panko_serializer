@@ -18,7 +18,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
           expect { generated_class.new(descriptor: descriptor) }.not_to raise_error
         end
 
-        it "serializes a finite 3-node Comment tree (root with two leaf replies) per docs/testing.md § recursive_self" do
+        it "serializes a finite 3-node Comment tree (root with two leaf replies)" do
           root = Comment.create!(body: "root")
           c1 = Comment.create!(body: "c1", parent_comment: root)
           c2 = Comment.create!(body: "c2", parent_comment: root)

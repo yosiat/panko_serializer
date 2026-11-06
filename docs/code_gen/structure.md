@@ -91,27 +91,18 @@ lib/
     config.rb                                  # Config Data.define
     errors.rb                                  # error hierarchy (see errors.md)
 
-    # === Semantic validation (one rule per file, one orchestrator) ===
-    validators/
-      validator.rb                             # runs all rules, raises on first violation
-      name_uniqueness.rb                       # two Fields sharing a name
-      source_resolution.rb                     # specialized-path Attribute source must resolve
-      callable_arity.rb                        # Callable arity ∈ {0, 1, 2, 3}
+      # === Semantic validation (one rule per file, one orchestrator) ===
+      validators/
+        validator.rb                           # runs all rules, raises on first violation
+        name_uniqueness.rb                     # two Fields sharing a name
+        source_resolution.rb                   # specialized-path Attribute source must resolve
+        callable_arity.rb                      # Callable arity ∈ {0, 1, 2, 3}
 
-    # === Filter ===
-    filter.rb                                  # Filter.wrap(hash) factory + interface
-    filters/
-      none.rb                                  # no-filter singleton (Null Object)
-      indexed.rb                               # winning cell from the verdict -
-                                               # bit-mask (≤63 Fields) or Boolean Array
-                                               # (>63 Fields); see filters.md and
-                                               # the benchmark notes
-                                               # The integer space `Filter::Indexed` and
-                                               # the per-emitter `unless filters.drops?(N)`
-                                               # wrappers share is sourced from
-                                               # `Generators::FieldIndex.build` and pinned
-                                               # name-keyed (not order-keyed) by
-                                               # `spec/generators/field_index_spec.rb`.
+      # === Filter ===
+      filter.rb                                # Filter.wrap(hash) factory + interface
+      filters/
+        none.rb                                # no-filter singleton (Null Object)
+        indexed.rb                             # Indexed filter (Boolean Array); see filters.md
 
     # === Compilation orchestration ===
     compiler.rb                                # Compiler#compile: drive Generator + eval

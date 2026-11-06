@@ -16,7 +16,7 @@ module Panko::CodeGen
     :attributes,         # Array<Attribute>
     :method_attributes,  # Array<MethodAttribute>
     :associations,       # Array<Association>
-    :parent_class,       # Class | nil - optional parent class the Generated Class inherits from
+    :parent_class,       # Class - required; the parent class the Generated Class inherits from
   )
 
   Attribute = Data.define(
@@ -26,7 +26,7 @@ module Panko::CodeGen
 
   MethodAttribute = Data.define(
     :name,  # Symbol - output key
-    :body,  # Symbol | Callable - Symbol-body dispatches on self when parent_class: is set; Callable invoked as body.call(record, context, scope); may return SKIP
+    :body,  # Symbol | Callable - Symbol-body dispatches on self (resolved against parent_class); Callable invoked as body.call(record, context, scope); may return SKIP
   )
 
   Association = Data.define(
@@ -62,31 +62,26 @@ A Ruby class, or `nil`.
 
 ### `Descriptor#parent_class`
 
-An optional Ruby `Class` (or `nil`, the default) the emitted **Generated Class** inherits
-from. Pre-the **Generated Class** always inherited from `Object` (implicit parent on a
-bare `class <Name>_<Mode>` declaration); This widens so a caller can pass a
-user-supplied class and have the **Generated Class** emit `class <Name>_<Mode> <
-<parent_class.name>`. The trigger for the **`parent_class` dispatch** shape from
-the design notes.
+The required Ruby `Class` the emitted **Generated Class** inherits from, emitted as
+`class <Name>_<Mode> < <parent_class.name>`. This is the **`parent_class` dispatch**
+shape: the **Generated Class** subclasses the user's own Panko serializer so Symbol-body
+**Method Attributes** dispatch to user `def`-d methods on `self` (see
+[code-generation.md § Per-record ivar writes](code-generation.md#per-record-ivar-writes--the-bounded-parent_class-deviation)
+for the emit and the safety argument). Panko always supplies the user's serializer class,
+so there is no parent-less emit shape: `nil` (and any non-`Class`) raises
+`DescriptorError` at `Data.new`, and omitting the kwarg raises `ArgumentError`.
 
-- `nil` (default): the **Generated Class** emits as a bare `class <Name>_<Mode>`, byte-
-  identical to earlier output. Every non-Panko caller stays on this shape - the new
-  field is invisible.
-- Non-`nil` `Class`: the **Generated Class** subclasses `parent_class` and `_write_one` /
-  `_to_hash` prepend `@object = record; @context = context; @scope = scope` at the top of
-  the dispatcher so a user-defined `def` on the parent class can read those ivars on
-  `self` (the Panko-shape contract). The class's fully-qualified `parent_class.name` is
-  spliced into the emit verbatim, so namespaced classes (`Outer::Inner::Base`) resolve
-  correctly at `module_eval` time. Anonymous classes (passed as `Class.new`) are out of
-  scope - Panko's converter always sets a named class.
+When the **Descriptor** also declares a Symbol-body **Method Attribute**, `_write_one` /
+`_to_hash` prepend `@object = record; @context = context; @scope = scope` at the top of
+the method body so the user-defined `def` on the parent class can read those ivars on
+`self` (the Panko-shape contract; see [code-generation.md](code-generation.md) for the
+gating rationale).
 
-Pairs with the widened `MethodAttribute#body` contract below: Symbol-body **Method
-Attributes** can only appear in a **Descriptor** whose `parent_class:` is non-`nil`,
-because the Symbol resolves via direct method dispatch on the **Generated Class**
-instance (which only reaches user methods when it subclasses the user's class).
-`Validators::SymbolBodyDispatch` enforces the pairing at **Compile** time; structural
-validation accepts a `Symbol` body unconditionally (the structural rule can't see the
-owning **Descriptor**'s `parent_class:` at `MethodAttribute.new` time).
+The class's fully-qualified `parent_class.name` is spliced into the emit verbatim, so
+namespaced classes (`Outer::Inner::Base`) resolve correctly at `module_eval` time. An
+anonymous parent (`Class.new`, which Panko's DSL produces for anonymous serializers) has
+no name to splice, so it is exposed to the emitted source through the compile namespace's
+`ANON_PARENTS` registry and referenced as `ANON_PARENTS.fetch("<Name>")`.
 
 ### `Attribute`
 
@@ -95,30 +90,26 @@ after normalization; both must be Symbols.
 
 ### `MethodAttribute`
 
-A **Field** whose value comes from either a **Callable** or - when the owning
-**Descriptor**'s `parent_class:` is non-`nil` - a `Symbol` naming a method on `self` (the
-**Generated Class** instance, which subclasses `parent_class`).
+A **Field** whose value comes from either a **Callable** or a `Symbol` naming a method on
+`self` (the **Generated Class** instance, which subclasses the owning **Descriptor**'s
+`parent_class`).
 
 - **`body` as a Callable** (today's contract): any Ruby callable - Proc, Lambda, `Method`
   object (bound). `UnboundMethod` is rejected (must be bound before inclusion in the
   **Descriptor**). Arity must be `0`, `1`, `2`, or `3`. See "Callable arity" below.
   Emitted as `value = @cb_<name>.call(record, context, scope)` (truncated to declared
   arity).
-- **`body` as a Symbol** (widening): the Symbol names a method on `parent_class` (or
-  inherited / `prepend`-ed onto it). Emitted as `value = <method_name>` - bare-identifier
-  call on `self`, no Callable indirection. Inside the method body, `@object` / `@context`
-  / `@scope` are reachable as ivars set by the per-record ivar writes at the top of
+- **`body` as a Symbol**: the Symbol names a method on `parent_class` (or inherited /
+  `prepend`-ed onto it). Emitted as `value = <method_name>` - bare-identifier call on
+  `self`, no Callable indirection. Inside the method body, `@object` / `@context` /
+  `@scope` are reachable as ivars set by the per-record ivar writes at the top of
   `_write_one` / `_to_hash`. The Symbol body axis is **only** for `MethodAttribute#body`;
-  `Association#if` stays Callable-only.
-- **Symbol-body legitimacy**: a `Symbol` body in a **Descriptor** with `parent_class: nil`
-  raises `Panko::CodeGen::SymbolBodyError` at **Compile** time (the Symbol resolves on
-  `self`, but with an implicit `Object` parent the method can't be reached). Validation
-  lives in `Validators::SymbolBodyDispatch`, not in structural validation
-  (`MethodAttribute.new` has no view of the owning **Descriptor**'s `parent_class:`).
+  `Association#if` stays Callable-only. No cross-Field legitimacy check is needed: the
+  owning **Descriptor** always carries a `parent_class` to dispatch against.
 - **Symbol-body method existence / arity**: deferred to runtime. **Compile** does not
   introspect `parent_class.instance_method(<sym>)`. A missing method surfaces as Ruby's
   `NameError` ("undefined local variable or method") at serialize time; wrong arity
-  surfaces as `ArgumentError`. No code_gen-specific error class - the error vocabulary stays
+  surfaces as `ArgumentError`. No engine-specific error class - the error vocabulary stays
   Ruby-native.
 - **Return value semantics** (both body kinds): if the return value is `equal?` to
   `Panko::CodeGen::SKIP`, the field is omitted from the output (no key, no value).
@@ -203,8 +194,11 @@ A **Descriptor** may reference itself through an **Association**, enabling natur
 
 A **Record** is anything the **Generated Class** can read fields from. Supported shapes:
 
-- **ActiveRecord instances**: accessed via the fastest available path given **Models**.
+- **ActiveRecord instances**: accessed via the fastest available path given the **Model**.
 - **Ruby Hashes**: accessed via `record["key"]` (default) or `record[:key]` (via config).
+  `HashWithIndifferentAccess` is a `Hash` subclass that stores its keys as Strings, so it
+  satisfies the `record.is_a?(Hash)` branch and hits the default string-keyed lookup -
+  HWIA records serialize correctly with no special handling.
 - **Plain Ruby objects**: accessed via method dispatch (`record.foo`). Works in the
   generic path; not specialized.
 
@@ -250,13 +244,10 @@ Cheap, one-time-per-construction checks on types and shapes:
 - `Descriptor#model` is `nil` or a Class object.
 - `Descriptor#attributes`, `method_attributes`, `associations` are Arrays of the right
   element type (all **Fields**).
-- `Descriptor#parent_class`, if set, is a Ruby `Class`. `nil` is the default and stays
-  on the bare-`class <Name>_<Mode>` emit shape.
+- `Descriptor#parent_class` is a Ruby `Class`; it is required, and `nil` is rejected.
 - `Attribute#name`, `source` are Symbols.
 - `MethodAttribute#body` is a `Symbol` or responds to `.call` (rejects `UnboundMethod`).
-  The Symbol-vs-Callable choice is structural; the Symbol-body legitimacy check (must
-  pair with `Descriptor#parent_class: non-nil`) runs semantically at **Compile** time
-  (see below).
+  The Symbol-vs-Callable choice is structural.
 - `Association#kind` ∈ `{:has_one, :has_many}`.
 - `Association#descriptor` is a **Descriptor**.
 - `Association#if`, if set, responds to `.call` (Symbol axis is **MethodAttribute#body**
@@ -271,15 +262,12 @@ Walks the tree (with identity-based cycle handling, see "Recursive Descriptors" 
 - **Name uniqueness across Fields** at the same level - no two **Fields** (regardless of
   kind) may share a `name`. Violations raise `NameCollisionError`.
 - **Source validity on the specialized path** - when **Model** is set, every
-  **Attribute**'s `source` must be column-backed or an instance method on every class in
-  **Models**. Violations raise `UnknownSourceError`.
+  **Attribute**'s `source` must be column-backed or an instance method on the
+  **Model**. Violations raise `UnknownSourceError`.
 - **Callable arity** - every **Callable** has arity `0`, `1`, `2`, or `3`. Violations
   raise `ArityError`. See "Callable arity" above. Symbol-body **Method Attributes** are
   skipped by this rule (Symbols have no `#arity`); their existence / arity is checked
   by Ruby's normal method resolution at serialize time.
-- **Symbol-body dispatch** - a `MethodAttribute#body` that is a `Symbol` may only appear
-  in a **Descriptor** whose `parent_class:` is non-`nil`. Violations raise
-  `SymbolBodyError`.
 
 All semantic errors are subclasses of `Panko::CodeGen::CompileError`.
 

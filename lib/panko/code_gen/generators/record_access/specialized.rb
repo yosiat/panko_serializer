@@ -102,9 +102,14 @@ module Panko::CodeGen
         end
 
         # The read expression for one Attribute: +:column+ verdicts emit
-        # +record._read_attribute("name")+; method verdicts (including
-        # user-overridden column readers, honored, never bypassed) emit
-        # +record.<name>+. +nil+ +ar_model+ falls back to method dispatch.
+        # +record._read_attribute("name")+; method verdicts on a name the
+        # Model declares (a user-overridden column reader, an +attribute+,
+        # an +alias_attribute+) emit +record.<name>+. Any other method
+        # verdict reads the loaded attribute first, so a SELECT alias
+        # named like a method (+thing_ids+ next to +has_many :things+)
+        # serializes the selected value, as Panko's C extension did,
+        # instead of calling the method. +nil+ +ar_model+ falls back to
+        # method dispatch.
         #
         # @param attribute [Panko::CodeGen::Attribute]
         # @param ar_model [Class, nil]

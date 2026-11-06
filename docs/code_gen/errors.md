@@ -44,9 +44,9 @@ emitted. The specific subclass identifies the reason:
 - **`NameCollisionError`** - two **Fields** at the same level share a `name`. Since
   every **Field** contributes exactly one output key, a collision makes the output
   ambiguous.
-- **`UnknownSourceError`** - the **Descriptor** sets **Models**, and an **Attribute**'s
-  `source` is neither a column on every class nor an instance method on every class. See
-  the 3-step classification rule in [compilation.md](compilation.md).
+- **`UnknownSourceError`** - the **Descriptor** sets a **Model**, and an **Attribute**'s
+  `source` is neither a column on that class nor an instance method on it. See the 3-step
+  classification rule in [compilation.md](compilation.md).
 - **`ArityError`** - a **Callable** (Method Attribute `body` or Association `if:`) has
   an arity outside `{0, 1, 2, 3}`. See "Callable arity" in [descriptor.md](descriptor.md).
 

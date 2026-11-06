@@ -5,8 +5,7 @@ require "panko/code_gen"
 require "memory_profiler"
 
 # End-to-end behavior + regression spec for the JSON-column emit path
-# on the Specialized record-access path. Covers the five rows from
-# the benchmark notes Panko-parity table plus the
+# on the Specialized record-access path. Covers the five Panko-parity rows plus the
 # byte-divergence rows that distinguish +:wire_format+ from today's
 # +push_value(Hash)+ shape:
 #
@@ -18,15 +17,14 @@ require "memory_profiler"
 #   +push_json+;
 # - allocation invariant: pinned via +MemoryProfiler+ in-spec -
 #   +:wire_format+ allocates no more than today's +:html_safe+ shape on
-#   a saved-record fixture (the carve-out clause from
-#   the phase-1 performance bar);
+#   a saved-record fixture (the json_column allocation carve-out);
 # - malformed JSON in DB: raw bytes that +Oj.sc_parse+ rejects → emit
 #   falls through, produces +null+;
 # - in-memory unsaved Hash assignment: +record.metadata = {...}+ (no
 #   save) → falls through, byte-identical to +:html_safe+;
 # - in-place mutation: documented and pinned as inherited-from-Panko
 #   stale-bytes behavior;
-# - byte-divergence vs today's code_gen: +</script>+, U+2028, U+2029, +-0.0+,
+# - byte-divergence vs today's engine: +</script>+, U+2028, U+2029, +-0.0+,
 #   +1e-300+, +1e300+ produce the bytes recorded in this spec - the
 #   regression contract for the +:wire_format+ default that 
 #   inherited from Panko 0.8.5.
@@ -35,6 +33,7 @@ RSpec.describe "Specialized JSON-column emit path" do
     Panko::CodeGen::Descriptor.new(
       name: "JsonColumnEmitSpecSerializer",
       model: PlainPost,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)
@@ -102,6 +101,7 @@ RSpec.describe "Specialized JSON-column emit path" do
       Panko::CodeGen::Descriptor.new(
         name: "AliasedJsonColumnSerializer",
         model: PlainPost,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :extra, source: :metadata)
@@ -269,9 +269,9 @@ RSpec.describe "Specialized JSON-column emit path" do
   end
 
   describe "allocation invariant (carve-out)" do
-    # Pin the carve-out clause from the phase-1 performance bar: +:wire_format+
+    # Pin the carve-out clause: +:wire_format+
     # allocates no more than today's +:html_safe+ shape on the same
-    # records. The bench numbers in the phase-1 report+ are the
+    # records. The bench numbers in the phase-1 report are the
     # canonical macro signal; this in-spec assertion is the focused
     # regression spec a future codegen drift would trip first.
     it ":wire_format total allocations ≤ :html_safe total allocations on saved records" do

@@ -43,6 +43,7 @@ end
 GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphAuthorBenchSerializer",
   model: Bench::Author,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -54,6 +55,7 @@ GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphCommentBenchSerializer",
   model: Bench::Comment,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -65,6 +67,7 @@ GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "GraphPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),
@@ -124,7 +127,7 @@ end
 # Filter narrowing for the with-filter rows. Top-level `:only` keeps two
 # Attributes + the two-level Composition (`author` + `comments`); the
 # nested entries narrow each child Descriptor to one Attribute. This shape
-# exercises the `Filter::Indexed::Bits#child` cache **during emit** - the
+# exercises the `Filter::Indexed::Array#child` cache **during emit** - the
 # `has_many :comments` walk hoists the resolved child filter out of the
 # loop so subsequent records hit the cache without rebuild.
 GRAPH_FILTER_HASH = {

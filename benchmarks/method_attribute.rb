@@ -6,13 +6,14 @@ require_relative "support/targets"
 # --- MethodAttribute-shape Descriptor / serializers -----------------------
 # Single Method Attribute computing `body_length` from the post's body. The
 # Callable receives `(record, context)` and is invoked once per record per
-# call. model: Bench::Post picks the specialized path so the code_gen row
+# call. model: Bench::Post picks the specialized path so the engine row
 # goes through the same model-aware fast path as panko/{json,object} for
 # an apples-to-apples comparison.
 
 METHOD_ATTRIBUTE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MethodAttributePostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title)

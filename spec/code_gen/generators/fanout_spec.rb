@@ -13,6 +13,7 @@ RSpec.describe Panko::CodeGen::Generators::Fanout do
   def descriptor(name, associations: [])
     Panko::CodeGen::Descriptor.new(
       name: name, model: nil,
+      parent_class: Fixtures::BaseSerializer,
       attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
       method_attributes: [], associations: associations
     )

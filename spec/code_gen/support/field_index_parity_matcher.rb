@@ -4,8 +4,7 @@ require "rspec/expectations"
 
 module Panko::CodeGen
   module Spec
-    # Pins the +Field-index parity+ contract from
-    # +docs/filters.md § Threading through Composition+: every
+    # Pins the +Field-index parity+ contract: every
     # +unless filters.drops?(N) ... end+ wrapper emitted by the
     # sink leaf emits must carry the same integer that the
     # enclosing class's +FIELD_INDEX = {...}.freeze+ literal binds for

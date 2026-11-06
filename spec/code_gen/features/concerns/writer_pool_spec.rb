@@ -6,7 +6,7 @@ require "shallow_generic"
 require "nested_composition"
 
 # Cross-cutting +WritersPool+ contract - the feature-level integration
-# tier from +the design § Testing Decisions+. The pool's unit semantics are
+# tier from +the design+. The pool's unit semantics are
 # pinned in +spec/writers_pool_spec.rb+; the JSON-mode emit shape in
 # +spec/generators/writer_pool_emit_spec.rb+ + the regenerated
 # +spec/fixtures/generated/*_json.rb+ snapshots; this file pins what the
@@ -66,6 +66,7 @@ RSpec.describe "WritersPool - feature-level pool contract" do
       yielding_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolFiberYieldSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -106,6 +107,7 @@ RSpec.describe "WritersPool - feature-level pool contract" do
       inner_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassInnerSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :tag, source: :tag)
@@ -119,6 +121,7 @@ RSpec.describe "WritersPool - feature-level pool contract" do
       outer_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolCrossClassOuterSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -151,6 +154,7 @@ RSpec.describe "WritersPool - feature-level pool contract" do
       reentrant_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolSameClassReentrantSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(
@@ -199,6 +203,7 @@ RSpec.describe "WritersPool - feature-level pool contract" do
       raising_descriptor = Panko::CodeGen::Descriptor.new(
         name: "WriterPoolExceptionRecoverySerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(

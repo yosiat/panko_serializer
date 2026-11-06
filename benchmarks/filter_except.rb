@@ -4,13 +4,13 @@ require_relative "support/benchmark"
 require_relative "support/targets"
 
 # --- FilterExcept-shape - phase-2 scenario --------------------------------
-# Phase-2 (–) shipped the filter machinery; the code_gen rows now come
+# Phase-2 (–) shipped the filter machinery; the engine rows now come
 # in two flavors so the canonical bench captures both rules from
 # the phase-2 report`:
 #
 #   * `code_gen/{json,hash}` - `filters: nil` baseline. Anchors
 #     rule 1 (phase-1 baseline integrity, 5%) - these rows compare to the
-#     code_gen-side numbers in the phase-1 report`, where the phase-1
+#     engine-side numbers in the phase-1 report`, where the phase-1
 #     contract was `filters: nil` (every attribute emitted).
 #   * `code_gen/{json,hash}[with-except]` - `filters: {except:
 #     [:body]}`. Anchors rule 2 (verdict-cell sanity, ±10%) - these rows
@@ -29,6 +29,7 @@ require_relative "support/targets"
 FILTER_EXCEPT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "FilterExceptPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

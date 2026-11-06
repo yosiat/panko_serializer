@@ -10,8 +10,7 @@ require "shallow_generic"
 # passes the synthetic +(Panko::CodeGen: <Name>/<output>)+
 # string as +module_eval+'s second argument; +Dump+ writes the bytes
 # via +File.write+ and Ruby's +require+ auto-stamps the on-disk path
-# when the file loads. See +docs/dumping.md § Method#source_location
-# attribution+.
+# when the file loads.
 RSpec.describe "synthetic-path / real-path Method#source_location split" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:config) { Fixtures::ShallowGeneric::CONFIG }

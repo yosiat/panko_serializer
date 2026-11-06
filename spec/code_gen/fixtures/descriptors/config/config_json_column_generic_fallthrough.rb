@@ -7,10 +7,8 @@ module Fixtures
     # +Config#json_column_emit: :wire_format+, a Descriptor with +Models+
     # set to +nil+ (Generic record-access path) keeps today's
     # +push_value(record["metadata"])+ / +push_value(record.metadata)+
-    # shape. The optimization is Specialized-path-only by design - see the
-    # the design's "Detection only fires on the Specialized
-    # record-access path" clause and
-    # the benchmark notes lock-in.
+    # shape. The optimization is Specialized-path-only by design: detection
+    # only fires on the Specialized record-access path.
     #
     # Why the fallthrough fires: the Generic emitter at
     # +lib/panko/code_gen/generators/record_access/generic.rb+ has
@@ -29,6 +27,7 @@ module Fixtures
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnGenericFallthroughSerializer",
         model: nil,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)

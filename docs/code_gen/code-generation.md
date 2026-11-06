@@ -73,7 +73,7 @@ class JsonGenerator
   end
 
   def emit_write_one(descriptor, builder)
-    builder.line "def _write_one(record, writer, context, filters)"
+    builder.line "def _write_one(record, writer, context, scope, filters)"
     builder.indent do
       builder.line "writer.push_object"
       descriptor.attributes.each        { |a| emit_attribute(a, descriptor, builder) }
@@ -152,7 +152,7 @@ The call expression is specialized per **Callable** arity (validated in
 @cb_<name>.call(record, context, scope)    # arity 3
 ```
 
-The arity-3 shape was added alongside the `scope:` kwarg on
+The arity-3 shape pairs with the `scope:` kwarg on
 `serialize_one` / `serialize_many` - `scope` is threaded positionally
 through `_write_one` / `_to_hash` between `context` and `filters` and
 into every nested **Association** call (`@<name>_serializer._write_one(record, writer, context, scope, child_filter)`).
@@ -173,8 +173,8 @@ Why ivars (not class constants set via `const_set`):
 ## Per-record ivar writes - the bounded `parent_class` deviation
 
 The "GC ivars are init-time constants" pattern above has one **bounded deviation**: when
-`Descriptor#parent_class` is non-`nil`, the **Generator** emits three per-record ivar
-writes at the top of `_write_one` / `_to_hash`:
+the **Descriptor** declares a Symbol-body **Method Attribute**, the **Generator** emits
+three per-record ivar writes at the top of `_write_one` / `_to_hash`:
 
 ```ruby
 @object  = record
@@ -184,7 +184,7 @@ writes at the top of `_write_one` / `_to_hash`:
 
 These ivars are mutated **on every call** to `_write_one` / `_to_hash`, not set once in
 the constructor. The deviation is intentional and exists to support the `parent_class`
-dispatch shape from the design notes:
+dispatch shape (see [descriptor.md § `Descriptor#parent_class`](descriptor.md#descriptorparent_class)):
 a Symbol-body **Method Attribute** dispatches via `value = <method_name>` on `self`, and
 the user-defined method on `parent_class` reaches `@object` / `@context` / `@scope` to
 read the **Record** and threaded values. Without per-record writes, the user method
@@ -192,40 +192,41 @@ couldn't see the current record.
 
 Bounded by three properties:
 
-- **Opt-in via `parent_class`.** Bare **Descriptors** (`parent_class: nil`, the default)
-  emit the earlier shape - no ivar writes, ivar-set is init-time only, "GC ivars are
-  init-time constants" holds. Every existing snapshot stays byte-identical.
+- **Gated on a Symbol-body Method Attribute.** **Descriptors** with no Symbol-body
+  **Method Attribute** emit no ivar writes - ivar-set is init-time only and "GC ivars are
+  init-time constants" holds. A Symbol-body method is the only code that runs on the
+  **Generated Class** instance during a serialize - Callable bodies and `if:` guards
+  receive `(record, context, scope)` as explicit args - so without one the writes would
+  be pure per-record overhead.
 - **Per-call deterministic write site.** When emitted, the writes are *always* the three
-  lines above at the *top* of the dispatcher. The shape is invariant - no per-Field
-  branching, no conditional emit, no other ivars added - so YJIT's object-shape cache
-  stays stable across calls (the same three ivar slots are written every time).
-- **Specialized path emits at the single `_write_one` / `_to_hash` body; Generic path
-  emits at the *dispatcher* only.** Generic helpers (`_write_one_hash` /
-  `_write_one_object` / `_to_hash_hash` / `_to_hash_object`) stay un-prepended - they
-  inherit the ivars from the dispatcher that called them, so a Symbol-body method
-  reached from inside a helper still sees the correct `@object`.
+  lines above at the *top* of `_write_one` / `_to_hash`. The shape is invariant - no
+  per-Field branching, no conditional emit, no other ivars added - so YJIT's object-shape
+  cache stays stable across calls (the same three ivar slots are written every time).
+- **One write site per record on both paths.** Specialized and Generic each emit the
+  writes at the top of the single `_write_one` / `_to_hash` body - on the Generic path
+  both field-emit shapes are inlined under the `is_a?(Hash)` branch of that one method
+  (see [compilation.md](compilation.md)), so the writes happen exactly once, before the
+  branch, and every Symbol-body method reached from either arm sees the correct
+  `@object`. Above the Generic path's fused-dispatch threshold, where the per-shape
+  helpers return, the helpers stay un-prepended - they inherit the ivars from the
+  `_write_one` / `_to_hash` that called them.
 
 **Self-recursion safety**: under the `@<name>_serializer = self` shortcut a
 self-recursive **Descriptor** uses one **Generated Class** instance across every depth,
 but each entry into `_write_one` / `_to_hash` re-writes the ivars at the top of the
-dispatcher. Inner frames running *during* their own dispatcher call observe their own
-per-record ivars. The "load-bearing" safety property: this is the only dispatch
-shape that's safe for self-recursion without per-call snapshot/restore guards - the
-rejected J (init-time dispatcher ivar) and A (thread-local dispatcher cache + Lambda
-wrapper) shapes share a dispatcher across recursion depths and clobber `@object` mid-
-walk in ways the user method can't recover from.
+method body. Inner frames running *during* their own `_write_one` / `_to_hash` call
+observe their own per-record ivars. This per-record-write-at-the-top shape is the only one
+safe for self-recursion without per-call snapshot/restore guards: any shape that instead
+shares a dispatcher across recursion depths would clobber `@object` mid-walk in ways the
+user method can't recover from.
 
-Bench: `/tmp/k1_ivar_bench/bench.rb` (2026-05-16, YJIT-on, Ruby 4.0.2). Single-record
-`serialize_one` with `Oj::StringWriter`:
+The checkin-side counterpart of these writes is `_release`, which nils the three ivars
+before a pooled instance goes back on its stack - see
+[generated-class.md](generated-class.md).
 
-| Shape                                  | IPS                | ns/i | Allocations |
-| -------------------------------------- | ------------------ | ---- | ----------- |
-| Baseline (no ivar writes)              | 2.53M (±3.9%)      | 395  | 12          |
-| `parent_class` (3 ivar writes prepended) | 2.36M (±8.7%)    | 424  | 12          |
-
-`benchmark-ips` verdict: "same-ish: difference falls within error". The ~29 ns delta is
-within noise; allocations are identical (no extra object per call). Pinned at the
-benchmark layer as a permanent regression guard.
+The three prepended ivar writes are cost-neutral - no extra allocation per call and a
+per-record delta within benchmark noise - and the parity is pinned in the benchmark suite
+as a permanent regression guard.
 
 ## Backtrace quality
 

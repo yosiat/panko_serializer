@@ -5,8 +5,7 @@ module Panko::CodeGen
     # Builds the per-Generated-Class +FIELD_INDEX+ map. Codegen-time
     # +Symbol → Integer+ assignment over a +Descriptor+'s Fields in the
     # canonical declared order - Attributes, then Method Attributes,
-    # then Associations - per +docs/filters.md § Threading through
-    # Composition+. Mode-agnostic (the same map is emitted into
+    # then Associations. Mode-agnostic (the same map is emitted into
     # +<Name>_JSON+ and +<Name>_Hash+) so JSON/Hash parity holds at the
     # filter contract per the design.
     #
@@ -14,10 +13,10 @@ module Panko::CodeGen
     #
     # - The class's +FIELD_INDEX = {...}.freeze+ constant - read by
     #   +Filter::Indexed+ to map caller-supplied symbols
-    #   (+only:+/+except:+) into bit positions / array indices.
+    #   (+only:+/+except:+) into array indices.
     # - Each Field emitter's +unless filters.drops?(<integer>) ... end+
     #   wrapper - pinned at codegen so the runtime hot path is one
-    #   +Integer#[]+ (or +Array#[]+) lookup, not a per-Field Hash probe.
+    #   +Array#[]+ lookup, not a per-Field Hash probe.
     module FieldIndex
       module_function
 

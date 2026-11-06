@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative "../code_gen"
-require_relative "descriptor_builder"
 require_relative "serializer_cache"
 require_relative "filter_adapter"
 
@@ -22,7 +21,7 @@ module Panko
       # engine's runtime +Filter+ shape. A serializer's +filters_for(context,
       # scope)+ overrides the constructor filters per key (matching Panko's
       # +options.merge!(filters_for(...))+). Returns +nil+ when nothing is
-      # filtered so the Generated Class takes +Filter::NONE+'s allocation-free
+      # filtered so the Generated Class takes +Filter::None+'s allocation-free
       # path - and allocates nothing itself on that path (it sits on every
       # unfiltered serialize).
       def runtime_filters(serializer_class, context, scope, only, except)

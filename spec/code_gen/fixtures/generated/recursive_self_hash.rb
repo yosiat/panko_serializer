@@ -10,7 +10,7 @@
 #   require_relative "recursive_self_comment_serializer_hash.generated"
 #   RecursiveSelfCommentSerializer_Hash.new(descriptor: descriptor).serialize_one(record)
 
-class RecursiveSelfCommentSerializer_Hash
+class RecursiveSelfCommentSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, replies: 2}.freeze
 
   def initialize(descriptor:)

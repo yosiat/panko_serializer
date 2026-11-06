@@ -4,7 +4,7 @@ module Fixtures
   module Config
     # Config-isolation fixture pinning +Config#json_column_emit: :html_safe+ -
     # the opt-in mode that keeps today's +push_value(record._read_attribute(...))+
-    # shape so consumers that embed code_gen output directly into HTML script
+    # shape so consumers that embed engine output directly into HTML script
     # tags retain Oj +:rails+-mode HTML escaping. Same Descriptor as
     # {Fixtures::Config::ConfigJsonColumnWireFormat}; only the Config
     # field flips. The snapshot delta is the absence of +push_json+ /
@@ -15,6 +15,7 @@ module Fixtures
       DESCRIPTOR = Panko::CodeGen::Descriptor.new(
         name: "ConfigJsonColumnHtmlSafeSerializer",
         model: PlainPost,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [
           Panko::CodeGen::Attribute.new(name: :id, source: :id),
           Panko::CodeGen::Attribute.new(name: :metadata, source: :metadata)

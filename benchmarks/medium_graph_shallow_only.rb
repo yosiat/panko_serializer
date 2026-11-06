@@ -18,8 +18,7 @@ require_relative "support/targets"
 #
 #   * Post Descriptor - 5 Attributes (id, title, body, views, published) +
 #     3 Associations (author has_one, first_comment has_one, comments
-#     has_many) = 8 fields, the count that drives `Filter::Indexed` into
-#     its Bits representation per the experiment's verdict row.
+#     has_many) = 8 fields.
 #   * Author Descriptor - 3 Attributes (id, name, email).
 #   * Comment Descriptor - 2 Attributes (id, body), shared between the
 #     `:first_comment` has_one and `:comments` has_many Associations.
@@ -29,7 +28,7 @@ require_relative "support/targets"
 # `:first_comment` has_one and the `:comments` has_many entirely. This is
 # the exact filter the experiment measured.
 #
-# The code_gen rows come in two flavors so the canonical bench captures both
+# The engine rows come in two flavors so the canonical bench captures both
 # rules from the phase-2 report`:
 #
 #   * `code_gen/{json,hash}` - `filters: nil` baseline.
@@ -69,6 +68,7 @@ end
 MEDIUM_GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphAuthorBenchSerializer",
   model: Bench::Author,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :name),
@@ -81,6 +81,7 @@ MEDIUM_GRAPH_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 MEDIUM_GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphCommentBenchSerializer",
   model: Bench::Comment,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -92,6 +93,7 @@ MEDIUM_GRAPH_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 MEDIUM_GRAPH_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MediumGraphPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),
@@ -141,7 +143,7 @@ end
 
 # Top-level narrowed set - keeps id + title + the entire author
 # Composition; the `:first_comment` has_one and `:comments` has_many are
-# dropped. Used two ways: as the code_gen filter's `:only` value, and as the
+# dropped. Used two ways: as the the engine filter's `:only` value, and as the
 # Panko `only:` kwarg list. Panko threads the `:author` key through to
 # the nested AuthorSerializer; with no nested narrowing, all 3 author
 # attrs emit.

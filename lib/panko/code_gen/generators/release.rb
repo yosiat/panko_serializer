@@ -38,8 +38,7 @@ module Panko::CodeGen
       # @param descriptor [Panko::CodeGen::Descriptor]
       # @return [Boolean]
       def ivar_writes?(descriptor)
-        !descriptor.parent_class.nil? &&
-          descriptor.method_attributes.any? { |method_attribute| method_attribute.body.is_a?(Symbol) }
+        descriptor.method_attributes.any? { |method_attribute| method_attribute.body.is_a?(Symbol) }
       end
 
       # Whether the emitted +_release+ chain rooted at +descriptor+ nils

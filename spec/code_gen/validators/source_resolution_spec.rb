@@ -26,6 +26,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     Panko::CodeGen::Descriptor.new(
       name: name,
       model: model,
+      parent_class: Fixtures::BaseSerializer,
       attributes: attributes,
       method_attributes: [],
       associations: associations
@@ -144,6 +145,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor",
         model: inner_klass,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:missing)],
         method_attributes: [],
         associations: []
@@ -165,6 +167,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       inner = Panko::CodeGen::Descriptor.new(
         name: "AuthorDescriptor",
         model: inner_klass,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:id)],
         method_attributes: [],
         associations: []
@@ -182,6 +185,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor",
         model: parent_klass,
+        parent_class: Fixtures::BaseSerializer,
         attributes: [attribute(:body)],
         method_attributes: [],
         associations: []

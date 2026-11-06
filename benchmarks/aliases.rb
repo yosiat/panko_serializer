@@ -6,12 +6,13 @@ require_relative "support/targets"
 # --- Aliases-shape Descriptor / serializers -------------------------------
 # Attributes whose output `name` differs from their `source` - the bench
 # exercises the per-Field rename path. model: Bench::Post picks the
-# specialized path on the code_gen row for an apples-to-apples comparison
+# specialized path on the engine row for an apples-to-apples comparison
 # against panko/{json,object}.
 
 ALIASES_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "AliasesPostBenchSerializer",
   model: Bench::Post,
+  parent_class: Bench::BaseSerializer,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :title),
