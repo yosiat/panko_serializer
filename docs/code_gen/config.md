@@ -14,7 +14,7 @@ module Panko::CodeGen
     :hash_output_key_type,       # :string | :symbol; default: :string - Hash mode output
     :json_column_emit,           # :wire_format | :html_safe; default: :wire_format - JSON-column emit shape
     :pool_writer,                # Boolean; default: true - JSON-mode Writer pooling
-    # Additional knobs to be added as design proceeds
+    :guarded_model               # Boolean; default: false - per-record Model guard on the Specialized path
   )
 end
 ```
@@ -50,15 +50,15 @@ any other value raises `ArgumentError` at call time. See
 
 ### `hash_record_key_type` (default: `:string`)
 
-Controls the lookup form emitted in `_write_one_hash` when the **Record** is a Hash
-(generic path only - the specialized path contractually assumes instances of the declared
-**Models**, not Hashes).
+Controls the lookup form emitted for Hash **Records** - the `record.is_a?(Hash)` arm of
+`_write_one` / `_to_hash`, or the per-shape Hash helper above the fused-dispatch
+threshold (generic path only - the specialized path contractually assumes instances of
+the declared **Models**, not Hashes).
 
 - `:string`: emits `record["id"]`. Matches `JSON.parse` output and Panko's current convention.
 - `:symbol`: emits `record[:id]`. Matches Ruby literal hashes and ActionController params.
 
-The choice is baked into the helper at **Compile** time - one monomorphic lookup form per
-class. Mixed-key Hashes (both `"id"` and `:id`) are not supported; callers normalize upstream
+The choice is baked in at **Compile** time - one monomorphic lookup form per class. Mixed-key Hashes (both `"id"` and `:id`) are not supported; callers normalize upstream
 if needed.
 
 ### `hash_output_key_type` (default: `:string`)
@@ -103,25 +103,23 @@ directly in HTML script tags without a sanitizer at the HTML layer (uncommon).
 Detection of JSON-typed columns uses `is_a?(::ActiveRecord::Type::Json)` -
 adapter-agnostic; matches `t.json` and `t.jsonb` on every supported backend; correctly
 rejects `encrypts :metadata` (sibling type, not a subclass) and `serialize :m, coder:`
-(also a sibling). Generic-path **Descriptors** (`models: nil`) are unaffected - the knob
+(also a sibling). Generic-path **Descriptors** (`model: nil`) are unaffected - the knob
 applies only to the **Specialized path**.
-
-Design rationale, byte-divergence table, and benchmark numbers:
-the benchmark notes.
 
 ### `pool_writer` (default: `true`)
 
 Controls whether the **JSON Output Mode** emit reuses **Writers** across `serialize_one` /
-`serialize_many` calls via a per-**Generated Class** fiber-local LIFO pool. See
+`serialize_many` calls via a fiber-local LIFO pool shared by every **Generated Class**. See
 [output-modes.md § Writer lifecycle](output-modes.md#writer-lifecycle) for the lifecycle
-contract and [`lib/panko/code_gen/writers_pool.rb`](../lib/panko/code_gen/writers_pool.rb)
+contract and [`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)
 for the pool implementation.
 
 - `true` (default): the **Generated Class** declares
-  `POOL = Panko::CodeGen::WritersPool::<backend>.new(:<unique_key>)` as a class-level
+  `POOL = Panko::CodeGen::WritersPool::<backend>.new` as a class-level
   constant; `serialize_one` / `serialize_many` open with `writer = POOL.checkout`, wrap
-  the body in `begin` / `ensure`, and return the **Writer** via `POOL.checkin(writer)`
-  in the `ensure`. After warmup, `checkout` allocates zero objects on the steady-state
+  the body in `begin` / `ensure`, and hand the **Writer** back via
+  `POOL.checkin(writer, result)` in the `ensure`, which drops it when the output is larger
+  than `Panko::Config.writer_pool_max_bytes`. After warmup, `checkout` allocates zero objects on the steady-state
   hot path. The `<backend>` is `WritersPool::IsolatedExecutionState` when
   `ActiveSupport::IsolatedExecutionState` is defined at **Compile**, otherwise
   `WritersPool::ThreadLocal` - chosen once and baked in as a literal class name.
@@ -140,6 +138,24 @@ difference.
 No effect on **Hash Output Mode** - Hash mode allocates no **Writer** and the knob is a
 no-op there.
 
+### `guarded_model` (default: `false`)
+
+Controls whether a **Specialized path** **Generated Class** trusts the caller's **Model**
+contract or verifies it per record.
+
+- `false` (default): the Specialized bodies assume every **Record** is an instance of the
+  **Descriptor**'s **Model** - the original contract, appropriate when the caller controls
+  what it serializes.
+- `true` (the auto-specialization shape): `_write_one` / `_to_hash` open with a
+  `record.instance_of?(<Model>)` guard; a mismatched **Record** delegates to an inline
+  generic twin body (`_generic_write_one` / `_generic_to_hash` - same **Fields**, duck
+  dispatch, Hash branch), so a class compiled for one record class can never emit wrong
+  output for another. Requires `descriptor.model` to be a *named* class - the guard
+  references it by constant path.
+
+No effect on the generic path (`model: nil`) - there is nothing to guard.
+See [auto-specialization.md](auto-specialization.md) for who sets this and why.
+
 ## What belongs in Config vs elsewhere
 
 - **Compile-time toggles that change emitted code** → Config.
@@ -153,6 +169,10 @@ block. If a caller wants a shared default **Config**, they keep their own consta
 
 This avoids the class of bug where a global mutable config change invalidates cached
 **Generated Classes** held elsewhere.
+
+(`Panko.configure` / `Panko::Config` is a different layer: Panko's *runtime* settings for
+the auto-specialization cache, not the engine's compile-time Config. See
+[docs/configuration.md](../configuration.md).)
 
 ## Future fields
 

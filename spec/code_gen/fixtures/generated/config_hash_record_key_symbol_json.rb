@@ -12,7 +12,7 @@
 
 class ConfigHashRecordKeySymbolSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__ConfigHashRecordKeySymbolSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
   end
@@ -20,19 +20,21 @@ class ConfigHashRecordKeySymbolSerializer_JSON < Fixtures::BaseSerializer
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_array
       records.each { |r| _write_one(r, writer, context, scope, filters) }
@@ -41,7 +43,7 @@ class ConfigHashRecordKeySymbolSerializer_JSON < Fixtures::BaseSerializer
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
