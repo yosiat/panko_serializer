@@ -33,7 +33,7 @@ class StiSpecializedSerializer_Hash
   def _to_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["vin"] = Panko::CodeGen.cast_datetime(record._read_attribute("vin"))
+      result["vin"] = record._read_attribute("vin")
     end
     unless filters.drops?(1)
       result["make"] = Panko::CodeGen.cast_datetime(record.make)
