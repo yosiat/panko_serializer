@@ -56,7 +56,7 @@ module Panko::CodeGen
           return if seen_descriptors[descriptor.__id__]
           seen_descriptors[descriptor.__id__] = true
           check_level!(descriptor)
-          descriptor.associations.each { |assoc| walk(assoc.descriptor, seen_descriptors) }
+          descriptor.associations.each { |assoc| assoc.descriptors.each { |child| walk(child, seen_descriptors) } }
         end
 
         # Scans the three Field-kind arrays on +descriptor+ in declaration

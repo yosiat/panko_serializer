@@ -105,9 +105,50 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-`models` is only a hint for `compile_all`: a record of any other class still
-serializes, and gets its specialized variant on first use. Subclasses inherit
-the list, and calling `models` again replaces it.
+`models` is a hint: a record of any other class still serializes, and gets
+its specialized variant on first use. Subclasses inherit the list, and calling
+`models` again replaces it.
+
+`models` also tells Panko what a child holds when its source is a plain method
+rather than an association. Panko learns a child's class from the parent's
+association reflection; a method has none, so without `models` the child
+compiles on the generic path:
+
+```ruby
+class Post < ApplicationRecord
+  has_many :comments
+  has_many :notes
+
+  def visible_comments = comments.reject(&:hidden)
+  def attachments = comments.to_a + notes.to_a
+end
+
+class CommentSerializer < Panko::Serializer
+  models Comment
+  attributes :id, :body, :metadata
+end
+
+class AttachmentSerializer < Panko::Serializer
+  models Comment, Note
+  attributes :id, :metadata
+end
+
+class PostSerializer < Panko::Serializer
+  has_many :visible_comments, serializer: CommentSerializer   # specialized for Comment
+  has_many :attachments, serializer: AttachmentSerializer     # one body per model
+end
+```
+
+- One declared model: the child compiles for that class, the same as an
+  association child.
+- Several: the child gets one body per model, picked per record by its exact
+  class. Any other record gets the generic body.
+- A reflection wins over `models` when the source is an association.
+- A declared model that lacks one of the serializer's fields is skipped; its
+  records get the generic body.
+
+The specialized body writes `json` and `jsonb` columns as their stored text and
+reads columns without the generic path's per-record method calls.
 
 Call `compile_all` after the app is eager loaded and before workers fork:
 

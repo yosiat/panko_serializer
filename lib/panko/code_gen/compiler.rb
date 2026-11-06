@@ -115,7 +115,7 @@ module Panko::CodeGen
         klass = namespace.const_get(:"#{descriptor.name}_#{OUTPUT_SUFFIXES.fetch(@output)}")
         @cache.set(descriptor, klass)
         descriptor.associations.each do |assoc|
-          cache_descendants(assoc.descriptor, namespace)
+          assoc.descriptors.each { |child| cache_descendants(child, namespace) }
         end
       end
     end

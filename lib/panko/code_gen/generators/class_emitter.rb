@@ -125,6 +125,10 @@ module Panko::CodeGen
               builder.line "#{GeneratedNames.if_guard_ivar(assoc)} = descriptor.associations[#{i}].if"
             end
             builder.line emit_serializer_assignment(descriptor, assoc, i, cyclic_ids)
+            assoc.variants.each_with_index do |variant, v|
+              builder.line "#{GeneratedNames.variant_serializer_ivar(assoc, v)} = " \
+                "#{GeneratedNames.class_name(variant, @sink.suffix)}.new(descriptor: descriptor.associations[#{i}].variants[#{v}])"
+            end
           end
         end
         builder.line "end"

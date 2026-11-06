@@ -55,12 +55,18 @@ module Panko::CodeGen
         return false if seen[descriptor.__id__]
         seen[descriptor.__id__] = true
         return true if ivar_writes?(descriptor)
-        descriptor.associations.any? do |assoc|
-          child = assoc.descriptor
+        descriptor.associations.flat_map(&:descriptors).any? do |child|
           next false if child.equal?(descriptor)
           next false if cyclic_ids[descriptor.__id__] && cyclic_ids[child.__id__]
           subtree_releases?(child, cyclic_ids, seen)
         end
+      end
+
+      def child_ivars(assoc)
+        variants = assoc.variants.each_with_index.map do |variant, index|
+          [GeneratedNames.variant_serializer_ivar(assoc, index), variant]
+        end
+        [[GeneratedNames.serializer_ivar(assoc), assoc.descriptor], *variants]
       end
 
       # Emits +_release+ for one Generated Class into +builder+.
@@ -78,11 +84,12 @@ module Panko::CodeGen
             builder.line "@scope = nil"
           end
           descriptor.associations.each do |assoc|
-            child = assoc.descriptor
-            next if child.equal?(descriptor)
-            next if cyclic_ids[descriptor.__id__] && cyclic_ids[child.__id__]
-            next unless subtree_releases?(child, cyclic_ids)
-            builder.line "#{GeneratedNames.serializer_ivar(assoc)}._release"
+            child_ivars(assoc).each do |ivar, child|
+              next if child.equal?(descriptor)
+              next if cyclic_ids[descriptor.__id__] && cyclic_ids[child.__id__]
+              next unless subtree_releases?(child, cyclic_ids)
+              builder.line "#{ivar}._release"
+            end
           end
           builder.line "nil"
         end
