@@ -12,4 +12,4 @@ To achieve it's [performance]({% link performance.md %}):
 
 -   Oj - Panko relies on Oj since it's fast and allow to serialize incrementally using `Oj::StringWriter`.
 -   Serialization Descriptor - Panko computes most of the metadata ahead of time, to save time later in serialization.
--   Type casting — Panko does type casting by itself, instead of relying on ActiveRecord.
+-   Type casting - Panko does type casting by itself, instead of relying on ActiveRecord.
