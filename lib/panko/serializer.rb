@@ -38,32 +38,25 @@ module Panko
     # recognized by the generated code's `value.equal?(Panko::CodeGen::SKIP)` check.
     SKIP = Panko::CodeGen::SKIP
 
-    # A has_one / has_many declaration captured at class-definition time. Its
-    # +descriptor+ is the nested Panko::CodeGen::Descriptor, built (and any
-    # static only/except narrowed) eagerly when the association is declared.
-    AssociationDecl = Struct.new(:name_sym, :name_str, :kind, :descriptor)
-
     class << self
       # Each serializer accumulates its Fields as the engine's own value
       # objects; SerializerCache freezes them into a Panko::CodeGen::Descriptor
       # on first use. A subclass inherits a copy so its DSL edits stay local.
       attr_accessor :_cg_attributes, :_cg_method_attributes, :_cg_associations
 
-      # Per-class compile cache: the converted Descriptor, the compiled
-      # Generated Class per output mode, and the per-mode InstancePool.
-      # Direct class-ivar slots (read on every serialize) so SerializerCache
-      # never reaches in reflectively. Not copied on inheritance - each class
-      # compiles its own; a Zeitwerk reload mints a fresh class object with
-      # empty slots, so the cache self-heals.
-      attr_accessor :_cg_descriptor, :_cg_compiled_json, :_cg_compiled_hash,
-        :_cg_pool_json, :_cg_pool_hash
+      # The per-class compile cache - one SerializerCache::State holding
+      # the converted Descriptor, both modes' compiled classes / pools /
+      # variant maps, and the capacity warn-once flag. A single direct
+      # class-ivar slot so SerializerCache never reaches in reflectively.
+      # Not copied on inheritance - each class compiles its own; a
+      # Zeitwerk reload mints a fresh class object with an empty slot, so
+      # the cache self-heals.
+      attr_accessor :_cg_state
 
-      # Auto-specialization state (SerializerCache.variant_pool): the
-      # copy-on-write variant maps (record class → InstancePool), the
-      # seams' one-entry inline caches (frozen [model, pool] pairs), and
-      # the capacity warn-once flag.
-      attr_accessor :_cg_variants_json, :_cg_variants_hash,
-        :_cg_last_json, :_cg_last_hash, :_cg_capacity_warned
+      # The seams' one-entry inline caches (frozen [model, pool] pairs) -
+      # deliberately direct class ivars rather than State cells so the
+      # serialize hot path pays one ivar read + one pointer compare.
+      attr_accessor :_cg_last_json, :_cg_last_hash
 
       # The cached Panko::Descriptor public view (see Panko::Descriptor.for).
       attr_accessor :_cg_public_descriptor
@@ -138,7 +131,12 @@ module Panko
         descriptor = Panko::CodeGen::DescriptorBuilder.build(serializer)
         only, except = association_filters(serializer, options)
         descriptor = Panko::CodeGen::DescriptorBuilder.narrow(descriptor, only, except)
-        _cg_associations << AssociationDecl.new(name.to_sym, options.fetch(:name, name).to_s, kind, descriptor)
+        _cg_associations << Panko::CodeGen::Association.new(
+          name: options.fetch(:name, name).to_s.to_sym,
+          kind: kind,
+          descriptor: descriptor,
+          source: name.to_sym
+        )
       end
 
       # The nested serializer's +filters_for+ is evaluated once, here, with nil

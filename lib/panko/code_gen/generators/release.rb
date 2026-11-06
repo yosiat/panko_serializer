@@ -83,7 +83,7 @@ module Panko::CodeGen
             next if child.equal?(descriptor)
             next if cyclic_ids[descriptor.__id__] && cyclic_ids[child.__id__]
             next unless subtree_releases?(child, cyclic_ids)
-            builder.line "@#{assoc.name}_serializer._release"
+            builder.line "#{GeneratedNames.serializer_ivar(assoc)}._release"
           end
           builder.line "nil"
         end

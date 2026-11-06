@@ -122,8 +122,18 @@ lib/
       code_builder.rb                          # pure indented-line accumulator
       generator.rb                             # Generator entry - dispatches on Output Mode
       generators/
-        json_mode.rb                           # JSON-mode source emission (top-level)
-        hash_mode.rb                           # Hash-mode source emission (top-level)
+        generated_names.rb                     # the emitted-symbol vocabulary: ivar tokens,
+                                               # write-method names, FIELD_INDEX, pool key,
+                                               # filter-key rule - one home, emitters consume it
+        class_emitter.rb                       # the one class-shell emitter (constructor,
+                                               # recursion wiring, public entries) behind a Sink
+        field_walk.rb                          # the one field walk: frame + Fields in declared
+                                               # order, indexes via GeneratedNames.filter_key
+        sink.rb                                # the Output Mode seam - the interface both
+                                               # adapters satisfy, plus shared call-expression
+                                               # helpers
+        json_sink.rb                           # :json adapter - every JSON-divergent leaf shape
+        hash_sink.rb                           # :hash adapter - every Hash-divergent leaf shape
         banner.rb                              # header-comment banner (see dumping.md)
         descriptor_walk.rb                     # post-order unique-Descriptor tree walk
         cycle_membership.rb                    # identity-keyed mutual-recursion cycle set
@@ -131,10 +141,6 @@ lib/
                                                # (filter-key keyed: name for value Fields, Source for Associations; feeds filters/indexed.rb)
         release.rb                             # _release generator - checkin-side ivar cleanup
         fanout.rb                              # multi-file dump fan-out (one file per Descriptor)
-        field_emitters/
-          attribute.rb                         # emit one Attribute
-          method_attribute.rb                  # emit one Method Attribute (Callable / Symbol body)
-          association.rb                        # emit one Association (nested call threading)
         record_access/
           generic.rb                           # generic path - one is_a?(Hash) branch, both
                                                # emit shapes inlined; splits to per-shape helpers
@@ -172,17 +178,18 @@ works on every supported combination. See [ci.md](ci.md).
 
 A reader arriving from a doc should know exactly where the implementation lives.
 
-| Doc                                      | Primary files                                                        |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| [descriptor.md](descriptor.md)           | `descriptor.rb`, `validators/*`                                      |
-| [config.md](config.md)                   | `config.rb`                                                          |
-| [errors.md](errors.md)                   | `errors.rb`                                                          |
-| [filters.md](filters.md)                 | `filter.rb`, `filters/*`                                             |
-| [compilation.md](compilation.md)         | `compiler.rb`, `compile_cache.rb`, `generator.rb`, `generators/*`    |
-| [code-generation.md](code-generation.md) | `code_builder.rb`, `generator.rb`, `generators/*`                    |
-| [output-modes.md](output-modes.md)       | `generators/json_mode.rb`, `generators/hash_mode.rb`                 |
-| [generated-class.md](generated-class.md) | (runtime-only - no direct implementation file; shape is emitted by the generator) |
-| [dumping.md](dumping.md)                 | `dump.rb`                                                            |
+| Doc                                          | Primary files                                                              |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| [descriptor.md](descriptor.md)               | `descriptor.rb`, `validators/*`                                            |
+| [config.md](config.md)                       | `config.rb`                                                                |
+| [errors.md](errors.md)                       | `errors.rb`                                                                |
+| [filters.md](filters.md)                     | `filter.rb`, `filters/*`, `generators/field_index.rb`                      |
+| [compilation.md](compilation.md)             | `compiler.rb`, `compile_cache.rb`, `generator.rb`, `generators/*`          |
+| [code-generation.md](code-generation.md)     | `code_builder.rb`, `generator.rb`, `generators/*`                          |
+| [output-modes.md](output-modes.md)           | `generators/sink.rb`, `generators/json_sink.rb`, `generators/hash_sink.rb` |
+| [generated-class.md](generated-class.md)     | shape emitted by `generators/*`; runtime support in `writers_pool.rb`, `instance_pool.rb` |
+| [dumping.md](dumping.md)                      | `dump.rb`, `generators/fanout.rb`, `generators/banner.rb`                  |
+| [auto-specialization.md](auto-specialization.md) | `serializer_cache.rb`                                                  |
 
 ## Testing shape (preview)
 

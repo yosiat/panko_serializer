@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 
 # Narrow emit-shape tests for the +Descriptor#parent_class+ parent
-# swap in +JsonMode#emit_class+ / +HashMode#emit_class+. These assert
+# swap in +ClassEmitter#emit_class+. These assert
 # directly on the +Generator+'s source-string output - no +module_eval+,
 # no snapshot files. The full snapshot tier picks up the long-form
 # coverage once the +parent_class_specialized+ /
