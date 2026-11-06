@@ -149,4 +149,24 @@ The result of `filters_for` is **combined per key** with any `only` / `except`
 passed to the constructor: a `filters_for` returning `{except: [:address]}`
 merges with a constructor `only: [:name]`, applying both.
 
+On the serializer you construct, `filters_for` runs on every serialization with
+that call's `context` and `scope`. On a serializer used for an association, it
+runs once, when the parent is compiled, with `nil` context and scope, and a
+nested filter can only narrow its result further.
+
+## Filters declared on an association
+
+`has_one` and `has_many` accept `only:` and `except:` too, fixed at declaration:
+
+```ruby
+class UserSerializer < Panko::Serializer
+  attributes :id
+  has_many :comments, serializer: CommentSerializer, except: [:status]
+end
+```
+
+A runtime nested filter for the same association applies on top of the
+declared one. It can narrow the association further, but cannot bring back a
+field the declaration filtered out.
+
 > See the original discussion: [github.com/yosiat/panko_serializer/issues/16](https://github.com/yosiat/panko_serializer/issues/16)

@@ -64,5 +64,6 @@ The inference rule:
 
 ## Filtering associations
 
-Associations can be filtered - and their own attributes narrowed - with nested
-filters. See [Filters → Nested filters]({% link filters.md %}#nested-filters).
+Associations can be filtered, and their own attributes narrowed, with nested
+filters passed at serialization time, or with `only:` / `except:` on the
+`has_one` / `has_many` declaration. See [Filters]({% link filters.md %}#nested-filters).
