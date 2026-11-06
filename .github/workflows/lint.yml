@@ -9,11 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install deps
-        run: |
-          sudo apt update -y
-          sudo apt install -y libsqlite3-dev
-
       - name: Lint Ruby code
         uses: ruby/setup-ruby@v1
         with:
