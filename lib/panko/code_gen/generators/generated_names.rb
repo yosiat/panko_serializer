@@ -30,6 +30,17 @@ module Panko::CodeGen
         "@#{association.name}_serializer"
       end
 
+      # The Composition ivar holding one Association variant's nested
+      # Generated Class instance, e.g. +"@comments_serializer_0"+ for
+      # +association.variants[0]+.
+      #
+      # @param association [Panko::CodeGen::Association]
+      # @param index [Integer] the variant's position in +variants+
+      # @return [String]
+      def variant_serializer_ivar(association, index)
+        "#{serializer_ivar(association)}_#{index}"
+      end
+
       # The hoisted-Callable ivar for one Method Attribute, e.g.
       # +"@cb_slug"+. Written by the constructor emit, invoked at the
       # field-emit site.

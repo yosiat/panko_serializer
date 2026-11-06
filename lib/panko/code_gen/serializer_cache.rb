@@ -314,7 +314,7 @@ module Panko
           return [base, false]
         end
 
-        descriptor = DescriptorBuilder.specialize(descriptor_for(serializer_class), model)
+        descriptor = DescriptorBuilder.uniquify_names(DescriptorBuilder.specialize(descriptor_for(serializer_class), model))
         compiled = Panko::CodeGen.compile(descriptor, output: output, config: Config.new(guarded_model: true))
         pool = InstancePool.new(
           :"_panko_cg_pool_#{output}_#{serializer_class.object_id}_#{model.object_id}",

@@ -83,8 +83,7 @@ module Panko::CodeGen
         scc_stack.push(v)
         on_stack[vid] = true
 
-        v.associations.each do |a|
-          w = a.descriptor
+        v.associations.flat_map(&:descriptors).each do |w|
           next if w.equal?(v)
           wid = w.__id__
           if !index.key?(wid)

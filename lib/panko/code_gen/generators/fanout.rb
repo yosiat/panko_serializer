@@ -111,8 +111,7 @@ module Panko::CodeGen
       def ordered_dependencies(descriptor)
         seen = {descriptor.__id__ => true}
         deps = []
-        descriptor.associations.each do |assoc|
-          target = assoc.descriptor
+        descriptor.associations.flat_map(&:descriptors).each do |target|
           next if seen[target.__id__]
           seen[target.__id__] = true
           deps << target

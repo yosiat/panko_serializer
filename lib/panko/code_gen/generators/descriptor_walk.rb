@@ -32,7 +32,7 @@ module Panko::CodeGen
       def visit(descriptor, order, seen)
         return if seen[descriptor.__id__]
         seen[descriptor.__id__] = true
-        descriptor.associations.each { |assoc| visit(assoc.descriptor, order, seen) }
+        descriptor.associations.each { |assoc| assoc.descriptors.each { |child| visit(child, order, seen) } }
         order << descriptor
       end
     end
