@@ -14,8 +14,8 @@ of writing a tailored serializer for each.
 
 There are two filters:
 
--   **`only`** - serialize **only** these attributes / associations.
--   **`except`** - serialize everything **except** these.
+-   **`only`**: serialize **only** these attributes / associations.
+-   **`except`**: serialize everything **except** these.
 
 ## `only` and `except`
 
@@ -41,8 +41,8 @@ Panko::ArraySerializer.new(User.all, each_serializer: UserSerializer, only: [:na
 
 ## Filtering associations
 
-An association is filtered by its **declared name** - the first argument of
-`has_one` / `has_many` - never by its output key.
+An association is filtered by its **declared name** (the first argument of
+`has_one` / `has_many`), never by its output key.
 
 The two differ only when the association carries a `name:` alias. For
 example, given:
@@ -51,7 +51,7 @@ example, given:
 has_many :state_transitions, name: :history
 ```
 
-the key to use in a filter is `:state_transitions` - the declared name - not
+the key to use in a filter is `:state_transitions`, the declared name, not
 `:history`:
 
 ```ruby
@@ -82,12 +82,12 @@ Panko::ArraySerializer.new(posts, each_serializer: PostSerializer, only: {
 
 Reading the `only` Hash:
 
--   **`instance`** - the attributes and associations to serialize for the
+-   **`instance`**: the attributes and associations to serialize for the
     current serializer (here, `PostSerializer`). Associations you want to keep
     (`:author`, `:comments`) must be listed here.
--   **`author`, `comments`** - the attributes to serialize for each association.
+-   **`author`, `comments`**: the attributes to serialize for each association.
 
-Nested filters are **recursive** - an association's Hash can itself contain an
+Nested filters are **recursive**: an association's Hash can itself contain an
 `instance` key and further association keys. For example, if `CommentSerializer`
 has a `has_one :author`, you can serialize only each comment author's `name`:
 
@@ -109,7 +109,7 @@ Inside `comments`, `instance` now refers to `CommentSerializer`'s own fields.
 
 When the same filtering logic recurs across your controllers, move it into the
 serializer as a `self.filters_for(context, scope)` class method. Panko calls it
-automatically on every serialization - you never call it yourself.
+automatically on every serialization; you never call it yourself.
 
 ```ruby
 class UserSerializer < Panko::Serializer
@@ -125,7 +125,7 @@ UserSerializer.new.serialize(User.first)
 ```
 
 `filters_for` receives the [`context` and `scope`]({% link serializers.md %}#context-and-scope)
-passed to the serializer, so filtering can depend on them - for example,
+passed to the serializer, so filtering can depend on them, for example
 exposing more fields to an admin:
 
 ```ruby
@@ -148,5 +148,25 @@ UserSerializer.new(context: {user_role: "admin"}).serialize(User.first)
 The result of `filters_for` is **combined per key** with any `only` / `except`
 passed to the constructor: a `filters_for` returning `{except: [:address]}`
 merges with a constructor `only: [:name]`, applying both.
+
+On the serializer you construct, `filters_for` runs on every serialization with
+that call's `context` and `scope`. On a serializer used for an association, it
+runs once, when the parent is compiled, with `nil` context and scope, and a
+nested filter can only narrow its result further.
+
+## Filters declared on an association
+
+`has_one` and `has_many` accept `only:` and `except:` too, fixed at declaration:
+
+```ruby
+class UserSerializer < Panko::Serializer
+  attributes :id
+  has_many :comments, serializer: CommentSerializer, except: [:status]
+end
+```
+
+A runtime nested filter for the same association applies on top of the
+declared one. It can narrow the association further, but cannot bring back a
+field the declaration filtered out.
 
 > See the original discussion: [github.com/yosiat/panko_serializer/issues/16](https://github.com/yosiat/panko_serializer/issues/16)
