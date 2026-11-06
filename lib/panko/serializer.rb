@@ -203,5 +203,28 @@ module Panko
         stack.push(instance)
       end
     end
+
+    # Writes +object+ into +writer+ (an +Oj::StringWriter+) as the value of +key+, or as the
+    # next element when +key+ is nil. The bytes match what +serialize_to_json+ returns.
+    def write_json(object, writer, key = nil)
+      klass = self.class
+      cached = klass._cg_last_json
+      pool = if cached && object.instance_of?(cached[0])
+        cached[1]
+      else
+        Panko::CodeGen::SerializerCache.variant_pool(klass, :json, object.class)
+      end
+      filters = if @only || @except || klass._cg_has_filters_for
+        Panko::CodeGen::Runtime.runtime_filters(klass, @context, @scope, @only, @except)
+      end
+      stack = pool.stack
+      instance = stack.pop || pool.build
+      begin
+        instance.serialize_one_to(writer, object, key, context: @context, scope: @scope, filters: filters)
+      ensure
+        instance._release
+        stack.push(instance)
+      end
+    end
   end
 end

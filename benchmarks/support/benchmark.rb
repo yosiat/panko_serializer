@@ -36,6 +36,26 @@ if BENCHMARK_CONFIG.profile == "cpu"
   end
 end
 
+def benchmark_format_bytes(bytes)
+  if bytes >= 1_048_576
+    "%.2fMiB" % (bytes / 1_048_576.0)
+  else
+    "%.1fKiB" % (bytes / 1024.0)
+  end
+end
+
+# Malloc bytes the block leaves alive. GC is off, so nothing the block allocates is freed:
+# this is the peak a request holds until the next GC.
+def benchmark_malloc_bytes(&block)
+  GC.start
+  GC.disable
+  before = GC.stat(:malloc_increase_bytes)
+  block.call
+  GC.stat(:malloc_increase_bytes) - before
+ensure
+  GC.enable
+end
+
 def benchmark_format_rate(rate)
   if rate >= 1_000_000
     "%.2fM" % (rate / 1_000_000.0)
@@ -67,9 +87,11 @@ def benchmark(label, &block)
   mem_report = MemoryProfiler.report(&block)
   GC.enable
   GC.start
+  malloc_bytes = benchmark_malloc_bytes(&block)
 
-  puts "%-58s %10s i/s ±%5.2f%%  %8d allocs  %8d retained" %
-    [label, benchmark_format_rate(rate), err, mem_report.total_allocated, mem_report.total_retained]
+  puts "%-58s %10s i/s ±%5.2f%%  %8d allocs  %8d retained  %10s malloc" %
+    [label, benchmark_format_rate(rate), err, mem_report.total_allocated, mem_report.total_retained,
+      benchmark_format_bytes(malloc_bytes)]
 
   if BENCHMARK_CONFIG.profile == "memory"
     puts

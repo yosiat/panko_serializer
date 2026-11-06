@@ -34,6 +34,10 @@ module Panko::CodeGen
           builder.blank
           @sink.emit_serialize_many(config, builder)
           builder.blank
+          if @sink.output == :json
+            @sink.emit_serialize_to(config, builder)
+            builder.blank
+          end
           Release.emit(descriptor, builder, cyclic_ids)
           builder.blank
           if descriptor.model.nil?

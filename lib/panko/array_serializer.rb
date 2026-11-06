@@ -38,7 +38,9 @@ Please pass valid each_serializer to ArraySerializer, for example:
     end
 
     def serialize(subjects)
-      serialize_batch(subjects, :hash)
+      serialize_batch(subjects, :hash) do |instance, records, filters|
+        instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
+      end
     end
 
     def to_a
@@ -46,7 +48,17 @@ Please pass valid each_serializer to ArraySerializer, for example:
     end
 
     def serialize_to_json(subjects)
-      serialize_batch(subjects, :json)
+      serialize_batch(subjects, :json) do |instance, records, filters|
+        instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
+      end
+    end
+
+    # Writes the array into +writer+ (an +Oj::StringWriter+) as the value of +key+, or as the
+    # next element when +key+ is nil. The bytes match what +to_json+ returns.
+    def write_json(writer, key = nil)
+      serialize_batch(@subjects, :json) do |instance, records, filters|
+        instance.serialize_many_to(writer, records, key, context: @context, scope: @scope, filters: filters)
+      end
     end
 
     private
@@ -69,7 +81,7 @@ Please pass valid each_serializer to ArraySerializer, for example:
       stack = pool.stack
       instance = stack.pop || pool.build
       begin
-        instance.serialize_many(records, context: @context, scope: @scope, filters: filters)
+        yield instance, records, filters
       ensure
         instance._release
         stack.push(instance)
