@@ -41,21 +41,21 @@ class ParentClassGenericSerializer_Hash < ParentClassGenericBase
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(1)
-      result["name"] = record["name"]
+      result["name"] = Panko::CodeGen.cast_datetime(record["name"])
     end
     unless filters.drops?(2)
       value = greeting
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["greeting"] = value
+        result["greeting"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     unless filters.drops?(3)
       value = @cb_static.call
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["static"] = value
+        result["static"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result
@@ -64,21 +64,21 @@ class ParentClassGenericSerializer_Hash < ParentClassGenericBase
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
-      result["name"] = record.name
+      result["name"] = Panko::CodeGen.cast_datetime(record.name)
     end
     unless filters.drops?(2)
       value = greeting
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["greeting"] = value
+        result["greeting"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     unless filters.drops?(3)
       value = @cb_static.call
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["static"] = value
+        result["static"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result

@@ -39,10 +39,10 @@ class RecursiveMutualItemSerializer_Hash
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(1)
-      result["name"] = record["name"]
+      result["name"] = Panko::CodeGen.cast_datetime(record["name"])
     end
     unless filters.drops?(2)
       value = record["subfolder"]
@@ -58,10 +58,10 @@ class RecursiveMutualItemSerializer_Hash
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
-      result["name"] = record.name
+      result["name"] = Panko::CodeGen.cast_datetime(record.name)
     end
     unless filters.drops?(2)
       value = record.subfolder
@@ -104,10 +104,10 @@ class RecursiveMutualFolderSerializer_Hash
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(1)
-      result["name"] = record["name"]
+      result["name"] = Panko::CodeGen.cast_datetime(record["name"])
     end
     unless filters.drops?(2)
       child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
@@ -119,10 +119,10 @@ class RecursiveMutualFolderSerializer_Hash
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
-      result["name"] = record.name
+      result["name"] = Panko::CodeGen.cast_datetime(record.name)
     end
     unless filters.drops?(2)
       child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
