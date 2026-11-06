@@ -781,12 +781,10 @@ describe "Associations Serialization" do
     end
 
     it "handles when associated object is not of expected type" do
-      # This test verifies graceful handling when an association returns an unexpected type
       class FlexibleSerializer < Panko::Serializer
         attributes :name, :address
 
         def name
-          # Handle case where object might not respond to name
           object.respond_to?(:name) ? object.name : "unknown"
         end
 
@@ -801,7 +799,6 @@ describe "Associations Serialization" do
         has_one :foo, serializer: FlexibleSerializer
       end
 
-      # Create a foo_holder with a regular foo
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       foo_holder = FooHolder.create(name: Faker::Lorem.word, foo: foo)
 
@@ -826,7 +823,7 @@ describe "Associations Serialization" do
       leaf = node.new("leaf", [])
       root = node.new("root", [leaf])
 
-      # Panko snapshots the recursive association before it is declared, so the
+      # has_many builds the nested Descriptor before :children is added to the class, so the
       # nested serializer covers one level only (leaf carries no "children").
       expect(root).to serialized_as(TreeNodeSerializer,
         "name" => "root",

@@ -3,11 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- HasMany-shape Descriptor / serializers -------------------------------
-# Post → Comments has_many Association. model: Bench::Post / Bench::Comment
-# picks the specialized path on both sides so the engine row goes through the
-# same model-aware fast path as panko/{json,object} for an apples-to-apples
-# comparison.
+# model: is set so the engine rows take the specialized path, as Panko does for AR records.
 
 HAS_MANY_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "HasManyCommentBenchSerializer",
@@ -62,8 +58,6 @@ class HasManyPostOjSerializer < OjSerializers::Serializer
   has_many :comments, serializer: HasManyCommentOjSerializer
 end
 
-# --- Target registry entries ----------------------------------------------
-
 Targets::CODE_GEN_JSON[:has_many] = ->(records) { CODE_GEN_JSON_HAS_MANY.serialize_many(records) }
 Targets::CODE_GEN_HASH[:has_many] = ->(records) { CODE_GEN_HASH_HAS_MANY.serialize_many(records) }
 Targets::PANKO_JSON[:has_many] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: HasManyPostPankoSerializer).to_json }
@@ -71,8 +65,6 @@ Targets::PANKO_OBJECT[:has_many] = ->(records) { Panko::ArraySerializer.new(reco
 Targets::OJ_JSON[:has_many] = ->(records) { HasManyPostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:has_many] = ->(records) { records.map { |r| r.as_json(include: :comments) }.to_json }
 Targets::PLAIN_HASH[:has_many] = ->(records) { records.map { |r| r.as_json(include: :comments) } }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "HasMany", type: :posts do |records|
   {

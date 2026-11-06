@@ -152,8 +152,8 @@ For each fixture and each of its **Output Modes**:
    **Generated Class**, pass a hardcoded `sanity_record`, compare output to a hardcoded
    `expected_output`.
 
-Together, (1) and (2) mechanically verify the **Compiler ≡ Dump byte-identical** contract
- -  both materialization paths hit the same on-disk artifact; divergence breaks a test. (3)
+Together, (1) and (2) mechanically verify the **Compiler ≡ Dump byte-identical** contract -
+both materialization paths hit the same on-disk artifact; divergence breaks a test. (3)
 prevents regressions where the committed snapshot is bytes that no longer form valid
 Ruby, or silently drops a field.
 
@@ -197,7 +197,7 @@ Beyond the core set, the corpus also carries fixtures for the features that land
 the initial split - each pins the emit at the snapshot tier and drives a matching feature
 spec:
 
-- **`parent_class_generic` / `parent_class_specialized` / `parent_class_recursive_self`** -
+- **`parent_class_generic` / `parent_class_specialized` / `parent_class_recursive_self`** - 
   the `parent_class` dispatch shape (Symbol-body Method Attributes, per-record ivar writes).
 - **`scope_threading`** - `scope` threaded positionally through Composition and recursion.
 - **`config_json_column_wire_format` / `_html_safe` / `_generic_fallthrough` /
@@ -530,7 +530,7 @@ From [generated-class.md § Scope contract](generated-class.md#scope-contract):
 4. **Identity-preserving through nested `has_one`** - the inner **Method Attribute**
    observes the same `scope` identity (`equal?`) as the outer call.
 5. **Identity-preserving through nested `has_many`** - same identity per element.
-6. **Identity-preserving through self-recursive nesting** (Comment → replies chain) -
+6. **Identity-preserving through self-recursive nesting** (Comment → replies chain) - 
    identity preserved at every level.
 7. **Independence from Context** - `scope:` without `context:` and `context:` without
    `scope:` both work end-to-end; each axis defaults to `nil` independently.
@@ -604,7 +604,7 @@ valid cases). `UnknownSourceError` tests use AR classes from `spec/code_gen/supp
 
 - Runtime errors (missing method on **Record**, misbehaving **Callable** body) - per
   errors.md, not wrapped; surface as Ruby's own exceptions.
-- `ArgumentError` on unknown kwargs (`root_key:` when `supports_root_key: false`) -
+- `ArgumentError` on unknown kwargs (`root_key:` when `supports_root_key: false`) - 
   Ruby-raised, covered in `root_key_spec.rb`.
 - Synthetic-path backtrace format drift - pinned at the snapshot tier if anywhere.
 
@@ -646,7 +646,7 @@ Item.create!(folder: root, subfolder: inner)
   method parameters and frozen ivars (see [generated-class.md](generated-class.md)); ad-hoc
   stress testing will be flaky. Add if a concrete regression motivates it.
 - **Cross-version Rails adapter differences at unit level.** The CI matrix (Ruby 3.4.x ×
-  4.0.x × Rails 7.2 / 8.0 / 8.1) runs the entire test suite against every combination -
+  4.0.x × Rails 7.2 / 8.0 / 8.1) runs the entire test suite against every combination - 
   the matrix itself is the adapter verification; no dedicated per-version specs.
 
 ## Adjacent docs

@@ -3,12 +3,7 @@
 require_relative "support/benchmark"
 require_relative "support/targets"
 
-# --- MethodAttribute-shape Descriptor / serializers -----------------------
-# Single Method Attribute computing `body_length` from the post's body. The
-# Callable receives `(record, context)` and is invoked once per record per
-# call. model: Bench::Post picks the specialized path so the engine row
-# goes through the same model-aware fast path as panko/{json,object} for
-# an apples-to-apples comparison.
+# model: is set so the engine rows take the specialized path, as Panko does for AR records.
 
 METHOD_ATTRIBUTE_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "MethodAttributePostBenchSerializer",
@@ -48,8 +43,6 @@ class MethodAttributePostOjSerializer < OjSerializers::Serializer
   end
 end
 
-# --- Target registry entries ----------------------------------------------
-
 Targets::CODE_GEN_JSON[:method_attribute] = ->(records) { CODE_GEN_JSON_METHOD_ATTRIBUTE.serialize_many(records) }
 Targets::CODE_GEN_HASH[:method_attribute] = ->(records) { CODE_GEN_HASH_METHOD_ATTRIBUTE.serialize_many(records) }
 Targets::PANKO_JSON[:method_attribute] = ->(records) { Panko::ArraySerializer.new(records, each_serializer: MethodAttributePostPankoSerializer).to_json }
@@ -57,8 +50,6 @@ Targets::PANKO_OBJECT[:method_attribute] = ->(records) { Panko::ArraySerializer.
 Targets::OJ_JSON[:method_attribute] = ->(records) { MethodAttributePostOjSerializer.many(records).to_s }
 Targets::PLAIN_JSON[:method_attribute] = ->(records) { records.map { |r| {id: r.id, title: r.title, body_length: r.body.length} }.to_json }
 Targets::PLAIN_HASH[:method_attribute] = ->(records) { records.map { |r| {id: r.id, title: r.title, body_length: r.body.length} } }
-
-# --- Scenario -------------------------------------------------------------
 
 benchmark_scenario "MethodAttribute", type: :posts do |records|
   {

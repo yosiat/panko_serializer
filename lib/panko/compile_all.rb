@@ -7,14 +7,11 @@ require_relative "code_gen/serializer_cache"
 module Panko
   COMPILE_ALL_MODES = %i[json hash].freeze
 
-  # Compiles every loaded Panko::Serializer subclass that declares at least
-  # one field: the base for each mode, plus a specialized variant for each
-  # model declared with {Serializer.models}. Call it at boot, after eager
-  # load and before forking workers, so workers inherit the compiled
-  # classes instead of compiling them on their first requests. Warm-up
-  # calls belong after it: a compile defines constants, which throws away
-  # YJIT code that reads the same constant names. Safe to repeat: entries
-  # already compiled are cache hits.
+  # Compiles every loaded Panko::Serializer subclass that declares a field:
+  # the base for each mode, plus a specialized variant per {Serializer.models}
+  # model. Call it at boot, after eager load and before forking workers.
+  # Run warm-up calls after it: a compile defines constants, which drops YJIT
+  # code that reads the same constant names. Safe to repeat.
   #
   # @param modes [Array<Symbol>] a non-empty subset of +[:json, :hash]+
   # @return [Panko::CompileAllResult]
@@ -63,11 +60,8 @@ module Panko
     )
   end
 
-  # Every user serializer class, walked before any compile so the
-  # Generated Classes a compile adds are not visited. Generated Classes
-  # subclass the user serializer and are told apart by +serialize_one+,
-  # which only the generator defines. Serializers without fields (abstract
-  # bases) are left out.
+  # Collected before any compile, so the Generated Classes it adds are not
+  # visited. They subclass the user serializer; only they define +serialize_one+.
   def self.compile_all_serializers
     found = []
     pending = Panko::Serializer.subclasses
