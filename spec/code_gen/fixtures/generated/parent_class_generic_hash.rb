@@ -27,60 +27,59 @@ class ParentClassGenericSerializer_Hash < ParentClassGenericBase
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    @object = nil
+    @context = nil
+    @scope = nil
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     @object = record
     @context = context
     @scope = scope
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record["id"])
+      end
+      unless filters.drops?(1)
+        result["name"] = Panko::CodeGen.cast_datetime(record["name"])
+      end
+      unless filters.drops?(2)
+        value = greeting
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["greeting"] = Panko::CodeGen.cast_datetime(value)
+        end
+      end
+      unless filters.drops?(3)
+        value = @cb_static.call
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["static"] = Panko::CodeGen.cast_datetime(value)
+        end
+      end
+      result
     else
-      _to_hash_object(record, context, scope, filters)
-    end
-  end
-
-  def _to_hash_hash(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
-    end
-    unless filters.drops?(1)
-      result["name"] = Panko::CodeGen.cast_datetime(record["name"])
-    end
-    unless filters.drops?(2)
-      value = greeting
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["greeting"] = Panko::CodeGen.cast_datetime(value)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record.id)
       end
-    end
-    unless filters.drops?(3)
-      value = @cb_static.call
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["static"] = Panko::CodeGen.cast_datetime(value)
+      unless filters.drops?(1)
+        result["name"] = Panko::CodeGen.cast_datetime(record.name)
       end
-    end
-    result
-  end
-
-  def _to_hash_object(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record.id)
-    end
-    unless filters.drops?(1)
-      result["name"] = Panko::CodeGen.cast_datetime(record.name)
-    end
-    unless filters.drops?(2)
-      value = greeting
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["greeting"] = Panko::CodeGen.cast_datetime(value)
+      unless filters.drops?(2)
+        value = greeting
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["greeting"] = Panko::CodeGen.cast_datetime(value)
+        end
       end
-    end
-    unless filters.drops?(3)
-      value = @cb_static.call
-      unless value.equal?(Panko::CodeGen::SKIP)
-        result["static"] = Panko::CodeGen.cast_datetime(value)
+      unless filters.drops?(3)
+        value = @cb_static.call
+        unless value.equal?(Panko::CodeGen::SKIP)
+          result["static"] = Panko::CodeGen.cast_datetime(value)
+        end
       end
+      result
     end
-    result
   end
 end

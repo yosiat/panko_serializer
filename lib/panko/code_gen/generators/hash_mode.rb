@@ -79,6 +79,8 @@ module Panko::CodeGen
           builder.blank
           emit_serialize_many(config, builder)
           builder.blank
+          Release.emit(descriptor, builder, cyclic_ids)
+          builder.blank
           if descriptor.models.nil?
             RecordAccess::Generic.emit_hash(descriptor, config, field_index, builder)
           else

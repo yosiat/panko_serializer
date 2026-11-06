@@ -46,60 +46,59 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
     end
   end
 
+  def _release
+    @object = nil
+    @context = nil
+    @scope = nil
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     @object = record
     @context = context
     @scope = scope
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record["name"], "name")
+      end
+      unless filters.drops?(2)
+        value = greeting
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "greeting")
+        end
+      end
+      unless filters.drops?(3)
+        value = @cb_static.call
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "static")
+        end
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
-    end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record["name"], "name")
-    end
-    unless filters.drops?(2)
-      value = greeting
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "greeting")
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
       end
-    end
-    unless filters.drops?(3)
-      value = @cb_static.call
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "static")
+      unless filters.drops?(1)
+        writer.push_value(record.name, "name")
       end
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record.name, "name")
-    end
-    unless filters.drops?(2)
-      value = greeting
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "greeting")
+      unless filters.drops?(2)
+        value = greeting
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "greeting")
+        end
       end
-    end
-    unless filters.drops?(3)
-      value = @cb_static.call
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "static")
+      unless filters.drops?(3)
+        value = @cb_static.call
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "static")
+        end
       end
+      writer.pop
     end
-    writer.pop
   end
 end

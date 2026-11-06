@@ -53,89 +53,85 @@ class ScopeThreadingPostSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(3)
+        if @cb_if_author.call(record, context, scope)
+          value = record["author"]
+          if value.nil?
+            writer.push_value(nil, "author")
+          else
+            writer.push_key("author")
+            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
+          end
+        end
+      end
+      unless filters.drops?(4)
+        child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("comments")
+        record["comments"].each do |element|
+          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
+      end
+      unless filters.drops?(1)
+        value = @cb_legacy_label.call(record, context)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "legacy_label")
+        end
+      end
+      unless filters.drops?(2)
+        value = @cb_viewer_label.call(record, context, scope)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "viewer_label")
+        end
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
-    end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(3)
-      if @cb_if_author.call(record, context, scope)
-        value = record["author"]
-        if value.nil?
-          writer.push_value(nil, "author")
-        else
-          writer.push_key("author")
-          @author_serializer._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      unless filters.drops?(3)
+        if @cb_if_author.call(record, context, scope)
+          value = record.author
+          if value.nil?
+            writer.push_value(nil, "author")
+          else
+            writer.push_key("author")
+            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
+          end
         end
       end
-    end
-    unless filters.drops?(4)
-      child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("comments")
-      record["comments"].each do |element|
-        @comments_serializer._write_one(element, writer, context, scope, child_filter)
+      unless filters.drops?(4)
+        child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("comments")
+        record.comments.each do |element|
+          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
+      end
+      unless filters.drops?(1)
+        value = @cb_legacy_label.call(record, context)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "legacy_label")
+        end
+      end
+      unless filters.drops?(2)
+        value = @cb_viewer_label.call(record, context, scope)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "viewer_label")
+        end
       end
       writer.pop
     end
-    unless filters.drops?(1)
-      value = @cb_legacy_label.call(record, context)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "legacy_label")
-      end
-    end
-    unless filters.drops?(2)
-      value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "viewer_label")
-      end
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(3)
-      if @cb_if_author.call(record, context, scope)
-        value = record.author
-        if value.nil?
-          writer.push_value(nil, "author")
-        else
-          writer.push_key("author")
-          @author_serializer._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
-        end
-      end
-    end
-    unless filters.drops?(4)
-      child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("comments")
-      record.comments.each do |element|
-        @comments_serializer._write_one(element, writer, context, scope, child_filter)
-      end
-      writer.pop
-    end
-    unless filters.drops?(1)
-      value = @cb_legacy_label.call(record, context)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "legacy_label")
-      end
-    end
-    unless filters.drops?(2)
-      value = @cb_viewer_label.call(record, context, scope)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "viewer_label")
-      end
-    end
-    writer.pop
   end
 end

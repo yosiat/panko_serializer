@@ -28,50 +28,46 @@ class RecursiveMutualItemSerializer_Hash
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record["id"])
+      end
+      unless filters.drops?(1)
+        result["name"] = Panko::CodeGen.cast_datetime(record["name"])
+      end
+      unless filters.drops?(2)
+        value = record["subfolder"]
+        result["subfolder"] = if value.nil?
+          nil
+        else
+          @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+        end
+      end
+      result
     else
-      _to_hash_object(record, context, scope, filters)
-    end
-  end
-
-  def _to_hash_hash(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
-    end
-    unless filters.drops?(1)
-      result["name"] = Panko::CodeGen.cast_datetime(record["name"])
-    end
-    unless filters.drops?(2)
-      value = record["subfolder"]
-      result["subfolder"] = if value.nil?
-        nil
-      else
-        @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record.id)
       end
-    end
-    result
-  end
-
-  def _to_hash_object(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record.id)
-    end
-    unless filters.drops?(1)
-      result["name"] = Panko::CodeGen.cast_datetime(record.name)
-    end
-    unless filters.drops?(2)
-      value = record.subfolder
-      result["subfolder"] = if value.nil?
-        nil
-      else
-        @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+      unless filters.drops?(1)
+        result["name"] = Panko::CodeGen.cast_datetime(record.name)
       end
+      unless filters.drops?(2)
+        value = record.subfolder
+        result["subfolder"] = if value.nil?
+          nil
+        else
+          @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+        end
+      end
+      result
     end
-    result
   end
 end
 
@@ -93,41 +89,37 @@ class RecursiveMutualFolderSerializer_Hash
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record["id"])
+      end
+      unless filters.drops?(1)
+        result["name"] = Panko::CodeGen.cast_datetime(record["name"])
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
+        result["items"] = record["items"].map { |element| @items_serializer._to_hash(element, context, scope, child_filter) }
+      end
+      result
     else
-      _to_hash_object(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record.id)
+      end
+      unless filters.drops?(1)
+        result["name"] = Panko::CodeGen.cast_datetime(record.name)
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
+        result["items"] = record.items.map { |element| @items_serializer._to_hash(element, context, scope, child_filter) }
+      end
+      result
     end
-  end
-
-  def _to_hash_hash(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
-    end
-    unless filters.drops?(1)
-      result["name"] = Panko::CodeGen.cast_datetime(record["name"])
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
-      result["items"] = record["items"].map { |element| @items_serializer._to_hash(element, context, scope, child_filter) }
-    end
-    result
-  end
-
-  def _to_hash_object(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record.id)
-    end
-    unless filters.drops?(1)
-      result["name"] = Panko::CodeGen.cast_datetime(record.name)
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
-      result["items"] = record.items.map { |element| @items_serializer._to_hash(element, context, scope, child_filter) }
-    end
-    result
   end
 end

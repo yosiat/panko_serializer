@@ -26,33 +26,29 @@ class NestedCompositionCommentSerializer_Hash
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record["id"])
+      end
+      unless filters.drops?(1)
+        result["body"] = Panko::CodeGen.cast_datetime(record["body"])
+      end
+      result
     else
-      _to_hash_object(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record.id)
+      end
+      unless filters.drops?(1)
+        result["body"] = Panko::CodeGen.cast_datetime(record.body)
+      end
+      result
     end
-  end
-
-  def _to_hash_hash(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
-    end
-    unless filters.drops?(1)
-      result["body"] = Panko::CodeGen.cast_datetime(record["body"])
-    end
-    result
-  end
-
-  def _to_hash_object(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record.id)
-    end
-    unless filters.drops?(1)
-      result["body"] = Panko::CodeGen.cast_datetime(record.body)
-    end
-    result
   end
 end

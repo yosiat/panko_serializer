@@ -2,6 +2,7 @@
 
 require_relative "../code_gen"
 require_relative "descriptor_builder"
+require_relative "instance_pool"
 
 module Panko
   module CodeGen
@@ -31,21 +32,17 @@ module Panko
     # Panko 0.8.5's output (string hash keys, :wire_format JSON columns,
     # pooled writer). It is an invariant of the cache key, not a dimension.
     module SerializerCache
-      COMPILED_IVARS = {json: :@_compiled_json, hash: :@_compiled_hash}.freeze
-      DESCRIPTOR_IVAR = :@_codegen_descriptor
-
-      # Guards the rare compile/convert miss. Reads never take it - an ivar
-      # read is atomic under the GVL, so a concurrent writer is observed as
-      # either nil or the finished value, never a half-built one.
+      # Guards the rare compile/convert miss. Reads never take it - a class-ivar
+      # read (through the serializer's accessor) is atomic under the GVL, so a
+      # concurrent writer is observed as either nil or the finished value, never
+      # a half-built one.
       COMPILE_MUTEX = Mutex.new
 
       # @param serializer_class [Class] a Panko::Serializer subclass
       # @param output [Symbol] :json or :hash
       # @return [Class] the compiled Generated Class for that (class, mode)
       def self.fetch(serializer_class, output:)
-        ivar = COMPILED_IVARS.fetch(output)
-
-        compiled = serializer_class.instance_variable_get(ivar)
+        compiled = compiled_slot(serializer_class, output)
         return compiled if compiled
 
         # Convert outside the compile lock (it takes the lock itself); the two
@@ -53,30 +50,97 @@ module Panko
         descriptor = descriptor_for(serializer_class)
 
         COMPILE_MUTEX.synchronize do
-          compiled = serializer_class.instance_variable_get(ivar)
+          compiled = compiled_slot(serializer_class, output)
           return compiled if compiled
 
           compiled = Panko::CodeGen.compile(descriptor, output: output, config: Config.new)
-          serializer_class.instance_variable_set(ivar, compiled)
+          store_compiled(serializer_class, output, compiled)
           compiled
+        end
+      end
+
+      # Returns the {InstancePool} handing out Generated Class instances
+      # for (serializer class, mode) - the slot the inlined serialize entry
+      # points in +Panko::Serializer+ / +Panko::ArraySerializer+ check
+      # instances out of. Compiles on first use. The pool's storage key
+      # embeds the serializer class's object id: unique per live class
+      # (Ruby never reuses object ids), and a Zeitwerk reload (new class
+      # object) naturally keys a fresh slot.
+      #
+      # @param serializer_class [Class] a Panko::Serializer subclass
+      # @param output [Symbol] :json or :hash
+      # @return [Panko::CodeGen::InstancePool]
+      def self.instance_pool(serializer_class, output)
+        pool = pool_slot(serializer_class, output)
+        return pool if pool
+
+        compiled = fetch(serializer_class, output: output)
+        descriptor = descriptor_for(serializer_class)
+
+        COMPILE_MUTEX.synchronize do
+          # Reinforces the inherited/singleton_method_added bookkeeping for a
+          # +filters_for+ acquired some other way (e.g. +extend+) before the
+          # first serialize. ||= so a hook-set +true+ is never downgraded.
+          serializer_class._cg_has_filters_for ||= serializer_class.respond_to?(:filters_for)
+          pool_slot(serializer_class, output) || store_pool(
+            serializer_class, output,
+            InstancePool.new(
+              :"_panko_cg_pool_#{output}_#{serializer_class.object_id}",
+              compiled, descriptor
+            )
+          )
         end
       end
 
       # @param serializer_class [Class] a Panko::Serializer subclass
       # @return [Panko::CodeGen::Descriptor] the converted, cached Descriptor
       def self.descriptor_for(serializer_class)
-        cached = serializer_class.instance_variable_get(DESCRIPTOR_IVAR)
+        cached = serializer_class._cg_descriptor
         return cached if cached
 
         COMPILE_MUTEX.synchronize do
-          cached = serializer_class.instance_variable_get(DESCRIPTOR_IVAR)
-          return cached if cached
-
-          descriptor = DescriptorBuilder.uniquify_names(DescriptorBuilder.build(serializer_class))
-          serializer_class.instance_variable_set(DESCRIPTOR_IVAR, descriptor)
-          descriptor
+          serializer_class._cg_descriptor ||=
+            DescriptorBuilder.uniquify_names(DescriptorBuilder.build(serializer_class))
         end
       end
+
+      # Reads/writes the per-mode compiled-class slot through the serializer
+      # class's own accessor - a direct class-ivar access, no reflection.
+      def self.compiled_slot(serializer_class, output)
+        case output
+        when :json then serializer_class._cg_compiled_json
+        when :hash then serializer_class._cg_compiled_hash
+        else raise ArgumentError, "unknown output mode: #{output.inspect}"
+        end
+      end
+      private_class_method :compiled_slot
+
+      def self.store_compiled(serializer_class, output, compiled)
+        case output
+        when :json then serializer_class._cg_compiled_json = compiled
+        when :hash then serializer_class._cg_compiled_hash = compiled
+        else raise ArgumentError, "unknown output mode: #{output.inspect}"
+        end
+      end
+      private_class_method :store_compiled
+
+      def self.pool_slot(serializer_class, output)
+        case output
+        when :json then serializer_class._cg_pool_json
+        when :hash then serializer_class._cg_pool_hash
+        else raise ArgumentError, "unknown output mode: #{output.inspect}"
+        end
+      end
+      private_class_method :pool_slot
+
+      def self.store_pool(serializer_class, output, pool)
+        case output
+        when :json then serializer_class._cg_pool_json = pool
+        when :hash then serializer_class._cg_pool_hash = pool
+        else raise ArgumentError, "unknown output mode: #{output.inspect}"
+        end
+      end
+      private_class_method :store_pool
     end
   end
 end

@@ -46,6 +46,13 @@ class ParentClassSpecializedSerializer_JSON < ParentClassSpecializedBase
     end
   end
 
+  def _release
+    @object = nil
+    @context = nil
+    @scope = nil
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     @object = record
     @context = context
