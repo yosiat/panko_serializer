@@ -96,8 +96,6 @@ lib/
     compile_all.rb, compile_all_result.rb      # Panko.compile_all boot-time warm-up
 
     code_gen/
-      version.rb                               # VERSION + GENERATOR_NAME (dumped-file banner text)
-
       # === Domain types ===
       descriptor.rb                            # Descriptor + Attribute + MethodAttribute +
                                                # Association + SKIP + structural validation

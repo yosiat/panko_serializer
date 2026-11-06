@@ -2,7 +2,13 @@
 
 require "oj"
 
-require_relative "code_gen/version"
+module Panko
+  module CodeGen
+    # Shared by the generated file banner and the synthetic backtrace path.
+    GENERATOR_NAME = "Panko::CodeGen"
+  end
+end
+
 require_relative "code_gen/errors"
 require_relative "code_gen/config"
 require_relative "code_gen/descriptor"
