@@ -15,11 +15,22 @@ Gem::PackageTask.new(gem) do |pkg|
   pkg.need_zip = pkg.need_tar = false
 end
 
-RSpec::Core::RakeTask.new(:spec)
+# Panko's own specs run against the compiled C extension.
+RSpec::Core::RakeTask.new(:spec) do |t|
+  t.pattern = "spec/{features,unit}/**/*_spec.rb"
+end
 Rake::Task[:spec].prerequisites << :compile
 Rake::Task[:compile].prerequisites << :clean
 
-task default: :spec
+# The Panko::CodeGen engine specs are a separate suite with their own
+# spec_helper (spec/code_gen/spec_helper.rb, loaded explicitly so a bare
+# `require "spec_helper"` doesn't resolve to Panko's). They don't need the C ext.
+RSpec::Core::RakeTask.new(:spec_code_gen) do |t|
+  t.pattern = "spec/code_gen/**/*_spec.rb"
+  t.rspec_opts = "--require ./spec/code_gen/spec_helper"
+end
+
+task default: [:spec, :spec_code_gen]
 
 RuboCop::RakeTask.new
 

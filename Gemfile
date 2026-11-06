@@ -23,6 +23,7 @@ group :development do
   gem "rake"
   gem "rspec", "~> 3.0"
   gem "rake-compiler"
+  gem "lefthook"
 end
 
 group :development, :test do
