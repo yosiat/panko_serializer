@@ -11,7 +11,7 @@ RSpec.describe "Generic fused-dispatch threshold" do
   def descriptor_with_fields(count, name)
     Panko::CodeGen::Descriptor.new(
       name: name,
-      models: nil,
+      model: nil,
       attributes: (1..count).map { |i| Panko::CodeGen::Attribute.new(name: :"f_#{i}", source: :"f_#{i}") },
       method_attributes: [],
       associations: []

@@ -24,8 +24,10 @@ describe "Serializer instance pooling" do
     end)
   end
 
+  # Auto-specialization routes Foo records to Foo's variant pool, so the
+  # pooled instance lives there rather than on the base slot.
   def pooled_stack(klass)
-    klass._cg_pool_json.stack
+    klass._cg_variants_json.fetch(Foo).stack
   end
 
   it "reuses one generated instance across sequential serializes on a thread" do
@@ -49,7 +51,7 @@ describe "Serializer instance pooling" do
 
     PooledMethodFooSerializer.new.serialize_to_json(foo)
 
-    expect(PooledMethodFooSerializer._cg_pool_json.stack.last.object).to be_nil
+    expect(pooled_stack(PooledMethodFooSerializer).last.object).to be_nil
   end
 
   it "builds a second instance for a reentrant serialize instead of corrupting the first" do
@@ -69,7 +71,7 @@ describe "Serializer instance pooling" do
 
     expect(result).to eq("name" => name, "nested" => name)
     expect(reentrant_output).to eq("name" => name)
-    expect(ReentrantFooSerializer._cg_pool_json.stack.size).to eq(2)
+    expect(pooled_stack(ReentrantFooSerializer).size).to eq(2)
   end
 
   it "returns the instance to the pool when serialization raises" do
@@ -83,7 +85,7 @@ describe "Serializer instance pooling" do
 
     expect { RaisingFooSerializer.new.serialize_to_json(foo) }.to raise_error(RuntimeError, /mid-serialize/)
 
-    expect(RaisingFooSerializer._cg_pool_json.stack.size).to eq(1)
+    expect(pooled_stack(RaisingFooSerializer).size).to eq(1)
     recovered = Oj.load(RaisingFooSerializer.new(except: [:boom]).serialize_to_json(foo))
     expect(recovered).to eq("name" => name)
   end

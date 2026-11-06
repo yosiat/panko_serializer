@@ -4,7 +4,7 @@ module Fixtures
   module ConfigNullForHasOneOff
     INNER_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ConfigNullForHasOneOffInnerSerializer",
-      models: nil,
+      model: nil,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id),
         Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -16,7 +16,7 @@ module Fixtures
     CONFIG = Panko::CodeGen::Config.new(null_for_missing_has_one: false)
     DESCRIPTOR = Panko::CodeGen::Descriptor.new(
       name: "ConfigNullForHasOneOffSerializer",
-      models: nil,
+      model: nil,
       attributes: [
         Panko::CodeGen::Attribute.new(name: :id, source: :id)
       ],

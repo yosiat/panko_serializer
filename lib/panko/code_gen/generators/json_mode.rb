@@ -49,7 +49,7 @@ module Panko::CodeGen
       # Emits one +<Name>_JSON+ class shell with constructor + public
       # entries + the chosen +RecordAccess+ strategy's helpers.
       # Strategy choice is per-Descriptor and keyed off
-      # +descriptor.models.nil?+ per +docs/compilation.md § Record-access
+      # +descriptor.model.nil?+ per +docs/compilation.md § Record-access
       # strategy+: +nil+ → +RecordAccess::Generic+ (Hash + PORO via the
       # +_write_one_hash+ / +_write_one_object+ split); set →
       # +RecordAccess::Specialized+ (single +_write_one+ body, no Hash
@@ -88,7 +88,7 @@ module Panko::CodeGen
           builder.blank
           Release.emit(descriptor, builder, cyclic_ids)
           builder.blank
-          if descriptor.models.nil?
+          if descriptor.model.nil?
             RecordAccess::Generic.emit_json(descriptor, config, field_index, builder)
           else
             RecordAccess::Specialized.emit_json(descriptor, config, field_index, builder)

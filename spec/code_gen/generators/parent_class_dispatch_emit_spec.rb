@@ -31,7 +31,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "MixedBodySerializer",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :static_via_callable, body: -> { 1 }),
@@ -44,9 +44,9 @@ RSpec.describe "Generator parent_class dispatch emit" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        it "emits +value = <method_name>+ for Symbol bodies, not +@cb_<name>.call+" do
+        it "emits +value = self.<method_name>+ for Symbol bodies, not +@cb_<name>.call+" do
           source = generator.emit(descriptor, output: mode, config: config)
-          expect(source).to include("value = greeting\n")
+          expect(source).to include("value = self.greeting\n")
           expect(source).not_to include("@cb_greeting.call")
         end
 
@@ -72,7 +72,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:descriptor_with_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "SpecializedParentSerializer",
-        models: [Post],
+        model: Post,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: symbol_body_method_attributes,
         associations: [],
@@ -82,7 +82,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:descriptor_without_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "SpecializedParentNoSymbolSerializer",
-        models: [Post],
+        model: Post,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: [],
@@ -119,7 +119,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:descriptor_with_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "GenericParentSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: symbol_body_method_attributes,
         associations: [],
@@ -129,7 +129,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:descriptor_without_symbol_body) {
       Panko::CodeGen::Descriptor.new(
         name: "GenericParentNoSymbolSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: [],
@@ -198,7 +198,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:specialized_descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "NoParentSpecializedSerializer",
-        models: [Post],
+        model: Post,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -207,7 +207,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:generic_descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "NoParentGenericSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id)],
         method_attributes: [],
         associations: []
@@ -262,7 +262,7 @@ RSpec.describe "Generator parent_class dispatch emit" do
     let(:descriptor) {
       Panko::CodeGen::Descriptor.new(
         name: "SymbolBodyEndToEndSerializer",
-        models: nil,
+        model: nil,
         attributes: [Panko::CodeGen::Attribute.new(name: :id, source: :id)],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :static, body: -> { 99 }),
@@ -311,17 +311,15 @@ RSpec.describe "Generator parent_class dispatch emit" do
     end
 
     it "raises Ruby's native error at serialize time for a Symbol resolving to a missing method" do
-      # Ruby raises +NameError+ (which is +NoMethodError+'s superclass)
-      # for a bare-identifier reference that resolves to neither a
-      # local variable nor a method on +self+; +NoMethodError+ fires
-      # only for explicit-receiver dispatch (+self.foo+). The emitted
-      # shape is bare per the design (+value = <method_name>+), so the
-      # natural Ruby class here is +NameError+. The contract that
-      # matters is "no code_gen-specific error" + "no Compile-time check"
-      # - both pinned here; the runtime error stays Ruby-native.
+      # The emitted shape is explicit-receiver (+value = self.<name>+ -
+      # the receiver keeps user methods from being shadowed by the
+      # body's locals), so Ruby raises +NoMethodError+; the matcher
+      # pins its +NameError+ superclass. The contract that matters is
+      # "no code_gen-specific error" + "no Compile-time check" - both
+      # pinned here; the runtime error stays Ruby-native.
       descriptor_missing = Panko::CodeGen::Descriptor.new(
         name: "MissingMethodSerializer",
-        models: nil,
+        model: nil,
         attributes: [],
         method_attributes: [
           Panko::CodeGen::MethodAttribute.new(name: :nope, body: :nope_does_not_exist)

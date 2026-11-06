@@ -24,7 +24,7 @@ RECORD = DATASETS.fetch(:posts).first
 
 SINGLE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordAuthorBenchSerializer",
-  models: [Bench::Author],
+  model: Bench::Author,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :name, source: :name)
@@ -35,7 +35,7 @@ SINGLE_AUTHOR_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 SINGLE_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordCommentBenchSerializer",
-  models: [Bench::Comment],
+  model: Bench::Comment,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :body, source: :body)
@@ -46,7 +46,7 @@ SINGLE_COMMENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
 
 SINGLE_POST_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "SingleRecordPostBenchSerializer",
-  models: [Bench::Post],
+  model: Bench::Post,
   attributes: [
     Panko::CodeGen::Attribute.new(name: :id, source: :id),
     Panko::CodeGen::Attribute.new(name: :title, source: :title),

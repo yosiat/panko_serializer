@@ -45,7 +45,7 @@ EVENTS = Bench::Event.order(:id).to_a
 
 EVENT_DESCRIPTOR = Panko::CodeGen::Descriptor.new(
   name: "EventSerializer",
-  models: [Bench::Event],
+  model: Bench::Event,
   attributes: %i[id name starts_at ends_at created_at updated_at].map do |name|
     Panko::CodeGen::Attribute.new(name: name, source: name)
   end,
@@ -60,11 +60,6 @@ class EventPankoSerializer < Panko::Serializer
   attributes :id, :name, :starts_at, :ends_at, :created_at, :updated_at
 end
 
-class EventPankoModelsSerializer < Panko::Serializer
-  models [Bench::Event]
-  attributes :id, :name, :starts_at, :ends_at, :created_at, :updated_at
-end
-
 class EventOjSerializer < OjSerializers::Serializer
   default_format :json
   attributes :id, :name, :starts_at, :ends_at, :created_at, :updated_at
@@ -76,9 +71,7 @@ parity = {
   "code_gen/json" => CODE_GEN_JSON_EVENTS.serialize_many(EVENTS),
   "code_gen/hash" => Oj.dump(CODE_GEN_HASH_EVENTS.serialize_many(EVENTS), mode: :rails),
   "panko/json" => Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_json,
-  "panko/json[models]" => Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoModelsSerializer).to_json,
   "panko/object" => Oj.dump(Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_a, mode: :rails),
-  "panko/object[models]" => Oj.dump(Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoModelsSerializer).to_a, mode: :rails),
   "oj_serializers/json" => EventOjSerializer.many(EVENTS).to_s
 }
 reference_label, reference = parity.first
@@ -99,9 +92,7 @@ rows = {
   "code_gen/json" => -> { CODE_GEN_JSON_EVENTS.serialize_many(EVENTS) },
   "code_gen/hash" => -> { CODE_GEN_HASH_EVENTS.serialize_many(EVENTS) },
   "panko/json" => -> { Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_json },
-  "panko/json[models]" => -> { Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoModelsSerializer).to_json },
   "panko/object" => -> { Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoSerializer).to_a },
-  "panko/object[models]" => -> { Panko::ArraySerializer.new(EVENTS, each_serializer: EventPankoModelsSerializer).to_a },
   "oj_serializers/json" => -> { EventOjSerializer.many(EVENTS).to_s }
 }
 

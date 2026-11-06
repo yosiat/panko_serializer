@@ -6,7 +6,7 @@ require "panko/code_gen"
 RSpec.describe Panko::CodeGen::Generators::CycleMembership do
   def descriptor(name, associations: [])
     Panko::CodeGen::Descriptor.new(
-      name: name, models: nil,
+      name: name, model: nil,
       attributes: [], method_attributes: [], associations: associations
     )
   end
