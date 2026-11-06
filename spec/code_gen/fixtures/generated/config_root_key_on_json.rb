@@ -54,28 +54,24 @@ class ConfigRootKeyOnSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      writer.pop
     end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    writer.pop
   end
 
   private def validate_root_key!(root_key)

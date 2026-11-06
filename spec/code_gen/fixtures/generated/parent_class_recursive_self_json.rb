@@ -46,64 +46,63 @@ class ParentClassRecursiveSelfCommentSerializer_JSON < ParentClassRecursiveBase
     end
   end
 
+  def _release
+    @object = nil
+    @context = nil
+    @scope = nil
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     @object = record
     @context = context
     @scope = scope
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record["body"], "body")
+      end
+      unless filters.drops?(3)
+        child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("replies")
+        record["replies"].each do |element|
+          @replies_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
+      end
+      unless filters.drops?(2)
+        value = viewer_tag
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "viewer_tag")
+        end
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
-    end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record["body"], "body")
-    end
-    unless filters.drops?(3)
-      child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("replies")
-      record["replies"].each do |element|
-        @replies_serializer._write_one(element, writer, context, scope, child_filter)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record.body, "body")
+      end
+      unless filters.drops?(3)
+        child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
+        writer.push_array("replies")
+        record.replies.each do |element|
+          @replies_serializer._write_one(element, writer, context, scope, child_filter)
+        end
+        writer.pop
+      end
+      unless filters.drops?(2)
+        value = viewer_tag
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "viewer_tag")
+        end
       end
       writer.pop
     end
-    unless filters.drops?(2)
-      value = viewer_tag
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "viewer_tag")
-      end
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record.body, "body")
-    end
-    unless filters.drops?(3)
-      child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
-      writer.push_array("replies")
-      record.replies.each do |element|
-        @replies_serializer._write_one(element, writer, context, scope, child_filter)
-      end
-      writer.pop
-    end
-    unless filters.drops?(2)
-      value = viewer_tag
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "viewer_tag")
-      end
-    end
-    writer.pop
   end
 end

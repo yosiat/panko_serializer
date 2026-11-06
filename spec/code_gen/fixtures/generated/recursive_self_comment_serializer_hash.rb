@@ -27,41 +27,37 @@ class RecursiveSelfCommentSerializer_Hash
     records.map { |r| _to_hash(r, context, scope, filters) }
   end
 
+  def _release
+    nil
+  end
+
   def _to_hash(record, context, scope, filters)
     if record.is_a?(Hash)
-      _to_hash_hash(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record["id"])
+      end
+      unless filters.drops?(1)
+        result["body"] = Panko::CodeGen.cast_datetime(record["body"])
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
+        result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
+      end
+      result
     else
-      _to_hash_object(record, context, scope, filters)
+      result = {}
+      unless filters.drops?(0)
+        result["id"] = Panko::CodeGen.cast_datetime(record.id)
+      end
+      unless filters.drops?(1)
+        result["body"] = Panko::CodeGen.cast_datetime(record.body)
+      end
+      unless filters.drops?(2)
+        child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
+        result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
+      end
+      result
     end
-  end
-
-  def _to_hash_hash(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
-    end
-    unless filters.drops?(1)
-      result["body"] = Panko::CodeGen.cast_datetime(record["body"])
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-      result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
-    end
-    result
-  end
-
-  def _to_hash_object(record, context, scope, filters)
-    result = {}
-    unless filters.drops?(0)
-      result["id"] = Panko::CodeGen.cast_datetime(record.id)
-    end
-    unless filters.drops?(1)
-      result["body"] = Panko::CodeGen.cast_datetime(record.body)
-    end
-    unless filters.drops?(2)
-      child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-      result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
-    end
-    result
   end
 end

@@ -46,45 +46,41 @@ class ScopeThreadingCommentSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     if record.is_a?(Hash)
-      _write_one_hash(record, writer, context, scope, filters)
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record["id"], "id")
+      end
+      unless filters.drops?(1)
+        writer.push_value(record["body"], "body")
+      end
+      unless filters.drops?(2)
+        value = @cb_viewer_tag.call(record, context, scope)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "viewer_tag")
+        end
+      end
+      writer.pop
     else
-      _write_one_object(record, writer, context, scope, filters)
-    end
-  end
-
-  def _write_one_hash(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record["id"], "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record["body"], "body")
-    end
-    unless filters.drops?(2)
-      value = @cb_viewer_tag.call(record, context, scope)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "viewer_tag")
+      writer.push_object
+      unless filters.drops?(0)
+        writer.push_value(record.id, "id")
       end
-    end
-    writer.pop
-  end
-
-  def _write_one_object(record, writer, context, scope, filters)
-    writer.push_object
-    unless filters.drops?(0)
-      writer.push_value(record.id, "id")
-    end
-    unless filters.drops?(1)
-      writer.push_value(record.body, "body")
-    end
-    unless filters.drops?(2)
-      value = @cb_viewer_tag.call(record, context, scope)
-      unless value.equal?(Panko::CodeGen::SKIP)
-        writer.push_value(value, "viewer_tag")
+      unless filters.drops?(1)
+        writer.push_value(record.body, "body")
       end
+      unless filters.drops?(2)
+        value = @cb_viewer_tag.call(record, context, scope)
+        unless value.equal?(Panko::CodeGen::SKIP)
+          writer.push_value(value, "viewer_tag")
+        end
+      end
+      writer.pop
     end
-    writer.pop
   end
 end

@@ -48,6 +48,10 @@ class ShallowSpecializedSerializer_JSON
     end
   end
 
+  def _release
+    nil
+  end
+
   def _write_one(record, writer, context, scope, filters)
     writer.push_object
     unless filters.drops?(0)
