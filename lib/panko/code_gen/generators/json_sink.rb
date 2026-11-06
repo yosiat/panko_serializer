@@ -67,6 +67,29 @@ module Panko::CodeGen
         builder.line "end"
       end
 
+      # Write into a writer the caller owns, so a JSON document that holds this output
+      # (Panko::Response) gets it without a String copy. No pooled writer, no root key.
+      def emit_serialize_to(config, builder)
+        builder.line "def serialize_one_to(writer, record, key = nil, context: nil, scope: nil, filters: nil)"
+        builder.indent do
+          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, #{GeneratedNames.field_index_const})"
+          builder.line "writer.push_key(key) if key"
+          builder.line "#{GeneratedNames.write_one}(record, writer, context, scope, filters)"
+          builder.line "nil"
+        end
+        builder.line "end"
+        builder.blank
+        builder.line "def serialize_many_to(writer, records, key = nil, context: nil, scope: nil, filters: nil)"
+        builder.indent do
+          builder.line "filters = Panko::CodeGen::Filter.wrap(filters, #{GeneratedNames.field_index_const})"
+          builder.line "writer.push_array(key)"
+          builder.line "records.each { |r| #{GeneratedNames.write_one}(r, writer, context, scope, filters) }"
+          builder.line "writer.pop"
+          builder.line "nil"
+        end
+        builder.line "end"
+      end
+
       def open_record(builder)
         builder.line "writer.push_object"
       end

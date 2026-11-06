@@ -71,6 +71,25 @@ serializer.serialize_many(@posts, context: request_env, scope: current_user)
   the method. Two explicit entry points avoid runtime type introspection and keep call sites
   monomorphic.
 
+### `serialize_one_to(writer, record, key = nil, context: nil, scope: nil, filters: nil)` / `serialize_many_to(writer, records, key = nil, ...)`
+
+JSON mode only. Write into an `Oj::StringWriter` the caller owns instead of returning a
+String, so a larger JSON document (`Panko::Response`) holds the output without copying it.
+
+```ruby
+writer = Oj::StringWriter.new(mode: :rails)
+writer.push_object
+writer.push_value(true, "success")
+serializer.serialize_many_to(writer, @posts, "posts", scope: current_user)
+writer.pop
+writer.to_s # => {"success":true,"posts":[...]}
+```
+
+- `key` names the value inside an open object. With `key: nil` the output is the next
+  element of an open array, or the whole document when nothing is open.
+- The bytes written match what `serialize_one` / `serialize_many` return.
+- They return `nil`, take no pooled **Writer**, and have no `root_key:`.
+
 ## Context contract
 
 **Context** is the arbitrary caller-supplied value threaded unchanged through every
