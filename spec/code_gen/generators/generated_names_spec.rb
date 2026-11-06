@@ -87,12 +87,6 @@ RSpec.describe Panko::CodeGen::Generators::GeneratedNames do
     end
   end
 
-  describe ".writer_pool_key" do
-    it "derives the fiber-local storage Symbol from the JSON class name" do
-      expect(described_class.writer_pool_key(descriptor)).to eq(:_panko_writer__GeneratedNamesPostSerializer_JSON)
-    end
-  end
-
   describe ".filter_key" do
     it "keys value Fields by their output name" do
       expect(described_class.filter_key(attribute)).to eq(:headline)

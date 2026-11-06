@@ -1,27 +1,28 @@
 # Project structure
 
-Public API surface, directory layout, and the layered architecture for the gem's internals.
+Public API surface, directory layout, and the layered architecture for the engine's internals.
 
 ## Gem identity
 
-- **Gem name**: `code_gen` (snake_case - `require "code_gen"`).
+- **Require path**: `require "panko/code_gen"`.
 - **Top-level module**: `Panko::CodeGen`.
-- **Published?** No - internal to the Panko ecosystem; distributed as a path or git
-  dependency for now.
+- **Published?** Not separately. The engine ships inside the `panko` gem - pure
+  Ruby, MIT-licensed.
+  There is no standalone gem to install and no native extension to compile.
 
 ## Public API surface
 
-These are the only symbols callers (Panko) should depend on. Everything else in `lib/` is
-internal and may change without notice.
+These are the only symbols Panko - the sole caller - depends on. Everything else under
+`lib/panko/code_gen/` is internal and may change without notice.
 
 | Public symbol                                                                                          | Purpose                                                    |
 | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `Panko::CodeGen.compile(descriptor, output:, config:)`                                             | **Compile** entry - returns a **Generated Class**.         |
-| `Panko::CodeGen.dump(descriptor, output:, config:, path:)`                                         | **Dump** entry - writes a runnable `.rb` file.             |
-| `Panko::CodeGen::Descriptor`, `Attribute`, `MethodAttribute`, `Association`                        | **Descriptor** value types (all `Data.define`).            |
-| `Panko::CodeGen::Config`                                                                           | Compile-time settings (`Data.define`).                     |
-| `Panko::CodeGen::SKIP`                                                                             | Frozen singleton returned by **Method Attributes** to omit a **Field**. |
-| `Panko::CodeGen::Error` + descendants (`DescriptorError`, `CompileError`, `NameCollisionError`, …) | Error hierarchy - see [errors.md](errors.md).              |
+| `Panko::CodeGen.compile(descriptor, output:, config:)`                                                 | **Compile** entry - returns a **Generated Class**.         |
+| `Panko::CodeGen.dump(descriptor, output:, config:, path:)`                                             | **Dump** entry - writes a runnable `.rb` file.             |
+| `Panko::CodeGen::Descriptor`, `Attribute`, `MethodAttribute`, `Association`                            | **Descriptor** value types (all `Data.define`).            |
+| `Panko::CodeGen::Config`                                                                               | Compile-time settings (`Data.define`).                     |
+| `Panko::CodeGen::SKIP`                                                                                 | Frozen singleton returned by **Method Attributes** to omit a **Field**. |
+| `Panko::CodeGen::Error` + descendants (`DescriptorError`, `CompileError`, `NameCollisionError`, …)     | Error hierarchy - see [errors.md](errors.md).              |
 
 Both module-level facades are thin wrappers:
 
@@ -44,13 +45,13 @@ Three layers. Each layer knows only about the layer immediately below it. `Compi
 emitted source.
 
 ```
-Panko::CodeGen.compile(...)                 # facade - thin wrapper
+Panko::CodeGen.compile(...)                     # facade - thin wrapper
   └─ Compiler#compile                           # orchestration: drive generation + eval
       ├─ Generator#emit                         # walks Descriptor, decides what to emit
       │   └─ CodeBuilder                        # accumulates strings, tracks indent - pure helper
       └─ Module.new + module_eval               # materialization: source → runnable class
 
-Panko::CodeGen.dump(...)                    # facade - thin wrapper
+Panko::CodeGen.dump(...)                        # facade - thin wrapper
   └─ Dump#dump                                  # orchestration: drive generation + write file
       ├─ Generator#emit                         # same generator, same output bytes
       │   └─ CodeBuilder
@@ -75,21 +76,24 @@ machinery in play.
 
 ## Directory layout
 
-Each file handles a single concept and stays under ~200 lines. Domains grouped into
-folders. Filenames mirror the concepts in the other docs.
+Each file handles a single concept and stays small. Domains grouped into folders;
+filenames mirror the concepts in the other docs. The engine core sits alongside the
+Panko **runtime seam** that replaced the deleted C extension.
 
 ```
 lib/
-  code_gen.rb                      # facade: .compile, .dump; requires subtree
+  panko/
+    code_gen.rb                                # facade: .compile / .dump; requires the subtree
 
-  code_gen/
-    version.rb
+    code_gen/
+      version.rb                               # VERSION + GENERATOR_NAME (dumped-file banner text)
 
-    # === Domain types ===
-    descriptor.rb                              # Descriptor + Attribute + MethodAttribute +
-                                               # Association + SKIP (small Data.defines in one file)
-    config.rb                                  # Config Data.define
-    errors.rb                                  # error hierarchy (see errors.md)
+      # === Domain types ===
+      descriptor.rb                            # Descriptor + Attribute + MethodAttribute +
+                                               # Association + SKIP + structural validation
+      config.rb                                # Config Data.define + enum coercion
+      errors.rb                                # error hierarchy (see errors.md)
+      datetime_format.rb                       # raw DB datetime String → ISO-8601 String splicer
 
       # === Semantic validation (one rule per file, one orchestrator) ===
       validators/
@@ -104,9 +108,9 @@ lib/
         none.rb                                # no-filter singleton (Null Object)
         indexed.rb                             # Indexed filter (Boolean Array); see filters.md
 
-    # === Compilation orchestration ===
-    compiler.rb                                # Compiler#compile: drive Generator + eval
-    compile_cache.rb                           # identity-keyed Descriptor → Generated Class cache
+      # === Compilation orchestration ===
+      compiler.rb                              # Compiler#compile: drive Generator + module_eval
+      compile_cache.rb                         # identity-keyed Descriptor → Generated Class cache
                                                # (handles Recursive Descriptors)
 
       # === Code generation ===
@@ -114,7 +118,7 @@ lib/
       generator.rb                             # Generator entry - dispatches on Output Mode
       generators/
         generated_names.rb                     # the emitted-symbol vocabulary: ivar tokens,
-                                               # write-method names, FIELD_INDEX, pool key,
+                                               # write-method names, FIELD_INDEX,
                                                # filter-key rule - one home, emitters consume it
         class_emitter.rb                       # the one class-shell emitter (constructor,
                                                # recursion wiring, public entries) behind a Sink
@@ -138,36 +142,45 @@ lib/
                                                # above 64 Fields (FUSED_DISPATCH_MAX_FIELDS)
           specialized.rb                       # specialized path - _read_attribute / method dispatch
 
-    # === Dump ===
-    dump.rb                                    # Dump#dump: drive Generator + File.write
+      # === Dump ===
+      dump.rb                                  # Dump#dump: drive Generator + File.write
 
-    # === ActiveRecord helpers ===
-    active_record/
-      access_classifier.rb                     # 3-step rule: column-backed / method / raise
-      define_attribute_methods.rb              # defensive call wrapper
+      # === ActiveRecord helpers ===
+      active_record/
+        access_classifier.rb                   # 3-step rule: column-backed / method / raise
+        define_attribute_methods.rb            # defensive idempotent AR method-table warmup
+
+      # === Generated-Class runtime support ===
+      writers_pool.rb                          # fiber-local LIFO of Oj::StringWriter instances,
+                                               # one stack shared by every JSON Generated Class
+
+      # === Panko runtime seam (replaces the deleted C extension) ===
+      runtime.rb                               # shared seam: only/except/filters_for → Filter
+      descriptor_builder.rb                    # Panko::Serializer DSL → immutable Descriptor
+      serializer_cache.rb                      # per-class base + auto-specialization variant pools
+      filter_adapter.rb                        # Panko filter shape → engine Filter shape
+      instance_pool.rb                         # fiber-local LIFO of Generated Class instances
 ```
 
 ### Why no per-Rails-version adapter folder
 
 An earlier sketch had `ar_adapter/rails_7_2.rb`, `rails_8_0.rb`, etc. That was
-speculative. The research notes in
-benchmark research
-show `define_attribute_methods` is byte-identical across Rails 7.2 / 8.0 / 8.1, and
-benchmark research confirms `_read_attribute`
-is stable across the supported versions. There is no version-specific surface today, so
-there are no version-specific files.
+speculative: `define_attribute_methods` is byte-identical across Rails 7.2 / 8.0 / 8.1, and
+`_read_attribute` is stable across the supported versions. There is no version-specific
+surface today, so there are no version-specific files.
 
 If a future Rails version breaks one of these contracts, the fix is a feature-detect
 switch inside the affected `active_record/*.rb` helper - not a new file tree.
 
 The absence of a per-version adapter folder is a **code-structure** decision - it does
-not weaken test coverage. CI still runs a matrix (Ruby 3.4.x × 4.0.x × Rails 7.2 / 8.0 /
-8.1, minus the incompatible Ruby 4.0 × Rails 7.2 cell) to prove the single-path code
-works on every supported combination. See [ci.md](ci.md).
+not weaken test coverage. CI still runs the Ruby × Rails matrix (Ruby 3.4 / 4.0 × Rails
+7.2 / 8.0 / 8.1, minus the incompatible Ruby 4.0 × Rails 7.2 cell) to prove the
+single-path code works on every supported combination.
 
 ## Mapping docs to files
 
-A reader arriving from a doc should know exactly where the implementation lives.
+A reader arriving from a doc should know exactly where the implementation lives. Paths
+are relative to `lib/panko/code_gen/`.
 
 | Doc                                          | Primary files                                                              |
 | -------------------------------------------- | -------------------------------------------------------------------------- |
@@ -180,19 +193,18 @@ A reader arriving from a doc should know exactly where the implementation lives.
 | [output-modes.md](output-modes.md)           | `generators/sink.rb`, `generators/json_sink.rb`, `generators/hash_sink.rb` |
 | [generated-class.md](generated-class.md)     | shape emitted by `generators/*`; runtime support in `writers_pool.rb`, `instance_pool.rb` |
 | [dumping.md](dumping.md)                      | `dump.rb`, `generators/fanout.rb`, `generators/banner.rb`                  |
-| [auto-specialization.md](auto-specialization.md) | `serializer_cache.rb`                                                  |
+| [auto-specialization.md](auto-specialization.md) | Panko runtime seam - `serializer_cache.rb`, `runtime.rb`, `descriptor_builder.rb`, `filter_adapter.rb`, `instance_pool.rb` |
 
 ## Testing shape (preview)
 
 The small-file split exists so every file has an obvious unit-test target:
 
 - `code_builder_spec.rb` - pure string/indent behavior; no domain types involved.
-- `generators/field_emitters/attribute_spec.rb` - "given this fixture **Attribute**, the
-  emitted lines are exactly X" - snapshot-style.
+- `generators/snapshot_spec.rb` - "given this fixture **Descriptor**, the emitted source is
+  exactly X" - snapshot-style.
 - `validators/name_uniqueness_spec.rb` - feed Descriptors with duplicate Field names,
   assert `NameCollisionError` raised.
-- `compiler_spec.rb` - end-to-end: compile a fixture **Descriptor**, serialize, assert
-  output.
+- `features/*` - end-to-end: compile a fixture **Descriptor**, serialize, assert output.
 
 Full testing strategy - tiers, snapshot harness, feature-test fixtures - is in
 [testing.md](testing.md).

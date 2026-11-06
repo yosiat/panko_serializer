@@ -12,7 +12,7 @@
 
 class RecursiveMutualItemSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1, subfolder: 2}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__RecursiveMutualItemSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
@@ -22,19 +22,21 @@ class RecursiveMutualItemSerializer_JSON < Fixtures::BaseSerializer
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_array
       records.each { |r| _write_one(r, writer, context, scope, filters) }
@@ -43,7 +45,7 @@ class RecursiveMutualItemSerializer_JSON < Fixtures::BaseSerializer
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
@@ -94,7 +96,7 @@ end
 
 class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, name: 1, items: 2}.freeze
-  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new(:_panko_writer__RecursiveMutualFolderSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
@@ -104,19 +106,21 @@ class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
   def serialize_one(record, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       _write_one(record, writer, context, scope, filters)
       result = writer.to_s
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
   def serialize_many(records, context: nil, scope: nil, filters: nil)
     filters = Panko::CodeGen::Filter.wrap(filters, FIELD_INDEX)
     writer = POOL.checkout
+    result = nil
     begin
       writer.push_array
       records.each { |r| _write_one(r, writer, context, scope, filters) }
@@ -125,7 +129,7 @@ class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
       result.chomp!
       result
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 

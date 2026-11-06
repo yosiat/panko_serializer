@@ -14,7 +14,7 @@ can retrieve the source:
 
 ```ruby
 serializer.method(:_write_one).source
-# => "def _write_one(record, writer, context, filters)\n  writer.push_object\n  ..."
+# => "def _write_one(record, writer, context, scope, filters)\n  writer.push_object\n  ..."
 ```
 
 In Pry: `show-source serializer._write_one` displays the generated source inline.
@@ -60,7 +60,7 @@ Since Panko owns its **Descriptors**, it always has one available to hand in.
 #   PostSerializer_JSON.new(descriptor: descriptor).serialize_one(record)
 
 class PostSerializer_JSON
-  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new(:_panko_writer__PostSerializer_JSON)
+  POOL = Panko::CodeGen::WritersPool::ThreadLocal.new
 
   def initialize(descriptor:)
     @cb_full_title       = descriptor.method_attributes[0].body
@@ -68,17 +68,18 @@ class PostSerializer_JSON
     @comments_serializer = CommentSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
   end
 
-  def serialize_one(record, context: nil, filters: nil)
+  def serialize_one(record, context: nil, scope: nil, filters: nil)
     writer = POOL.checkout
+    result = nil
     begin
-      _write_one(record, writer, context, filters)
-      writer.to_s
+      _write_one(record, writer, context, scope, filters)
+      result = writer.to_s
     ensure
-      POOL.checkin(writer)
+      POOL.checkin(writer, result)
     end
   end
 
-  def _write_one(record, writer, context, filters)
+  def _write_one(record, writer, context, scope, filters)
     writer.push_object
     writer.push_key("id")
     writer.push_value(record.id)
@@ -86,7 +87,7 @@ class PostSerializer_JSON
     writer.push_value(@cb_full_title.call(record, context))
     if @cb_if_comments.call(record, context)
       writer.push_key("comments")
-      @comments_serializer._write_one(record.public_comments, writer, context, filters)
+      @comments_serializer._write_one(record.public_comments, writer, context, scope, filters)
     end
     writer.pop
   end
@@ -150,7 +151,7 @@ When a **Descriptor** has **Associations**, the **Generated Class** for the inne
 Default: (1), single file per **Generated Class**, with explicit `require_relative` directives.
 More modular and matches the "one file per class" Ruby convention.
 
-## Not in v1: fully self-contained dumps
+## Not yet: fully self-contained dumps
 
 A **Dump** that bakes **Callable** source directly into the file (so the file has zero
 external dependencies beyond Oj and stdlib) is a future enhancement. It requires recovering

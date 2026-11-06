@@ -47,10 +47,29 @@ module Panko
     end
 
     @auto_specialization = AutoSpecialization.new
+    @writer_pool_max_bytes = 1_048_576
 
     class << self
       # @return [Panko::Config::AutoSpecialization]
       attr_reader :auto_specialization
+
+      # Largest JSON output, in bytes, whose +Oj::StringWriter+ goes back to
+      # the per-thread pool after +serialize_to_json+. A call whose output
+      # is larger drops its writer instead: +Oj::StringWriter#reset+ keeps
+      # the grown buffer, so a reused writer would hold that memory for the
+      # life of the thread. Read on every checkin, so a change applies to
+      # the next call without recompiling serializers.
+      #
+      # @return [Integer] default 1_048_576 (1 MB)
+      attr_reader :writer_pool_max_bytes
+
+      def writer_pool_max_bytes=(value)
+        unless value.is_a?(Integer) && value.positive?
+          raise ArgumentError,
+            "writer_pool_max_bytes: must be a positive Integer; got #{value.inspect}:#{value.class}"
+        end
+        @writer_pool_max_bytes = value
+      end
     end
   end
 
