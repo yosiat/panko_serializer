@@ -28,19 +28,24 @@ module Panko
         name.gsub("::", "__")
       end
 
-      # A self-referential association copies its serializer one level deep, so two Descriptors
-      # can share a name. The engine defines one Generated Class per name, so a shared name breaks it.
-      def uniquify_names(descriptor, seen = Hash.new(0))
+      # The engine defines one Generated Class per Descriptor object, named after +name+.
+      # Equal Descriptors become one object, so two associations using one child serializer share
+      # a class and the child's method fields stay monomorphic on +self+. Different Descriptors
+      # with one name (a self-reference snapshot, a static filter, another Model) get a suffix.
+      # +shared+ is keyed before the final name is set, so equal subtrees give equal keys.
+      def uniquify_names(descriptor, seen = Hash.new(0), shared = {})
         associations = descriptor.associations.map do |association|
           association.with(
-            descriptor: uniquify_names(association.descriptor, seen),
-            variants: association.variants.map { |variant| uniquify_names(variant, seen) }
+            descriptor: uniquify_names(association.descriptor, seen, shared),
+            variants: association.variants.map { |variant| uniquify_names(variant, seen, shared) }
           )
         end
-        seen[descriptor.name] += 1
-        count = seen[descriptor.name]
-        name = (count == 1) ? descriptor.name : "#{descriptor.name}_#{count}"
-        descriptor.with(name: name, associations: associations)
+        rebuilt = descriptor.with(associations: associations)
+        shared[rebuilt] ||= begin
+          seen[descriptor.name] += 1
+          count = seen[descriptor.name]
+          rebuilt.with(name: (count == 1) ? descriptor.name : "#{descriptor.name}_#{count}")
+        end
       end
 
       # Bakes a static association filter (+has_many :x, only: [...]+) into the cached Descriptor.
@@ -51,10 +56,12 @@ module Panko
 
       # A child with no specializable class is left unchanged. Several declared classes
       # become +Association#variants+, which share a name, so callers run {uniquify_names}.
-      # +seen+ stops cycles: the engine accepts cyclic Descriptor graphs.
+      # +seen+ keeps each (Descriptor, Model) result, so a child shared by several associations
+      # stays one object. A pair still in progress is a cycle and comes back unspecialized.
       def specialize(descriptor, model, seen = {})
-        return descriptor if seen[[descriptor.__id__, model]]
-        seen[[descriptor.__id__, model]] = true
+        key = [descriptor.__id__, model]
+        return seen[key] || descriptor if seen.key?(key)
+        seen[key] = nil
         associations = descriptor.associations.map do |association|
           child_models = child_models(model, association)
           case child_models.size
@@ -64,7 +71,7 @@ module Panko
             association.with(variants: child_models.map { |child_model| specialize(association.descriptor, child_model, seen) })
           end
         end
-        descriptor.with(model: model, associations: associations)
+        seen[key] = descriptor.with(model: model, associations: associations)
       end
 
       def child_models(model, association)
