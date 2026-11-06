@@ -3,6 +3,7 @@
 require "panko/version"
 require "panko/config"
 require "panko/serializer"
+require "panko/compile_all"
 require "panko/descriptor"
 require "panko/array_serializer"
 require "panko/response"
