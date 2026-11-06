@@ -57,7 +57,7 @@ class ConfigJsonColumnWireFormatSerializer_JSON
     unless filters.drops?(1)
       raw = record.read_attribute_before_type_cast("metadata")
       if raw.is_a?(String) && !raw.empty? && (begin
-        Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, mode: :strict)
+        Oj.sc_parse(Panko::CodeGen::JSON_NOOP_PARSER, raw, Panko::CodeGen::JSON_STRICT_PARSE_OPTS)
         true
       rescue Oj::ParseError, EncodingError
         false
