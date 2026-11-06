@@ -57,4 +57,4 @@ Serializer instances are now reusable: 0.8 raised on a second `serialize` call.
     serializer's shape, for tools such as association preloaders.
 
 The full list is in the
-[CHANGELOG](https://github.com/yosiat/panko_serializer/blob/master/CHANGELOG.md).
+[release notes](https://github.com/yosiat/panko_serializer/releases).

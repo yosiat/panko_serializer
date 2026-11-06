@@ -24,4 +24,4 @@ The public API is small and stable: subclass `Panko::Serializer` and declare `at
 
 ## Optional
 
-- [GitHub repository](https://github.com/yosiat/panko_serializer): Source, issues, and changelog.
+- [GitHub repository](https://github.com/yosiat/panko_serializer): Source, issues, and release notes.
