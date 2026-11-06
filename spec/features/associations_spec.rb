@@ -813,4 +813,24 @@ describe "Associations Serialization" do
         })
     end
   end
+
+  context "self-referential associations" do
+    it "serializes a self-referential has_many one level deep" do
+      class TreeNodeSerializer < Panko::Serializer
+        attributes :name
+
+        has_many :children, serializer: TreeNodeSerializer
+      end
+
+      node = Struct.new(:name, :children)
+      leaf = node.new("leaf", [])
+      root = node.new("root", [leaf])
+
+      # Panko snapshots the recursive association before it is declared, so the
+      # nested serializer covers one level only (leaf carries no "children").
+      expect(root).to serialized_as(TreeNodeSerializer,
+        "name" => "root",
+        "children" => [{"name" => "leaf"}])
+    end
+  end
 end
