@@ -7,8 +7,7 @@ parent: Reference
 
 # Response
 
-Let's say you have some JSON payload which is constructed using Panko serialization result,
-like this:
+Say you build a JSON payload around a Panko serialization result, like this:
 
 ```ruby
 class PostsController < ApplicationController
@@ -23,7 +22,7 @@ class PostsController < ApplicationController
 end
 ```
 
-The output of the above will be a JSON string (for `posts`) inside a JSON string and this were `Panko::Response` shines.
+The `posts` value above ends up as a JSON string inside a JSON string. This is where `Panko::Response` helps:
 
 ```ruby
 class PostsController < ApplicationController
@@ -38,13 +37,13 @@ class PostsController < ApplicationController
 end
 ```
 
-And everything will work as expected!
+`posts` is now embedded as JSON, not as a string.
 
 `Panko::Response` writes the serializer output straight into its own JSON writer, so the body
 is built once. Calling `.to_json` on the `ArraySerializer` first, and wrapping the String in
 `Panko::JsonValue`, gives the same output but copies the body one extra time.
 
-For a single object serialization, we need to use a different API (since `Panko::Serializer` doesn't accept an object in it's constructor):
+To serialize a single object, use `Panko::Response.create`, since `Panko::Serializer` doesn't take the object in its constructor:
 
 ```ruby
 class PostsController < ApplicationController
@@ -79,8 +78,7 @@ render(
 
 ## JsonValue
 
-Let's take the above example further, we will serialize the posts and cache it as JSON string in our Cache.
-Now, you can wrap the cached value with `Panko::JsonValue`, like here:
+When you already hold a JSON string, for example serialized posts read from a cache, wrap it in `Panko::JsonValue` so it is embedded as is:
 
 ```ruby
 class PostsController < ApplicationController

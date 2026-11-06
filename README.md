@@ -4,13 +4,15 @@
 
 Panko is a library which is inspired by ActiveModelSerializers 0.9 for serializing ActiveRecord/Ruby objects to JSON strings, fast.
 
-To achieve its [performance](https://panko.dev/performance):
+Panko is pure Ruby: no native extension, nothing to compile at install. It needs Ruby 3.4+ and ActiveSupport 7.2+. To achieve its [performance](https://panko.dev/performance):
 
-* Oj - Panko relies on Oj since it's fast and allows for incremental serialization using `Oj::StringWriter`
-* Serialization Descriptor - Panko computes most of the metadata ahead of time, to save time later in serialization.
-* Type casting - Panko does type casting by itself, instead of relying on ActiveRecord.
+* Code generation: each serializer is compiled once into specialized, straight-line Ruby, so serialization runs no per-record introspection and YJIT optimizes it well.
+* Auto-specialization: the first time a serializer meets an ActiveRecord class, Panko compiles a variant hard-wired to that model, reading values straight from its attribute storage.
+* Oj: JSON is written incrementally using `Oj::StringWriter`.
 
 To dig deeper about the performance choices, read [Design Choices](https://panko.dev/design-choices).
+
+Coming from 0.8 (the C extension)? Read [Upgrading from 0.8](https://panko.dev/upgrading).
 
 
 Support

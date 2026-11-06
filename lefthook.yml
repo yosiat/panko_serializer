@@ -1,14 +1,13 @@
 # Git hooks for panko_serializer, managed by lefthook.
 # Install with: bundle exec lefthook install
 #
-# Mirrors the pre-commit shape Panko::CodeGen used before the merge - 
-# autofix lint + run the spec suites - with no pre-push hook.
+# Pre-commit: autofix lint and run both spec suites. No pre-push hook.
 # Lint runs rubocop (not standardrb): Panko's config lives in .rubocop.yml,
 # which layers Panko-specific excludes on top of the standard ruleset and is
 # only honored by `rubocop`, not the `standardrb` wrapper.
 #
 # The repo carries two spec suites with distinct spec_helpers: Panko's
-# C-extension specs (spec/features, spec/unit) and the code_gen engine specs
+# specs (spec/features, spec/unit) and the code_gen engine specs
 # (spec/code_gen, which loads spec/code_gen/spec_helper.rb explicitly so its
 # `require "spec_helper"` does not resolve to Panko's). Both run under an
 # Appraisal gemfile because Panko's default Gemfile carries no activerecord.

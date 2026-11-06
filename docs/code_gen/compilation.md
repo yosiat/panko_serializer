@@ -32,7 +32,7 @@ then materializes the source into a class via `module_eval`. See
 ## Output per call
 
 One **Generated Class** is returned. A consumer that wants both JSON and Hash output for the
-same **Descriptor** must call **Compile** twice - once per **Output Mode**.
+same **Descriptor** must call **Compile** twice: once per **Output Mode**.
 
 ```ruby
 post_json = Panko::CodeGen.compile(post_descriptor, output: :json)
@@ -110,12 +110,13 @@ Compile-time cycle handling (via the identity cache) is unrelated and always on.
 **Compile** emits different code depending on whether the **Descriptor**'s **Model** field
 is set.
 
-### Generic path - `model: nil`
+### Generic path: `model: nil`
 
 One `_write_one` (JSON mode) / `_to_hash` (Hash mode) is emitted. Its body branches once
 on the **Record** shape, with both field-emit shapes inlined under the branch arms:
 
 ```ruby
+# Simplified: the per-Field `unless filters.drops?(i)` guards are omitted.
 def _write_one(record, writer, context, scope, filters)
   if record.is_a?(Hash)
     writer.push_object
@@ -134,11 +135,11 @@ end
 ```
 
 - One shape branch per `_write_one` entry, not per **Attribute**.
-- Each branch arm is monomorphic end-to-end - every `record["id"]` call site in the Hash
+- Each branch arm is monomorphic end-to-end: every `record["id"]` call site in the Hash
   arm sees a single receiver class; same for `record.id` call sites in the method arm.
   The inline caches never see a mixed receiver.
 - Inlining both arms (rather than dispatching to per-shape `_write_one_hash` /
-  `_write_one_object` helpers) saves a method call per record - measurable on
+  `_write_one_object` helpers) saves a method call per record, measurable on
   association-heavy single-record serialization.
 - The method arm uses method dispatch and works for ActiveRecord models, plain Ruby
   objects, anything responding to the **Source** method.
@@ -146,14 +147,14 @@ end
 Above `FUSED_DISPATCH_MAX_FIELDS` (64) **Fields**, the emit reverts to a dispatcher +
 per-shape-helper split: `_write_one` branches on the **Record** shape and delegates to
 `_write_one_hash` / `_write_one_object` (`_to_hash_hash` / `_to_hash_object` in Hash
-mode), each helper carrying one field-emit body - same bytes per body as the fused arms,
+mode), each helper carrying one field-emit body: same bytes per body as the fused arms,
 only the wrapping differs. Fusion measured faster at every tested width under YJIT (lazy
 basic-block versioning compiles only the executed arm), but it doubles the method's
 source; the split above this width trades the small dispatch saving for halved
-per-method source - insurance for method-granular JITs (ZJIT compiles whole methods) and
+per-method source: insurance for method-granular JITs (ZJIT compiles whole methods) and
 bounded code-region growth across apps with hundreds of **Generated Classes**.
 
-### Specialized path - `model:` set (ActiveRecord)
+### Specialized path: `model:` set (ActiveRecord)
 
 When **Model** is an ActiveRecord class, **Compile** introspects it at compile time and
 classifies every **Attribute** via a three-step rule:
@@ -163,19 +164,28 @@ classifies every **Attribute** via a three-step rule:
    Ruby 4 + YJIT + AR 8.1 by a wide margin (1 alloc/call), and the `_read_attribute` call
    dispatches through AR's type-cast path so enum columns correctly return mapped labels.
 2. **Else, instance method exists** (name appears in `Model.instance_methods`, including a
-   user-overridden column reader) → emit `record.title` method dispatch.
-3. **Else** → raise at **Compile** time with a message naming the missing attribute and
-   the class.
+   user-overridden column reader) → emit `record.title` method dispatch. When the name is
+   not an attribute or alias the **Model** declares (for example a SELECT alias that
+   shares a name with an association reader), the emit reads the loaded attribute first:
+   `record._has_attribute?("x") ? record._read_attribute("x") : record.x`.
+3. **Else** → raise `UnknownSourceError` at **Compile** time with a message naming the
+   missing attribute and the class.
+
+Per-column fast paths sit on top of the classification, in the sinks: JSON-typed columns
+emit wire format (see [config.md](config.md) `json_column_emit`), datetime columns splice the
+raw database string into ISO-8601 (`DateTimeFormat`) instead of building a `Time`, and Hash
+mode skips the `cast_datetime` wrapper for column types whose cast value cannot change
+(`AccessClassifier::PLAIN_TYPES`).
 
 #### Overrides are honored
 
 If a user defines `def title; super.upcase; end` on a model whose `title` is a column, the
 classifier detects that the reader's owner is not AR's `GeneratedAttributeMethods` module
-and emits method dispatch - the override runs, exactly as it would on the generic path.
+and emits method dispatch: the override runs, exactly as it would on the generic path.
 The **Model** field is a compiler hint, never a semantic switch: a specialized body must
 stay observably identical to the generic body for the same records.
 
-STI hierarchies specialize per concrete class - each class gets its own **Descriptor** and
+STI hierarchies specialize per concrete class: each class gets its own **Descriptor** and
 Generated Class, so a subclass override affects only that subclass's compile.
 
 #### AR `alias_attribute` resolves transparently
@@ -184,19 +194,33 @@ Generated Class, so a subclass override affects only that subclass's compile.
 model's `GeneratedAttributeMethods` at class-definition time. An **Attribute** whose
 `source` is the alias falls to step 2 (the alias isn't in `columns_hash`, but the method
 is defined) and emits `record.full_name` method dispatch, which resolves through AR's alias
-to the underlying column. No alias-specific handling is needed - normal method dispatch
+to the underlying column. No alias-specific handling is needed, normal method dispatch
 does the work. (This is distinct from the serializer-level output-key rename, which the
 `Attribute(name:, source:)` split already expresses.)
 
 #### Other specialized-path invariants
 
-- No Hash-access branch - **Model** implies the **Records** are instances of that class
+- No Hash-access branch: **Model** implies the **Records** are instances of that class
   (or its subclasses).
 - Constraint: the **Model** class must be loaded at **Compile** time (usually true in
   Rails boot order; flag loudly if a class isn't loadable).
 - AR attribute methods are generated lazily. **Compile** calls `Model.define_attribute_methods`
   defensively before introspecting so steps 1–3 see a fully-populated method table. The call
-  is idempotent and thread-safe (verified byte-identical across Rails 7.2/8.0/8.1).
+  is idempotent.
+
+### Several record classes behind one association
+
+When an **Association**'s source returns records of more than one class, `variants` carries
+one specialized child **Descriptor** per class. The emitted nested write is a `case`/`when`
+with one arm per variant (most derived class first), each arm re-checking `instance_of?`,
+and the plain `descriptor` body as the `else`.
+
+### Guarded Model
+
+With `Config#guarded_model`, the specialized entry opens with
+`return _generic_write_one(...) unless record.instance_of?(::Model)` (`_generic_to_hash` in
+Hash mode), and a generic twin of the body is emitted next to it. See
+[config.md](config.md) and [auto-specialization.md](auto-specialization.md).
 
 ### Non-AR class in `model`
 
@@ -206,28 +230,35 @@ instances of this class").
 
 ## Constructor of the Generated Class
 
-The **Generated Class** has exactly one constructor signature:
+The **Generated Class** is built with one required kwarg:
 
 ```ruby
 klass.new(descriptor:)
 ```
 
-The constructor reads every **Callable** from the **Descriptor** into a named ivar, and
-instantiates every nested **Generated Class** with its corresponding sub-**Descriptor**.
+(A class that is part of a **Recursive Descriptor** cycle also accepts a private
+`_construct_cache:` kwarg, which the parent constructors thread through the recursive
+`.new` calls.)
 
-This is the same shape in both in-memory compiled form and **Dump**ed form - one code path
+The constructor reads every **Callable** from the **Descriptor** into a named ivar, and
+instantiates every nested **Generated Class** with its corresponding sub-**Descriptor**
+(one instance per `Association#variants` entry too, each in its own ivar).
+
+This is the same shape in both in-memory compiled form and **Dump**ed form, one code path
 in the **Generator**, no divergence between the two.
 
 ## What Compile does internally
 
-1. Validate the **Descriptor** (arity of **Callables**, `kind` enum, `output` in `[:json, :hash]`).
+1. Validate the **Descriptor** tree: callable arity, source resolution on a **Model**, name
+   uniqueness (`Validators::Validator`). `output` must be `:json` or `:hash`.
 2. If **Model** is set, introspect the class for specialized-path classification.
-3. Recursively **Compile** nested **Descriptors** (depth-first, naturally). No cycle handling.
-4. Ask the **Generator** for source code - one method per top-level public entry plus
+3. Ask the **Generator** for source code for the whole tree, children before parents. Each class gets the public entries plus
    `_write_one` (JSON mode) / `_to_hash` (Hash mode) and `_release`
    (see [generated-class.md](generated-class.md)).
-5. Inject the source into a fresh anonymous class via Ruby's standard class-level source
+4. Inject the source into a fresh anonymous class via Ruby's standard class-level source
    injection API, with a synthetic path for backtraces. See [code-generation.md](code-generation.md).
-6. Return the class.
+5. Walk the tree depth-first, registering each unique **Descriptor**'s class in the
+   identity-keyed cache (a back edge finds the in-progress class and stops).
+6. Return the root class.
 
 No side effects beyond class creation; no registration in any global registry.

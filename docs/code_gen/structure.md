@@ -6,23 +6,23 @@ Public API surface, directory layout, and the layered architecture for the engin
 
 - **Require path**: `require "panko/code_gen"`.
 - **Top-level module**: `Panko::CodeGen`.
-- **Published?** Not separately. The engine ships inside the `panko` gem - pure
+- **Published?** Not separately. The engine ships inside the `panko_serializer` gem, pure
   Ruby, MIT-licensed.
   There is no standalone gem to install and no native extension to compile.
 
 ## Public API surface
 
-These are the only symbols Panko - the sole caller - depends on. Everything else under
+These are the only symbols Panko (the sole caller) depends on. Everything else under
 `lib/panko/code_gen/` is internal and may change without notice.
 
 | Public symbol                                                                                          | Purpose                                                    |
 | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `Panko::CodeGen.compile(descriptor, output:, config:)`                                                 | **Compile** entry - returns a **Generated Class**.         |
-| `Panko::CodeGen.dump(descriptor, output:, config:, path:)`                                             | **Dump** entry - writes a runnable `.rb` file.             |
+| `Panko::CodeGen.compile(descriptor, output:, config:)`                                                 | **Compile** entry, returns a **Generated Class**.         |
+| `Panko::CodeGen.dump(descriptor, output:, config:, path:)`                                             | **Dump** entry, writes a runnable `.rb` file.             |
 | `Panko::CodeGen::Descriptor`, `Attribute`, `MethodAttribute`, `Association`                            | **Descriptor** value types (all `Data.define`).            |
 | `Panko::CodeGen::Config`                                                                               | Compile-time settings (`Data.define`).                     |
 | `Panko::CodeGen::SKIP`                                                                                 | Frozen singleton returned by **Method Attributes** to omit a **Field**. |
-| `Panko::CodeGen::Error` + descendants (`DescriptorError`, `CompileError`, `NameCollisionError`, …)     | Error hierarchy - see [errors.md](errors.md).              |
+| `Panko::CodeGen::Error` + descendants (`DescriptorError`, `CompileError`, `NameCollisionError`, …)     | Error hierarchy, see [errors.md](errors.md).              |
 
 Both module-level facades are thin wrappers:
 
@@ -33,6 +33,8 @@ module Panko::CodeGen
   end
 
   def self.dump(descriptor, output:, config: Config.new, path:)
+    # A public Panko::Descriptor (MySerializer.descriptor) is first resolved back to
+    # the class's engine Descriptor via SerializerCache.descriptor_for.
     Dump.new(descriptor, output:, config:, path:).dump
   end
 end
@@ -41,17 +43,17 @@ end
 ## Layered architecture
 
 Three layers. Each layer knows only about the layer immediately below it. `Compiler` and
-`Dump` share the lower two layers - they differ only in how they **materialize** the
+`Dump` share the lower two layers: they differ only in how they **materialize** the
 emitted source.
 
 ```
-Panko::CodeGen.compile(...)                     # facade - thin wrapper
+Panko::CodeGen.compile(...)                     # facade, thin wrapper
   └─ Compiler#compile                           # orchestration: drive generation + eval
       ├─ Generator#emit                         # walks Descriptor, decides what to emit
-      │   └─ CodeBuilder                        # accumulates strings, tracks indent - pure helper
+      │   └─ CodeBuilder                        # accumulates strings, tracks indent, pure helper
       └─ Module.new + module_eval               # materialization: source → runnable class
 
-Panko::CodeGen.dump(...)                        # facade - thin wrapper
+Panko::CodeGen.dump(...)                        # facade, thin wrapper
   └─ Dump#dump                                  # orchestration: drive generation + write file
       ├─ Generator#emit                         # same generator, same output bytes
       │   └─ CodeBuilder
@@ -83,7 +85,15 @@ Panko **runtime seam** that replaced the deleted C extension.
 ```
 lib/
   panko/
-    code_gen.rb                                # facade: .compile / .dump; requires the subtree
+    code_gen.rb                                # facade: .compile / .dump, cast_datetime, JSON-column
+                                               # parse constants; requires the subtree
+
+    # === Panko DSL and runtime settings (outside the engine) ===
+    serializer.rb, array_serializer.rb         # public DSL; the serialize seams (inline cache + pools)
+    response.rb, serializer_resolver.rb
+    descriptor.rb                              # Panko::Descriptor, the read-only public view
+    config.rb                                  # Panko::Config (auto_specialization, writer_pool_max_bytes)
+    compile_all.rb, compile_all_result.rb      # Panko.compile_all boot-time warm-up
 
     code_gen/
       version.rb                               # VERSION + GENERATOR_NAME (dumped-file banner text)
@@ -103,7 +113,7 @@ lib/
         callable_arity.rb                      # Callable arity ∈ {0, 1, 2, 3}
 
       # === Filter ===
-      filter.rb                                # Filter.wrap(hash) factory + interface
+      filter.rb                                # Filter.wrap(filters, field_index) factory + interface
       filters/
         none.rb                                # no-filter singleton (Null Object)
         indexed.rb                             # Indexed filter (Boolean Array); see filters.md
@@ -115,32 +125,32 @@ lib/
 
       # === Code generation ===
       code_builder.rb                          # pure indented-line accumulator
-      generator.rb                             # Generator entry - dispatches on Output Mode
+      generator.rb                             # Generator entry, dispatches on Output Mode
       generators/
         generated_names.rb                     # the emitted-symbol vocabulary: ivar tokens,
                                                # write-method names, FIELD_INDEX,
-                                               # filter-key rule - one home, emitters consume it
+                                               # filter-key rule: one home, emitters consume it
         class_emitter.rb                       # the one class-shell emitter (constructor,
                                                # recursion wiring, public entries) behind a Sink
         field_walk.rb                          # the one field walk: frame + Fields in declared
                                                # order, indexes via GeneratedNames.filter_key
-        sink.rb                                # the Output Mode seam - the interface both
+        sink.rb                                # the Output Mode seam, the interface both
                                                # adapters satisfy, plus shared call-expression
                                                # helpers
-        json_sink.rb                           # :json adapter - every JSON-divergent leaf shape
-        hash_sink.rb                           # :hash adapter - every Hash-divergent leaf shape
+        json_sink.rb                           # :json adapter: every JSON-divergent leaf shape
+        hash_sink.rb                           # :hash adapter: every Hash-divergent leaf shape
         banner.rb                              # header-comment banner (see dumping.md)
         descriptor_walk.rb                     # post-order unique-Descriptor tree walk
         cycle_membership.rb                    # identity-keyed mutual-recursion cycle set
         field_index.rb                         # per-class Symbol → Integer FIELD_INDEX map
                                                # (filter-key keyed: name for value Fields, Source for Associations; feeds filters/indexed.rb)
-        release.rb                             # _release generator - checkin-side ivar cleanup
+        release.rb                             # _release generator, checkin-side ivar cleanup
         fanout.rb                              # multi-file dump fan-out (one file per Descriptor)
         record_access/
-          generic.rb                           # generic path - one is_a?(Hash) branch, both
+          generic.rb                           # generic path: one is_a?(Hash) branch, both
                                                # emit shapes inlined; splits to per-shape helpers
                                                # above 64 Fields (FUSED_DISPATCH_MAX_FIELDS)
-          specialized.rb                       # specialized path - _read_attribute / method dispatch
+          specialized.rb                       # specialized path, _read_attribute / method dispatch
 
       # === Dump ===
       dump.rb                                  # Dump#dump: drive Generator + File.write
@@ -165,14 +175,14 @@ lib/
 ### Why no per-Rails-version adapter folder
 
 An earlier sketch had `ar_adapter/rails_7_2.rb`, `rails_8_0.rb`, etc. That was
-speculative: `define_attribute_methods` is byte-identical across Rails 7.2 / 8.0 / 8.1, and
-`_read_attribute` is stable across the supported versions. There is no version-specific
+speculative: `define_attribute_methods` and `_read_attribute` are used the same way on every
+supported Rails version. There is no version-specific
 surface today, so there are no version-specific files.
 
 If a future Rails version breaks one of these contracts, the fix is a feature-detect
-switch inside the affected `active_record/*.rb` helper - not a new file tree.
+switch inside the affected `active_record/*.rb` helper: not a new file tree.
 
-The absence of a per-version adapter folder is a **code-structure** decision - it does
+The absence of a per-version adapter folder is a **code-structure** decision, it does
 not weaken test coverage. CI still runs the Ruby × Rails matrix (Ruby 3.4 / 4.0 × Rails
 7.2 / 8.0 / 8.1, minus the incompatible Ruby 4.0 × Rails 7.2 cell) to prove the
 single-path code works on every supported combination.
@@ -193,18 +203,18 @@ are relative to `lib/panko/code_gen/`.
 | [output-modes.md](output-modes.md)           | `generators/sink.rb`, `generators/json_sink.rb`, `generators/hash_sink.rb` |
 | [generated-class.md](generated-class.md)     | shape emitted by `generators/*`; runtime support in `writers_pool.rb`, `instance_pool.rb` |
 | [dumping.md](dumping.md)                      | `dump.rb`, `generators/fanout.rb`, `generators/banner.rb`                  |
-| [auto-specialization.md](auto-specialization.md) | Panko runtime seam - `serializer_cache.rb`, `runtime.rb`, `descriptor_builder.rb`, `filter_adapter.rb`, `instance_pool.rb` |
+| [auto-specialization.md](auto-specialization.md) | Panko runtime seam, `serializer_cache.rb`, `runtime.rb`, `descriptor_builder.rb`, `filter_adapter.rb`, `instance_pool.rb` |
 
 ## Testing shape (preview)
 
 The small-file split exists so every file has an obvious unit-test target:
 
-- `code_builder_spec.rb` - pure string/indent behavior; no domain types involved.
-- `generators/snapshot_spec.rb` - "given this fixture **Descriptor**, the emitted source is
-  exactly X" - snapshot-style.
-- `validators/name_uniqueness_spec.rb` - feed Descriptors with duplicate Field names,
+- `code_builder_spec.rb`: pure string/indent behavior; no domain types involved.
+- `generators/snapshot_spec.rb`: "given this fixture **Descriptor**, the emitted source is
+  exactly X": snapshot-style.
+- `validators/name_uniqueness_spec.rb`: feed Descriptors with duplicate Field names,
   assert `NameCollisionError` raised.
-- `features/*` - end-to-end: compile a fixture **Descriptor**, serialize, assert output.
+- `features/*`: end-to-end: compile a fixture **Descriptor**, serialize, assert output.
 
-Full testing strategy - tiers, snapshot harness, feature-test fixtures - is in
+Full testing strategy (tiers, snapshot harness, feature-test fixtures) is in
 [testing.md](testing.md).
