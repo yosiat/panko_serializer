@@ -144,6 +144,24 @@ describe "Panko::Descriptor" do
 
         expect(descriptor.associations.first).to equal(HolderSerializer.descriptor.associations.first)
       end
+
+      context "with an aliased association" do
+        let(:holder_serializer_class) do
+          Class.new(Panko::Serializer) do
+            attributes :name
+
+            has_many :foos, serializer: FooSerializer, name: :renamed_foos
+          end
+        end
+
+        it "keeps and drops by the declared name, not the alias" do
+          kept = HolderSerializer.new(only: [:foos]).descriptor
+          expect(kept.associations.map(&:name)).to eq(%i[renamed_foos])
+
+          dropped = HolderSerializer.new(only: [:renamed_foos]).descriptor
+          expect(dropped.associations).to be_empty
+        end
+      end
     end
 
     context "lazy resolution" do
@@ -186,7 +204,7 @@ describe "Panko::Descriptor" do
       Class.new(Panko::Serializer) do
         attributes :name
 
-        has_many :foos, serializer: FooSerializer
+        has_many :foos, serializer: FooSerializer, name: :stuff
       end
     end
 
@@ -208,7 +226,7 @@ describe "Panko::Descriptor" do
 
       nested = descriptor.associations.first.descriptor
       nested_fields = nested.attributes + nested.method_attributes + nested.associations
-      expect(nested_fields.map { |field| field.name.to_s }).to match_array(output["foos"].first.keys)
+      expect(nested_fields.map { |field| field.name.to_s }).to match_array(output["stuff"].first.keys)
     end
   end
 
