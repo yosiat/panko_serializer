@@ -22,7 +22,7 @@ RSpec.describe "Compile-time errors" do
   end
 
   describe "DescriptorError - structural, at Data.new" do
-    describe "Descriptor (S1.4)" do
+    describe "Descriptor" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
           name: "InnerSerializer",
@@ -208,7 +208,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    describe "Attribute (S1.3)" do
+    describe "Attribute" do
       it "constructs a frozen instance with both fields populated" do
         attr = Panko::CodeGen::Attribute.new(name: :title, source: :raw_title)
         expect(attr).to be_frozen
@@ -235,7 +235,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    describe "MethodAttribute (S1.3)" do
+    describe "MethodAttribute" do
       it "constructs a frozen instance with a Callable body" do
         ma = Panko::CodeGen::MethodAttribute.new(name: :likes_count, body: ->(r) { r.likes.count })
         expect(ma).to be_frozen
@@ -262,14 +262,14 @@ RSpec.describe "Compile-time errors" do
         }.to raise_error(Panko::CodeGen::DescriptorError)
       end
 
-      it "accepts a Symbol body without raising at structural validation (S18.1)" do
+      it "accepts a Symbol body without raising at structural validation" do
         ma = Panko::CodeGen::MethodAttribute.new(name: :greeting, body: :greeting)
         expect(ma).to be_frozen
         expect(ma.body).to eq(:greeting)
       end
     end
 
-    describe "Association (S1.4)" do
+    describe "Association" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
           name: "InnerSerializer",
@@ -390,7 +390,7 @@ RSpec.describe "Compile-time errors" do
   end
 
   describe "CompileError subclasses" do
-    describe "NameCollisionError (S9)" do
+    describe "NameCollisionError" do
       let(:inner) {
         Panko::CodeGen::Descriptor.new(
           name: "InnerDescriptor", model: nil,
@@ -507,7 +507,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    describe "UnknownSourceError (S6)" do
+    describe "UnknownSourceError" do
       def fake_ar_class(name:, columns: [], methods: [])
         columns_arr = columns
         methods_arr = methods
@@ -575,7 +575,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    describe "ArityError (S4)" do
+    describe "ArityError" do
       def descriptor_with_method_attribute(name:, body:)
         Panko::CodeGen::Descriptor.new(
           name: "PostDescriptor",
@@ -669,7 +669,7 @@ RSpec.describe "Compile-time errors" do
   end
 
   describe "Message convention" do
-    it "DescriptorError names the Field, kind, rule, and observed value (S1.3 / S1.4)" do
+    it "DescriptorError names the Field, kind, rule, and observed value" do
       expect {
         Panko::CodeGen::Attribute.new(name: "title")
       }.to raise_error(Panko::CodeGen::DescriptorError) { |err|
@@ -679,7 +679,7 @@ RSpec.describe "Compile-time errors" do
       }
     end
 
-    it "NameCollisionError names the Descriptor, Field name, and rule (S9)" do
+    it "NameCollisionError names the Descriptor, Field name, and rule" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor", model: nil,
         parent_class: Fixtures::BaseSerializer,
@@ -695,7 +695,7 @@ RSpec.describe "Compile-time errors" do
       )
     end
 
-    it "UnknownSourceError names the Descriptor, Field name, rule, and observed Source (S6)" do
+    it "UnknownSourceError names the Descriptor, Field name, rule, and observed Source" do
       klass = Class.new do
         def self.name = "Post"
 
@@ -723,7 +723,7 @@ RSpec.describe "Compile-time errors" do
       )
     end
 
-    it "ArityError matches the Message convention example (S4)" do
+    it "ArityError matches the Message convention example" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
         model: nil,
@@ -743,7 +743,7 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "SKIP singleton (S1.3)" do
+  describe "SKIP singleton" do
     it "is identity-stable via #equal?" do
       expect(Panko::CodeGen::SKIP.equal?(Panko::CodeGen::SKIP)).to be(true)
     end
@@ -753,10 +753,10 @@ RSpec.describe "Compile-time errors" do
     end
   end
 
-  describe "Dump-side parity - Dump shares Validator with Compiler (S15.6)" do
+  describe "Dump-side parity - Dump shares Validator with Compiler" do
     # +Dump+ checks the path before the Descriptor, so each example passes a valid +path:+.
 
-    it "ArityError parity - Dump raises the same class as Compile (S4)" do
+    it "ArityError parity - Dump raises the same class as Compile" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
         model: nil,
@@ -779,7 +779,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    it "NameCollisionError parity - Dump raises the same class as Compile (S9)" do
+    it "NameCollisionError parity - Dump raises the same class as Compile" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor",
         model: nil,
@@ -803,7 +803,7 @@ RSpec.describe "Compile-time errors" do
       end
     end
 
-    it "UnknownSourceError parity - Dump raises the same class as Compile (S6)" do
+    it "UnknownSourceError parity - Dump raises the same class as Compile" do
       klass = Class.new do
         def self.name = "Post"
 
@@ -863,7 +863,7 @@ RSpec.describe "Compile-time errors" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        it "NameCollisionError raises before Generator emit (S9)" do
+        it "NameCollisionError raises before Generator emit" do
           descriptor = Panko::CodeGen::Descriptor.new(
             name: "PostDescriptor", model: nil,
             parent_class: Fixtures::BaseSerializer,
@@ -878,13 +878,13 @@ RSpec.describe "Compile-time errors" do
           }.to raise_error(Panko::CodeGen::NameCollisionError, /Attribute and Attribute share name/)
         end
 
-        it "UnknownSourceError raises before Generator emit (S6)" do
+        it "UnknownSourceError raises before Generator emit" do
           expect {
             Panko::CodeGen.compile(unknown_source_descriptor, output: mode)
           }.to raise_error(Panko::CodeGen::UnknownSourceError, /not a column or instance method on Post/)
         end
 
-        it "ArityError raises before Generator emit (S4)" do
+        it "ArityError raises before Generator emit" do
           descriptor = Panko::CodeGen::Descriptor.new(
             name: "PostDescriptor",
             model: nil,

@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 require "memory_profiler"
 
-RSpec.describe "Specialized JSON-column emit path (S12.5)" do
+RSpec.describe "Specialized JSON-column emit path" do
   let(:descriptor) do
     Panko::CodeGen::Descriptor.new(
       name: "JsonColumnEmitSpecSerializer",
@@ -155,7 +155,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
   end
 
-  describe "byte-divergence vs today's :html_safe (per phase_1_report 8.1)" do
+  describe "byte-divergence vs today's :html_safe" do
     # Raw SQL, so the stored JSON bytes reach the column unchanged.
 
     def insert_metadata_bytes(id, raw_json)
@@ -221,7 +221,7 @@ RSpec.describe "Specialized JSON-column emit path (S12.5)" do
     end
   end
 
-  describe "allocation invariant (phase-1-bar carve-out)" do
+  describe "allocation invariant" do
     it ":wire_format total allocations ≤ :html_safe total allocations on saved records" do
       50.times do |i|
         PlainPost.create!(id: i + 1, metadata: {"category" => "tech", "tags" => %w[ruby json], "n" => i})

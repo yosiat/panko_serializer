@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 require "shallow_generic"
 
-RSpec.describe "JSON-mode WritersPool emit (S16.2)" do
+RSpec.describe "JSON-mode WritersPool emit" do
   let(:descriptor) { Fixtures::ShallowGeneric::DESCRIPTOR }
   let(:generator) { Panko::CodeGen::Generator.new }
 

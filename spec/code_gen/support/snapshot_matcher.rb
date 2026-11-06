@@ -30,7 +30,7 @@ RSpec::Matchers.define :match_snapshot do |filename|
   failure_message do |actual|
     if @missing
       "snapshot not found: #{@path}\n" \
-        "Run `rake snapshots:create_missing` to create it from the current Generator output."
+        "Run with UPDATE_SNAPSHOTS=missing to create it from the current Generator output."
     else
       diff = RSpec::Expectations.differ.diff(actual, @expected)
       "snapshot mismatch for #{File.basename(@path)}:#{diff}"

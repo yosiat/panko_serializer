@@ -39,7 +39,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(generated.serialize_one(record, filters: nil)).to eq(expected)
         end
 
-        it "applies a non-empty filters: Hash via the Filter::Indexed cell (S14.2)" do
+        it "applies a non-empty filters: Hash via the Filter::Indexed cell" do
           generated = generated_class.new(descriptor: descriptor)
           record = {"id" => 1, "title" => "hi"}
           filtered = generated.serialize_one(record, filters: {only: [:id]})
@@ -98,7 +98,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
           expect(generated.serialize_many(records, filters: nil)).to eq(expected_single[mode])
         end
 
-        it "applies a non-empty filters: Hash via the Filter::Indexed cell (S14.2)" do
+        it "applies a non-empty filters: Hash via the Filter::Indexed cell" do
           records = [{"id" => 1, "title" => "hi"}]
           filtered = generated.serialize_many(records, filters: {only: [:id]})
           expected_filtered = (mode == :json) ? '[{"id":1}]' : [{"id" => 1}]
