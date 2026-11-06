@@ -133,7 +133,7 @@ A **Field** that links to another **Descriptor**. The link may be to a different
   parent (self-recursion) or any **Descriptor** reachable via the tree.
 - `if`: an optional guard **Callable**. Arity `0`, `1`, `2`, or `3`; return truthy to
   include, falsy to omit. When falsy, the key is **omitted entirely** (not written as
-  null). When `nil`, no guard is emitted and no runtime cost is paid. No `unless:` -
+  null). When `nil`, no guard is emitted and no runtime cost is paid. No `unless:` - 
   use `if: ->(r, c) { !... }` for negation.
 
 **`if:` contract**:
@@ -197,7 +197,7 @@ A **Record** is anything the **Generated Class** can read fields from. Supported
 - **ActiveRecord instances**: accessed via the fastest available path given the **Model**.
 - **Ruby Hashes**: accessed via `record["key"]` (default) or `record[:key]` (via config).
   `HashWithIndifferentAccess` is a `Hash` subclass that stores its keys as Strings, so it
-  satisfies the `record.is_a?(Hash)` branch and hits the default string-keyed lookup -
+  satisfies the `record.is_a?(Hash)` branch and hits the default string-keyed lookup - 
   HWIA records serialize correctly with no special handling.
 - **Plain Ruby objects**: accessed via method dispatch (`record.foo`). Works in the
   generic path; not specialized.
@@ -274,6 +274,6 @@ All semantic errors are subclasses of `Panko::CodeGen::CompileError`.
 ## Frozen, shareable
 
 Every node is frozen. The same **Descriptor** may be referenced from multiple parents
-(e.g., `CommentDescriptor` used in `PostDescriptor.associations` and `UserDescriptor.associations`)
- -  **Composition** at **Compile** time still yields independent **Generated Classes** per
+(e.g., `CommentDescriptor` used in `PostDescriptor.associations` and `UserDescriptor.associations`) -
+**Composition** at **Compile** time still yields independent **Generated Classes** per
 parent, but the underlying data is shared safely.

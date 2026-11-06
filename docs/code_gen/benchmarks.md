@@ -183,8 +183,8 @@ change lands, the PR author copies the before/after tables into the PR descripti
 
 ## Fixture data
 
-`benchmarks/support/datasets.rb` seeds posts / authors / comments in in-memory sqlite
- -  same table shapes as `spec/support/schema.rb`, but a **separate file**. Specs and
+`benchmarks/support/datasets.rb` seeds posts / authors / comments in in-memory sqlite -
+same table shapes as `spec/support/schema.rb`, but a **separate file**. Specs and
 benchmarks have different data-creation needs (specs want inline `create!` per test;
 benchmarks want bulk pre-seeded datasets via `DATASETS` registry), so we don't share
 the setup file.

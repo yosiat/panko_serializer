@@ -158,7 +158,7 @@ A specialized variant knows things the generic code can't:
     ActiveRecord's attribute storage rather than through reader-method
     dispatch, and each column's type is known at compile time - so, for
     example, datetime formatting is decided once, not re-checked per value.
-    Anything you've overridden - a reader method you defined on the model -
+    Anything you've overridden - a reader method you defined on the model - 
     still goes through your method.
 -   **The shape of its associations.** The model's reflections fill in the
     record class of each `has_one` / `has_many`, so nested serializers get
@@ -205,7 +205,7 @@ The one transform Panko applies is on the way out the door, so the two output
 modes agree on their shape:
 
 -   In **`:json`** mode, values are pushed into `Oj::StringWriter` untouched;
-    Oj (in `mode: :rails`) applies Rails' `as_json` conventions as it writes -
+    Oj (in `mode: :rails`) applies Rails' `as_json` conventions as it writes - 
     a `Time` / `Date` / `TimeWithZone` becomes an ISO-8601 string, a Symbol
     becomes a String, and so on.
 -   In **`:hash`** mode there is no writer, so Panko applies the same

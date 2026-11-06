@@ -124,6 +124,6 @@ Descriptors are built for introspection, not paid for by serialization:
 -   A filtered instance's `descriptor` is a thin lazy view: each level is
     resolved on first read and memoized, so only the levels you visit are ever
     computed.
--   The serialization hot path does not build, read, or touch descriptors -
+-   The serialization hot path does not build, read, or touch descriptors - 
     calling `descriptor` (or never calling it) has no effect on `serialize` /
     `serialize_to_json` performance.

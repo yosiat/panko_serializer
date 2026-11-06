@@ -1,7 +1,7 @@
 # Git hooks for panko_serializer, managed by lefthook.
 # Install with: bundle exec lefthook install
 #
-# Mirrors the pre-commit shape Panko::CodeGen used before the merge -
+# Mirrors the pre-commit shape Panko::CodeGen used before the merge - 
 # autofix lint + run the spec suites - with no pre-push hook.
 # Lint runs rubocop (not standardrb): Panko's config lives in .rubocop.yml,
 # which layers Panko-specific excludes on top of the standard ruleset and is

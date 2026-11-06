@@ -228,11 +228,9 @@ describe "Filtering Serialization" do
 
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      # Filter using the alias name
       expect(foo).to serialized_as(-> { FooWithAliasFilterSerializer.new(only: [:full_name]) },
         "full_name" => foo.name)
 
-      # Filter using except should also work
       expect(foo).to serialized_as(-> { FooWithAliasFilterSerializer.new(except: [:address]) },
         "full_name" => foo.name)
     end
@@ -342,7 +340,6 @@ describe "Filtering Serialization" do
       user1 = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
       user2 = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
 
-      # ArraySerializer filter should work with association filters
       array_serializer = Panko::ArraySerializer.new([team], each_serializer: TeamArrayFilterSerializer, only: {users: [:name]})
       result = array_serializer.to_json
 
@@ -454,7 +451,6 @@ describe "Filtering Serialization" do
 
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      # filters_for except should be combined with constructor only
       expect(foo).to serialized_as(-> { FooWithFiltersForSerializer.new(only: [:name]) }, "name" => foo.name)
     end
 
@@ -473,11 +469,9 @@ describe "Filtering Serialization" do
 
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      # Test with admin context
       expect(foo).to serialized_as(-> { FooWithContextFiltersSerializer.new(context: {user_role: "admin"}) },
         "name" => foo.name, "address" => foo.address)
 
-      # Test with regular user context
       expect(foo).to serialized_as(-> { FooWithContextFiltersSerializer.new(context: {user_role: "user"}) },
         "name" => foo.name)
     end
@@ -565,7 +559,6 @@ describe "Filtering Serialization" do
       team = Team.create(name: Faker::Team.name, organization: org)
       user = User.create(name: Faker::Name.name, email: Faker::Internet.email, team: team)
 
-      # Use only at top level, except at nested level
       serializer_factory = -> { OrganizationSerializer.new(only: [:teams], except: {teams: {users: [:email]}}) }
 
       expect(org).to serialized_as(serializer_factory,
@@ -615,7 +608,6 @@ describe "Filtering Serialization" do
     it "handles filters on non-existent attributes" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
 
-      # Should not raise error, just ignore non-existent attributes
       expect(foo).to serialized_as(-> { FooSerializer.new(only: [:name, :non_existent]) }, "name" => foo.name)
     end
 

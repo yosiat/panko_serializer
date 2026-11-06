@@ -2,19 +2,13 @@
 
 require_relative "support/benchmark"
 
-# Children reached through a plain method rather than an association. The
-# child serializer's `models` decides how the child compiles:
+# Children reached through a plain method, not an association. The child
+# serializer's `models` picks the path: none stays generic, one compiles
+# specialized, two compile one specialized body per model.
 #
-# - no models: the child stays on the generic path;
-# - one model: the child compiles specialized, like an association child;
-# - two models: one specialized body per model, picked per record.
-#
-# Every post lists the same three related posts, or the same two posts and
-# two comments for the mixed rows. The lists are built once, so the rows
-# measure serialization only. The "all fields" rows include a `json` column
-# and string columns, where the generic and specialized paths differ most;
-# the "id, body" rows use fields both models have, so two models can be
-# compared with one on the same records.
+# The lists are built once, so the rows measure serialization only. The
+# "all fields" rows include a json column, which the specialized path emits
+# differently; "id, body" are fields both models have.
 
 related_posts = DATASETS[:posts].first(3).freeze
 related_mixed = DATASETS[:posts].select { |post| post.comments.any? }.first(2)

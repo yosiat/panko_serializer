@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# Database configuration helper for tests
 class DatabaseConfig
   ADAPTERS = {
     "sqlite" => {
@@ -21,8 +20,7 @@ class DatabaseConfig
   end
 
   def self.setup_database
-    # For CI and local development, we assume databases are already created
-    # SQLite uses in-memory database which needs no setup
+    # SQLite runs in memory, so there is nothing to create.
     puts "Using #{database_type} database: #{config[:database]}" if ENV["DEBUG"]
   end
 end

@@ -52,7 +52,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
       end
     end
 
-    it "skips Symbol-body MethodAttributes (no .arity call on Symbol)" do
+    it "skips Symbol-body MethodAttributes (no .arity call on Symbol) - S18.2" do
       descriptor = Panko::CodeGen::Descriptor.new(
         name: "PostDescriptor", model: nil,
         attributes: [],
@@ -180,10 +180,7 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
     end
 
     it "does not infinite-loop on a self-referencing Descriptor" do
-      # Self-recursive shapes are constructed via the identity-keyed
-      # cache scaffold; here we mutate a (non-frozen) Array
-      # post-construction to install the back-reference, then prove the
-      # validator's identity-cache short-circuits the cycle.
+      # Appending to the unfrozen associations Array after construction builds the cycle.
       parent = Panko::CodeGen::Descriptor.new(
         name: "CommentDescriptor", model: nil, attributes: [],
         parent_class: Fixtures::BaseSerializer,

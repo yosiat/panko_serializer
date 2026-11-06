@@ -4,7 +4,7 @@
 # long-lived threads (like an app server's pool) each serialize one large
 # array per serializer class, then a few small ones, and stay alive. Prints
 # the RSS growth while they live. A writer pool that kept large buffers shows
-# roughly THREADS x SERIALIZERS x the large output size here.
+# roughly THREADS x the large output size here.
 #
 # Linux only (reads /proc). Run on the allocator you deploy with, e.g. with
 # jemalloc preloaded and MALLOC_CONF=dirty_decay_ms:0,muzzy_decay_ms:0 so only
@@ -12,7 +12,7 @@
 #
 #   bundle exec appraisal 8.1.0 ruby benchmarks/writer_retention.rb
 #
-# Knobs: THREADS (16), ROWS (20_000, about 13 MB of JSON), SERIALIZERS (3).
+# Environment variables: THREADS (16), ROWS (20_000, about 15 MB of JSON), SERIALIZERS (3).
 
 require "active_record"
 require "panko_serializer"

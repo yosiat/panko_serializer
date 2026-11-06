@@ -88,7 +88,7 @@ class JsonGenerator
 end
 ```
 
-The sketch above is illustrative. In the shipped code the walk is emitted once -
+The sketch above is illustrative. In the shipped code the walk is emitted once - 
 `ClassEmitter` (class shell, constructor, recursion wiring) + `FieldWalk` (field
 ordering + record frame) + the `RecordAccess` strategies - and everything
 mode-divergent sits behind the **Sink** seam: `JsonSink` emits `writer.push_*`

@@ -100,7 +100,7 @@ The default presumes Panko-mediated access (the only access pattern this gem sup
 its gemspec metadata). `:html_safe` exists for the case where the engine's output is embedded
 directly in HTML script tags without a sanitizer at the HTML layer (uncommon).
 
-Detection of JSON-typed columns uses `is_a?(::ActiveRecord::Type::Json)` -
+Detection of JSON-typed columns uses `is_a?(::ActiveRecord::Type::Json)` - 
 adapter-agnostic; matches `t.json` and `t.jsonb` on every supported backend; correctly
 rejects `encrypts :metadata` (sibling type, not a subclass) and `serialize :m, coder:`
 (also a sibling). Generic-path **Descriptors** (`model: nil`) are unaffected - the knob

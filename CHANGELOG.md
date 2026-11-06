@@ -5,7 +5,7 @@
 Panko's serialization engine has been rewritten. The C extension is gone;
 every `serialize` / `serialize_to_json` call now runs on `Panko::CodeGen`, a
 pure-Ruby code-generation engine that compiles each serializer into
-specialized, straight-line Ruby once and reuses it. The public API -
+specialized, straight-line Ruby once and reuses it. The public API - 
 `Panko::Serializer`, `Panko::ArraySerializer`, the DSL, filters, `context` /
 `scope`, `Panko::Response` - is unchanged, and matching the old engine's JSON
 output byte-for-byte was a design gate for the rewrite; the few deliberate
@@ -47,7 +47,7 @@ divergences are called out under Breaking changes.
   attribute declaration to keep the old parsed output.
 - **`serialize_to_json` output no longer ends with a newline.** The old
   engine returned `Oj::StringWriter` output verbatim, which always carried a
-  trailing `"\n"`. Parsed JSON is identical; only byte-level consumers -
+  trailing `"\n"`. Parsed JSON is identical; only byte-level consumers - 
   response caches, checksums, ETags - see the one-byte difference.
 - **Runtime association sub-filters compose with declared filters instead of
   replacing them.** When a runtime sub-filter (`only: {comments: [...]}`) was
@@ -82,8 +82,8 @@ divergences are called out under Breaking changes.
 - **`Panko::CodeGen.dump`.** Writes the generated Ruby source for a serializer
   to a file - the engine emits plain, readable Ruby, and you can look at it:
   `Panko::CodeGen.dump(PostSerializer.descriptor, output: :json, path: "...")`.
-- **`Panko::Descriptor`.** A public, read-only view of a serializer's shape -
-  attributes, method attributes, and associations, with nested descriptors -
+- **`Panko::Descriptor`.** A public, read-only view of a serializer's shape - 
+  attributes, method attributes, and associations, with nested descriptors - 
   for tooling such as association preloaders. `PostSerializer.descriptor`
   returns the declared shape; `serializer.descriptor` returns the effective
   shape for that instance, honoring `only` / `except` / `filters_for`. The

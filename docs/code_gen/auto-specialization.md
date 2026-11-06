@@ -112,7 +112,7 @@ inheriting its parent's.
 - **Verdicts freeze at first sight.** A variant's column-vs-override
   classifications are decided when the record class is first seen. A reader
   override added to a live model class afterwards is not picked up until the
-  class object is replaced. A Rails/Zeitwerk reload mints new class objects -
+  class object is replaced. A Rails/Zeitwerk reload mints new class objects - 
   serializer *and* model - so development-mode edits self-heal; manually
   reopening a live class after its first serialize is unsupported
   ([descriptor.md](descriptor.md) documents the same limitation for
@@ -120,7 +120,7 @@ inheriting its parent's.
 - **Reader overrides are honored.** A column whose reader is not defined by
   the model's own `GeneratedAttributeMethods` module (a user override - or
   AR's `PrimaryKey#id`) is read through the method, not `_read_attribute`.
-  Measured cost of the `id` case: ~2.6ns per read under YJIT, ±0 under ZJIT -
+  Measured cost of the `id` case: ~2.6ns per read under YJIT, ±0 under ZJIT - 
   kept for correctness (custom primary keys, user overrides).
 - **Config is read at first sight.** `enabled` / `capacity` changes after a
   variant exists don't recompile or discard it. User-facing documentation:

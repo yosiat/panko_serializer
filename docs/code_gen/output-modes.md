@@ -150,8 +150,8 @@ wants both modes, they **Compile** both and hold them independently.
 
 ## Why two Generated Classes per Descriptor, not two methods on one class
 
-- Every call site in `PostSerializer_JSON` dispatches to `CommentSerializer_JSON#_write_one`
-  - single receiver class, single method, monomorphic. YJIT/ZJIT specialize hard.
+- Every call site in `PostSerializer_JSON` dispatches to `CommentSerializer_JSON#_write_one` -
+  single receiver class, single method, monomorphic. YJIT/ZJIT specialize hard.
 - Each class carries only the code actually used - no dead method bodies.
 - **Dump** output is focused: one file shows only the mode you care about.
 - Lazy: a consumer that only serves JSON never **Compile**s the Hash variant.
