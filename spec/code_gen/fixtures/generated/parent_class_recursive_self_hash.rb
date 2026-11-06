@@ -41,10 +41,10 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(1)
-      result["body"] = record["body"]
+      result["body"] = Panko::CodeGen.cast_datetime(record["body"])
     end
     unless filters.drops?(3)
       child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
@@ -53,7 +53,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
     unless filters.drops?(2)
       value = viewer_tag
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_tag"] = value
+        result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result
@@ -62,10 +62,10 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
-      result["body"] = record.body
+      result["body"] = Panko::CodeGen.cast_datetime(record.body)
     end
     unless filters.drops?(3)
       child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
@@ -74,7 +74,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
     unless filters.drops?(2)
       value = viewer_tag
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_tag"] = value
+        result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result

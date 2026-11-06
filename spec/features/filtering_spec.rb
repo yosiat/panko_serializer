@@ -89,13 +89,13 @@ describe "Filtering Serialization" do
     end
 
     it "filters association attributes" do
-      class FoosHolderForFilterTestSerializer < Panko::Serializer
+      class FoosHolderNestedFilterTestSerializer < Panko::Serializer
         attributes :name
 
         has_many :foos, serializer: FooSerializer
       end
 
-      serializer_factory = -> { FoosHolderForFilterTestSerializer.new(only: {foos: [:name]}) }
+      serializer_factory = -> { FoosHolderNestedFilterTestSerializer.new(only: {foos: [:name]}) }
 
       foo1 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       foo2 = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
@@ -537,16 +537,14 @@ describe "Filtering Serialization" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(only: "invalid").serialize(foo)
-      end.to raise_error(NoMethodError)
-      # TODO: change the error to be ArgumentError
+      end.to raise_error(ArgumentError, /must be an Array or Hash/)
     end
 
     it "raises error for non-Array/Hash except filters" do
       foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
       expect do
         FooSerializer.new(except: 123).serialize(foo)
-      end.to raise_error(NoMethodError)
-      # TODO: change the error to be ArgumentError
+      end.to raise_error(ArgumentError, /must be an Array or Hash/)
     end
 
     it "handles filters on non-existent attributes" do

@@ -45,7 +45,7 @@ class ScopeThreadingPostSerializer_Hash
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(3)
       if @cb_if_author.call(record, context, scope)
@@ -64,13 +64,13 @@ class ScopeThreadingPostSerializer_Hash
     unless filters.drops?(1)
       value = @cb_legacy_label.call(record, context)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["legacy_label"] = value
+        result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     unless filters.drops?(2)
       value = @cb_viewer_label.call(record, context, scope)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_label"] = value
+        result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result
@@ -79,7 +79,7 @@ class ScopeThreadingPostSerializer_Hash
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(3)
       if @cb_if_author.call(record, context, scope)
@@ -98,13 +98,13 @@ class ScopeThreadingPostSerializer_Hash
     unless filters.drops?(1)
       value = @cb_legacy_label.call(record, context)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["legacy_label"] = value
+        result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     unless filters.drops?(2)
       value = @cb_viewer_label.call(record, context, scope)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_label"] = value
+        result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result

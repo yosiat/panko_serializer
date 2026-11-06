@@ -65,12 +65,37 @@ module Panko::CodeGen
       @validator.validate(@descriptor, output: @output, config: @config)
       source = @generator.emit(@descriptor, output: @output, config: @config)
       namespace = Class.new
+      bind_anonymous_parents(namespace)
       namespace.module_eval(source, synthetic_path, 1)
       cache_descendants(@descriptor, namespace)
       @cache.get(@descriptor)
     end
 
     private
+
+    # Exposes each anonymous +parent_class+ in the tree so the emitted
+    # +class <Name>_<Mode> < ANON_PARENTS.fetch("<Name>")+ line resolves at
+    # +module_eval+ time. Panko's DSL exposes anonymous serializers
+    # (+Class.new(Panko::Serializer)+), which the converter still sets as a
+    # +parent_class+; a named parent is referenced by its own constant instead.
+    #
+    # Deliberately a Hash of +name => Class+ rather than one constant per class:
+    # +const_set(name, aClass)+ *names* an anonymous class as a side effect,
+    # which would corrupt a subsequent compile that reads +parent_class.name+.
+    # A Hash value carries no such naming.
+    #
+    # @param namespace [Class] the fresh anonymous outer about to receive the
+    #   emitted source
+    # @return [void]
+    def bind_anonymous_parents(namespace)
+      anonymous = {}
+      Generators::DescriptorWalk.in_emit_order(@descriptor).each do |descriptor|
+        parent = descriptor.parent_class
+        next if parent.nil? || parent.name
+        anonymous[descriptor.name] = parent
+      end
+      namespace.const_set(:ANON_PARENTS, anonymous.freeze) unless anonymous.empty?
+    end
 
     # Returns the synthetic backtrace path stamped into +Method#source_location+
     # per +docs/code-generation.md § Backtrace quality+. The path

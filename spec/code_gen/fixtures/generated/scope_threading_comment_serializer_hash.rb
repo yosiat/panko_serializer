@@ -38,15 +38,15 @@ class ScopeThreadingCommentSerializer_Hash
   def _to_hash_hash(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record["id"]
+      result["id"] = Panko::CodeGen.cast_datetime(record["id"])
     end
     unless filters.drops?(1)
-      result["body"] = record["body"]
+      result["body"] = Panko::CodeGen.cast_datetime(record["body"])
     end
     unless filters.drops?(2)
       value = @cb_viewer_tag.call(record, context, scope)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_tag"] = value
+        result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result
@@ -55,15 +55,15 @@ class ScopeThreadingCommentSerializer_Hash
   def _to_hash_object(record, context, scope, filters)
     result = {}
     unless filters.drops?(0)
-      result["id"] = record.id
+      result["id"] = Panko::CodeGen.cast_datetime(record.id)
     end
     unless filters.drops?(1)
-      result["body"] = record.body
+      result["body"] = Panko::CodeGen.cast_datetime(record.body)
     end
     unless filters.drops?(2)
       value = @cb_viewer_tag.call(record, context, scope)
       unless value.equal?(Panko::CodeGen::SKIP)
-        result["viewer_tag"] = value
+        result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
       end
     end
     result
