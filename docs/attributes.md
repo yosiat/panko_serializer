@@ -90,10 +90,10 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
-But this turns a column read into a method attribute - an extra method call on
-every record, and the value skips Panko's column handling (for example, datetime
-formatting in Hash mode). `aliases` keeps the plain column path while changing
-the output key:
+But this turns a column read into a method attribute: an extra method call on
+every record, and the column can no longer be read straight from ActiveRecord's
+attribute storage. `aliases` keeps the column path while changing the output
+key:
 
 ```ruby
 class PostSerializer < Panko::Serializer

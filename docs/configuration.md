@@ -147,8 +147,9 @@ end
 - A declared model that lacks one of the serializer's fields is skipped; its
   records get the generic body.
 
-The specialized body writes `json` and `jsonb` columns as their stored text and
-reads columns without the generic path's per-record method calls.
+The specialized body writes `json` and `jsonb` columns as their stored text,
+as 0.8.x did, and reads columns without the generic path's per-record method
+calls.
 
 Call `compile_all` after the app is eager loaded and before workers fork:
 
@@ -167,7 +168,7 @@ for both output modes (`modes: [:json]` limits it to one). It returns a
 | --- | --- |
 | `compiled` | serializers compiled for every declared model |
 | `without_models` | serializers with no `models`: the generic code is compiled, specialization happens on first use |
-| `not_specialized` | serializer to the declared models that could not be specialized (not an ActiveRecord class, or specialization disabled) |
+| `not_specialized` | serializer to the declared models that got no specialized variant (not an ActiveRecord class, a model missing one of the serializer's fields, a compile error, capacity reached, or specialization disabled); their records use the generic path |
 | `errors` | serializer to the error its compile raised |
 
 To require `models` everywhere, assert on the result in a test:
