@@ -38,6 +38,25 @@ end
 > When filtering, refer to an aliased association by its declared name (the
 > first argument), not the `name:` alias. See [Filters]({% link filters.md %}#filtering-associations).
 
+## Conditional associations
+
+Pass `if:` a lambda to include an association only for some records. When it
+returns a falsy value, the key is left out of the output and the association
+is not read.
+
+```ruby
+class PostSerializer < Panko::Serializer
+  attributes :title, :body
+
+  has_one :author, serializer: AuthorSerializer, if: ->(post, context) { context[:with_author] }
+  has_many :comments, each_serializer: CommentSerializer, if: ->(post) { post.published? }
+end
+```
+
+The lambda takes zero to three arguments: the record, the `context:` and the
+`scope:` given to the serializer. Keep it free of side effects. A Symbol is
+rejected at declaration; wrap a method call in a lambda instead.
+
 ## Serializer inference
 
 If you omit `serializer:` / `each_serializer:`, Panko infers it from the

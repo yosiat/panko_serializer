@@ -104,7 +104,8 @@ module Panko
           name: options.fetch(:name, name).to_s.to_sym,
           kind: kind,
           descriptor: descriptor,
-          source: name.to_sym
+          source: name.to_sym,
+          if: options[:if]
         )
       end
 

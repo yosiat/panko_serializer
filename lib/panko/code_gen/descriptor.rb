@@ -94,8 +94,10 @@ module Panko::CodeGen
       StructuralValidation.validate_kind!("Association#kind", kind)
       StructuralValidation.validate_descriptor!("Association#descriptor", descriptor)
       StructuralValidation.validate_symbol!("Association#source", source)
-      # +if+ must be a Callable: a Symbol passes this check but fails at compile
-      # (Symbol has no +arity+).
+      # A method name is not supported here (unlike a MethodAttribute body), so a Symbol is rejected up front.
+      if if_callable.is_a?(Symbol)
+        raise DescriptorError, "Association#if: must be a Callable, not a Symbol; got #{if_callable.inspect}"
+      end
       StructuralValidation.validate_callable!("Association#if", if_callable) unless if_callable.nil?
       StructuralValidation.validate_array_of!("Association#variants", variants, Descriptor, "Descriptor")
       validate_variants!(variants)
