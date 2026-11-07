@@ -32,7 +32,6 @@ module Panko::CodeGen
       end
 
       def emit_class_constants(descriptor, config, builder)
-        return unless config.pool_writer
         subclass = defined?(ActiveSupport::IsolatedExecutionState) ? "IsolatedExecutionState" : "ThreadLocal"
         builder.line "POOL = Panko::CodeGen::WritersPool::#{subclass}.new"
       end
@@ -47,7 +46,7 @@ module Panko::CodeGen
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
-          with_writer(config, builder) { emit_serialize_one_body(config, builder) }
+          with_writer(builder) { emit_serialize_one_body(config, builder) }
         end
         builder.line "end"
       end
@@ -62,7 +61,7 @@ module Panko::CodeGen
           if config.supports_root_key
             builder.line "validate_root_key!(root_key)"
           end
-          with_writer(config, builder) { emit_serialize_many_body(config, builder) }
+          with_writer(builder) { emit_serialize_many_body(config, builder) }
         end
         builder.line "end"
       end
@@ -155,21 +154,16 @@ module Panko::CodeGen
       private
 
       # +result+ starts nil so a body that raises hands checkin nil, and the writer is dropped.
-      def with_writer(config, builder, &block)
-        if config.pool_writer
-          builder.line "writer = POOL.checkout"
-          builder.line "result = nil"
-          builder.line "begin"
-          builder.indent(&block)
-          builder.line "ensure"
-          builder.indent do
-            builder.line "POOL.checkin(writer, result)"
-          end
-          builder.line "end"
-        else
-          builder.line "writer = Oj::StringWriter.new(mode: :rails)"
-          yield
+      def with_writer(builder, &block)
+        builder.line "writer = POOL.checkout"
+        builder.line "result = nil"
+        builder.line "begin"
+        builder.indent(&block)
+        builder.line "ensure"
+        builder.indent do
+          builder.line "POOL.checkin(writer, result)"
         end
+        builder.line "end"
       end
 
       def emit_serialize_one_body(config, builder)

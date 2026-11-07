@@ -13,7 +13,6 @@ module Panko::CodeGen
     :hash_record_key_type,       # :string | :symbol; default: :string, generic path only
     :hash_output_key_type,       # :string | :symbol; default: :string, Hash mode output
     :json_column_emit,           # :wire_format | :html_safe; default: :wire_format, JSON-column emit shape
-    :pool_writer,                # Boolean; default: true; JSON-mode Writer pooling
     :guarded_model               # Boolean; default: false; per-record Model guard on the Specialized path
   )
 end
@@ -103,38 +102,6 @@ adapter-agnostic; matches `t.json` and `t.jsonb` on every supported backend; cor
 rejects `encrypts :metadata` (sibling type, not a subclass) and `serialize :m, coder:`
 (also a sibling). Generic-path **Descriptors** (`model: nil`) are unaffected, the knob
 applies only to the **Specialized path**.
-
-### `pool_writer` (default: `true`)
-
-Controls whether the **JSON Output Mode** emit reuses **Writers** across `serialize_one` /
-`serialize_many` calls via a fiber-local LIFO pool shared by every **Generated Class**. See
-[output-modes.md § Writer lifecycle](output-modes.md#writer-lifecycle) for the lifecycle
-contract and [`lib/panko/code_gen/writers_pool.rb`](../../lib/panko/code_gen/writers_pool.rb)
-for the pool implementation.
-
-- `true` (default): the **Generated Class** declares
-  `POOL = Panko::CodeGen::WritersPool::<backend>.new` as a class-level
-  constant; `serialize_one` / `serialize_many` open with `writer = POOL.checkout`, wrap
-  the body in `begin` / `ensure`, and hand the **Writer** back via
-  `POOL.checkin(writer, result)` in the `ensure`, which drops it when the output is larger
-  than `Panko::Config.writer_pool_max_bytes`. After warmup, `checkout` allocates zero objects on the steady-state
-  hot path. The `<backend>` is `WritersPool::IsolatedExecutionState` when
-  `ActiveSupport::IsolatedExecutionState` is defined at **Compile**, otherwise
-  `WritersPool::ThreadLocal`, chosen once and baked in as a literal class name.
-- `false`: emits the byte-identical pre-pooling source, `writer =
-  Oj::StringWriter.new(mode: :rails)` inline, no `POOL` constant, no `begin`/`ensure`
-  wrap. Intended as an emergency rollback path, a debugging affordance, or for
-  ABI-strict callers who need the exact pre-pooling emit shape.
-
-When to flip to `false`: production rollback if a pool-related defect surfaces, local
-debugging where every-call-allocates makes leak / state-corruption hypotheses easier to
-isolate, or callers (e.g., test harnesses) that depend on the pre-pooling source bytes.
-Pooled and unpooled emits produce **byte-identical JSON output** for every (fixture,
-mode) pair: flipping the knob is a one-line **Config** change with no observable output
-difference.
-
-No effect on **Hash Output Mode**: Hash mode allocates no **Writer** and the knob is a
-no-op there.
 
 ### `guarded_model` (default: `false`)
 
