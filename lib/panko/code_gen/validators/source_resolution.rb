@@ -23,7 +23,7 @@ module Panko::CodeGen
         def classify_attributes!(descriptor)
           model = descriptor.model
           return unless ar_class?(model)
-          ActiveRecord::DefineAttributeMethods.ensure!(model)
+          model.define_attribute_methods
           descriptor.attributes.each do |attribute|
             classify_or_raise!(model, attribute, descriptor.name)
           end

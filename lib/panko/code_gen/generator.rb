@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Panko::CodeGen
-  class Generator
+  module Generator
     OUTPUT_MODES = %i[json hash].freeze
 
     # Sinks are stateless, so one frozen instance per mode serves every emit.
@@ -16,8 +16,8 @@ module Panko::CodeGen
       end
     end
 
-    def emit(descriptor, output:, config:)
-      Generators::ClassEmitter.new(self.class.sink_for(output)).emit(descriptor, config)
+    def self.emit(descriptor, output:, config:)
+      Generators::ClassEmitter.new(sink_for(output)).emit(descriptor, config)
     end
   end
 end

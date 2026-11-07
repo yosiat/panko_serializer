@@ -128,7 +128,7 @@ RSpec.describe Panko::CodeGen::Generators::FieldIndex do
       %i[json hash].each do |mode|
         context "with #{label} (#{mode} mode)" do
           it "every `unless filters.drops?(N)` wrapper's N matches FIELD_INDEX[name]" do
-            source = Panko::CodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+            source = Panko::CodeGen::Generator.emit(descriptor, output: mode, config: config)
             expect(source).to have_field_index_parity
           end
         end

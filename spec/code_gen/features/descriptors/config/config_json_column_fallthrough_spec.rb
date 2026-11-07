@@ -10,7 +10,7 @@ RSpec.describe "JSON-column emit fallthrough - source token regression" do
     let(:fixture) { Fixtures::Config::ConfigJsonColumnGenericFallthrough }
 
     it "emits push_value (not push_json) even with json_column_emit: :wire_format" do
-      source = Panko::CodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.emit(
         fixture::DESCRIPTOR,
         output: :json,
         config: fixture::CONFIG
@@ -29,7 +29,7 @@ RSpec.describe "JSON-column emit fallthrough - source token regression" do
     let(:fixture) { Fixtures::Config::ConfigJsonColumnNonJsonSpecialized }
 
     it "emits push_value (not push_json) because ar_classes.all? rejects" do
-      source = Panko::CodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.emit(
         fixture::DESCRIPTOR,
         output: :json,
         config: fixture::CONFIG

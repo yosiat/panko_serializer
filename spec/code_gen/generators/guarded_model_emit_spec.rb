@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 
 RSpec.describe "Specialized guarded-model emit" do
-  let(:generator) { Panko::CodeGen::Generator.new }
+  let(:generator) { Panko::CodeGen::Generator }
   let(:guarded_config) { Panko::CodeGen::Config.new(guarded_model: true) }
   let(:unguarded_config) { Panko::CodeGen::Config.new }
   let(:generic_write_one) { Panko::CodeGen::Generators::GeneratedNames.generic_write_one }

@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 
 RSpec.describe "Generic fused-dispatch threshold" do
-  let(:generator) { Panko::CodeGen::Generator.new }
+  let(:generator) { Panko::CodeGen::Generator }
   let(:config) { Panko::CodeGen::Config.new }
   let(:threshold) { Panko::CodeGen::Generators::RecordAccess::Generic::FUSED_DISPATCH_MAX_FIELDS }
 

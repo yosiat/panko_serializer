@@ -5,24 +5,22 @@ module Panko::CodeGen
     # A table, not +to_s.upcase+: the +:hash+ suffix is +Hash+, not +HASH+.
     OUTPUT_SUFFIXES = {json: "JSON", hash: "Hash"}.freeze
 
-    def initialize(descriptor, output:, config:, validator: Validators::Validator.new,
-      generator: Generator.new)
+    def initialize(descriptor, output:, config:)
       @descriptor = descriptor
       @output = output
       @config = config
-      @validator = validator
-      @generator = generator
-      @cache = CompileCache.new
+      # Identity, not equality: equal but distinct Descriptors compile to separate classes.
+      @compiled = {}.compare_by_identity
     end
 
     def compile
-      @validator.validate(@descriptor, output: @output, config: @config)
-      source = @generator.emit(@descriptor, output: @output, config: @config)
+      Validators::Validator.validate(@descriptor, output: @output, config: @config)
+      source = Generator.emit(@descriptor, output: @output, config: @config)
       namespace = Class.new
       bind_anonymous_parents(namespace)
       namespace.module_eval(source, synthetic_path, 1)
-      cache_descendants(@descriptor, namespace)
-      @cache.get(@descriptor)
+      collect_classes(@descriptor, namespace)
+      @compiled.fetch(@descriptor)
     end
 
     private
@@ -43,13 +41,12 @@ module Panko::CodeGen
       "(#{GENERATOR_NAME}: #{@descriptor.name}/#{@output})"
     end
 
-    def cache_descendants(descriptor, namespace)
-      @cache.lookup_or_compile(descriptor) do
-        klass = namespace.const_get(:"#{descriptor.name}_#{OUTPUT_SUFFIXES.fetch(@output)}")
-        @cache.set(descriptor, klass)
-        descriptor.associations.each do |assoc|
-          assoc.descriptors.each { |child| cache_descendants(child, namespace) }
-        end
+    # Records the class before descending, so a cycle back to this Descriptor stops here.
+    def collect_classes(descriptor, namespace)
+      return if @compiled.key?(descriptor)
+      @compiled[descriptor] = namespace.const_get(:"#{descriptor.name}_#{OUTPUT_SUFFIXES.fetch(@output)}")
+      descriptor.associations.each do |assoc|
+        assoc.descriptors.each { |child| collect_classes(child, namespace) }
       end
     end
   end

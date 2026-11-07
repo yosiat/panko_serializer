@@ -87,7 +87,7 @@ module Panko
       # A declared model missing one of the sources would stop the whole parent from compiling,
       # so it is left out and its records get the unspecialized child.
       def serves?(klass, descriptor)
-        ActiveRecord::DefineAttributeMethods.ensure!(klass)
+        klass.define_attribute_methods
         sources = descriptor.attributes.map(&:source) + descriptor.associations.map(&:source)
         sources.all? do |source|
           ActiveRecord::AccessClassifier.classify(klass, source)

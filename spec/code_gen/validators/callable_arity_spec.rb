@@ -208,15 +208,15 @@ RSpec.describe Panko::CodeGen::Validators::CallableArity do
   end
 
   describe "registration in the Validator orchestrator" do
-    it "is included in Validator::DEFAULT_RULES" do
-      expect(Panko::CodeGen::Validators::Validator::DEFAULT_RULES)
+    it "is included in Validator::RULES" do
+      expect(Panko::CodeGen::Validators::Validator::RULES)
         .to include(described_class)
     end
 
     it "is invoked by the orchestrator on Compile" do
       bad = descriptor_with(method_attributes: [method_attribute(:bad, ->(_a, _b, _c, _d) { :ok })])
       expect {
-        Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
+        Panko::CodeGen::Validators::Validator.validate(bad, output: :json, config: config)
       }.to raise_error(Panko::CodeGen::ArityError, /MethodAttribute#body has arity 4/)
     end
   end

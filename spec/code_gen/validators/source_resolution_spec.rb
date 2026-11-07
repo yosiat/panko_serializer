@@ -114,7 +114,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
     end
   end
 
-  describe ".validate - DefineAttributeMethods.ensure! is invoked per AR class" do
+  describe ".validate - defines AR attribute methods per class" do
     it "calls #define_attribute_methods on the model when its readers haven't been generated yet" do
       define_calls = 0
       generated = false
@@ -207,13 +207,13 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
   end
 
   describe "registration in the Validator orchestrator" do
-    it "is included in Validator::DEFAULT_RULES" do
-      expect(Panko::CodeGen::Validators::Validator::DEFAULT_RULES)
+    it "is included in Validator::RULES" do
+      expect(Panko::CodeGen::Validators::Validator::RULES)
         .to include(described_class)
     end
 
     it "is registered immediately after CallableArity" do
-      rules = Panko::CodeGen::Validators::Validator::DEFAULT_RULES
+      rules = Panko::CodeGen::Validators::Validator::RULES
       arity_index = rules.index(Panko::CodeGen::Validators::CallableArity)
       source_index = rules.index(described_class)
       expect(source_index).to eq(arity_index + 1)
@@ -223,7 +223,7 @@ RSpec.describe Panko::CodeGen::Validators::SourceResolution do
       klass = fake_ar_class(name: "Post", columns: ["id"])
       bad = descriptor_with(model: klass, attributes: [attribute(:missing)])
       expect {
-        Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
+        Panko::CodeGen::Validators::Validator.validate(bad, output: :json, config: config)
       }.to raise_error(Panko::CodeGen::UnknownSourceError, /not a column or instance method on Post/)
     end
   end
