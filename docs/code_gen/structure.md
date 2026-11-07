@@ -80,7 +80,8 @@ machinery in play.
 
 Each file handles a single concept and stays small. Domains grouped into folders;
 filenames mirror the concepts in the other docs. The engine core sits alongside the
-Panko **runtime seam** that replaced the deleted C extension.
+Panko **runtime seam**: the DSL-side code that builds Descriptors, caches Generated
+Classes and checks instances in and out.
 
 ```
 lib/
@@ -162,7 +163,7 @@ lib/
       writers_pool.rb                          # fiber-local LIFO of Oj::StringWriter instances,
                                                # one stack shared by every JSON Generated Class
 
-      # === Panko runtime seam (replaces the deleted C extension) ===
+      # === Panko runtime seam ===
       runtime.rb                               # shared seam: only/except/filters_for → Filter
       descriptor_builder.rb                    # Panko::Serializer DSL → immutable Descriptor
       serializer_cache.rb                      # per-class base + auto-specialization variant pools
