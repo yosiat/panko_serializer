@@ -55,7 +55,7 @@ module Panko::CodeGen
           ar_model.attribute_types.key?(source.to_s) || ar_model.attribute_aliases.key?(source.to_s)
         end
 
-        # Called here too so the Generator works without the validators; AR makes repeat calls a no-op.
+        # Called here too so the Generator works without the validators.
         def self.ar_model(descriptor)
           model = descriptor.model
           return nil unless model.respond_to?(:columns_hash) && model.respond_to?(:attribute_methods_generated?)
