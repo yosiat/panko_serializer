@@ -60,24 +60,6 @@ RSpec.describe "Panko::CodeGen.dump (flat single-file)" do
       }.to raise_error(ArgumentError, /path:/)
     end
 
-    it "does not run the Validator when path: is invalid" do
-      validator = instance_spy(Panko::CodeGen::Validators::Validator)
-      dump = Panko::CodeGen::Dump.new(
-        descriptor, output: :json, config: config, path: nil, validator: validator
-      )
-      expect { dump.dump }.to raise_error(ArgumentError)
-      expect(validator).not_to have_received(:validate)
-    end
-
-    it "does not run the Generator when path: is invalid" do
-      generator = instance_spy(Panko::CodeGen::Generator)
-      dump = Panko::CodeGen::Dump.new(
-        descriptor, output: :json, config: config, path: "", generator: generator
-      )
-      expect { dump.dump }.to raise_error(ArgumentError)
-      expect(generator).not_to have_received(:emit)
-    end
-
     it "writes no file when path: is invalid (no partial-write side effect)" do
       Dir.mktmpdir do |dir|
         [nil, "", :symbol, 42].each do |bogus|

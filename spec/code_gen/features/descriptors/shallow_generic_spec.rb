@@ -150,7 +150,7 @@ RSpec.describe "Generated Class for Fixtures::ShallowGeneric" do
   describe "frozen-string-literal pragma" do
     %i[json hash].each do |mode|
       it "is the first line of the Generator emit output in #{mode} Output Mode" do
-        source = Panko::CodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+        source = Panko::CodeGen::Generator.emit(descriptor, output: mode, config: config)
         expect(source.lines.first.chomp).to eq("# frozen_string_literal: true")
       end
     end

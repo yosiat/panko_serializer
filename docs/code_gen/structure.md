@@ -119,7 +119,6 @@ lib/
 
       # === Compilation orchestration ===
       compiler.rb                              # Compiler#compile: drive Generator + module_eval
-      compile_cache.rb                         # identity-keyed Descriptor → Generated Class cache
                                                # (handles Recursive Descriptors)
 
       # === Code generation ===
@@ -157,7 +156,6 @@ lib/
       # === ActiveRecord helpers ===
       active_record/
         access_classifier.rb                   # 3-step rule: column-backed / method / raise
-        define_attribute_methods.rb            # defensive idempotent AR method-table warmup
 
       # === Generated-Class runtime support ===
       writers_pool.rb                          # fiber-local LIFO of Oj::StringWriter instances,
@@ -197,7 +195,7 @@ are relative to `lib/panko/code_gen/`.
 | [config.md](config.md)                       | `config.rb`                                                                |
 | [errors.md](errors.md)                       | `errors.rb`                                                                |
 | [filters.md](filters.md)                     | `filter.rb`, `filters/*`, `generators/field_index.rb`                      |
-| [compilation.md](compilation.md)             | `compiler.rb`, `compile_cache.rb`, `generator.rb`, `generators/*`          |
+| [compilation.md](compilation.md)             | `compiler.rb`, `generator.rb`, `generators/*`                             |
 | [code-generation.md](code-generation.md)     | `code_builder.rb`, `generator.rb`, `generators/*`                          |
 | [output-modes.md](output-modes.md)           | `generators/sink.rb`, `generators/json_sink.rb`, `generators/hash_sink.rb` |
 | [generated-class.md](generated-class.md)     | shape emitted by `generators/*`; runtime support in `writers_pool.rb`, `instance_pool.rb` |

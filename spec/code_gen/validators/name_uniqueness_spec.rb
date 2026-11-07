@@ -211,13 +211,13 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
   end
 
   describe "registration in the Validator orchestrator" do
-    it "is included in Validator::DEFAULT_RULES" do
-      expect(Panko::CodeGen::Validators::Validator::DEFAULT_RULES)
+    it "is included in Validator::RULES" do
+      expect(Panko::CodeGen::Validators::Validator::RULES)
         .to include(described_class)
     end
 
     it "is registered immediately after SourceResolution" do
-      rules = Panko::CodeGen::Validators::Validator::DEFAULT_RULES
+      rules = Panko::CodeGen::Validators::Validator::RULES
       source_index = rules.index(Panko::CodeGen::Validators::SourceResolution)
       uniqueness_index = rules.index(described_class)
       expect(uniqueness_index).to eq(source_index + 1)
@@ -226,7 +226,7 @@ RSpec.describe Panko::CodeGen::Validators::NameUniqueness do
     it "is invoked by the orchestrator on Compile" do
       bad = descriptor_with(attributes: [attribute(:id), attribute(:id)])
       expect {
-        Panko::CodeGen::Validators::Validator.new.validate(bad, output: :json, config: config)
+        Panko::CodeGen::Validators::Validator.validate(bad, output: :json, config: config)
       }.to raise_error(Panko::CodeGen::NameCollisionError, /Attribute and Attribute share name/)
     end
   end

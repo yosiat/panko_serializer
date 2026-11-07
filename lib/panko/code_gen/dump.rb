@@ -2,19 +2,16 @@
 
 module Panko::CodeGen
   class Dump
-    def initialize(descriptor, output:, config:, path:,
-      validator: Validators::Validator.new, generator: Generator.new)
+    def initialize(descriptor, output:, config:, path:)
       @descriptor = descriptor
       @output = output
       @config = config
       @path = path
-      @validator = validator
-      @generator = generator
     end
 
     def dump
       validate_path!
-      @validator.validate(@descriptor, output: @output, config: @config)
+      Validators::Validator.validate(@descriptor, output: @output, config: @config)
       if @descriptor.associations.empty?
         write_flat
       else
@@ -34,7 +31,7 @@ module Panko::CodeGen
     end
 
     def write_flat
-      source = @generator.emit(@descriptor, output: @output, config: @config)
+      source = Generator.emit(@descriptor, output: @output, config: @config)
       File.write(@path, source)
     end
 

@@ -4,7 +4,7 @@ require "spec_helper"
 require "panko/code_gen"
 
 RSpec.describe "Generator parent_class dispatch emit" do
-  let(:generator) { Panko::CodeGen::Generator.new }
+  let(:generator) { Panko::CodeGen::Generator }
   let(:config) { Panko::CodeGen::Config.new }
   let(:parent_class) {
     parent = Class.new

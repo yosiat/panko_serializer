@@ -55,7 +55,7 @@ RSpec.describe "Generator snapshot corpus" do
           let(:snapshot_filename) { "#{basename}_#{mode}.rb" }
 
           it "Generator#emit bytes equal the committed snapshot" do
-            source = Panko::CodeGen::Generator.new.emit(descriptor, output: mode, config: config)
+            source = Panko::CodeGen::Generator.emit(descriptor, output: mode, config: config)
             expect(source).to match_snapshot(snapshot_filename)
           end
 

@@ -82,7 +82,6 @@ spec/code_gen/
   spec_helper.rb
   code_builder_spec.rb                         # tier: CodeBuilder
   compile_errors_spec.rb                       # tier: compile-time errors
-  compile_cache_spec.rb                        # identity-keyed Descriptor → Generated Class cache
   config_spec.rb                               # Config coercion / defaults
   datetime_format_spec.rb, cast_datetime_spec.rb   # datetime String → ISO-8601 splicer
   filter_spec.rb                               # Filter.wrap + Indexed representation
@@ -95,7 +94,6 @@ spec/code_gen/
 
   active_record/                               # AR helpers
     access_classifier_spec.rb
-    define_attribute_methods_spec.rb
 
   generators/                                  # tier: snapshot + per-emitter unit specs
     snapshot_spec.rb                           # iterates FIXTURES × MODES

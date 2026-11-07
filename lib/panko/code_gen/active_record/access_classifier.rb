@@ -4,7 +4,7 @@ module Panko::CodeGen
   module ActiveRecord
     # Columns read through AR's own generated reader classify as +:column+.
     # A user override of a column reader classifies as +:method+, so the
-    # Specialized path never bypasses it. Call +DefineAttributeMethods.ensure!+
+    # Specialized path never bypasses it. Call +define_attribute_methods+
     # first, or non-column readers (+attribute+, +alias_attribute+) raise +UnknownSourceError+.
     module AccessClassifier
       def self.classify(klass, source)

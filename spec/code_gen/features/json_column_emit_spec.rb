@@ -26,7 +26,7 @@ RSpec.describe "Specialized JSON-column emit path" do
 
   describe "generated source - :wire_format" do
     it "contains push_json and Oj.sc_parse with the frozen strict-parse opts" do
-      source = Panko::CodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.emit(
         descriptor,
         output: :json,
         config: Panko::CodeGen::Config.new(json_column_emit: :wire_format)
@@ -39,7 +39,7 @@ RSpec.describe "Specialized JSON-column emit path" do
 
   describe "generated source - :html_safe" do
     it "contains push_value (today's shape) and does not contain push_json" do
-      source = Panko::CodeGen::Generator.new.emit(
+      source = Panko::CodeGen::Generator.emit(
         descriptor,
         output: :json,
         config: Panko::CodeGen::Config.new(json_column_emit: :html_safe)
