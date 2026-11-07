@@ -8,7 +8,6 @@ module Panko::CodeGen
   # - +supports_root_key+: when +false+, passing +root_key:+ raises +ArgumentError+.
   # - +json_column_emit+ (JSON mode, Specialized path only): +:wire_format+ writes the
   #   stored bytes after a well-formedness check, +:html_safe+ the typed value, escaped.
-  # - +pool_writer+: no effect in Hash output mode.
   # - +guarded_model+: a record of another class goes to the generic body.
   #   Needs a named +descriptor.model+.
   Config = Data.define(
@@ -17,7 +16,6 @@ module Panko::CodeGen
     :hash_record_key_type,
     :hash_output_key_type,
     :json_column_emit,
-    :pool_writer,
     :guarded_model
   )
 
@@ -27,7 +25,6 @@ module Panko::CodeGen
     hash_record_key_type: :string,
     hash_output_key_type: :string,
     json_column_emit: :wire_format,
-    pool_writer: true,
     guarded_model: false
   }.freeze
 
@@ -50,7 +47,6 @@ module Panko::CodeGen
       validate_enum!(:hash_record_key_type, values[:hash_record_key_type])
       validate_enum!(:hash_output_key_type, values[:hash_output_key_type])
       validate_json_column_emit!(values[:json_column_emit])
-      validate_boolean!(:pool_writer, values[:pool_writer])
       validate_boolean!(:guarded_model, values[:guarded_model])
     end
 

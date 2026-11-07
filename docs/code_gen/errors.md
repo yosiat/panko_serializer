@@ -7,8 +7,8 @@ root for a catch-all.
 
 Call-shape mistakes at the entry points raise Ruby's own `ArgumentError` instead: an unknown
 `output:`, an empty or non-String `path:` to **Dump**, `only:` and `except:` at the same
-filter level, an invalid `root_key:`, and a bad value for `Config#json_column_emit`,
-`pool_writer` or `guarded_model`.
+filter level, an invalid `root_key:`, and a bad value for `Config#json_column_emit` or
+`guarded_model`.
 
 ## Hierarchy
 

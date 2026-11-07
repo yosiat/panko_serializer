@@ -43,7 +43,7 @@ The vocabulary for this codebase. Use these terms precisely; avoid the listed sy
 | **Writer**            | An `Oj::StringWriter` instance checked out of a fiber-local pool at the top of a JSON-mode serialization and threaded through composed Generated Classes. | Stream, buffer                   |
 | **SKIP**              | The module-level frozen singleton `Panko::CodeGen::SKIP`. Returning it from a Method Attribute body causes that field to be omitted (identity-compared, never matches real data). | Omit sentinel, null-skip marker |
 | **Root Key**          | An optional top-level wrapper key applied to the output (e.g., `{"post": {...}}`). Enabled at compile time via Config; the string key is supplied per-call. | Envelope, wrapper                 |
-| **Config**            | The compile-time settings Data struct: `null_for_missing_has_one`, `supports_root_key`, `hash_record_key_type`, `hash_output_key_type`, `json_column_emit`, `pool_writer`, `guarded_model`. Baked into Generated Class code; no runtime mutation. | Options, settings                 |
+| **Config**            | The compile-time settings for one compile. Baked into Generated Class code; no runtime mutation. | Options, settings                 |
 
 ## Composition & integration
 

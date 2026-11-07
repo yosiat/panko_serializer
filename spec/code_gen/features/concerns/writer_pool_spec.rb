@@ -257,39 +257,9 @@ RSpec.describe "WritersPool - feature-level pool contract" do
     end
 
     it "keeps output byte-identical when the writer is dropped" do
-      unpooled_config = Panko::CodeGen::Config.new(**Fixtures::ShallowGeneric::CONFIG.to_h.merge(pool_writer: false))
-      unpooled = Panko::CodeGen.compile(Fixtures::ShallowGeneric::DESCRIPTOR, output: :json, config: unpooled_config)
-        .new(descriptor: Fixtures::ShallowGeneric::DESCRIPTOR)
+      first = generated.serialize_many(records)
 
-      expect(generated.serialize_many(records)).to eq(unpooled.serialize_many(records))
-    end
-  end
-
-  describe "pooled-vs-unpooled output parity" do
-    fixture_samples = [
-      [Fixtures::ShallowGeneric, Fixtures::ShallowGeneric.sanity_record],
-      [Fixtures::NestedComposition, Fixtures::NestedComposition.sanity_record]
-    ]
-
-    fixture_samples.each do |fixture, record|
-      it "produces byte-identical JSON for #{fixture.name} under pool_writer: true vs false" do
-        pooled_config = Panko::CodeGen::Config.new(**fixture::CONFIG.to_h.merge(pool_writer: true))
-        unpooled_config = Panko::CodeGen::Config.new(**fixture::CONFIG.to_h.merge(pool_writer: false))
-
-        pooled = Panko::CodeGen.compile(fixture::DESCRIPTOR, output: :json, config: pooled_config)
-          .new(descriptor: fixture::DESCRIPTOR)
-        unpooled = Panko::CodeGen.compile(fixture::DESCRIPTOR, output: :json, config: unpooled_config)
-          .new(descriptor: fixture::DESCRIPTOR)
-
-        pooled_one = pooled.serialize_one(record)
-        unpooled_one = unpooled.serialize_one(record)
-        pooled_many = pooled.serialize_many([record, record])
-        unpooled_many = unpooled.serialize_many([record, record])
-
-        expect(pooled_one).to eq(unpooled_one)
-        expect(pooled_many).to eq(unpooled_many)
-        expect(pooled_one).to eq(fixture.expected_output(:json))
-      end
+      expect(generated.serialize_many(records)).to eq(first)
     end
   end
 end
