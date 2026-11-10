@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    panko_serializer (1.0.0)
+    panko_serializer (1.0.1)
       activesupport (>= 7.2)
       oj (> 3.11.0, < 4.0.0)
 
