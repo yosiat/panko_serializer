@@ -4,6 +4,9 @@ source "https://rubygems.org"
 
 gemspec
 
+# json 3 dropped the quirks_mode option that ActiveSupport's to_json still passes.
+gem "json", "< 3"
+
 group :benchmarks do
   gem "stackprof"
 
