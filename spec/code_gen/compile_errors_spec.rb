@@ -666,6 +666,23 @@ RSpec.describe "Compile-time errors" do
         end
       end
     end
+
+    describe "generated source that does not parse" do
+      let(:descriptor) do
+        Panko::CodeGen::Descriptor.new(
+          name: "PostDescriptor", model: nil, parent_class: Fixtures::BaseSerializer,
+          attributes: [], method_attributes: [], associations: []
+        )
+      end
+
+      before { allow(Panko::CodeGen::Generator).to receive(:emit).and_return("class (") }
+
+      it "raises CompileError, not SyntaxError" do
+        expect {
+          Panko::CodeGen.compile(descriptor, output: :json)
+        }.to raise_error(Panko::CodeGen::CompileError, /PostDescriptor: generated json source does not parse/)
+      end
+    end
   end
 
   describe "Message convention" do

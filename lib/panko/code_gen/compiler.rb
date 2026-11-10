@@ -18,12 +18,20 @@ module Panko::CodeGen
       source = Generator.emit(@descriptor, output: @output, config: @config)
       namespace = Class.new
       bind_anonymous_parents(namespace)
-      namespace.module_eval(source, synthetic_path, 1)
+      evaluate(namespace, source)
       collect_classes(@descriptor, namespace)
       @compiled.fetch(@descriptor)
     end
 
     private
+
+    # SyntaxError is a ScriptError, which a bare +rescue+ (Panko.compile_all, the
+    # auto-specialization fallback) does not catch.
+    def evaluate(namespace, source)
+      namespace.module_eval(source, synthetic_path, 1)
+    rescue SyntaxError => error
+      raise CompileError, "#{@descriptor.name}: generated #{@output} source does not parse: #{error.message}"
+    end
 
     # A Hash, not one constant per class: +const_set+ gives an anonymous class a name,
     # which would change +parent_class.name+ for the next compile.
