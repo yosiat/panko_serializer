@@ -15,7 +15,7 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @cb_static = descriptor.method_attributes[1].body
+    @cb_1 = descriptor.method_attributes[1].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -89,7 +89,7 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
         end
       end
       unless filters.drops?(3)
-        value = @cb_static.call
+        value = @cb_1.call
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "static")
         end
@@ -110,7 +110,7 @@ class ParentClassGenericSerializer_JSON < ParentClassGenericBase
         end
       end
       unless filters.drops?(3)
-        value = @cb_static.call
+        value = @cb_1.call
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "static")
         end

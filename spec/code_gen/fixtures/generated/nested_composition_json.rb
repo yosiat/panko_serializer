@@ -173,9 +173,9 @@ class NestedCompositionPostSerializer_JSON < Fixtures::BaseSerializer
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @cb_if_author = descriptor.associations[0].if
-    @author_serializer = NestedCompositionAuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
-    @comments_serializer = NestedCompositionCommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
+    @cb_if_0 = descriptor.associations[0].if
+    @child_0 = NestedCompositionAuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
+    @child_1 = NestedCompositionCommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -234,13 +234,13 @@ class NestedCompositionPostSerializer_JSON < Fixtures::BaseSerializer
         writer.push_value(record["id"], "id")
       end
       unless filters.drops?(1)
-        if @cb_if_author.call(record, context)
+        if @cb_if_0.call(record, context)
           value = record["author"]
           if value.nil?
             writer.push_value(nil, "author")
           else
             writer.push_key("author")
-            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
+            @child_0._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
           end
         end
       end
@@ -248,7 +248,7 @@ class NestedCompositionPostSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:comments, NestedCompositionCommentSerializer_JSON::FIELD_INDEX)
         writer.push_array("comments")
         record["comments"].each do |element|
-          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_1._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end
@@ -259,13 +259,13 @@ class NestedCompositionPostSerializer_JSON < Fixtures::BaseSerializer
         writer.push_value(record.id, "id")
       end
       unless filters.drops?(1)
-        if @cb_if_author.call(record, context)
+        if @cb_if_0.call(record, context)
           value = record.author
           if value.nil?
             writer.push_value(nil, "author")
           else
             writer.push_key("author")
-            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
+            @child_0._write_one(value, writer, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_JSON::FIELD_INDEX))
           end
         end
       end
@@ -273,7 +273,7 @@ class NestedCompositionPostSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:comments, NestedCompositionCommentSerializer_JSON::FIELD_INDEX)
         writer.push_array("comments")
         record.comments.each do |element|
-          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_1._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end

@@ -107,10 +107,10 @@ module Panko::CodeGen
         end
       end
 
-      def method_attribute(method_attribute, config, index, builder)
+      def method_attribute(method_attribute, position, config, index, builder)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          builder.line "value = #{method_attribute_call_expression(method_attribute)}"
+          builder.line "value = #{method_attribute_call_expression(method_attribute, position)}"
           builder.line "unless value.equal?(Panko::CodeGen::SKIP)"
           builder.indent do
             builder.line "result[#{key_literal(method_attribute.name, config)}] = Panko::CodeGen.cast_datetime(value)"
@@ -120,21 +120,21 @@ module Panko::CodeGen
         builder.line "end"
       end
 
-      def association(association, source_read_expr, config, index, builder)
+      def association(association, position, source_read_expr, config, index, builder)
         key_lit = key_literal(association.name, config)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          with_if_guard(association, builder) do
+          with_if_guard(association, position, builder) do
             case association.kind
             when :has_one
               builder.line "value = #{source_read_expr}"
               if config.null_for_missing_has_one
-                has_one_default(association, key_lit, builder)
+                has_one_default(association, position, key_lit, builder)
               else
-                has_one_omit(association, key_lit, builder)
+                has_one_omit(association, position, key_lit, builder)
               end
             when :has_many
-              has_many(association, source_read_expr, key_lit, builder)
+              has_many(association, position, source_read_expr, key_lit, builder)
             end
           end
         end
@@ -145,33 +145,33 @@ module Panko::CodeGen
 
       def key_literal(name, config)
         case config.hash_output_key_type
-        when :symbol then ":#{name}"
-        else %("#{name}")
+        when :symbol then GeneratedNames.symbol_literal(name)
+        else GeneratedNames.string_literal(name)
         end
       end
 
-      def has_one_default(association, key_lit, builder)
+      def has_one_default(association, position, key_lit, builder)
         builder.line "result[#{key_lit}] = if value.nil?"
         builder.indent { builder.line "nil" }
         builder.line "else"
         builder.indent do
-          child_write(association, "value", builder) do |ivar|
+          child_write(association, position, "value", builder) do |ivar|
             "#{ivar}.#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
           end
         end
         builder.line "end"
       end
 
-      def has_one_omit(association, key_lit, builder)
+      def has_one_omit(association, position, key_lit, builder)
         builder.line "unless value.nil?"
         builder.indent do
           if association.variants.empty?
-            builder.line "result[#{key_lit}] = #{GeneratedNames.serializer_ivar(association)}." \
+            builder.line "result[#{key_lit}] = #{GeneratedNames.serializer_ivar(position)}." \
               "#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
           else
             builder.line "result[#{key_lit}] = begin"
             builder.indent do
-              child_write(association, "value", builder) do |ivar|
+              child_write(association, position, "value", builder) do |ivar|
                 "#{ivar}.#{GeneratedNames.to_hash}(value, context, scope, #{child_filter_expr(association)})"
               end
             end
@@ -182,18 +182,18 @@ module Panko::CodeGen
       end
 
       # +child_filter+ is looked up once per record, not once per element.
-      def has_many(association, source_read_expr, key_lit, builder)
+      def has_many(association, position, source_read_expr, key_lit, builder)
         builder.line "child_filter = #{child_filter_expr(association)}"
         if association.variants.empty?
           builder.line(
             "result[#{key_lit}] = #{source_read_expr}.map { |element| " \
-              "#{GeneratedNames.serializer_ivar(association)}.#{GeneratedNames.to_hash}(element, context, scope, child_filter) }"
+              "#{GeneratedNames.serializer_ivar(position)}.#{GeneratedNames.to_hash}(element, context, scope, child_filter) }"
           )
           return
         end
         builder.line "result[#{key_lit}] = #{source_read_expr}.map do |element|"
         builder.indent do
-          child_write(association, "element", builder) do |ivar|
+          child_write(association, position, "element", builder) do |ivar|
             "#{ivar}.#{GeneratedNames.to_hash}(element, context, scope, child_filter)"
           end
         end
@@ -203,7 +203,7 @@ module Panko::CodeGen
       # +format_raw+ returns nil for raw values it cannot format; the typed-read
       # fallback then goes through +cast_datetime+ so a Time still becomes a String.
       def datetime_column_attribute(attribute, config, index, builder)
-        source_lit = %("#{attribute.source}")
+        source_lit = GeneratedNames.string_literal(attribute.source)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
           builder.line "value = Panko::CodeGen::DateTimeFormat.format_raw(record.read_attribute_before_type_cast(#{source_lit}))"

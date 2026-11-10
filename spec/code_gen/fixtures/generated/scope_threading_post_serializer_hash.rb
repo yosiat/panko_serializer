@@ -17,11 +17,11 @@ class ScopeThreadingPostSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, legacy_label: 1, viewer_label: 2, author: 3, comments: 4}.freeze
 
   def initialize(descriptor:)
-    @cb_legacy_label = descriptor.method_attributes[0].body
-    @cb_viewer_label = descriptor.method_attributes[1].body
-    @cb_if_author = descriptor.associations[0].if
-    @author_serializer = ScopeThreadingAuthorSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor)
-    @comments_serializer = ScopeThreadingCommentSerializer_Hash.new(descriptor: descriptor.associations[1].descriptor)
+    @cb_0 = descriptor.method_attributes[0].body
+    @cb_1 = descriptor.method_attributes[1].body
+    @cb_if_0 = descriptor.associations[0].if
+    @child_0 = ScopeThreadingAuthorSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor)
+    @child_1 = ScopeThreadingCommentSerializer_Hash.new(descriptor: descriptor.associations[1].descriptor)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -45,27 +45,27 @@ class ScopeThreadingPostSerializer_Hash < Fixtures::BaseSerializer
         result["id"] = Panko::CodeGen.cast_datetime(record["id"])
       end
       unless filters.drops?(3)
-        if @cb_if_author.call(record, context, scope)
+        if @cb_if_0.call(record, context, scope)
           value = record["author"]
           result["author"] = if value.nil?
             nil
           else
-            @author_serializer._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
+            @child_0._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
           end
         end
       end
       unless filters.drops?(4)
         child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_Hash::FIELD_INDEX)
-        result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
+        result["comments"] = record["comments"].map { |element| @child_1._to_hash(element, context, scope, child_filter) }
       end
       unless filters.drops?(1)
-        value = @cb_legacy_label.call(record, context)
+        value = @cb_0.call(record, context)
         unless value.equal?(Panko::CodeGen::SKIP)
           result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
         end
       end
       unless filters.drops?(2)
-        value = @cb_viewer_label.call(record, context, scope)
+        value = @cb_1.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
         end
@@ -77,27 +77,27 @@ class ScopeThreadingPostSerializer_Hash < Fixtures::BaseSerializer
         result["id"] = Panko::CodeGen.cast_datetime(record.id)
       end
       unless filters.drops?(3)
-        if @cb_if_author.call(record, context, scope)
+        if @cb_if_0.call(record, context, scope)
           value = record.author
           result["author"] = if value.nil?
             nil
           else
-            @author_serializer._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
+            @child_0._to_hash(value, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_Hash::FIELD_INDEX))
           end
         end
       end
       unless filters.drops?(4)
         child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_Hash::FIELD_INDEX)
-        result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
+        result["comments"] = record.comments.map { |element| @child_1._to_hash(element, context, scope, child_filter) }
       end
       unless filters.drops?(1)
-        value = @cb_legacy_label.call(record, context)
+        value = @cb_0.call(record, context)
         unless value.equal?(Panko::CodeGen::SKIP)
           result["legacy_label"] = Panko::CodeGen.cast_datetime(value)
         end
       end
       unless filters.drops?(2)
-        value = @cb_viewer_label.call(record, context, scope)
+        value = @cb_1.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           result["viewer_label"] = Panko::CodeGen.cast_datetime(value)
         end

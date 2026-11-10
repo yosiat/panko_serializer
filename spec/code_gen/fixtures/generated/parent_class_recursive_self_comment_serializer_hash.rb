@@ -14,7 +14,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2, replies: 3}.freeze
 
   def initialize(descriptor:)
-    @replies_serializer = self
+    @child_0 = self
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -48,7 +48,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
       end
       unless filters.drops?(3)
         child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-        result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
+        result["replies"] = record["replies"].map { |element| @child_0._to_hash(element, context, scope, child_filter) }
       end
       unless filters.drops?(2)
         value = self.viewer_tag
@@ -67,7 +67,7 @@ class ParentClassRecursiveSelfCommentSerializer_Hash < ParentClassRecursiveBase
       end
       unless filters.drops?(3)
         child_filter = filters.child(:replies, ParentClassRecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-        result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
+        result["replies"] = record.replies.map { |element| @child_0._to_hash(element, context, scope, child_filter) }
       end
       unless filters.drops?(2)
         value = self.viewer_tag

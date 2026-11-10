@@ -15,9 +15,9 @@ class ShallowSpecializedSerializer_JSON < Fixtures::BaseSerializer
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @cb_static = descriptor.method_attributes[0].body
-    @cb_hidden = descriptor.method_attributes[1].body
-    @cb_contextual = descriptor.method_attributes[2].body
+    @cb_0 = descriptor.method_attributes[0].body
+    @cb_1 = descriptor.method_attributes[1].body
+    @cb_2 = descriptor.method_attributes[2].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -81,19 +81,19 @@ class ShallowSpecializedSerializer_JSON < Fixtures::BaseSerializer
       writer.push_value((record._has_attribute?("headline") ? record._read_attribute("headline") : record.headline), "headline")
     end
     unless filters.drops?(3)
-      value = @cb_static.call
+      value = @cb_0.call
       unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "static")
       end
     end
     unless filters.drops?(4)
-      value = @cb_hidden.call(record)
+      value = @cb_1.call(record)
       unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "hidden")
       end
     end
     unless filters.drops?(5)
-      value = @cb_contextual.call(record, context)
+      value = @cb_2.call(record, context)
       unless value.equal?(Panko::CodeGen::SKIP)
         writer.push_value(value, "contextual")
       end

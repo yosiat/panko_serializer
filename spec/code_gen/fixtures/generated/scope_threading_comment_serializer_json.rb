@@ -15,7 +15,7 @@ class ScopeThreadingCommentSerializer_JSON < Fixtures::BaseSerializer
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @cb_viewer_tag = descriptor.method_attributes[0].body
+    @cb_0 = descriptor.method_attributes[0].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -77,7 +77,7 @@ class ScopeThreadingCommentSerializer_JSON < Fixtures::BaseSerializer
         writer.push_value(record["body"], "body")
       end
       unless filters.drops?(2)
-        value = @cb_viewer_tag.call(record, context, scope)
+        value = @cb_0.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "viewer_tag")
         end
@@ -92,7 +92,7 @@ class ScopeThreadingCommentSerializer_JSON < Fixtures::BaseSerializer
         writer.push_value(record.body, "body")
       end
       unless filters.drops?(2)
-        value = @cb_viewer_tag.call(record, context, scope)
+        value = @cb_0.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "viewer_tag")
         end

@@ -14,7 +14,7 @@ class ParentClassGenericSerializer_Hash < ParentClassGenericBase
   FIELD_INDEX = {id: 0, name: 1, greeting: 2, static: 3}.freeze
 
   def initialize(descriptor:)
-    @cb_static = descriptor.method_attributes[1].body
+    @cb_1 = descriptor.method_attributes[1].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -53,7 +53,7 @@ class ParentClassGenericSerializer_Hash < ParentClassGenericBase
         end
       end
       unless filters.drops?(3)
-        value = @cb_static.call
+        value = @cb_1.call
         unless value.equal?(Panko::CodeGen::SKIP)
           result["static"] = Panko::CodeGen.cast_datetime(value)
         end
@@ -74,7 +74,7 @@ class ParentClassGenericSerializer_Hash < ParentClassGenericBase
         end
       end
       unless filters.drops?(3)
-        value = @cb_static.call
+        value = @cb_1.call
         unless value.equal?(Panko::CodeGen::SKIP)
           result["static"] = Panko::CodeGen.cast_datetime(value)
         end

@@ -14,7 +14,7 @@ class ScopeThreadingCommentSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, viewer_tag: 2}.freeze
 
   def initialize(descriptor:)
-    @cb_viewer_tag = descriptor.method_attributes[0].body
+    @cb_0 = descriptor.method_attributes[0].body
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -41,7 +41,7 @@ class ScopeThreadingCommentSerializer_Hash < Fixtures::BaseSerializer
         result["body"] = Panko::CodeGen.cast_datetime(record["body"])
       end
       unless filters.drops?(2)
-        value = @cb_viewer_tag.call(record, context, scope)
+        value = @cb_0.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
         end
@@ -56,7 +56,7 @@ class ScopeThreadingCommentSerializer_Hash < Fixtures::BaseSerializer
         result["body"] = Panko::CodeGen.cast_datetime(record.body)
       end
       unless filters.drops?(2)
-        value = @cb_viewer_tag.call(record, context, scope)
+        value = @cb_0.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           result["viewer_tag"] = Panko::CodeGen.cast_datetime(value)
         end

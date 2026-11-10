@@ -29,22 +29,22 @@ RSpec.describe "Generator parent_class dispatch emit" do
 
     %i[json hash].each do |mode|
       context "with #{mode} Output Mode" do
-        it "emits +value = self.<method_name>+ for Symbol bodies, not +@cb_<name>.call+" do
+        it "emits +value = self.<method_name>+ for Symbol bodies, not +@cb_<position>.call+" do
           source = generator.emit(descriptor, output: mode, config: config)
           expect(source).to include("value = self.greeting\n")
-          expect(source).not_to include("@cb_greeting.call")
+          expect(source).not_to include("@cb_1.call")
         end
 
-        it "still emits the arity-specialized +@cb_<name>.call+ for Callable bodies" do
+        it "still emits the arity-specialized +@cb_<position>.call+ for Callable bodies" do
           source = generator.emit(descriptor, output: mode, config: config)
-          expect(source).to include("value = @cb_static_via_callable.call\n")
+          expect(source).to include("value = @cb_0.call\n")
         end
 
-        it "does not hoist +@cb_<symbol_name>+ in the constructor (only Callable bodies are hoisted)" do
+        it "does not hoist +@cb_<position>+ in the constructor (only Callable bodies are hoisted)" do
           source = generator.emit(descriptor, output: mode, config: config)
-          expect(source).to include("@cb_static_via_callable = descriptor.method_attributes[0].body")
-          expect(source).not_to include("@cb_greeting = descriptor.method_attributes[1].body")
-          expect(source).not_to include("@cb_greeting =")
+          expect(source).to include("@cb_0 = descriptor.method_attributes[0].body")
+          expect(source).not_to include("@cb_1 = descriptor.method_attributes[1].body")
+          expect(source).not_to include("@cb_1 =")
         end
       end
     end

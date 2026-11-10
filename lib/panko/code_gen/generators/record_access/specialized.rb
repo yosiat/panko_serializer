@@ -13,7 +13,7 @@ module Panko::CodeGen
             Generic.emit_parent_class_ivar_writes(descriptor, builder)
             FieldWalk.emit_fields(
               descriptor, config, field_index, builder, sink,
-              read_expr: ->(source) { "record.#{source}" },
+              read_expr: ->(source) { GeneratedNames.method_call("record", source) },
               attribute_emit: ->(attribute, index) { sink.specialized_attribute(attribute, ar_model, config, index, builder) }
             )
           end
@@ -45,10 +45,12 @@ module Panko::CodeGen
         # SELECT alias named like a method (+thing_ids+ next to +has_many :things+) returns the selected value.
         def self.attribute_read_expr(attribute, ar_model)
           source = attribute.source
-          return "record.#{source}" if ar_model.nil?
-          return %(record._read_attribute("#{source}")) if ActiveRecord::AccessClassifier.classify(ar_model, source) == :column
-          return "record.#{source}" if declared_attribute?(ar_model, source)
-          %((record._has_attribute?("#{source}") ? record._read_attribute("#{source}") : record.#{source}))
+          method_read = GeneratedNames.method_call("record", source)
+          return method_read if ar_model.nil?
+          source_lit = GeneratedNames.string_literal(source)
+          return "record._read_attribute(#{source_lit})" if ActiveRecord::AccessClassifier.classify(ar_model, source) == :column
+          return method_read if declared_attribute?(ar_model, source)
+          "(record._has_attribute?(#{source_lit}) ? record._read_attribute(#{source_lit}) : #{method_read})"
         end
 
         def self.declared_attribute?(ar_model, source)

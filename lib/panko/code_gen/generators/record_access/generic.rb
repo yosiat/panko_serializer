@@ -27,7 +27,7 @@ module Panko::CodeGen
             builder.indent do
               FieldWalk.emit_fields(
                 descriptor, config, field_index, builder, sink,
-                read_expr: ->(source) { "record.#{source}" }
+                read_expr: ->(source) { GeneratedNames.method_call("record", source) }
               )
             end
             builder.line "end"
@@ -60,7 +60,7 @@ module Panko::CodeGen
           builder.indent do
             FieldWalk.emit_fields(
               descriptor, config, field_index, builder, sink,
-              read_expr: ->(source) { "record.#{source}" }
+              read_expr: ->(source) { GeneratedNames.method_call("record", source) }
             )
           end
           builder.line "end"
@@ -82,8 +82,8 @@ module Panko::CodeGen
 
         def self.hash_read_expr(source_name, config)
           case config.hash_record_key_type
-          when :symbol then "record[:#{source_name}]"
-          else %(record["#{source_name}"])
+          when :symbol then "record[#{GeneratedNames.symbol_literal(source_name)}]"
+          else "record[#{GeneratedNames.string_literal(source_name)}]"
           end
         end
       end
