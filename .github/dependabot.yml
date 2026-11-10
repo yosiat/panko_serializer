@@ -13,12 +13,3 @@ updates:
       docs-dependencies:
         patterns:
           - "*"
-
-  - package-ecosystem: "bundler"
-    directory: "/gemfiles"
-    schedule:
-      interval: "weekly"
-    groups:
-      gemfiles-dependencies:
-        patterns:
-          - "*"
