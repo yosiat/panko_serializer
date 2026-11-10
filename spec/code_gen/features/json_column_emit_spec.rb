@@ -194,14 +194,14 @@ RSpec.describe "Specialized JSON-column emit path" do
         .to eq('{"id":1,"metadata":{"sep":"a\u2029b"}}')
     end
 
-    it "-0.0 - :wire_format preserves the sign; :html_safe normalizes to 0.0" do
+    it "-0.0 - both modes preserve the sign" do
       insert_metadata_bytes(1, '{"v":-0.0}')
       record = PlainPost.find(1)
 
       expect(compile_for(:wire_format).serialize_one(record))
         .to eq('{"id":1,"metadata":{"v":-0.0}}')
       expect(compile_for(:html_safe).serialize_one(record))
-        .to eq('{"id":1,"metadata":{"v":0.0}}')
+        .to eq('{"id":1,"metadata":{"v":-0.0}}')
     end
 
     it "scientific notation - :wire_format preserves compact form; :html_safe expands" do
