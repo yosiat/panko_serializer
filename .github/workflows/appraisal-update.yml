@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # The oldest Ruby in the test matrix, so every lockfile resolves for it.
       - uses: ruby/setup-ruby@v1
