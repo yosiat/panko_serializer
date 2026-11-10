@@ -1,0 +1,36 @@
+name: Appraisal lockfile update
+
+# Dependabot cannot read Appraisal's gemfiles/*.gemfile names, so this
+# workflow refreshes their lockfiles and keeps one PR open for the result.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # The oldest Ruby in the test matrix, so every lockfile resolves for it.
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - run: bundle exec appraisal update
+
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          branch: appraisal-lockfile-update
+          delete-branch: true
+          commit-message: Update Appraisal lockfiles
+          title: Update Appraisal lockfiles
+          body: Weekly `bundle exec appraisal update`. This PR is force-updated on every run.
+          add-paths: gemfiles/*.gemfile.lock
