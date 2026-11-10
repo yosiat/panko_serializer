@@ -128,7 +128,7 @@ RSpec.describe "Panko::CodeGen.dump (multi-file fan-out)" do
 
         executable_lines = File.read(target).each_line.reject { |l| l.lstrip.start_with?("#") }
         expect(executable_lines.grep(/^\s*require_relative\b/)).to be_empty
-        expect(File.read(target)).to include("@replies_serializer = self")
+        expect(File.read(target)).to include("@child_0 = self")
       end
     end
   end

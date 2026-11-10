@@ -15,7 +15,7 @@ class RecursiveSelfCommentSerializer_JSON < Fixtures::BaseSerializer
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @replies_serializer = self
+    @child_0 = self
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -80,7 +80,7 @@ class RecursiveSelfCommentSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
         writer.push_array("replies")
         record["replies"].each do |element|
-          @replies_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_0._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end
@@ -97,7 +97,7 @@ class RecursiveSelfCommentSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_JSON::FIELD_INDEX)
         writer.push_array("replies")
         record.replies.each do |element|
-          @replies_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_0._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end

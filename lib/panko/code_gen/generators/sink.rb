@@ -6,14 +6,14 @@ module Panko::CodeGen
       # The child's +FIELD_INDEX+ is read through its class name when the method runs, so
       # self-recursive Descriptors resolve it.
       def child_filter_expr(association)
-        "filters.child(:#{GeneratedNames.filter_key(association)}, " \
+        "filters.child(#{GeneratedNames.symbol_literal(GeneratedNames.filter_key(association))}, " \
           "#{GeneratedNames.class_name(association.descriptor, suffix)}::#{GeneratedNames.field_index_const})"
       end
 
       # +case+/+when+, not an +if+/+elsif+ chain of +instance_of?+: under YJIT the chain gets
       # slower once the call site has warmed on one class. HashSink uses the +case+ as an expression.
-      def child_write(association, record_expr, builder, &call_for)
-        base_call = call_for.call(GeneratedNames.serializer_ivar(association))
+      def child_write(association, position, record_expr, builder, &call_for)
+        base_call = call_for.call(GeneratedNames.serializer_ivar(position))
         if association.variants.empty?
           builder.line base_call
           return
@@ -24,7 +24,7 @@ module Panko::CodeGen
           builder.line "when #{model}"
           builder.indent do
             builder.line "if #{record_expr}.instance_of?(#{model})"
-            builder.indent { builder.line call_for.call(GeneratedNames.variant_serializer_ivar(association, index)) }
+            builder.indent { builder.line call_for.call(GeneratedNames.variant_serializer_ivar(position, index)) }
             builder.line "else"
             builder.indent { builder.line base_call }
             builder.line "end"
@@ -42,9 +42,9 @@ module Panko::CodeGen
       end
 
       # The guard wraps the Source read too, so a falsy +if:+ skips the read.
-      def with_if_guard(association, builder)
+      def with_if_guard(association, position, builder)
         if association.if
-          builder.line "if #{if_guard_call_expression(GeneratedNames.if_guard_ivar(association), association.if.arity)}"
+          builder.line "if #{if_guard_call_expression(GeneratedNames.if_guard_ivar(position), association.if.arity)}"
           builder.indent { yield }
           builder.line "end"
         else
@@ -64,10 +64,10 @@ module Panko::CodeGen
 
       # Symbol bodies need the explicit +self.+: a bare name such as +record+ or +value+ would
       # resolve to a local of the generated method.
-      def method_attribute_call_expression(method_attribute)
+      def method_attribute_call_expression(method_attribute, position)
         body = method_attribute.body
-        return "self.#{body}" if body.is_a?(Symbol)
-        ivar = GeneratedNames.callable_ivar(method_attribute)
+        return GeneratedNames.method_call("self", body) if body.is_a?(Symbol)
+        ivar = GeneratedNames.callable_ivar(position)
         case body.arity
         when 0 then "#{ivar}.call"
         when 1 then "#{ivar}.call(record)"

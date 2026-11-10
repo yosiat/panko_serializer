@@ -17,9 +17,9 @@ class NestedCompositionPostSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, author: 1, comments: 2}.freeze
 
   def initialize(descriptor:)
-    @cb_if_author = descriptor.associations[0].if
-    @author_serializer = NestedCompositionAuthorSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor)
-    @comments_serializer = NestedCompositionCommentSerializer_Hash.new(descriptor: descriptor.associations[1].descriptor)
+    @cb_if_0 = descriptor.associations[0].if
+    @child_0 = NestedCompositionAuthorSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor)
+    @child_1 = NestedCompositionCommentSerializer_Hash.new(descriptor: descriptor.associations[1].descriptor)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -43,18 +43,18 @@ class NestedCompositionPostSerializer_Hash < Fixtures::BaseSerializer
         result["id"] = Panko::CodeGen.cast_datetime(record["id"])
       end
       unless filters.drops?(1)
-        if @cb_if_author.call(record, context)
+        if @cb_if_0.call(record, context)
           value = record["author"]
           result["author"] = if value.nil?
             nil
           else
-            @author_serializer._to_hash(value, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
+            @child_0._to_hash(value, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
           end
         end
       end
       unless filters.drops?(2)
         child_filter = filters.child(:comments, NestedCompositionCommentSerializer_Hash::FIELD_INDEX)
-        result["comments"] = record["comments"].map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
+        result["comments"] = record["comments"].map { |element| @child_1._to_hash(element, context, scope, child_filter) }
       end
       result
     else
@@ -63,18 +63,18 @@ class NestedCompositionPostSerializer_Hash < Fixtures::BaseSerializer
         result["id"] = Panko::CodeGen.cast_datetime(record.id)
       end
       unless filters.drops?(1)
-        if @cb_if_author.call(record, context)
+        if @cb_if_0.call(record, context)
           value = record.author
           result["author"] = if value.nil?
             nil
           else
-            @author_serializer._to_hash(value, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
+            @child_0._to_hash(value, context, scope, filters.child(:author, NestedCompositionAuthorSerializer_Hash::FIELD_INDEX))
           end
         end
       end
       unless filters.drops?(2)
         child_filter = filters.child(:comments, NestedCompositionCommentSerializer_Hash::FIELD_INDEX)
-        result["comments"] = record.comments.map { |element| @comments_serializer._to_hash(element, context, scope, child_filter) }
+        result["comments"] = record.comments.map { |element| @child_1._to_hash(element, context, scope, child_filter) }
       end
       result
     end

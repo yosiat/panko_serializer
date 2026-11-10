@@ -102,7 +102,7 @@ module Panko::CodeGen
       def attribute(attribute, read_expr, config, index, builder, cast: true)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          builder.line %(writer.push_value(#{read_expr}, "#{attribute.name}"))
+          builder.line "writer.push_value(#{read_expr}, #{GeneratedNames.string_literal(attribute.name)})"
         end
         builder.line "end"
       end
@@ -118,33 +118,34 @@ module Panko::CodeGen
       end
 
       # +equal?+, not +==+, so an object that overrides +==+ cannot match +SKIP+.
-      def method_attribute(method_attribute, config, index, builder)
+      def method_attribute(method_attribute, position, config, index, builder)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          builder.line "value = #{method_attribute_call_expression(method_attribute)}"
+          builder.line "value = #{method_attribute_call_expression(method_attribute, position)}"
           builder.line "unless value.equal?(Panko::CodeGen::SKIP)"
           builder.indent do
-            builder.line %(writer.push_value(value, "#{method_attribute.name}"))
+            builder.line "writer.push_value(value, #{GeneratedNames.string_literal(method_attribute.name)})"
           end
           builder.line "end"
         end
         builder.line "end"
       end
 
-      def association(association, source_read_expr, config, index, builder)
+      def association(association, position, source_read_expr, config, index, builder)
+        key_lit = GeneratedNames.string_literal(association.name)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          with_if_guard(association, builder) do
+          with_if_guard(association, position, builder) do
             case association.kind
             when :has_one
               builder.line "value = #{source_read_expr}"
               if config.null_for_missing_has_one
-                has_one_default(association, builder)
+                has_one_default(association, position, key_lit, builder)
               else
-                has_one_omit(association, builder)
+                has_one_omit(association, position, key_lit, builder)
               end
             when :has_many
-              has_many(association, source_read_expr, builder)
+              has_many(association, position, source_read_expr, key_lit, builder)
             end
           end
         end
@@ -199,36 +200,36 @@ module Panko::CodeGen
 
       # A non-nil +has_one+ pushes its key separately instead of +push_object("name")+: the
       # child's +_write_one+ opens its own +push_object+ frame.
-      def has_one_default(association, builder)
+      def has_one_default(association, position, key_lit, builder)
         builder.line "if value.nil?"
-        builder.indent { builder.line %(writer.push_value(nil, "#{association.name}")) }
+        builder.indent { builder.line "writer.push_value(nil, #{key_lit})" }
         builder.line "else"
         builder.indent do
-          builder.line %(writer.push_key("#{association.name}"))
-          child_write(association, "value", builder) do |ivar|
+          builder.line "writer.push_key(#{key_lit})"
+          child_write(association, position, "value", builder) do |ivar|
             "#{ivar}.#{GeneratedNames.write_one}(value, writer, context, scope, #{child_filter_expr(association)})"
           end
         end
         builder.line "end"
       end
 
-      def has_one_omit(association, builder)
+      def has_one_omit(association, position, key_lit, builder)
         builder.line "unless value.nil?"
         builder.indent do
-          builder.line %(writer.push_key("#{association.name}"))
-          child_write(association, "value", builder) do |ivar|
+          builder.line "writer.push_key(#{key_lit})"
+          child_write(association, position, "value", builder) do |ivar|
             "#{ivar}.#{GeneratedNames.write_one}(value, writer, context, scope, #{child_filter_expr(association)})"
           end
         end
         builder.line "end"
       end
 
-      def has_many(association, source_read_expr, builder)
+      def has_many(association, position, source_read_expr, key_lit, builder)
         builder.line "child_filter = #{child_filter_expr(association)}"
-        builder.line %(writer.push_array("#{association.name}"))
+        builder.line "writer.push_array(#{key_lit})"
         builder.line "#{source_read_expr}.each do |element|"
         builder.indent do
-          child_write(association, "element", builder) do |ivar|
+          child_write(association, position, "element", builder) do |ivar|
             "#{ivar}.#{GeneratedNames.write_one}(element, writer, context, scope, child_filter)"
           end
         end
@@ -240,11 +241,11 @@ module Panko::CodeGen
       # (non-String, empty, malformed) falls back to the typed read.
       def json_column_attribute(attribute, config, index, builder)
         if config.json_column_emit == :html_safe
-          attribute(attribute, %(record._read_attribute("#{attribute.source}")), config, index, builder)
+          attribute(attribute, "record._read_attribute(#{GeneratedNames.string_literal(attribute.source)})", config, index, builder)
           return
         end
-        source_lit = %("#{attribute.source}")
-        key_lit = %("#{attribute.name}")
+        source_lit = GeneratedNames.string_literal(attribute.source)
+        key_lit = GeneratedNames.string_literal(attribute.name)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
           builder.line %(raw = record.read_attribute_before_type_cast(#{source_lit}))
@@ -271,11 +272,12 @@ module Panko::CodeGen
       end
 
       def datetime_column_attribute(attribute, index, builder)
-        source_lit = %("#{attribute.source}")
+        source_lit = GeneratedNames.string_literal(attribute.source)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
           builder.line "value = Panko::CodeGen::DateTimeFormat.format_raw(record.read_attribute_before_type_cast(#{source_lit}))"
-          builder.line %(writer.push_value(value || record._read_attribute(#{source_lit}), "#{attribute.name}"))
+          builder.line "writer.push_value(value || record._read_attribute(#{source_lit}), " \
+            "#{GeneratedNames.string_literal(attribute.name)})"
         end
         builder.line "end"
       end

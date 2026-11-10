@@ -14,7 +14,7 @@ class RecursiveSelfCommentSerializer_Hash < Fixtures::BaseSerializer
   FIELD_INDEX = {id: 0, body: 1, replies: 2}.freeze
 
   def initialize(descriptor:)
-    @replies_serializer = self
+    @child_0 = self
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -42,7 +42,7 @@ class RecursiveSelfCommentSerializer_Hash < Fixtures::BaseSerializer
       end
       unless filters.drops?(2)
         child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-        result["replies"] = record["replies"].map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
+        result["replies"] = record["replies"].map { |element| @child_0._to_hash(element, context, scope, child_filter) }
       end
       result
     else
@@ -55,7 +55,7 @@ class RecursiveSelfCommentSerializer_Hash < Fixtures::BaseSerializer
       end
       unless filters.drops?(2)
         child_filter = filters.child(:replies, RecursiveSelfCommentSerializer_Hash::FIELD_INDEX)
-        result["replies"] = record.replies.map { |element| @replies_serializer._to_hash(element, context, scope, child_filter) }
+        result["replies"] = record.replies.map { |element| @child_0._to_hash(element, context, scope, child_filter) }
       end
       result
     end

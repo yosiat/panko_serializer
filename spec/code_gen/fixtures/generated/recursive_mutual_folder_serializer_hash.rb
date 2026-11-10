@@ -17,7 +17,7 @@ class RecursiveMutualFolderSerializer_Hash < Fixtures::BaseSerializer
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @items_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualItemSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @child_0 = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualItemSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -45,7 +45,7 @@ class RecursiveMutualFolderSerializer_Hash < Fixtures::BaseSerializer
       end
       unless filters.drops?(2)
         child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
-        result["items"] = record["items"].map { |element| @items_serializer._to_hash(element, context, scope, child_filter) }
+        result["items"] = record["items"].map { |element| @child_0._to_hash(element, context, scope, child_filter) }
       end
       result
     else
@@ -58,7 +58,7 @@ class RecursiveMutualFolderSerializer_Hash < Fixtures::BaseSerializer
       end
       unless filters.drops?(2)
         child_filter = filters.child(:items, RecursiveMutualItemSerializer_Hash::FIELD_INDEX)
-        result["items"] = record.items.map { |element| @items_serializer._to_hash(element, context, scope, child_filter) }
+        result["items"] = record.items.map { |element| @child_0._to_hash(element, context, scope, child_filter) }
       end
       result
     end

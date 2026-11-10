@@ -70,33 +70,33 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
   describe "Composition wiring" do
     let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
 
-    it "hoists @author_serializer once at construction; the same instance is reused across serialize_one calls" do
+    it "hoists @child_0 once at construction; the same instance is reused across serialize_one calls" do
       generated = generated_class.new(descriptor: descriptor)
-      first = generated.instance_variable_get(:@author_serializer)
+      first = generated.instance_variable_get(:@child_0)
       generated.serialize_one({"id" => 1, "author" => {"id" => 7, "name" => "alice"}, "comments" => []})
       generated.serialize_one({"id" => 2, "author" => nil, "comments" => []})
-      second = generated.instance_variable_get(:@author_serializer)
+      second = generated.instance_variable_get(:@child_0)
       expect(first).to equal(second)
     end
 
-    it "hoists @comments_serializer once at construction; the same instance is reused across serialize_one calls" do
+    it "hoists @child_1 once at construction; the same instance is reused across serialize_one calls" do
       generated = generated_class.new(descriptor: descriptor)
-      first = generated.instance_variable_get(:@comments_serializer)
+      first = generated.instance_variable_get(:@child_1)
       generated.serialize_one({"id" => 1, "author" => nil, "comments" => [{"id" => 11, "body" => "x"}]})
       generated.serialize_one({"id" => 2, "author" => nil, "comments" => []})
-      second = generated.instance_variable_get(:@comments_serializer)
+      second = generated.instance_variable_get(:@child_1)
       expect(first).to equal(second)
     end
 
-    it "@author_serializer is an instance of the inner Generated Class" do
+    it "@child_0 is an instance of the inner Generated Class" do
       generated = generated_class.new(descriptor: descriptor)
-      author_serializer = generated.instance_variable_get(:@author_serializer)
+      author_serializer = generated.instance_variable_get(:@child_0)
       expect(author_serializer).to respond_to(:_write_one)
     end
 
-    it "@comments_serializer is an instance of the inner Generated Class - every iteration is monomorphic" do
+    it "@child_1 is an instance of the inner Generated Class - every iteration is monomorphic" do
       generated = generated_class.new(descriptor: descriptor)
-      comments_serializer = generated.instance_variable_get(:@comments_serializer)
+      comments_serializer = generated.instance_variable_get(:@child_1)
       expect(comments_serializer).to respond_to(:_write_one)
     end
   end
@@ -130,8 +130,8 @@ RSpec.describe "Generated Class for Fixtures::NestedComposition" do
       it "yields one Generated Class per unique nested Descriptor in #{mode} mode (shared inner deduped)" do
         diamond_class = Panko::CodeGen.compile(diamond, output: mode, config: config)
         instance = diamond_class.new(descriptor: diamond)
-        first = instance.instance_variable_get(:@first_serializer)
-        second = instance.instance_variable_get(:@second_serializer)
+        first = instance.instance_variable_get(:@child_0)
+        second = instance.instance_variable_get(:@child_1)
         expect(first.class).to equal(second.class)
       end
     end

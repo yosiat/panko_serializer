@@ -17,7 +17,7 @@ class RecursiveMutualItemSerializer_Hash < Fixtures::BaseSerializer
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @child_0 = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_Hash.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -48,7 +48,7 @@ class RecursiveMutualItemSerializer_Hash < Fixtures::BaseSerializer
         result["subfolder"] = if value.nil?
           nil
         else
-          @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+          @child_0._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
         end
       end
       result
@@ -65,7 +65,7 @@ class RecursiveMutualItemSerializer_Hash < Fixtures::BaseSerializer
         result["subfolder"] = if value.nil?
           nil
         else
-          @subfolder_serializer._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
+          @child_0._to_hash(value, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_Hash::FIELD_INDEX))
         end
       end
       result

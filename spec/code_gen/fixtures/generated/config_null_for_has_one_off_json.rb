@@ -94,7 +94,7 @@ class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @inner_serializer = ConfigNullForHasOneOffInnerSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
+    @child_0 = ConfigNullForHasOneOffInnerSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -156,7 +156,7 @@ class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
         value = record["inner"]
         unless value.nil?
           writer.push_key("inner")
-          @inner_serializer._write_one(value, writer, context, scope, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
+          @child_0._write_one(value, writer, context, scope, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
         end
       end
       writer.pop
@@ -169,7 +169,7 @@ class ConfigNullForHasOneOffSerializer_JSON < Fixtures::BaseSerializer
         value = record.inner
         unless value.nil?
           writer.push_key("inner")
-          @inner_serializer._write_one(value, writer, context, scope, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
+          @child_0._write_one(value, writer, context, scope, filters.child(:inner, ConfigNullForHasOneOffInnerSerializer_JSON::FIELD_INDEX))
         end
       end
       writer.pop

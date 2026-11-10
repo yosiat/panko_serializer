@@ -16,7 +16,7 @@ class RecursiveMutualItemSerializer_JSON < Fixtures::BaseSerializer
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @subfolder_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @child_0 = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualFolderSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -83,7 +83,7 @@ class RecursiveMutualItemSerializer_JSON < Fixtures::BaseSerializer
           writer.push_value(nil, "subfolder")
         else
           writer.push_key("subfolder")
-          @subfolder_serializer._write_one(value, writer, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
+          @child_0._write_one(value, writer, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
         end
       end
       writer.pop
@@ -101,7 +101,7 @@ class RecursiveMutualItemSerializer_JSON < Fixtures::BaseSerializer
           writer.push_value(nil, "subfolder")
         else
           writer.push_key("subfolder")
-          @subfolder_serializer._write_one(value, writer, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
+          @child_0._write_one(value, writer, context, scope, filters.child(:subfolder, RecursiveMutualFolderSerializer_JSON::FIELD_INDEX))
         end
       end
       writer.pop
@@ -115,7 +115,7 @@ class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
 
   def initialize(descriptor:, _construct_cache: {})
     _construct_cache[descriptor.__id__] = self
-    @items_serializer = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualItemSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
+    @child_0 = (_construct_cache[descriptor.associations[0].descriptor.__id__] ||= RecursiveMutualItemSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor, _construct_cache: _construct_cache))
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -180,7 +180,7 @@ class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:items, RecursiveMutualItemSerializer_JSON::FIELD_INDEX)
         writer.push_array("items")
         record["items"].each do |element|
-          @items_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_0._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end
@@ -197,7 +197,7 @@ class RecursiveMutualFolderSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:items, RecursiveMutualItemSerializer_JSON::FIELD_INDEX)
         writer.push_array("items")
         record.items.each do |element|
-          @items_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_0._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end

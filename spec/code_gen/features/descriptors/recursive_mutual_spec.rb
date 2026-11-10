@@ -60,22 +60,22 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
     let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
     let(:generated) { generated_class.new(descriptor: descriptor) }
 
-    it "the chain Folder@items_serializer.@subfolder_serializer collapses back to the outer Folder instance" do
-      inner_serializer = generated.instance_variable_get(:@items_serializer)
-      back_to_outer = inner_serializer.instance_variable_get(:@subfolder_serializer)
+    it "the chain Folder@child_0.@child_0 collapses back to the outer Folder instance" do
+      inner_serializer = generated.instance_variable_get(:@child_0)
+      back_to_outer = inner_serializer.instance_variable_get(:@child_0)
       expect(back_to_outer).to equal(generated)
     end
 
     it "Compile produces one Generated Class per unique Descriptor - Folder traversed twice in the cycle resolves to one class" do
-      item_serializer = generated.instance_variable_get(:@items_serializer)
-      folder_via_cycle = item_serializer.instance_variable_get(:@subfolder_serializer)
+      item_serializer = generated.instance_variable_get(:@child_0)
+      folder_via_cycle = item_serializer.instance_variable_get(:@child_0)
       expect(folder_via_cycle.class).to equal(generated_class)
     end
 
     it "the inner Item Generated Class is shared across the cycle (one instance, threaded via _construct_cache)" do
-      item_serializer = generated.instance_variable_get(:@items_serializer)
-      back_to_outer = item_serializer.instance_variable_get(:@subfolder_serializer)
-      item_via_cycle = back_to_outer.instance_variable_get(:@items_serializer)
+      item_serializer = generated.instance_variable_get(:@child_0)
+      back_to_outer = item_serializer.instance_variable_get(:@child_0)
+      item_via_cycle = back_to_outer.instance_variable_get(:@child_0)
       expect(item_via_cycle).to equal(item_serializer)
     end
 
@@ -83,7 +83,7 @@ RSpec.describe "Generated Class for Fixtures::RecursiveMutual" do
       a = generated_class.new(descriptor: descriptor)
       b = generated_class.new(descriptor: descriptor)
       expect(a).not_to equal(b)
-      expect(a.instance_variable_get(:@items_serializer)).not_to equal(b.instance_variable_get(:@items_serializer))
+      expect(a.instance_variable_get(:@child_0)).not_to equal(b.instance_variable_get(:@child_0))
     end
   end
 

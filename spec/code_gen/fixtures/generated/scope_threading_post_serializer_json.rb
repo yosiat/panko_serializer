@@ -18,11 +18,11 @@ class ScopeThreadingPostSerializer_JSON < Fixtures::BaseSerializer
   POOL = Panko::CodeGen::WritersPool::IsolatedExecutionState.new
 
   def initialize(descriptor:)
-    @cb_legacy_label = descriptor.method_attributes[0].body
-    @cb_viewer_label = descriptor.method_attributes[1].body
-    @cb_if_author = descriptor.associations[0].if
-    @author_serializer = ScopeThreadingAuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
-    @comments_serializer = ScopeThreadingCommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
+    @cb_0 = descriptor.method_attributes[0].body
+    @cb_1 = descriptor.method_attributes[1].body
+    @cb_if_0 = descriptor.associations[0].if
+    @child_0 = ScopeThreadingAuthorSerializer_JSON.new(descriptor: descriptor.associations[0].descriptor)
+    @child_1 = ScopeThreadingCommentSerializer_JSON.new(descriptor: descriptor.associations[1].descriptor)
   end
 
   def serialize_one(record, context: nil, scope: nil, filters: nil)
@@ -81,13 +81,13 @@ class ScopeThreadingPostSerializer_JSON < Fixtures::BaseSerializer
         writer.push_value(record["id"], "id")
       end
       unless filters.drops?(3)
-        if @cb_if_author.call(record, context, scope)
+        if @cb_if_0.call(record, context, scope)
           value = record["author"]
           if value.nil?
             writer.push_value(nil, "author")
           else
             writer.push_key("author")
-            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
+            @child_0._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
           end
         end
       end
@@ -95,18 +95,18 @@ class ScopeThreadingPostSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_JSON::FIELD_INDEX)
         writer.push_array("comments")
         record["comments"].each do |element|
-          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_1._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end
       unless filters.drops?(1)
-        value = @cb_legacy_label.call(record, context)
+        value = @cb_0.call(record, context)
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "legacy_label")
         end
       end
       unless filters.drops?(2)
-        value = @cb_viewer_label.call(record, context, scope)
+        value = @cb_1.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "viewer_label")
         end
@@ -118,13 +118,13 @@ class ScopeThreadingPostSerializer_JSON < Fixtures::BaseSerializer
         writer.push_value(record.id, "id")
       end
       unless filters.drops?(3)
-        if @cb_if_author.call(record, context, scope)
+        if @cb_if_0.call(record, context, scope)
           value = record.author
           if value.nil?
             writer.push_value(nil, "author")
           else
             writer.push_key("author")
-            @author_serializer._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
+            @child_0._write_one(value, writer, context, scope, filters.child(:author, ScopeThreadingAuthorSerializer_JSON::FIELD_INDEX))
           end
         end
       end
@@ -132,18 +132,18 @@ class ScopeThreadingPostSerializer_JSON < Fixtures::BaseSerializer
         child_filter = filters.child(:comments, ScopeThreadingCommentSerializer_JSON::FIELD_INDEX)
         writer.push_array("comments")
         record.comments.each do |element|
-          @comments_serializer._write_one(element, writer, context, scope, child_filter)
+          @child_1._write_one(element, writer, context, scope, child_filter)
         end
         writer.pop
       end
       unless filters.drops?(1)
-        value = @cb_legacy_label.call(record, context)
+        value = @cb_0.call(record, context)
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "legacy_label")
         end
       end
       unless filters.drops?(2)
-        value = @cb_viewer_label.call(record, context, scope)
+        value = @cb_1.call(record, context, scope)
         unless value.equal?(Panko::CodeGen::SKIP)
           writer.push_value(value, "viewer_label")
         end

@@ -19,15 +19,15 @@ module Panko::CodeGen
             sink.attribute(attribute, read_expr.call(attribute.source), config, index, builder)
           end
         end
-        descriptor.associations.each do |association|
+        descriptor.associations.each_with_index do |association, position|
           sink.association(
-            association, read_expr.call(association.source), config,
+            association, position, read_expr.call(association.source), config,
             field_index.fetch(GeneratedNames.filter_key(association)), builder
           )
         end
-        descriptor.method_attributes.each do |method_attribute|
+        descriptor.method_attributes.each_with_index do |method_attribute, position|
           sink.method_attribute(
-            method_attribute, config,
+            method_attribute, position, config,
             field_index.fetch(GeneratedNames.filter_key(method_attribute)), builder
           )
         end

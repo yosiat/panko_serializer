@@ -53,16 +53,16 @@ RSpec.describe "Generated Class for Fixtures::RecursiveSelf" do
     end
   end
 
-  describe "Self-recursion wiring - @<name>_serializer = self" do
+  describe "Self-recursion wiring - @child_<position> = self" do
     let(:generated_class) { Panko::CodeGen.compile(descriptor, output: :json, config: config) }
     let(:generated) { generated_class.new(descriptor: descriptor) }
 
-    it "@replies_serializer is the parent serializer instance itself (one Generated Class instance per unique Descriptor)" do
-      expect(generated.instance_variable_get(:@replies_serializer)).to equal(generated)
+    it "@child_0 is the parent serializer instance itself (one Generated Class instance per unique Descriptor)" do
+      expect(generated.instance_variable_get(:@child_0)).to equal(generated)
     end
 
     it "Compile produces one Generated Class per unique Descriptor - the self-reference shares the same class" do
-      replies_serializer = generated.instance_variable_get(:@replies_serializer)
+      replies_serializer = generated.instance_variable_get(:@child_0)
       expect(replies_serializer.class).to equal(generated_class)
     end
   end

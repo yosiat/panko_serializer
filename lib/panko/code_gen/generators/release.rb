@@ -25,11 +25,11 @@ module Panko::CodeGen
         end
       end
 
-      def child_ivars(assoc)
+      def child_ivars(assoc, position)
         variants = assoc.variants.each_with_index.map do |variant, index|
-          [GeneratedNames.variant_serializer_ivar(assoc, index), variant]
+          [GeneratedNames.variant_serializer_ivar(position, index), variant]
         end
-        [[GeneratedNames.serializer_ivar(assoc), assoc.descriptor], *variants]
+        [[GeneratedNames.serializer_ivar(position), assoc.descriptor], *variants]
       end
 
       # Every class defines +_release+, even an empty one: the serializers call it
@@ -42,8 +42,8 @@ module Panko::CodeGen
             builder.line "@context = nil"
             builder.line "@scope = nil"
           end
-          descriptor.associations.each do |assoc|
-            child_ivars(assoc).each do |ivar, child|
+          descriptor.associations.each_with_index do |assoc, position|
+            child_ivars(assoc, position).each do |ivar, child|
               next if child.equal?(descriptor)
               # Ends the chain without per-call visited state; such serializers keep their last record until the next call.
               next if cyclic_ids[descriptor.__id__] && cyclic_ids[child.__id__]

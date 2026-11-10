@@ -76,16 +76,16 @@ module Panko::CodeGen
           builder.line "_construct_cache[descriptor.__id__] = self" if cyclic_self
           descriptor.method_attributes.each_with_index do |method_attribute, index|
             next if method_attribute.body.is_a?(Symbol)
-            ivar = GeneratedNames.callable_ivar(method_attribute)
+            ivar = GeneratedNames.callable_ivar(index)
             builder.line "#{ivar} = descriptor.method_attributes[#{index}].body"
           end
           descriptor.associations.each_with_index do |assoc, i|
             if assoc.if
-              builder.line "#{GeneratedNames.if_guard_ivar(assoc)} = descriptor.associations[#{i}].if"
+              builder.line "#{GeneratedNames.if_guard_ivar(i)} = descriptor.associations[#{i}].if"
             end
             builder.line emit_serializer_assignment(descriptor, assoc, i, cyclic_ids)
             assoc.variants.each_with_index do |variant, v|
-              builder.line "#{GeneratedNames.variant_serializer_ivar(assoc, v)} = " \
+              builder.line "#{GeneratedNames.variant_serializer_ivar(i, v)} = " \
                 "#{GeneratedNames.class_name(variant, @sink.suffix)}.new(descriptor: descriptor.associations[#{i}].variants[#{v}])"
             end
           end
@@ -96,7 +96,7 @@ module Panko::CodeGen
       # The cache is passed only when both ends are cyclic: a child outside
       # the cycle has a constructor without the +_construct_cache:+ kwarg.
       def emit_serializer_assignment(descriptor, assoc, i, cyclic_ids)
-        ivar = GeneratedNames.serializer_ivar(assoc)
+        ivar = GeneratedNames.serializer_ivar(i)
         if assoc.descriptor.equal?(descriptor)
           "#{ivar} = self"
         elsif cyclic_ids[descriptor.__id__] && cyclic_ids[assoc.descriptor.__id__]

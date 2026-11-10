@@ -20,11 +20,9 @@ module Panko::CodeGen
         index
       end
 
-      # The +name: N+ shorthand parses only for identifier-style names.
+      # Ruby 3.4+ +Hash#inspect+ quotes a Symbol key that is not an identifier (+"2fa": 0+).
       def to_hash_literal(field_index)
-        return "{}" if field_index.empty?
-        pairs = field_index.map { |name, idx| "#{name}: #{idx}" }
-        "{#{pairs.join(", ")}}"
+        field_index.inspect
       end
     end
   end

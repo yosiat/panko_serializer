@@ -124,14 +124,14 @@ RSpec.describe "Association if: - Callable guard contract" do
   describe "(5) if: nil (no guard) → Association always emits - zero runtime cost" do
     %i[json hash].each do |mode|
       context "with #{mode} mode" do
-        it "emits the has_one key without any if-branch (no @cb_if_<name> ivar hoisted)" do
+        it "emits the has_one key without any if-branch (no @cb_if_<position> ivar hoisted)" do
           descriptor = descriptor_with(associations: [has_one(:child)])
           generated = compile(descriptor, mode)
           record = {"id" => 1, "child" => {"id" => 7}}
           expected = (mode == :json) ? '{"id":1,"child":{"id":7}}' : {"id" => 1, "child" => {"id" => 7}}
           expect(generated.serialize_one(record)).to eq(expected)
-          expect(generated.instance_variables).not_to include(:@cb_if_child)
-          expect(generated.instance_variables).to include(:@child_serializer)
+          expect(generated.instance_variables).not_to include(:@cb_if_0)
+          expect(generated.instance_variables).to include(:@child_0)
         end
 
         it "emits the has_many key without any if-branch" do
@@ -140,7 +140,7 @@ RSpec.describe "Association if: - Callable guard contract" do
           record = {"id" => 1, "children" => [{"id" => 7}]}
           expected = (mode == :json) ? '{"id":1,"children":[{"id":7}]}' : {"id" => 1, "children" => [{"id" => 7}]}
           expect(generated.serialize_one(record)).to eq(expected)
-          expect(generated.instance_variables).not_to include(:@cb_if_children)
+          expect(generated.instance_variables).not_to include(:@cb_if_0)
         end
       end
     end

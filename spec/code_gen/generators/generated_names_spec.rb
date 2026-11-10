@@ -40,22 +40,34 @@ RSpec.describe Panko::CodeGen::Generators::GeneratedNames do
     end
   end
 
-  describe ".serializer_ivar" do
-    it "derives the Composition ivar from the association's declared name" do
-      expect(described_class.serializer_ivar(association)).to eq("@author_serializer")
-      expect(described_class.serializer_ivar(aliased_association)).to eq("@history_serializer")
+  describe "instance variable names" do
+    it "derives each ivar from the Field's position, not its name" do
+      expect(described_class.serializer_ivar(1)).to eq("@child_1")
+      expect(described_class.variant_serializer_ivar(1, 0)).to eq("@child_1_0")
+      expect(described_class.callable_ivar(2)).to eq("@cb_2")
+      expect(described_class.if_guard_ivar(1)).to eq("@cb_if_1")
     end
   end
 
-  describe ".callable_ivar" do
-    it "derives the hoisted-Callable ivar from the method attribute's name" do
-      expect(described_class.callable_ivar(method_attribute)).to eq("@cb_slug")
+  describe "literals" do
+    let(:names) { [:"2faEnabled", :'a"b', :"\#{raise}", :"user-name", :id] }
+
+    it "writes a String literal that evaluates back to the name" do
+      names.each { |name| expect(eval(described_class.string_literal(name))).to eq(name.to_s) } # rubocop:disable Security/Eval
+    end
+
+    it "writes a Symbol literal that evaluates back to the name" do
+      names.each { |name| expect(eval(described_class.symbol_literal(name))).to eq(name) } # rubocop:disable Security/Eval
     end
   end
 
-  describe ".if_guard_ivar" do
-    it "derives the if-guard ivar from the association's declared name" do
-      expect(described_class.if_guard_ivar(association)).to eq("@cb_if_author")
+  describe ".method_call" do
+    it "uses dot syntax for a name Ruby can parse after a dot" do
+      expect(described_class.method_call("record", :admin?)).to eq("record.admin?")
+    end
+
+    it "uses __send__ for any other name" do
+      expect(described_class.method_call("record", :"2fa")).to eq(%(record.__send__(:"2fa")))
     end
   end
 
