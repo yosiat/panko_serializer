@@ -24,6 +24,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4"
+          # No committed Gemfile.lock pins Bundler, and Ruby 3.4 ships 2.x,
+          # which would rewrite BUNDLED WITH in every lockfile.
+          bundler: latest
           bundler-cache: true
 
       - run: bundle exec appraisal update
