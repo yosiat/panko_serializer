@@ -21,6 +21,8 @@ require "scope_threading"
 require "parent_class_specialized"
 require "parent_class_generic"
 require "parent_class_recursive_self"
+require "parent_class_memoized"
+require "parent_class_dynamic_ivars"
 
 RSpec.describe "Generator snapshot corpus" do
   fixtures = [
@@ -41,7 +43,9 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::ScopeThreading,
     Fixtures::ParentClassSpecialized,
     Fixtures::ParentClassGeneric,
-    Fixtures::ParentClassRecursiveSelf
+    Fixtures::ParentClassRecursiveSelf,
+    Fixtures::ParentClassMemoized,
+    Fixtures::ParentClassDynamicIvars
   ]
 
   fixtures.each do |fixture|
