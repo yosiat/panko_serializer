@@ -46,6 +46,11 @@ the new engine differ:
 
 Serializer instances are now reusable: 0.8 raised on a second `serialize` call.
 
+Instance variables your serializer's methods set still last one call: each
+`serialize` and each `Panko::ArraySerializer` call starts without them, and
+the records of one `ArraySerializer` call share them, as in 0.8. Releases 1.0.0
+and 1.0.1 kept them between calls.
+
 ## New, all optional
 
 -   **[`Panko.compile_all` and `models`]({% link configuration.md %}#compiling-at-boot)**

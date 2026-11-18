@@ -235,8 +235,12 @@ Two smaller choices round out the performance story:
     time its record class is seen. Every later call reuses them, so the
     generation cost never appears in your request path after warm-up.
 -   **Pooled instances.** Serializing checks a generated instance out of a
-    small pool and returns it afterward (its per-record state is cleared on
-    return), which avoids allocating a fresh object graph for every call.
+    small pool and returns it afterward, which avoids allocating a fresh
+    object graph for every call. On return the instance drops the record,
+    `context`, `scope`, and every instance variable your serializer's methods
+    set, so a memo such as `@label ||= ...` lasts one `serialize` call. Within
+    one `Panko::ArraySerializer` call the records share one instance, so a
+    memo set for the first record is still there for the next, as in 0.8.
 
 Together these keep the steady-state cost of serializing a record close to the
 irreducible work of reading its values and writing them out.
