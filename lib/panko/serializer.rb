@@ -69,10 +69,10 @@ module Panko
       def method_added(method)
         super
         return if _cg_attributes.nil?
-        index = _cg_attributes.index { |attribute| attribute.source == method }
-        return if index.nil?
-        attribute = _cg_attributes.delete_at(index)
-        _cg_method_attributes << Panko::CodeGen::MethodAttribute.new(name: attribute.name, body: method)
+        matching, self._cg_attributes = _cg_attributes.partition { |attribute| attribute.source == method }
+        matching.each do |attribute|
+          _cg_method_attributes << Panko::CodeGen::MethodAttribute.new(name: attribute.name, body: method)
+        end
       end
 
       # The static public view of this serializer's declared shape.
@@ -91,7 +91,7 @@ module Panko
       private
 
       def add_attribute(source, output)
-        return if _cg_attributes.any? { |attribute| attribute.source == source }
+        return if _cg_attributes.any? { |attribute| attribute.source == source && attribute.name == output }
         _cg_attributes << Panko::CodeGen::Attribute.new(name: output, source: source)
       end
 
