@@ -161,6 +161,44 @@ describe "Attributes Serialization" do
       expect(foo).to serialized_as(FooWithAliasesSerializer, "full_name" => foo.name, "address" => foo.address)
     end
 
+    context "alias of an already declared attribute" do
+      let(:serializer_class) do
+        Class.new(Panko::Serializer) do
+          attributes :name, :address
+          aliases name: :full_name
+        end
+      end
+
+      it "writes both keys for an active record" do
+        foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+        expect(foo).to serialized_as(serializer_class,
+          "name" => foo.name, "address" => foo.address, "full_name" => foo.name)
+      end
+
+      it "writes both keys for a hash" do
+        name = Faker::Lorem.word
+        address = Faker::Lorem.word
+
+        expect({"name" => name, "address" => address}).to serialized_as(serializer_class,
+          "name" => name, "address" => address, "full_name" => name)
+      end
+
+      it "routes both keys through a method with the source name" do
+        computed_name = Faker::Lorem.word
+        method_serializer_class = Class.new(Panko::Serializer) do
+          attributes :name
+          aliases name: :full_name
+
+          define_method(:name) { computed_name }
+        end
+        foo = Foo.create(name: Faker::Lorem.word, address: Faker::Lorem.word)
+
+        expect(foo).to serialized_as(method_serializer_class,
+          "name" => computed_name, "full_name" => computed_name)
+      end
+    end
+
     context "alias with method_fields" do
       let(:data) { {"created_at" => created_at} }
       let(:created_at) { "2023-04-18T09:24:41+00:00" }
