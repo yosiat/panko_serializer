@@ -10,7 +10,7 @@ RSpec.describe Panko::CodeGen::Generators::WrittenIvars do
         def label = "#{@prefix} #{object}"
       end
 
-      expect(described_class.of(klass)).to eq([])
+      expect(described_class.of(klass)).to eq({})
     end
 
     it "names the ivars set by def, define_method, blocks and private helpers" do
@@ -24,7 +24,7 @@ RSpec.describe Panko::CodeGen::Generators::WrittenIvars do
         private def helper = (@helper = 4)
       end
 
-      expect(described_class.of(klass)).to contain_exactly(:@memo, :@defined_memo, :@in_block, :@helper)
+      expect(described_class.of(klass).keys).to contain_exactly(:@memo, :@defined_memo, :@in_block, :@helper)
     end
 
     it "names the ivars set by parent classes and included modules" do
@@ -32,7 +32,7 @@ RSpec.describe Panko::CodeGen::Generators::WrittenIvars do
       parent = Class.new { def inherited_memo = (@inherited_memo = 1) }
       klass = Class.new(parent) { include mixin }
 
-      expect(described_class.of(klass)).to contain_exactly(:@mixed, :@inherited_memo)
+      expect(described_class.of(klass).keys).to contain_exactly(:@mixed, :@inherited_memo)
     end
 
     it "names the ivar behind an attr_writer and ignores an attr_reader" do
@@ -41,7 +41,7 @@ RSpec.describe Panko::CodeGen::Generators::WrittenIvars do
         attr_writer :cached
       end
 
-      expect(described_class.of(klass)).to eq([:@cached])
+      expect(described_class.of(klass)).to eq(:@cached => false)
     end
 
     it "reads locals and literal arrays named like instructions as data" do
@@ -53,7 +53,7 @@ RSpec.describe Panko::CodeGen::Generators::WrittenIvars do
         def forwarded(...) = notify(...)
       end
 
-      expect(described_class.of(klass)).to eq([])
+      expect(described_class.of(klass)).to eq({})
     end
 
     it "returns nil when a block calls instance_variable_set" do
@@ -64,12 +64,33 @@ RSpec.describe Panko::CodeGen::Generators::WrittenIvars do
       expect(described_class.of(klass)).to be_nil
     end
 
+    it "marks the ivars a method checks with defined?" do
+      klass = Class.new do
+        def checked_memo
+          return @checked_memo if defined?(@checked_memo)
+          @checked_memo = 1
+        end
+
+        def plain_memo = (@plain_memo ||= 1)
+      end
+
+      expect(described_class.of(klass)).to eq(:@checked_memo => true, :@plain_memo => false)
+    end
+
+    it "returns nil when a method checks an ivar through instance_variable_defined?" do
+      klass = Class.new do
+        def memo = instance_variable_defined?(:@memo) ? @memo : (@memo = 1)
+      end
+
+      expect(described_class.of(klass)).to be_nil
+    end
+
     it "skips initialize, which never runs on a Generated Class instance" do
       klass = Class.new do
         def initialize = (@options = {})
       end
 
-      expect(described_class.of(klass)).to eq([])
+      expect(described_class.of(klass)).to eq({})
     end
 
     it "returns nil when a method sets an ivar through instance_variable_set" do

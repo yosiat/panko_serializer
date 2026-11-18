@@ -33,12 +33,16 @@ module Panko::CodeGen
       end
 
       # A serializer method's memo lasts one serialize call, as it did when each call built a new
-      # serializer. Removed, not set to nil, so a +defined?(@x)+ memo is computed again too.
+      # serializer. An unset ivar reads as nil, so nil clears it unless a method checks it with
+      # +defined?+; those are removed. Nil keeps the instance's shape: removing an ivar and
+      # setting it again on the next call costs a shape change each time.
       def emit_serializer_ivar_clears(descriptor, builder)
-        names = WrittenIvars.of(descriptor.parent_class)
-        return emit_ivar_sweep(descriptor, builder) if names.nil?
-        (names - generated_ivars(descriptor)).each do |name|
-          builder.line "remove_instance_variable(#{name.inspect}) if defined?(#{name})"
+        written = WrittenIvars.of(descriptor.parent_class)
+        return emit_ivar_sweep(descriptor, builder) if written.nil?
+        generated = generated_ivars(descriptor)
+        written.each do |name, checked|
+          next if generated.include?(name)
+          builder.line(checked ? "remove_instance_variable(#{name.inspect}) if defined?(#{name})" : "#{name} = nil")
         end
       end
 

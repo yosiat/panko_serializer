@@ -14,6 +14,6 @@ describe Panko::CodeGen::Generators::WrittenIvars do
       end
     end
 
-    expect(described_class.of(serializer_class)).to eq([])
+    expect(described_class.of(serializer_class)).to eq({})
   end
 end
