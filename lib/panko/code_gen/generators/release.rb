@@ -32,6 +32,44 @@ module Panko::CodeGen
         [[GeneratedNames.serializer_ivar(position), assoc.descriptor], *variants]
       end
 
+      # A serializer method's memo lasts one serialize call, as it did when each call built a new
+      # serializer. An unset ivar reads as nil, so nil clears it unless a method checks it with
+      # +defined?+; those are removed. Nil keeps the instance's shape: removing an ivar and
+      # setting it again on the next call costs a shape change each time.
+      def emit_serializer_ivar_clears(descriptor, builder)
+        written = WrittenIvars.of(descriptor.parent_class)
+        return emit_ivar_sweep(descriptor, builder) if written.nil?
+        generated = generated_ivars(descriptor)
+        written.each do |name, checked|
+          next if generated.include?(name)
+          builder.line(checked ? "remove_instance_variable(#{name.inspect}) if defined?(#{name})" : "#{name} = nil")
+        end
+      end
+
+      def emit_ivar_sweep(descriptor, builder)
+        builder.line "instance_variables.each do |name|"
+        builder.indent do
+          builder.line "case name"
+          builder.line "when #{generated_ivars(descriptor).map(&:inspect).join(", ")}"
+          builder.line "else remove_instance_variable(name)"
+          builder.line "end"
+        end
+        builder.line "end"
+      end
+
+      # Must match the ivars +ClassEmitter#emit_initialize+ and the record access code set.
+      def generated_ivars(descriptor)
+        names = %i[@object @context @scope]
+        descriptor.method_attributes.each_with_index do |method_attribute, index|
+          names << GeneratedNames.callable_ivar(index).to_sym unless method_attribute.body.is_a?(Symbol)
+        end
+        descriptor.associations.each_with_index do |assoc, position|
+          names << GeneratedNames.if_guard_ivar(position).to_sym if assoc.if
+          child_ivars(assoc, position).each { |ivar, _child| names << ivar.to_sym }
+        end
+        names
+      end
+
       # Every class defines +_release+, even an empty one: the serializers call it
       # on every checkin without checking.
       def emit(descriptor, builder, cyclic_ids)
@@ -41,11 +79,13 @@ module Panko::CodeGen
             builder.line "@object = nil"
             builder.line "@context = nil"
             builder.line "@scope = nil"
+            emit_serializer_ivar_clears(descriptor, builder)
           end
           descriptor.associations.each_with_index do |assoc, position|
             child_ivars(assoc, position).each do |ivar, child|
               next if child.equal?(descriptor)
-              # Ends the chain without per-call visited state; such serializers keep their last record until the next call.
+              # Ends the chain without per-call visited state; such serializers keep their last record and memos
+              # until the next call. Only a hand-built Descriptor can form a cycle: the DSL snapshots each child.
               next if cyclic_ids[descriptor.__id__] && cyclic_ids[child.__id__]
               next unless subtree_releases?(child, cyclic_ids)
               builder.line "#{ivar}._release"
