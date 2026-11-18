@@ -15,7 +15,8 @@ module Panko::CodeGen
       module_function
 
       # Each written name maps to whether a method checks it with +defined?+, or nil when
-      # a method can set or check one the scan cannot name.
+      # a method can set or check one the scan cannot name. Names are sorted: method table order
+      # varies between runs, and the generated code must not.
       # +initialize+ is skipped: a Generated Class defines its own, so the serializer's never runs on it.
       def of(klass)
         return nil unless defined?(RubyVM::InstructionSequence)
@@ -28,7 +29,7 @@ module Panko::CodeGen
             return nil unless collect(mod.instance_method(name), written, checked)
           end
         end
-        written.to_h { |name, _| [name, checked.key?(name)] }
+        written.keys.sort.to_h { |name| [name, checked.key?(name)] }
       end
 
       # False when the method can set an instance variable without naming it.
