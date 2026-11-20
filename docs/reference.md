@@ -21,6 +21,7 @@ Detailed reference for Panko's API and DSL.
 -   [Response]({% link response-bag.md %}): `Panko::Response` and
     `Panko::JsonValue` for composing responses.
 -   [Configuration]({% link configuration.md %}): `Panko.configure`, the
-    auto-specialization and writer pool settings, and `Panko.compile_all`.
+    auto-specialization, writer pool and key transform settings, and
+    `Panko.compile_all`.
 -   [Descriptor]({% link descriptor.md %}): `Panko::Descriptor`, the
     read-only view of a serializer's shape for preloaders and other tooling.

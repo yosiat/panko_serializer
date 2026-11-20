@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "active_support/inflector"
+
 module Panko
   # Process-global settings, read at serialize time. Set them in an
   # initializer, before serializers compile:
@@ -41,8 +43,11 @@ module Panko
       end
     end
 
+    KEY_TRANSFORMS = [nil, :camel_lower, :camel, :dash, :underscore].freeze
+
     @auto_specialization = AutoSpecialization.new
     @writer_pool_max_bytes = 1_048_576
+    @key_transform = nil
 
     class << self
       attr_reader :auto_specialization
@@ -60,6 +65,36 @@ module Panko
             "writer_pool_max_bytes: must be a positive Integer; got #{value.inspect}:#{value.class}"
         end
         @writer_pool_max_bytes = value
+      end
+
+      # Output key casing for declared attribute and association names:
+      # +:camel_lower+ (+created_at+ to +createdAt+), +:camel+ (+CreatedAt+),
+      # +:dash+ (+created-at+), +:underscore+ (+createdAt+ to +created_at+),
+      # or +nil+ to keep them as declared. Read when a serializer declares a
+      # field, so set it before serializer classes load. +aliases+ and
+      # +name:+ keys are kept as written.
+      #
+      # @return [Symbol, nil] default +nil+
+      attr_reader :key_transform
+
+      def key_transform=(value)
+        unless KEY_TRANSFORMS.include?(value)
+          raise ArgumentError,
+            "key_transform: must be :camel_lower, :camel, :dash, :underscore or nil; got #{value.inspect}:#{value.class}"
+        end
+        @key_transform = value
+      end
+
+      # @param key [Symbol] a declared field name
+      # @return [Symbol] +key+ in the configured {key_transform} casing
+      def transform_key(key)
+        case @key_transform
+        when :camel_lower then ActiveSupport::Inflector.camelize(key.to_s, false).to_sym
+        when :camel then ActiveSupport::Inflector.camelize(key.to_s).to_sym
+        when :dash then ActiveSupport::Inflector.dasherize(ActiveSupport::Inflector.underscore(key.to_s)).to_sym
+        when :underscore then ActiveSupport::Inflector.underscore(key.to_s).to_sym
+        else key
+        end
       end
     end
   end

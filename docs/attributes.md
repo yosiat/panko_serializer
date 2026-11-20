@@ -103,6 +103,10 @@ end
 
 Here `created_at` is read as a regular column, but emitted as `published_at`.
 
+To rename every key the same way (`created_at` to `createdAt`), set
+[`key_transform`]({% link configuration.md %}#key_transform) instead of
+aliasing each field. An alias is emitted exactly as written, transform or not.
+
 ## Filtering attributes
 
 To serialize a subset of attributes (with `only` / `except`, nested filters,

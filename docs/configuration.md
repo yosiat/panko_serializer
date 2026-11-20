@@ -7,10 +7,11 @@ parent: Reference
 
 # Configuration
 
-Panko works with zero configuration. Two areas are tunable:
+Panko works with zero configuration. Three areas are tunable:
 **auto-specialization**, the per-record-class compilation described in
 [Design Choices]({% link design-choices.md %}#specializing-per-record-class),
-and the size limit of the reused JSON writers (`writer_pool_max_bytes`).
+the size limit of the reused JSON writers (`writer_pool_max_bytes`), and the
+casing of output keys (`key_transform`).
 
 Settings are process-global and read at serialization time. Set them once, in
 an initializer, before your app starts serializing:
@@ -88,6 +89,55 @@ above the limit pay one writer allocation per call. It must be a positive
 ```ruby
 Panko::Config.writer_pool_max_bytes = 256 * 1024
 ```
+
+## `key_transform`
+
+Renames every declared attribute and association key, so a Ruby `snake_case`
+name can come out as `camelCase` (or another casing) without an alias per
+field:
+
+```ruby
+# config/initializers/panko.rb
+Panko.configure do |config|
+  config.key_transform = :camel_lower
+end
+
+class PostSerializer < Panko::Serializer
+  attributes :id, :created_at
+  has_many :comment_threads, serializer: CommentThreadSerializer
+end
+
+PostSerializer.new.serialize(post)
+# => {"id" => 1, "createdAt" => "...", "commentThreads" => [...]}
+```
+
+| Value | `created_at` becomes |
+| --- | --- |
+| `nil` (default) | `created_at` |
+| `:camel_lower` | `createdAt` |
+| `:camel` | `CreatedAt` |
+| `:dash` | `created-at` |
+| `:underscore` | `created_at` (and `createdAt` becomes `created_at`) |
+
+Every transform goes through `ActiveSupport::Inflector`, so acronyms you
+declare with `inflect.acronym` apply. `:underscore` is for names declared in
+camelCase, typically method attributes. Any other value raises `ArgumentError`.
+
+An explicit key wins: `aliases created_at: :published_on` emits
+`published_on`, and `has_many :comments, name: :all_comments` emits
+`all_comments`, whatever the transform.
+
+Filters keep their usual keys, which means attributes and associations differ
+(see [Filters]({% link filters.md %})):
+
+- An attribute is filtered by its output key: `only: [:createdAt]`.
+- An association is filtered by its declared name: `only: [:comment_threads]`,
+  and the same name keys its entry in a nested filter Hash.
+
+Unlike the other settings, `key_transform` is read when a serializer **declares**
+a field, not when it serializes. Set it in an initializer that runs before your
+serializer classes load. A serializer class defined before the assignment keeps
+the keys it was declared with.
 
 ## Compiling at boot
 
@@ -183,6 +233,9 @@ expect(result.errors).to be_empty
 If you warm serializers up before forking, do it after `compile_all`.
 
 ## When the settings apply
+
+`key_transform` is read when a serializer class declares its fields; see
+[`key_transform`](#key_transform).
 
 The `auto_specialization` settings are read when a serializer meets a record class for the first
 time. Changing them later in the process doesn't recompile or discard variants

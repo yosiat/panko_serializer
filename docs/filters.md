@@ -44,8 +44,10 @@ Panko::ArraySerializer.new(User.all, each_serializer: UserSerializer, only: [:na
 An association is filtered by its **declared name** (the first argument of
 `has_one` / `has_many`), never by its output key.
 
-The two differ only when the association carries a `name:` alias. For
-example, given:
+The two differ when the association carries a `name:` alias, or when
+[`key_transform`]({% link configuration.md %}#key_transform) renames it
+(`has_many :comment_threads` emits `commentThreads` under `:camel_lower`, and
+is still filtered as `:comment_threads`). For example, given:
 
 ```ruby
 has_many :state_transitions, name: :history
@@ -60,6 +62,10 @@ PostSerializer.new(except: [:state_transitions])
 
 The same declared name keys the association's entry in a
 [nested filter](#nested-filters) Hash.
+
+With [`key_transform`]({% link configuration.md %}#key_transform) set, the
+same rule holds: filter attributes by their transformed output key
+(`:createdAt`) and associations by their declared name (`:comment_threads`).
 
 ## Nested filters
 
