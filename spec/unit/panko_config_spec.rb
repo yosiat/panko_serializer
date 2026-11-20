@@ -14,11 +14,13 @@ describe Panko::Config do
     original_capacity = described_class.auto_specialization.capacity
     original_enabled = described_class.auto_specialization.enabled
     original_writer_pool_max_bytes = described_class.writer_pool_max_bytes
+    original_key_transform = described_class.key_transform
     example.run
   ensure
     described_class.auto_specialization.capacity = original_capacity
     described_class.auto_specialization.enabled = original_enabled
     described_class.writer_pool_max_bytes = original_writer_pool_max_bytes
+    described_class.key_transform = original_key_transform
   end
 
   describe ".auto_specialization" do
@@ -101,6 +103,53 @@ describe Panko::Config do
       expect {
         described_class.writer_pool_max_bytes = "1mb"
       }.to raise_error(ArgumentError, /writer_pool_max_bytes: must be a positive Integer/)
+    end
+  end
+
+  describe ".key_transform" do
+    it "defaults to nil" do
+      expect(described_class.key_transform).to be_nil
+    end
+
+    it "accepts :camel_lower" do
+      described_class.key_transform = :camel_lower
+      expect(described_class.key_transform).to eq(:camel_lower)
+    end
+
+    it "accepts nil" do
+      described_class.key_transform = :camel
+      described_class.key_transform = nil
+      expect(described_class.key_transform).to be_nil
+    end
+
+    it "rejects an unknown transform" do
+      expect {
+        described_class.key_transform = :kebab
+      }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel or nil/)
+    end
+
+    it "rejects the String spelling" do
+      expect {
+        described_class.key_transform = "camel_lower"
+      }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel or nil/)
+    end
+  end
+
+  describe ".transform_key" do
+    let(:key) { :home_address }
+
+    it "keeps the key when no transform is set" do
+      expect(described_class.transform_key(key)).to eq(key)
+    end
+
+    it "lower camelizes with :camel_lower" do
+      described_class.key_transform = :camel_lower
+      expect(described_class.transform_key(key)).to eq(:homeAddress)
+    end
+
+    it "camelizes with :camel" do
+      described_class.key_transform = :camel
+      expect(described_class.transform_key(key)).to eq(:HomeAddress)
     end
   end
 

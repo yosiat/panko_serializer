@@ -35,6 +35,9 @@ class PostSerializer < Panko::Serializer
 end
 ```
 
+The `name:` key is emitted as written, even when
+[`key_transform`]({% link configuration.md %}#key_transform) is set.
+
 > When filtering, refer to an aliased association by its declared name (the
 > first argument), not the `name:` alias. See [Filters]({% link filters.md %}#filtering-associations).
 

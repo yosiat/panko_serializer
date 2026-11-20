@@ -61,6 +61,10 @@ PostSerializer.new(except: [:state_transitions])
 The same declared name keys the association's entry in a
 [nested filter](#nested-filters) Hash.
 
+With [`key_transform`]({% link configuration.md %}#key_transform) set, the
+same rule holds: filter attributes by their transformed output key
+(`:createdAt`) and associations by their declared name (`:comment_threads`).
+
 ## Nested filters
 
 To filter the attributes of associations too, pass a Hash instead of an array.

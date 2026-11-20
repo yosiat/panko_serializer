@@ -57,7 +57,7 @@ module Panko
       end
 
       def attributes(*attrs)
-        attrs.each { |attr| add_attribute(attr.to_sym, attr.to_sym) }
+        attrs.each { |attr| add_attribute(attr.to_sym, Panko::Config.transform_key(attr.to_sym)) }
       end
 
       def aliases(aliases = {})
@@ -101,7 +101,7 @@ module Panko
         only, except = association_filters(serializer, options)
         descriptor = Panko::CodeGen::DescriptorBuilder.narrow(descriptor, only, except)
         _cg_associations << Panko::CodeGen::Association.new(
-          name: options.fetch(:name, name).to_s.to_sym,
+          name: options.key?(:name) ? options[:name].to_s.to_sym : Panko::Config.transform_key(name.to_sym),
           kind: kind,
           descriptor: descriptor,
           source: name.to_sym,
