@@ -43,7 +43,7 @@ module Panko
       end
     end
 
-    KEY_TRANSFORMS = [nil, :camel_lower, :camel].freeze
+    KEY_TRANSFORMS = [nil, :camel_lower, :camel, :dash, :underscore].freeze
 
     @auto_specialization = AutoSpecialization.new
     @writer_pool_max_bytes = 1_048_576
@@ -69,6 +69,7 @@ module Panko
 
       # Output key casing for declared attribute and association names:
       # +:camel_lower+ (+created_at+ to +createdAt+), +:camel+ (+CreatedAt+),
+      # +:dash+ (+created-at+), +:underscore+ (+createdAt+ to +created_at+),
       # or +nil+ to keep them as declared. Read when a serializer declares a
       # field, so set it before serializer classes load. +aliases+ and
       # +name:+ keys are kept as written.
@@ -79,7 +80,7 @@ module Panko
       def key_transform=(value)
         unless KEY_TRANSFORMS.include?(value)
           raise ArgumentError,
-            "key_transform: must be :camel_lower, :camel or nil; got #{value.inspect}:#{value.class}"
+            "key_transform: must be :camel_lower, :camel, :dash, :underscore or nil; got #{value.inspect}:#{value.class}"
         end
         @key_transform = value
       end
@@ -90,6 +91,8 @@ module Panko
         case @key_transform
         when :camel_lower then ActiveSupport::Inflector.camelize(key.to_s, false).to_sym
         when :camel then ActiveSupport::Inflector.camelize(key.to_s).to_sym
+        when :dash then ActiveSupport::Inflector.dasherize(ActiveSupport::Inflector.underscore(key.to_s)).to_sym
+        when :underscore then ActiveSupport::Inflector.underscore(key.to_s).to_sym
         else key
         end
       end

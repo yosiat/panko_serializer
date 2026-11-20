@@ -155,6 +155,43 @@ describe "Key transform" do
     end
   end
 
+  context "with :dash" do
+    let(:key_transform) { :dash }
+
+    it "dasherizes the attribute and association keys" do
+      stub_const("FooSerializer", foo_serializer)
+      holder_serializer = Class.new(Panko::Serializer) do
+        attributes :first_name
+        has_many :foo_items, each_serializer: FooSerializer
+      end
+      holder = FooHolder.create(first_name: first_name)
+      foo = Foo.create(first_name: first_name, home_address: home_address, foo_holder_id: holder.id)
+
+      expect(holder).to serialized_as(holder_serializer,
+        "first-name" => first_name,
+        "foo-items" => [{"first-name" => foo.first_name, "home-address" => foo.home_address}])
+    end
+  end
+
+  context "with :underscore" do
+    let(:key_transform) { :underscore }
+
+    it "underscores a camelCase method attribute key" do
+      serializer = Class.new(Panko::Serializer) do
+        attributes :first_name, :displayName
+
+        def displayName
+          object.first_name.upcase
+        end
+      end
+      foo = Foo.create(first_name: first_name)
+
+      expect(foo).to serialized_as(serializer,
+        "first_name" => first_name,
+        "display_name" => first_name.upcase)
+    end
+  end
+
   context "with nil" do
     let(:key_transform) { nil }
 

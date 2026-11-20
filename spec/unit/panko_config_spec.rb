@@ -125,13 +125,13 @@ describe Panko::Config do
     it "rejects an unknown transform" do
       expect {
         described_class.key_transform = :kebab
-      }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel or nil/)
+      }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel, :dash, :underscore or nil/)
     end
 
     it "rejects the String spelling" do
       expect {
         described_class.key_transform = "camel_lower"
-      }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel or nil/)
+      }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel, :dash, :underscore or nil/)
     end
   end
 
@@ -150,6 +150,21 @@ describe Panko::Config do
     it "camelizes with :camel" do
       described_class.key_transform = :camel
       expect(described_class.transform_key(key)).to eq(:HomeAddress)
+    end
+
+    it "dasherizes with :dash" do
+      described_class.key_transform = :dash
+      expect(described_class.transform_key(key)).to eq(:"home-address")
+    end
+
+    it "dasherizes a camelCase key with :dash" do
+      described_class.key_transform = :dash
+      expect(described_class.transform_key(:homeAddress)).to eq(:"home-address")
+    end
+
+    it "underscores a camelCase key with :underscore" do
+      described_class.key_transform = :underscore
+      expect(described_class.transform_key(:homeAddress)).to eq(key)
     end
   end
 

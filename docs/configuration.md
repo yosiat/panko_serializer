@@ -93,7 +93,8 @@ Panko::Config.writer_pool_max_bytes = 256 * 1024
 ## `key_transform`
 
 Renames every declared attribute and association key, so a Ruby `snake_case`
-name can come out as `camelCase` without an alias per field:
+name can come out as `camelCase` (or another casing) without an alias per
+field:
 
 ```ruby
 # config/initializers/panko.rb
@@ -115,9 +116,12 @@ PostSerializer.new.serialize(post)
 | `nil` (default) | `created_at` |
 | `:camel_lower` | `createdAt` |
 | `:camel` | `CreatedAt` |
+| `:dash` | `created-at` |
+| `:underscore` | `created_at` (and `createdAt` becomes `created_at`) |
 
-Camelizing goes through `ActiveSupport::Inflector`, so acronyms you declare
-with `inflect.acronym` apply. Any other value raises `ArgumentError`.
+Every transform goes through `ActiveSupport::Inflector`, so acronyms you
+declare with `inflect.acronym` apply. `:underscore` is for names declared in
+camelCase, typically method attributes. Any other value raises `ArgumentError`.
 
 An explicit key wins: `aliases created_at: :published_on` emits
 `published_on`, and `has_many :comments, name: :all_comments` emits
