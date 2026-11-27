@@ -13,7 +13,8 @@ module Panko::CodeGen
     :hash_record_key_type,       # :string | :symbol; default: :string, generic path only
     :hash_output_key_type,       # :string | :symbol; default: :string, Hash mode output
     :json_column_emit,           # :wire_format | :html_safe; default: :wire_format, JSON-column emit shape
-    :guarded_model               # Boolean; default: false; per-record Model guard on the Specialized path
+    :guarded_model,              # Boolean; default: false; per-record Model guard on the Specialized path
+    :omit_nil_attributes         # Boolean; default: false; a nil Attribute writes no key
   )
 end
 ```
@@ -120,6 +121,22 @@ contract or verifies it per record.
 
 No effect on the generic path (`model: nil`): there is nothing to guard.
 See [auto-specialization.md](auto-specialization.md) for who sets this and why.
+
+### `omit_nil_attributes` (default: `false`)
+
+Controls what an **Attribute** whose value is `nil` writes.
+
+- `false` (default): the key with `null` / `nil`, as before.
+- `true`: each **Attribute** read is held in `value` and written only `unless value.nil?`,
+  on the generic and Specialized paths, in both **Output Modes**. On the Specialized
+  path a `json` / `jsonb` column whose stored text is the JSON `null` literal is
+  skipped too, so both paths agree with the typed read.
+
+**Method Attributes** and **Associations** are not affected: a **Method Attribute**
+already omits its key by returning **SKIP**, and `has_one` has
+`null_for_missing_has_one`. With `false` the emitted code is unchanged.
+
+Panko fills it from `Panko::Config.omit_nil_attributes` when it compiles a serializer.
 
 ## What belongs in Config vs elsewhere
 

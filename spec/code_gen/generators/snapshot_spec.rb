@@ -17,6 +17,7 @@ require "config/config_json_column_wire_format"
 require "config/config_json_column_html_safe"
 require "config/config_json_column_generic_fallthrough"
 require "config/config_json_column_non_json_specialized"
+require "config/config_omit_nil_attributes"
 require "scope_threading"
 require "parent_class_specialized"
 require "parent_class_generic"
@@ -40,6 +41,7 @@ RSpec.describe "Generator snapshot corpus" do
     Fixtures::Config::ConfigJsonColumnHtmlSafe,
     Fixtures::Config::ConfigJsonColumnGenericFallthrough,
     Fixtures::Config::ConfigJsonColumnNonJsonSpecialized,
+    Fixtures::Config::ConfigOmitNilAttributes,
     Fixtures::ScopeThreading,
     Fixtures::ParentClassSpecialized,
     Fixtures::ParentClassGeneric,

@@ -7,11 +7,12 @@ parent: Reference
 
 # Configuration
 
-Panko works with zero configuration. Three areas are tunable:
+Panko works with zero configuration. Four areas are tunable:
 **auto-specialization**, the per-record-class compilation described in
 [Design Choices]({% link design-choices.md %}#specializing-per-record-class),
-the size limit of the reused JSON writers (`writer_pool_max_bytes`), and the
-casing of output keys (`key_transform`).
+the size limit of the reused JSON writers (`writer_pool_max_bytes`), the
+casing of output keys (`key_transform`), and whether a `nil` attribute is
+written as `null` (`omit_nil_attributes`).
 
 Settings are process-global and read at serialization time. Set them once, in
 an initializer, before your app starts serializing:
@@ -138,6 +139,48 @@ Unlike the other settings, `key_transform` is read when a serializer **declares*
 a field, not when it serializes. Set it in an initializer that runs before your
 serializer classes load. A serializer class defined before the assignment keeps
 the keys it was declared with.
+
+## `omit_nil_attributes`
+
+By default an attribute whose value is `nil` is written as `null`. Set
+`omit_nil_attributes` to leave its key out instead:
+
+```ruby
+# config/initializers/panko.rb
+Panko.configure do |config|
+  config.omit_nil_attributes = true
+end
+
+class PostSerializer < Panko::Serializer
+  attributes :id, :title, :published_at
+end
+
+PostSerializer.new.serialize(draft) # published_at is nil
+# => {"id" => 1, "title" => "Draft"}
+```
+
+| Value | `nil` attribute |
+| --- | --- |
+| `false` (default) | `"published_at": null` |
+| `true` | key left out |
+
+It covers attributes read from the record: a column, a method on the record,
+or a key of a Hash record. Only `nil` is left out; `false`, `""` and empty
+collections are written as usual. A `json` / `jsonb` column that stores the
+JSON `null` literal counts as `nil`.
+
+Two kinds of fields keep their own behavior:
+
+- A [method attribute]({% link serializers.md %}#skipping-a-field) decides for
+  itself: returning `nil` writes `null`, returning `SKIP` leaves the key out.
+- An association is unchanged: a `has_one` that is `nil` is written as `null`.
+
+The value must be `true` or `false`; anything else raises `ArgumentError`.
+
+`omit_nil_attributes` is read when a serializer compiles (on its first use, or
+in [`Panko.compile_all`](#compiling-at-boot)). Set it in an initializer, before
+anything serializes: a serializer compiled before the assignment keeps the
+behavior it was compiled with.
 
 ## Compiling at boot
 

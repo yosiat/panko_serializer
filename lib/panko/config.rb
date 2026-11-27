@@ -48,6 +48,7 @@ module Panko
     @auto_specialization = AutoSpecialization.new
     @writer_pool_max_bytes = 1_048_576
     @key_transform = nil
+    @omit_nil_attributes = false
 
     class << self
       attr_reader :auto_specialization
@@ -83,6 +84,23 @@ module Panko
             "key_transform: must be :camel_lower, :camel, :dash, :underscore or nil; got #{value.inspect}:#{value.class}"
         end
         @key_transform = value
+      end
+
+      # +true+ leaves an attribute's key out when its value is +nil+, instead of
+      # writing +null+. It covers attributes read from the record (a column, a
+      # record method, a Hash key). A method attribute still decides for itself
+      # (+SKIP+ omits, +nil+ writes +null+), and associations are unchanged.
+      # Read when a serializer compiles, so set it before serializers run.
+      #
+      # @return [Boolean] default +false+
+      attr_reader :omit_nil_attributes
+
+      def omit_nil_attributes=(value)
+        unless value.equal?(true) || value.equal?(false)
+          raise ArgumentError,
+            "omit_nil_attributes: must be true or false; got #{value.inspect}:#{value.class}"
+        end
+        @omit_nil_attributes = value
       end
 
       # @param key [Symbol] a declared field name

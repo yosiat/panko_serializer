@@ -52,8 +52,13 @@ module Panko
 
         COMPILE_MUTEX.synchronize do
           slot = state_for!(serializer_class).slot(output)
-          slot.compiled ||= Panko::CodeGen.compile(descriptor, output: output, config: Config.new)
+          slot.compiled ||= Panko::CodeGen.compile(descriptor, output: output, config: compile_config)
         end
+      end
+
+      # The Panko-level settings baked into every Generated Class a serializer compiles.
+      def self.compile_config(**overrides)
+        Config.new(omit_nil_attributes: Panko::Config.omit_nil_attributes, **overrides)
       end
 
       def self.instance_pool(serializer_class, output)
@@ -184,7 +189,7 @@ module Panko
         end
 
         descriptor = DescriptorBuilder.uniquify_names(DescriptorBuilder.specialize(descriptor_for(serializer_class), model))
-        compiled = Panko::CodeGen.compile(descriptor, output: output, config: Config.new(guarded_model: true))
+        compiled = Panko::CodeGen.compile(descriptor, output: output, config: compile_config(guarded_model: true))
         pool = InstancePool.new(
           :"_panko_cg_pool_#{output}_#{serializer_class.object_id}_#{model.object_id}",
           compiled, descriptor

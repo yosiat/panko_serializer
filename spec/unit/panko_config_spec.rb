@@ -15,12 +15,14 @@ describe Panko::Config do
     original_enabled = described_class.auto_specialization.enabled
     original_writer_pool_max_bytes = described_class.writer_pool_max_bytes
     original_key_transform = described_class.key_transform
+    original_omit_nil_attributes = described_class.omit_nil_attributes
     example.run
   ensure
     described_class.auto_specialization.capacity = original_capacity
     described_class.auto_specialization.enabled = original_enabled
     described_class.writer_pool_max_bytes = original_writer_pool_max_bytes
     described_class.key_transform = original_key_transform
+    described_class.omit_nil_attributes = original_omit_nil_attributes
   end
 
   describe ".auto_specialization" do
@@ -132,6 +134,29 @@ describe Panko::Config do
       expect {
         described_class.key_transform = "camel_lower"
       }.to raise_error(ArgumentError, /key_transform: must be :camel_lower, :camel, :dash, :underscore or nil/)
+    end
+  end
+
+  describe ".omit_nil_attributes" do
+    it "defaults to false" do
+      expect(described_class.omit_nil_attributes).to be(false)
+    end
+
+    it "accepts true" do
+      described_class.omit_nil_attributes = true
+      expect(described_class.omit_nil_attributes).to be(true)
+    end
+
+    it "rejects a truthy non-Boolean" do
+      expect {
+        described_class.omit_nil_attributes = 1
+      }.to raise_error(ArgumentError, /omit_nil_attributes: must be true or false/)
+    end
+
+    it "rejects nil" do
+      expect {
+        described_class.omit_nil_attributes = nil
+      }.to raise_error(ArgumentError, /omit_nil_attributes: must be true or false/)
     end
   end
 

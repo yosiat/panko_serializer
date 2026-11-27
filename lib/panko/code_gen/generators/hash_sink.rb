@@ -84,10 +84,15 @@ module Panko::CodeGen
       # +cast: false+ skips +cast_datetime+ when the column type proves the cast would
       # return the value unchanged; the wrapper otherwise runs on every write.
       def attribute(attribute, read_expr, config, index, builder, cast: true)
-        value_expr = cast ? "Panko::CodeGen.cast_datetime(#{read_expr})" : read_expr
+        key_lit = key_literal(attribute.name, config)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          builder.line "result[#{key_literal(attribute.name, config)}] = #{value_expr}"
+          if config.omit_nil_attributes
+            builder.line "value = #{read_expr}"
+            builder.line "result[#{key_lit}] = #{cast ? "Panko::CodeGen.cast_datetime(value)" : "value"} unless value.nil?"
+          else
+            builder.line "result[#{key_lit}] = #{cast ? "Panko::CodeGen.cast_datetime(#{read_expr})" : read_expr}"
+          end
         end
         builder.line "end"
       end
@@ -207,8 +212,13 @@ module Panko::CodeGen
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
           builder.line "value = Panko::CodeGen::DateTimeFormat.format_raw(record.read_attribute_before_type_cast(#{source_lit}))"
-          builder.line "result[#{key_literal(attribute.name, config)}] = value || " \
-            "Panko::CodeGen.cast_datetime(record._read_attribute(#{source_lit}))"
+          if config.omit_nil_attributes
+            builder.line "value = Panko::CodeGen.cast_datetime(record._read_attribute(#{source_lit})) if value.nil?"
+            builder.line "result[#{key_literal(attribute.name, config)}] = value unless value.nil?"
+          else
+            builder.line "result[#{key_literal(attribute.name, config)}] = value || " \
+              "Panko::CodeGen.cast_datetime(record._read_attribute(#{source_lit}))"
+          end
         end
         builder.line "end"
       end

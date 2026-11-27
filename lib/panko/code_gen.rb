@@ -50,6 +50,10 @@ module Panko::CodeGen
   # Passed positionally: a +mode: :strict+ keyword would allocate a Hash per record.
   JSON_STRICT_PARSE_OPTS = {mode: :strict}.freeze
 
+  # Stored JSON text whose typed value is +nil+. With +omit_nil_attributes+ the raw
+  # column path skips it, as the typed read of the same column would.
+  JSON_NULL_TEXT = /\A\s*null\s*\z/
+
   # Returns a new Generated Class on every call. Raises CompileError when +descriptor+
   # cannot be compiled, ArgumentError when +output:+ is not +:json+ or +:hash+.
   def self.compile(descriptor, output:, config: Config.new)
