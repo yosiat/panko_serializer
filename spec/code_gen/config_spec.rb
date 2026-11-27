@@ -26,6 +26,10 @@ RSpec.describe Panko::CodeGen::Config do
       expect(config.json_column_emit).to eq(:wire_format)
     end
 
+    it "defaults omit_nil_attributes to false" do
+      expect(config.omit_nil_attributes).to be(false)
+    end
+
     it "returns a frozen instance" do
       expect(config).to be_frozen
     end
@@ -122,6 +126,12 @@ RSpec.describe Panko::CodeGen::Config do
       expect {
         described_class.new(json_column_emit: "wire_format")
       }.to raise_error(ArgumentError)
+    end
+
+    it "raises ArgumentError when omit_nil_attributes is not a Boolean" do
+      expect {
+        described_class.new(omit_nil_attributes: nil)
+      }.to raise_error(ArgumentError, "Config#omit_nil_attributes: invalid value nil; must be true or false.")
     end
   end
 

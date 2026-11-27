@@ -10,13 +10,16 @@ module Panko::CodeGen
   #   stored bytes after a well-formedness check, +:html_safe+ the typed value, escaped.
   # - +guarded_model+: a record of another class goes to the generic body.
   #   Needs a named +descriptor.model+.
+  # - +omit_nil_attributes+: an Attribute whose value is +nil+ is left out instead of
+  #   written as +null+. Method Attributes and Associations are not affected.
   Config = Data.define(
     :null_for_missing_has_one,
     :supports_root_key,
     :hash_record_key_type,
     :hash_output_key_type,
     :json_column_emit,
-    :guarded_model
+    :guarded_model,
+    :omit_nil_attributes
   )
 
   Config::DEFAULTS = {
@@ -25,7 +28,8 @@ module Panko::CodeGen
     hash_record_key_type: :string,
     hash_output_key_type: :string,
     json_column_emit: :wire_format,
-    guarded_model: false
+    guarded_model: false,
+    omit_nil_attributes: false
   }.freeze
 
   Config::HASH_KEY_TYPES = %i[string symbol].freeze
@@ -48,6 +52,7 @@ module Panko::CodeGen
       validate_enum!(:hash_output_key_type, values[:hash_output_key_type])
       validate_json_column_emit!(values[:json_column_emit])
       validate_boolean!(:guarded_model, values[:guarded_model])
+      validate_boolean!(:omit_nil_attributes, values[:omit_nil_attributes])
     end
 
     def validate_enum!(field, value)

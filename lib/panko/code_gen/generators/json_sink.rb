@@ -102,7 +102,7 @@ module Panko::CodeGen
       def attribute(attribute, read_expr, config, index, builder, cast: true)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
-          builder.line "writer.push_value(#{read_expr}, #{GeneratedNames.string_literal(attribute.name)})"
+          push_attribute(read_expr, GeneratedNames.string_literal(attribute.name), config, builder)
         end
         builder.line "end"
       end
@@ -111,7 +111,7 @@ module Panko::CodeGen
         if RecordAccess::Specialized.json_column_attribute?(attribute, ar_model)
           json_column_attribute(attribute, config, index, builder)
         elsif RecordAccess::Specialized.datetime_column_attribute?(attribute, ar_model)
-          datetime_column_attribute(attribute, index, builder)
+          datetime_column_attribute(attribute, config, index, builder)
         else
           attribute(attribute, RecordAccess::Specialized.attribute_read_expr(attribute, ar_model), config, index, builder)
         end
@@ -260,26 +260,39 @@ module Panko::CodeGen
           end
           builder.line "end)"
           builder.indent do
-            builder.line "writer.push_json(raw, #{key_lit})"
+            if config.omit_nil_attributes
+              builder.line "writer.push_json(raw, #{key_lit}) unless Panko::CodeGen::JSON_NULL_TEXT.match?(raw)"
+            else
+              builder.line "writer.push_json(raw, #{key_lit})"
+            end
           end
           builder.line "else"
           builder.indent do
-            builder.line "writer.push_value(record._read_attribute(#{source_lit}), #{key_lit})"
+            push_attribute("record._read_attribute(#{source_lit})", key_lit, config, builder)
           end
           builder.line "end"
         end
         builder.line "end"
       end
 
-      def datetime_column_attribute(attribute, index, builder)
+      def datetime_column_attribute(attribute, config, index, builder)
         source_lit = GeneratedNames.string_literal(attribute.source)
         builder.line "unless filters.drops?(#{index})"
         builder.indent do
           builder.line "value = Panko::CodeGen::DateTimeFormat.format_raw(record.read_attribute_before_type_cast(#{source_lit}))"
-          builder.line "writer.push_value(value || record._read_attribute(#{source_lit}), " \
-            "#{GeneratedNames.string_literal(attribute.name)})"
+          push_attribute("value || record._read_attribute(#{source_lit})", GeneratedNames.string_literal(attribute.name), config, builder)
         end
         builder.line "end"
+      end
+
+      # With +omit_nil_attributes+ a nil value writes no key, where it would otherwise write +null+.
+      def push_attribute(value_expr, key_lit, config, builder)
+        unless config.omit_nil_attributes
+          builder.line "writer.push_value(#{value_expr}, #{key_lit})"
+          return
+        end
+        builder.line "value = #{value_expr}"
+        builder.line "writer.push_value(value, #{key_lit}) unless value.nil?"
       end
     end
   end

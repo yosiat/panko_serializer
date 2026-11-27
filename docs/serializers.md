@@ -164,6 +164,10 @@ end
 `SKIP` is available as a bare constant inside any `Panko::Serializer` subclass
 (it is `Panko::Serializer::SKIP`).
 
+To leave out every attribute read from the record whenever its value is `nil`,
+set [`omit_nil_attributes`]({% link configuration.md %}#omit_nil_attributes)
+instead of writing a method per attribute.
+
 ### `SKIP` vs. filters
 
 Both `SKIP` and filters drop fields, but they answer different questions:
